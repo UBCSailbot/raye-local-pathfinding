@@ -1,4 +1,5 @@
 # Ubuntu OMPL Docker for mac
+A docker container for running the Open Motion Planning Library (with GUI) on Mac OS in an Ubuntu environment.
 
 ## Install
 - Install quartz 2.7.8
