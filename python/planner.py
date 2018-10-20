@@ -23,6 +23,17 @@ class ValidityChecker(ob.StateValidityChecker):
         return sqrt((x - 0.5) * (x - 0.5) + (y - 0.5) * (y - 0.5)) - 0.25
 
 
+class SailboatStateSpace(ob.RealVectorStateSpace):
+    def distance(self, state1, state2):
+        dist = 0.0
+
+        for i in range(0, self.getDimension()):
+            diff = state1[i] - state2[i]
+            dist += diff * diff
+
+        return sqrt(dist)
+
+
 def getPathLengthObjective(si):
     return ob.PathLengthOptimizationObjective(si)
 
@@ -105,11 +116,10 @@ def allocateObjective(si, objectiveType):
 def plan(runTime, plannerType, objectiveType, fname):
     # Construct the robot state space in which we're planning. We're
     # planning in [0,1]x[0,1], a subset of R^2.
-    space = ob.RealVectorStateSpace(2)
+    space = SailboatStateSpace(2)
 
     # Set the bounds of space to be in [0,1].
     space.setBounds(0.0, 1.0)
-
     # Construct a space information instance for this state space
     si = ob.SpaceInformation(space)
 
@@ -175,7 +185,7 @@ if __name__ == "__main__":
 
     # Add a filename argument
     parser.add_argument('-t', '--runtime', type=float, default=1.0, help=
-        '(Optional) Specify the runtime in seconds. Defaults to 1 and must be greater than 0.')
+    '(Optional) Specify the runtime in seconds. Defaults to 1 and must be greater than 0.')
     parser.add_argument('-p', '--planner', default='RRTstar',
                         choices=['BFMTstar', 'BITstar', 'FMTstar', 'InformedRRTstar', 'PRMstar', 'RRTstar',
                                  'SORRTstar'],
