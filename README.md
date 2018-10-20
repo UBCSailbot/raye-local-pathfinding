@@ -1,3 +1,7 @@
+# Python planning code 
+
+The main planning code in python can be found in `python/planner.py`. This code is meant to provide a baseline for the C++ implementation. 
+
 # Ubuntu OMPL Docker for mac
 A docker container for running the Open Motion Planning Library (with GUI) on Mac OS in an Ubuntu environment.
 
