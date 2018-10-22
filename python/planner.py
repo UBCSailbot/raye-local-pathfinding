@@ -1,3 +1,5 @@
+import math
+
 from ompl import util as ou
 from ompl import base as ob
 from ompl import geometric as og
@@ -12,27 +14,28 @@ class ValidityChecker(ob.StateValidityChecker):
     # Returns whether the given state's position overlaps the
     # circular obstacle
     def isValid(self, state):
-        return self.clearance(state) > 0.2
+        return self.clearance(state) > 0.0
 
     # Returns the distance from the given state's position to the
     # boundary of the circular obstacle.
     def clearance(self, state):
         # Extract the robot's (x,y) position from its state
-        x = state[0]
-        y = state[1]
+        x = state.getX()
+        y = state.getY()
 
         # Distance formula between two points, offset by the circle's
         # radius
-        return sqrt((x - 0.6) * (x - 0.6) + (y - 0.6) * (y - 0.6)) - 0.25
+        return sqrt((x - 0.5) * (x - 0.5) + (y - 0.5) * (y - 0.5)) - 0.25
 
 
-class SailboatStateSpace(ob.RealVectorStateSpace):
+class SailboatStateSpace(ob.SE2StateSpace):
     def distance(self, state1, state2):
         dist = 0.0
 
-        for i in range(0, self.getDimension()):
-            diff = state1[i] - state2[i]
-            dist += diff * diff
+        dist += pow(state1.getX() - state2.getX(), 2)
+
+        diff = pow(state1.getY() - state2.getY(), 2)
+        dist += diff * diff
 
         return sqrt(dist)
 
@@ -130,10 +133,17 @@ def createNumpyPath(states):
 def plan(runTime, plannerType, objectiveType, fname):
     # Construct the robot state space in which we're planning. We're
     # planning in [0,1]x[0,1], a subset of R^2.
-    space = SailboatStateSpace(2)
+    space = SailboatStateSpace()
+
+    bounds = ob.RealVectorBounds(2)
+    bounds.setHigh(0, 1)
+    bounds.setHigh(1, 1)
+
+    bounds.setLow(0, 0)
+    bounds.setLow(1, 0)
 
     # Set the bounds of space to be in [0,1].
-    space.setBounds(0.0, 1.0)
+    space.setBounds(bounds)
     # Construct a space information instance for this state space
     si = ob.SpaceInformation(space)
 
@@ -183,7 +193,7 @@ def plan(runTime, plannerType, objectiveType, fname):
             optimizingPlanner.getName(),
             pdef.getSolutionPath().length(),
             pdef.getSolutionPath().cost(pdef.getOptimizationObjective()).value()))
-
+        print(pdef.getSolutionPath().printAsMatrix())
         plotPath(pdef)
 
     else:
@@ -194,7 +204,9 @@ def plotPath(pdef):
     matrix = pdef.getSolutionPath().printAsMatrix()
     path = createNumpyPath(matrix)
     x, y = path.T
-    plt.plot(x, y)
+    ax = plt.gca()
+    ax.plot(x, y)
+    ax.add_patch(plt.Circle((.5, .5), radius=.25))
     plt.show()
 
 
