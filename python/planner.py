@@ -4,12 +4,15 @@ from ompl import geometric as og
 from math import sqrt
 import argparse
 
+import numpy as np
+import matplotlib.pyplot as plt
+
 
 class ValidityChecker(ob.StateValidityChecker):
     # Returns whether the given state's position overlaps the
     # circular obstacle
     def isValid(self, state):
-        return self.clearance(state) > 0.0
+        return self.clearance(state) > 0.2
 
     # Returns the distance from the given state's position to the
     # boundary of the circular obstacle.
@@ -20,7 +23,7 @@ class ValidityChecker(ob.StateValidityChecker):
 
         # Distance formula between two points, offset by the circle's
         # radius
-        return sqrt((x - 0.5) * (x - 0.5) + (y - 0.5) * (y - 0.5)) - 0.25
+        return sqrt((x - 0.6) * (x - 0.6) + (y - 0.6) * (y - 0.6)) - 0.25
 
 
 class SailboatStateSpace(ob.RealVectorStateSpace):
@@ -113,6 +116,17 @@ def allocateObjective(si, objectiveType):
         ou.OMPL_ERROR("Optimization-objective is not implemented in allocation function.")
 
 
+def createNumpyPath(states):
+    lines = states.splitlines()
+    length = len(lines) - 1
+    array = np.zeros((length, 2))
+
+    for i in range(length):
+        array[i][0] = float(lines[i].split(" ")[0])
+        array[i][1] = float(lines[i].split(" ")[1])
+    return array
+
+
 def plan(runTime, plannerType, objectiveType, fname):
     # Construct the robot state space in which we're planning. We're
     # planning in [0,1]x[0,1], a subset of R^2.
@@ -164,24 +178,29 @@ def plan(runTime, plannerType, objectiveType, fname):
 
     if solved:
         # Output the length of the path found
-        print('{0} found solution of path length {1:.4f} with an optimization ' \
-              'objective value of {2:.4f}'.format( \
-            optimizingPlanner.getName(), \
-            pdef.getSolutionPath().length(), \
+        print('{0} found solution of path length {1:.4f} with an optimization '
+              'objective value of {2:.4f}'.format(
+            optimizingPlanner.getName(),
+            pdef.getSolutionPath().length(),
             pdef.getSolutionPath().cost(pdef.getOptimizationObjective()).value()))
 
-        # If a filename was specified, output the path as a matrix to
-        # that file for visualization
-        if fname:
-            with open(fname, 'w') as outFile:
-                outFile.write(pdef.getSolutionPath().printAsMatrix())
+        plotPath(pdef)
+
     else:
         print("No solution found.")
 
 
+def plotPath(pdef):
+    matrix = pdef.getSolutionPath().printAsMatrix()
+    path = createNumpyPath(matrix)
+    x, y = path.T
+    plt.plot(x, y)
+    plt.show()
+
+
 if __name__ == "__main__":
     # Create an argument parser
-    parser = argparse.ArgumentParser(description='Optimal motion planning demo program.')
+    parser = argparse.ArgumentParser(description='Sailbot motion planning CLI.')
 
     # Add a filename argument
     parser.add_argument('-t', '--runtime', type=float, default=1.0, help=
