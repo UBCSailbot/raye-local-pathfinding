@@ -9,6 +9,10 @@ import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 
+BOUNDS = 1
+
+CIRCLE_RADIUS = .15
+
 
 class ValidityChecker(ob.StateValidityChecker):
     # Returns whether the given state's position overlaps the
@@ -25,19 +29,55 @@ class ValidityChecker(ob.StateValidityChecker):
 
         # Distance formula between two points, offset by the circle's
         # radius
-        return sqrt((x - 0.5) * (x - 0.5) + (y - 0.5) * (y - 0.5)) - 0.25
+        pos = 0.5
+        size = CIRCLE_RADIUS
+        return sqrt((x - pos) * (x - pos) + (y - pos) * (y - pos)) - size
 
 
-class SailboatStateSpace(ob.SE2StateSpace):
-    def distance(self, state1, state2):
-        dist = 0.0
+class WindObjective(ob.PathLengthOptimizationObjective):
+    def __init__(self, si, windDirection=math.pi / 4):
+        super(WindObjective, self).__init__(si)
+        self.si_ = si
+        self.windDirection = windDirection
 
-        dist += pow(state1.getX() - state2.getX(), 2)
+    def motionCost(self, state1, state2):
+        angleBetweenPoints = math.atan2(state2.getY() - state1.getY(), state2.getX() - state1.getX())
+        angles = absDistanceBetweenAngles(self.windDirection, angleBetweenPoints)
 
-        diff = pow(state1.getY() - state2.getY(), 2)
-        dist += diff * diff
+        windCost = pow(1 - angles / math.pi, 3)
 
-        return sqrt(dist)
+        print(state1.getX(), ",", state1.getY(), " and ", state2.getX(), ",", state2.getY(), " with angle ",
+              math.degrees(angleBetweenPoints), "and Distance ", math.degrees(angles), " make ", windCost)
+        return ob.Cost(windCost * super(WindObjective, self).motionCost(state1, state2).value())
+
+
+class AngleMotionValidator(ob.DiscreteMotionValidator):
+    def __init__(self, si):
+        super(AngleMotionValidator, self).__init__(si)
+        self.si_ = si
+
+    def checkMotion(self, state1, state2, lastValid):
+        return self.isValidAngle(state1, state2) and super(AngleMotionValidator, self).checkMotion(state1, state2,
+                                                                                                   lastValid)
+
+    def checkMotion(self, state1, state2):
+        return self.isValidAngle(state1, state2) and super(AngleMotionValidator, self).checkMotion(state1, state2)
+
+    def isValidAngle(self, state1, state2):
+        angleBetweenPoints = math.atan2(state2.getY() - state1.getY(), state2.getX() - state1.getX())
+        differenceBetweenAnglePathAndStartingAngle = absDistanceBetweenAngles(angleBetweenPoints, state1.getYaw())
+        return differenceBetweenAnglePathAndStartingAngle < 0.1
+
+
+def absDistanceBetweenAngles(angle1, angle2):
+    a = angle1 - angle2
+
+    if a > math.pi:
+        a -= math.pi * 2
+    if a < -math.pi:
+        a += math.pi * 2
+    fabs = math.fabs(a)
+    return fabs
 
 
 def getPathLengthObjective(si):
@@ -64,19 +104,19 @@ class ClearanceObjective(ob.StateCostIntegralObjective):
         return ob.Cost(1 / self.si_.getStateValidityChecker().clearance(s))
 
 
-def getClearanceObjective(si):
-    return ClearanceObjective(si)
-
-
-def getBalancedObjective1(si):
-    lengthObj = ob.PathLengthOptimizationObjective(si)
-    clearObj = ClearanceObjective(si)
+def getSailbotObjective(si):
+    windObj = WindObjective(si)
+    distanceObj = ob.PathLengthOptimizationObjective(si)
 
     opt = ob.MultiOptimizationObjective(si)
-    opt.addObjective(lengthObj, 5.0)
-    opt.addObjective(clearObj, 1.0)
+    opt.addObjective(windObj, 1.0)
+    opt.addObjective(distanceObj, 1.0)
 
     return opt
+
+
+def getClearanceObjective(si):
+    return ClearanceObjective(si)
 
 
 def getPathLengthObjWithCostToGo(si):
@@ -107,6 +147,8 @@ def allocatePlanner(si, plannerType):
 
 # Keep these in alphabetical order and all lower case
 def allocateObjective(si, objectiveType):
+    if objectiveType.lower() == "sailbot":
+        return getSailbotObjective(si)
     if objectiveType.lower() == "pathclearance":
         return getClearanceObjective(si)
     elif objectiveType.lower() == "pathlength":
@@ -130,14 +172,14 @@ def createNumpyPath(states):
     return array
 
 
-def plan(runTime, plannerType, objectiveType, fname):
+def plan(runTime, plannerType, objectiveType):
     # Construct the robot state space in which we're planning. We're
     # planning in [0,1]x[0,1], a subset of R^2.
-    space = SailboatStateSpace()
+    space = ob.SE2StateSpace()
 
     bounds = ob.RealVectorBounds(2)
-    bounds.setHigh(0, 1)
-    bounds.setHigh(1, 1)
+    bounds.setHigh(0, BOUNDS)
+    bounds.setHigh(1, BOUNDS)
 
     bounds.setLow(0, 0)
     bounds.setLow(1, 0)
@@ -146,6 +188,10 @@ def plan(runTime, plannerType, objectiveType, fname):
     space.setBounds(bounds)
     # Construct a space information instance for this state space
     si = ob.SpaceInformation(space)
+
+    si.setStateValidityCheckingResolution(0.0001)
+    validator = AngleMotionValidator(si)
+    si.setMotionValidator(validator)
 
     # Set the object used to check which states in the space are valid
     validityChecker = ValidityChecker(si)
@@ -158,12 +204,14 @@ def plan(runTime, plannerType, objectiveType, fname):
     start = ob.State(space)
     start[0] = 0.0
     start[1] = 0.0
+    start[2] = math.pi / 4
 
     # Set our robot's goal state to be the top-right corner of the
     # environment, or (1,1).
     goal = ob.State(space)
-    goal[0] = 1.0
-    goal[1] = 1.0
+    goal[0] = BOUNDS
+    goal[1] = BOUNDS
+    goal[2] = math.pi / 4
 
     # Create a problem instance
     pdef = ob.ProblemDefinition(si)
@@ -206,7 +254,8 @@ def plotPath(pdef):
     x, y = path.T
     ax = plt.gca()
     ax.plot(x, y)
-    ax.add_patch(plt.Circle((.5, .5), radius=.25))
+    ax.axis(ymax=BOUNDS, xmax=BOUNDS)
+    ax.add_patch(plt.Circle((.5, .5), radius=CIRCLE_RADIUS))
     plt.show()
 
 
@@ -221,12 +270,10 @@ if __name__ == "__main__":
                         choices=['BFMTstar', 'BITstar', 'FMTstar', 'InformedRRTstar', 'PRMstar', 'RRTstar',
                                  'SORRTstar'],
                         help='(Optional) Specify the optimal planner to use, defaults to RRTstar if not given.')
-    parser.add_argument('-o', '--objective', default='PathLength',
+    parser.add_argument('-o', '--objective', default='Sailbot',
                         choices=['PathClearance', 'PathLength', 'ThresholdPathLength',
-                                 'WeightedLengthAndClearanceCombo'],
+                                 'WeightedLengthAndClearanceCombo', 'Sailbot'],
                         help='(Optional) Specify the optimization objective, defaults to PathLength if not given.')
-    parser.add_argument('-f', '--file', default=None,
-                        help='(Optional) Specify an output path for the found solution path.')
     parser.add_argument('-i', '--info', type=int, default=0, choices=[0, 1, 2],
                         help='(Optional) Set the OMPL log level. 0 for WARN, 1 for INFO, 2 for DEBUG.' \
                              ' Defaults to WARN.')
@@ -251,4 +298,4 @@ if __name__ == "__main__":
         ou.OMPL_ERROR("Invalid log-level integer.")
 
     # Solve the planning problem
-    plan(args.runtime, args.planner, args.objective, args.file)
+    plan(args.runtime, args.planner, args.objective)
