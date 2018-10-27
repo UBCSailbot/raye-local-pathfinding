@@ -237,7 +237,7 @@ def plan(run_time, planner_type, objective_type, wind_direction, dimensions, obs
     pdef = ob.ProblemDefinition(si)
 
     # Set the start and goal states
-    pdef.setStartAndGoalStates(start, goal)
+    pdef.setStartAndGoalStates(start, goal, 0)
 
     # Create the optimization objective specified by our command-line argument.
     # This helper function is simply a switch statement.
