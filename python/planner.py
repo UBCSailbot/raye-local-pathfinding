@@ -33,7 +33,13 @@ class ValidityChecker(ob.StateValidityChecker):
     # Returns whether the given state's position overlaps the
     # circular obstacle
     def isValid(self, state):
-        return self.clearance(state) > 0.0
+        x = state.getX()
+        y = state.getY()
+        for obstacle in self.obstacles:
+            if sqrt(pow(x - obstacle.x, 2) + pow(y - obstacle.y, 2)) - obstacle.radius <= 0:
+                return False
+
+        return True
 
     # Returns the distance from the given state's position to the
     # boundary of the circular obstacle.
@@ -91,7 +97,8 @@ class AngleMotionValidator(ob.DiscreteMotionValidator):
 
     def is_valid_angle(self, state1, state2):
         angle_between_points = math.atan2(state2.getY() - state1.getY(), state2.getX() - state1.getX())
-        difference_between_angle_path_and_starting_angle = absolute_distance_between_angles(angle_between_points, state1.getYaw())
+        difference_between_angle_path_and_starting_angle = absolute_distance_between_angles(angle_between_points,
+                                                                                            state1.getYaw())
         return difference_between_angle_path_and_starting_angle < 0.05
 
 
@@ -258,8 +265,8 @@ def plan(run_time, planner_type, objective_type, wind_direction, dimensions, obs
         # Output the length of the path found
         print('{0} found solution of path length {1:.4f} with an optimization '
               'objective value of {2:.4f}'.format(optimizing_planner.getName(),
-            pdef.getSolutionPath().length(),
-            pdef.getSolutionPath().cost(pdef.getOptimizationObjective()).value()))
+                                                  pdef.getSolutionPath().length(),
+                                                  pdef.getSolutionPath().cost(pdef.getOptimizationObjective()).value()))
         print(pdef.getSolutionPath().printAsMatrix())
         plot_path(pdef, dimensions, obstacles)
 
