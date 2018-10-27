@@ -48,4 +48,4 @@ RUN cmake ../.. -DPYTHON_EXEC=/usr/bin/python3 \
 && make -j 8 \
 && make -j 8 install
 
-WORKDIR /root
+VOLUME /python:/root/python
