@@ -45,22 +45,21 @@ class ValidityChecker(ob.StateValidityChecker):
     # boundary of the circular obstacle.
     def clearance(self, state):
         if len(self.obstacles) == 0:
+            # TODO: is this be the width/height of the state space
             return 1
 
         # Extract the robot's (x,y) position from its state
         x = state.getX()
         y = state.getY()
 
-        clearance = 0
+        clearance = [] 
         # Distance formula between two points, offset by the circle's
         # radius
         for obstacle in self.obstacles:
 
-            clearance += sqrt(pow(x - obstacle.x, 2) + pow(y - obstacle.y, 2)) - obstacle.radius
-            if clearance <= 0:
-                return 0
+            clearance.append(sqrt(pow(x - obstacle.x, 2) + pow(y - obstacle.y, 2)) - obstacle.radius)
 
-        return clearance
+        return min(clearance)
 
 
 class WindObjective(ob.PathLengthOptimizationObjective):
@@ -135,10 +134,12 @@ def getSailbotObjective(si, wind_direction):
     wind_obj = WindObjective(si, wind_direction)
     distance_obj = ob.PathLengthOptimizationObjective(si)
     clearance_obj = ob.PathLengthOptimizationObjective(si)
+    #TODO: clearance_obj = get_clearance_objective(si)
+    # Dont we want to implement the ClearanceObjective here as well? 
 
     opt = ob.MultiOptimizationObjective(si)
-    opt.addObjective(wind_obj, 1.0)
-    opt.addObjective(distance_obj, 1.0)
+    opt.addObjective(wind_obj, 0.1)
+    opt.addObjective(distance_obj, 0.1)
     opt.addObjective(clearance_obj, 0.1)
 
     return opt
