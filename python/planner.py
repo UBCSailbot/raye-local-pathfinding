@@ -134,7 +134,7 @@ class ClearanceObjective(ob.StateCostIntegralObjective):
 def getSailbotObjective(si, wind_direction):
     wind_obj = WindObjective(si, wind_direction)
     distance_obj = ob.PathLengthOptimizationObjective(si)
-    clearance_obj = ob.PathLengthOptimizationObjective(si)
+    clearance_obj = get_clearance_objective(si);
 
     opt = ob.MultiOptimizationObjective(si)
     opt.addObjective(wind_obj, 1.0)
@@ -244,7 +244,7 @@ def plan(run_time, planner_type, objective_type, wind_direction, dimensions, obs
     pdef = ob.ProblemDefinition(si)
 
     # Set the start and goal states
-    pdef.setStartAndGoalStates(start, goal, 0)
+    pdef.setStartAndGoalStates(start, goal, 0.1)
 
     # Create the optimization objective specified by our command-line argument.
     # This helper function is simply a switch statement.
