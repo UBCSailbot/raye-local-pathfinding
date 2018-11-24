@@ -5,6 +5,7 @@ from ompl import base as ob
 from ompl import geometric as og
 from math import sqrt
 import argparse
+import sys
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -128,6 +129,8 @@ class ClearanceObjective(ob.StateCostIntegralObjective):
     # reciprocal of its clearance, so that as state clearance
     # increases, the state cost decreases.
     def stateCost(self, s):
+        if(self.si_.getStateValidityChecker().clearance(s)==0):
+            return sys.maxsize
         return ob.Cost(1 / self.si_.getStateValidityChecker().clearance(s))
 
 
