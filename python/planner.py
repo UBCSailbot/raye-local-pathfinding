@@ -68,7 +68,7 @@ class BoatObjective(ob.OptimizationObjective):
         super(BoatObjective, self).__init__(si)
         self.si_ = si
         self.windDirection = wind_direction
-        self.setCostToGoHeuristic(ob.goalRegionCostToGo)
+        self.setCostToGoHeuristic(ob.CostToGoHeuristic(ob.goalRegionCostToGo))
 
     def motionCost(self, state1, state2):
         angle_between_points = math.atan2(state2.getY() - state1.getY(), state2.getX() - state1.getX())
@@ -143,13 +143,12 @@ class ClearanceObjective(ob.StateCostIntegralObjective):
 
 def get_sailbot_objective(si, wind_direction):
     wind_obj = BoatObjective(si, wind_direction)
-    distance_obj = ob.PathLengthOptimizationObjective(si)
     clearance_obj = ClearanceObjective(si)
 
     opt = ob.MultiOptimizationObjective(si)
     opt.addObjective(wind_obj, 5.0)
-    opt.addObjective(distance_obj, 1.0)
     opt.addObjective(clearance_obj, 1.0)
+    opt.setCostToGoHeuristic(ob.CostToGoHeuristic(ob.goalRegionCostToGo))
 
     return opt
 
