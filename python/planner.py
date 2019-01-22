@@ -64,18 +64,25 @@ class ValidityChecker(ob.StateValidityChecker):
         return clearance
 
 
-class WindObjective(ob.PathLengthOptimizationObjective):
+class BoatObjective(ob.OptimizationObjective):
     def __init__(self, si, wind_direction=math.pi / 2):
-        super(WindObjective, self).__init__(si)
+        super(BoatObjective, self).__init__(si)
         self.si_ = si
         self.windDirection = wind_direction
+        self.setCostToGoHeuristic(ob.goalRegionCostToGo)
 
     def motionCost(self, state1, state2):
         angle_between_points = math.atan2(state2.getY() - state1.getY(), state2.getX() - state1.getX())
-        angles = absolute_distance_between_angles(self.reverseAngle(self.windDirection), angle_between_points)
+        boat_wind_angle = absolute_distance_between_angles(self.reverseAngle(self.windDirection), angle_between_points)
 
-        wind_cost = pow(1 - angles / math.pi, 2)
-        return ob.Cost(wind_cost * super(WindObjective, self).motionCost(state1, state2).value())
+        wind_cost = pow(1 - boat_wind_angle / math.pi, 2)
+
+        distance = math.sqrt((state2.getY() - state1.getY())**2 + (state2.getX() - state1.getX())**2)
+
+        rotation_cost = absolute_distance_between_angles(state1.getYaw(), state2.getYaw())
+
+        return ob.Cost(wind_cost * distance + rotation_cost)
+    
 
     def reverseAngle(self, angle):
         if angle <= 0:
@@ -133,16 +140,15 @@ class ClearanceObjective(ob.StateCostIntegralObjective):
             return sys.maxsize
         return ob.Cost(1 / self.si_.getStateValidityChecker().clearance(s))
 
-
-def getSailbotObjective(si, wind_direction):
-    wind_obj = WindObjective(si, wind_direction)
+def get_sailbot_objective(si, wind_direction):
+    wind_obj = BoatObjective(si, wind_direction)
     distance_obj = ob.PathLengthOptimizationObjective(si)
-    clearance_obj = get_clearance_objective(si);
+    clearance_obj = ClearanceObjective(si)
 
     opt = ob.MultiOptimizationObjective(si)
-    opt.addObjective(wind_obj, 1.0)
+    opt.addObjective(wind_obj, 5.0)
     opt.addObjective(distance_obj, 1.0)
-    opt.addObjective(clearance_obj, 0.1)
+    opt.addObjective(clearance_obj, 1.0)
 
     return opt
 
@@ -180,7 +186,7 @@ def allocate_planner(si, planner_type):
 # Keep these in alphabetical order and all lower case
 def allocate_objective(si, objectiveType, windDirection):
     if objectiveType.lower() == "sailbot":
-        return getSailbotObjective(si, windDirection)
+        return get_sailbot_objective(si, windDirection)
     if objectiveType.lower() == "pathclearance":
         return get_clearance_objective(si)
     elif objectiveType.lower() == "pathlength":
@@ -219,7 +225,7 @@ def plan(run_time, planner_type, objective_type, wind_direction, dimensions, obs
     # Construct a space information instance for this state space
     si = ob.SpaceInformation(space)
 
-    si.setStateValidityCheckingResolution(0.0001)
+    si.setStateValidityCheckingResolution(0.00001)
     validator = AngleMotionValidator(si)
     si.setMotionValidator(validator)
 
@@ -247,7 +253,7 @@ def plan(run_time, planner_type, objective_type, wind_direction, dimensions, obs
     pdef = ob.ProblemDefinition(si)
 
     # Set the start and goal states
-    pdef.setStartAndGoalStates(start, goal, 0.1)
+    pdef.setStartAndGoalStates(start, goal, 0.001)
 
     # Create the optimization objective specified by our command-line argument.
     # This helper function is simply a switch statement.
@@ -271,6 +277,7 @@ def plan(run_time, planner_type, objective_type, wind_direction, dimensions, obs
                                                   pdef.getSolutionPath().length(),
                                                   pdef.getSolutionPath().cost(pdef.getOptimizationObjective()).value()))
         print(pdef.getSolutionPath().printAsMatrix())
+        print(pdef.hasApproximateSolution())
         plot_path(pdef, dimensions, obstacles)
 
     else:
@@ -295,7 +302,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Sailbot motion planning CLI.')
 
     # Add a filename argument
-    parser.add_argument('-t', '--runtime', type=float, default=1.0, help=
+    parser.add_argument('-t', '--runtime', type=float, default=5.0, help=
     '(Optional) Specify the runtime in seconds. Defaults to 1 and must be greater than 0.')
     parser.add_argument('-p', '--planner', default='RRTstar',
                         choices=['BFMTstar', 'BITstar', 'FMTstar', 'InformedRRTstar', 'PRMstar', 'RRTstar',
