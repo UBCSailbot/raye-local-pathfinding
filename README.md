@@ -15,6 +15,7 @@ A docker container for running the Open Motion Planning Library (with GUI) on Ma
 - Get IP address: `ip=$(ifconfig en0 | grep inet | awk '$1=="inet" {print $2}')`, add it: `xhost + $ip`
 
 ## Run
+- Build an image with some name: `docker build -t "<name of build image: tag name>" <path to dockerfile>`
 - `docker run -it -e DISPLAY=$ip:0 -v /tmp/.X11-unix:/tmp/.X11-unix <name of build image>`
 - From docker bash: `python3 ~/omplapp/gui/ompl_app.py`
 
