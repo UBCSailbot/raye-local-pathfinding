@@ -28,15 +28,19 @@ RUN apt-get update && apt-get install -y \
     python3-opengl \
     python3-flask \
     python3-celery \
+    python3-matplotlib \
     libccd-dev \
 && apt clean \
 && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Install pip dependencies
-RUN python3 -m pip install pygccxml pyplusplus PyOpenGL-accelerate numpy matplotlib
+RUN python3 -m pip install pygccxml pyplusplus PyOpenGL-accelerate numpy 
 
 # Set the working directory to /root
 WORKDIR /root
+
+# Copy over codebase
+VOLUME /python:/root/python
 
 # Install OMPL - Im using 8 cores
 RUN git clone https://github.com/ompl/omplapp.git 
@@ -47,5 +51,4 @@ RUN cmake ../.. -DPYTHON_EXEC=/usr/bin/python3 \
 && make -j 8 update_bindings \
 && make -j 8 \
 && make -j 8 install
-
-VOLUME /python:/root/python
+WORKDIR /root

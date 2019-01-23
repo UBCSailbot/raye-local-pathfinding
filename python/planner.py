@@ -5,6 +5,7 @@ from ompl import base as ob
 from ompl import geometric as og
 from math import sqrt
 import argparse
+import sys
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -135,11 +136,9 @@ class ClearanceObjective(ob.StateCostIntegralObjective):
     # reciprocal of its clearance, so that as state clearance
     # increases, the state cost decreases.
     def stateCost(self, s):
-        clearance = self.si_.getStateValidityChecker().clearance(s)
-        if clearance <= 0:
-            return ob.Cost(100000)
-        return ob.Cost(clearance)
-
+        if(self.si_.getStateValidityChecker().clearance(s)==0):
+            return sys.maxsize
+        return ob.Cost(1 / self.si_.getStateValidityChecker().clearance(s))
 
 def get_sailbot_objective(si, wind_direction):
     wind_obj = BoatObjective(si, wind_direction)
