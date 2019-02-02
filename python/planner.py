@@ -65,10 +65,12 @@ class ValidityChecker(ob.StateValidityChecker):
 
 
 class BoatObjective(ob.OptimizationObjective):
-    def __init__(self, si, wind_direction=math.pi / 2):
+    def __init__(self, si, wind_direction=math.pi / 2, turning_cost=1):
         super(BoatObjective, self).__init__(si)
         self.si_ = si
         self.windDirection = wind_direction
+        self.turning_cost = turning_cost
+
         self.setCostToGoHeuristic(ob.CostToGoHeuristic(ob.goalRegionCostToGo))
 
     def motionCost(self, state1, state2):
@@ -79,7 +81,8 @@ class BoatObjective(ob.OptimizationObjective):
 
         distance = math.sqrt((state2.getY() - state1.getY()) ** 2 + (state2.getX() - state1.getX()) ** 2)
 
-        rotation_cost = absolute_distance_between_angles(state1.getYaw(), state2.getYaw())
+        # TODO: dynamic turning cost calculation in response to wind direction
+        rotation_cost = self.turning_cost * absolute_distance_between_angles(state1.getYaw(), state2.getYaw())
 
         return ob.Cost(wind_cost * distance + rotation_cost)
 
@@ -140,8 +143,8 @@ class ClearanceObjective(ob.StateCostIntegralObjective):
         return ob.Cost(1 / self.si_.getStateValidityChecker().clearance(s))
 
 
-def get_sailbot_objective(si, wind_direction):
-    return BoatObjective(si, wind_direction)
+def get_sailbot_objective(si, wind_direction, turning_cost):
+    return BoatObjective(si, wind_direction, turning_cost)
 
 
 def get_clearance_objective(si):
@@ -175,9 +178,9 @@ def allocate_planner(si, planner_type):
 
 
 # Keep these in alphabetical order and all lower case
-def allocate_objective(si, objectiveType, windDirection):
+def allocate_objective(si, objectiveType, windDirection, turning_cost):
     if objectiveType.lower() == "sailbot":
-        return get_sailbot_objective(si, windDirection)
+        return get_sailbot_objective(si, windDirection, turning_cost)
     if objectiveType.lower() == "pathclearance":
         return get_clearance_objective(si)
     elif objectiveType.lower() == "pathlength":
@@ -199,7 +202,7 @@ def create_numpy_path(states):
     return array
 
 
-def plan(run_time, planner_type, objective_type, wind_direction, dimensions, obstacles):
+def plan(run_time, planner_type, objective_type, wind_direction, turning_cost, dimensions, obstacles):
     # Construct the robot state space in which we're planning. We're
     # planning in [0,1]x[0,1], a subset of R^2.
     space = ob.SE2StateSpace()
@@ -248,7 +251,7 @@ def plan(run_time, planner_type, objective_type, wind_direction, dimensions, obs
 
     # Create the optimization objective specified by our command-line argument.
     # This helper function is simply a switch statement.
-    pdef.setOptimizationObjective(allocate_objective(si, objective_type, wind_direction))
+    pdef.setOptimizationObjective(allocate_objective(si, objective_type, wind_direction, turning_cost))
 
     # Construct the optimal planner specified by our command line argument.
     # This helper function is simply a switch statement.
@@ -303,11 +306,14 @@ if __name__ == "__main__":
                         choices=['PathClearance', 'PathLength', 'ThresholdPathLength',
                                  'WeightedLengthAndClearanceCombo', 'Sailbot'],
                         help='(Optional) Specify the optimization objective, defaults to PathLength if not given.')
-    parser.add_argument('-i', '--info', type=int, default=0, choices=[0, 1, 2],
+    parser.add_argument('-i', '--info', type=int, default=2, choices=[0, 1, 2],
                         help='(Optional) Set the OMPL log level. 0 for WARN, 1 for INFO, 2 for DEBUG.' \
                              ' Defaults to WARN.')
     parser.add_argument('-w', '--windDirection', type=lambda x: math.degrees(int(x)), default=-135,
                         help='(Optional) Wind direction in degrees')
+
+    parser.add_argument('-c', '--turningCost', type=float, default=1.0, help='(Optional) Wind direction in degrees')
+
     parser.add_argument('-d', '--dimensions', nargs=4, type=int, default=[0, 0, 5, 5],
                         help='(Optional) dimensions of the space')
     parser.add_argument('-ob', '--obstacles', nargs='+', type=parse_obstacle, default=[parse_obstacle("2.5,2.5,1")],
@@ -333,4 +339,5 @@ if __name__ == "__main__":
         ou.OMPL_ERROR("Invalid log-level integer.")
 
     # Solve the planning problem
-    plan(args.runtime, args.planner, args.objective, args.windDirection, args.dimensions, args.obstacles)
+    plan(args.runtime, args.planner, args.objective, args.windDirection, args.turningCost, args.dimensions,
+         args.obstacles)
