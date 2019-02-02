@@ -77,12 +77,11 @@ class BoatObjective(ob.OptimizationObjective):
 
         wind_cost = pow(1 - boat_wind_angle / math.pi, 2)
 
-        distance = math.sqrt((state2.getY() - state1.getY())**2 + (state2.getX() - state1.getX())**2)
+        distance = math.sqrt((state2.getY() - state1.getY()) ** 2 + (state2.getX() - state1.getX()) ** 2)
 
         rotation_cost = absolute_distance_between_angles(state1.getYaw(), state2.getYaw())
 
         return ob.Cost(wind_cost * distance + rotation_cost)
-    
 
     def reverseAngle(self, angle):
         if angle <= 0:
@@ -136,20 +135,13 @@ class ClearanceObjective(ob.StateCostIntegralObjective):
     # reciprocal of its clearance, so that as state clearance
     # increases, the state cost decreases.
     def stateCost(self, s):
-        if(self.si_.getStateValidityChecker().clearance(s)==0):
+        if (self.si_.getStateValidityChecker().clearance(s) == 0):
             return sys.maxsize
         return ob.Cost(1 / self.si_.getStateValidityChecker().clearance(s))
 
+
 def get_sailbot_objective(si, wind_direction):
-    wind_obj = BoatObjective(si, wind_direction)
-    clearance_obj = ClearanceObjective(si)
-
-    opt = ob.MultiOptimizationObjective(si)
-    opt.addObjective(wind_obj, 5.0)
-    opt.addObjective(clearance_obj, 1.0)
-    opt.setCostToGoHeuristic(ob.CostToGoHeuristic(ob.goalRegionCostToGo))
-
-    return opt
+    return BoatObjective(si, wind_direction)
 
 
 def get_clearance_objective(si):
