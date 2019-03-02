@@ -3,6 +3,7 @@ import math
 from ompl import util as ou
 from ompl import base as ob
 from ompl import geometric as og
+from ompl import control as oc
 from math import sqrt
 import argparse
 import sys
@@ -64,54 +65,6 @@ class ValidityChecker(ob.StateValidityChecker):
         return clearance
 
 
-class BoatObjective(ob.OptimizationObjective):
-    def __init__(self, si, wind_direction=math.pi / 2, turning_cost=1):
-        super(BoatObjective, self).__init__(si)
-        self.si_ = si
-        self.windDirection = wind_direction
-        self.turning_cost = turning_cost
-
-        self.setCostToGoHeuristic(ob.CostToGoHeuristic(ob.goalRegionCostToGo))
-
-    def motionCost(self, state1, state2):
-        angle_between_points = math.atan2(state2.getY() - state1.getY(), state2.getX() - state1.getX())
-        boat_wind_angle = absolute_distance_between_angles(self.reverseAngle(self.windDirection), angle_between_points)
-
-        wind_cost = pow(1 - boat_wind_angle / math.pi, 2)
-
-        distance = math.sqrt((state2.getY() - state1.getY()) ** 2 + (state2.getX() - state1.getX()) ** 2)
-
-        # TODO: dynamic turning cost calculation in response to wind direction
-        rotation_cost = self.turning_cost * absolute_distance_between_angles(state1.getYaw(), state2.getYaw())
-
-        return ob.Cost(wind_cost * distance + rotation_cost)
-
-    def reverseAngle(self, angle):
-        if angle <= 0:
-            return angle + math.pi
-        else:
-            return angle - math.pi
-
-
-class AngleMotionValidator(ob.DiscreteMotionValidator):
-    def __init__(self, si):
-        super(AngleMotionValidator, self).__init__(si)
-        self.si_ = si
-
-    def checkMotion(self, state1, state2, lastValid):
-        return self.is_valid_angle(state1, state2) and super(AngleMotionValidator, self).checkMotion(state1, state2,
-                                                                                                     lastValid)
-
-    def checkMotion(self, state1, state2):
-        return self.is_valid_angle(state1, state2) and super(AngleMotionValidator, self).checkMotion(state1, state2)
-
-    def is_valid_angle(self, state1, state2):
-        angle_between_points = math.atan2(state2.getY() - state1.getY(), state2.getX() - state1.getX())
-        difference_between_angle_path_and_starting_angle = absolute_distance_between_angles(angle_between_points,
-                                                                                            state1.getYaw())
-        return difference_between_angle_path_and_starting_angle < 0.05
-
-
 def absolute_distance_between_angles(angle1, angle2):
     fabs = math.fabs(math.atan2(math.sin(angle1 - angle2), math.cos(angle1 - angle2)))
     return fabs
@@ -143,10 +96,6 @@ class ClearanceObjective(ob.StateCostIntegralObjective):
         return ob.Cost(1 / self.si_.getStateValidityChecker().clearance(s))
 
 
-def get_sailbot_objective(si, wind_direction, turning_cost):
-    return BoatObjective(si, wind_direction, turning_cost)
-
-
 def get_clearance_objective(si):
     return ClearanceObjective(si)
 
@@ -173,14 +122,14 @@ def allocate_planner(si, planner_type):
         return og.RRTstar(si)
     elif planner_type.lower() == "sorrtstar":
         return og.SORRTstar(si)
+    elif planner_type.lower() == "rrt":
+        return oc.RRT(si)
     else:
         ou.OMPL_ERROR("Planner-type is not implemented in allocation function.")
 
 
 # Keep these in alphabetical order and all lower case
-def allocate_objective(si, objectiveType, windDirection, turning_cost):
-    if objectiveType.lower() == "sailbot":
-        return get_sailbot_objective(si, windDirection, turning_cost)
+def allocate_objective(si, objectiveType):
     if objectiveType.lower() == "pathclearance":
         return get_clearance_objective(si)
     elif objectiveType.lower() == "pathlength":
@@ -202,9 +151,10 @@ def create_numpy_path(states):
     return array
 
 
-def plan(run_time, planner_type, objective_type, wind_direction, turning_cost, dimensions, obstacles):
+def plan(run_time, planner_type, objective_type, wind_direction, dimensions, obstacles):
     # Construct the robot state space in which we're planning. We're
     # planning in [0,1]x[0,1], a subset of R^2.
+
     space = ob.SE2StateSpace()
 
     bounds = ob.RealVectorBounds(2)
@@ -216,18 +166,28 @@ def plan(run_time, planner_type, objective_type, wind_direction, turning_cost, d
 
     # Set the bounds of space to be in [0,1].
     space.setBounds(bounds)
-    # Construct a space information instance for this state space
-    si = ob.SpaceInformation(space)
+    # create a control space
+    cspace = oc.RealVectorControlSpace(space, 1)
 
-    si.setStateValidityCheckingResolution(0.00001)
-    validator = AngleMotionValidator(si)
-    si.setMotionValidator(validator)
+    # set the bounds for the control space
+    cbounds = ob.RealVectorBounds(1)
+    cbounds.setLow(-math.pi / 3)
+    cbounds.setHigh(math.pi / 3)
+    cspace.setBounds(cbounds)
+
+    # define a simple setup class
+    ss = oc.SimpleSetup(cspace)
+    propagator = get_state_propagator(wind_direction)
+    ss.setStatePropagator(oc.StatePropagatorFn(propagator))
+
+    # Construct a space information instance for this state space
+    si = ss.getSpaceInformation()
+
+    si.setPropagationStepSize(1)
 
     # Set the object used to check which states in the space are valid
     validity_checker = ValidityChecker(si, obstacles)
-    si.setStateValidityChecker(validity_checker)
-
-    si.setup()
+    ss.setStateValidityChecker(validity_checker)
 
     # Set our robot's starting state to be the bottom-left corner of
     # the environment, or (0,0).
@@ -243,43 +203,63 @@ def plan(run_time, planner_type, objective_type, wind_direction, turning_cost, d
     goal[1] = dimensions[3]
     goal[2] = math.pi / 4
 
-    # Create a problem instance
-    pdef = ob.ProblemDefinition(si)
-
     # Set the start and goal states
-    pdef.setStartAndGoalStates(start, goal, 0.001)
+    ss.setStartAndGoalStates(start, goal, 0.001)
 
     # Create the optimization objective specified by our command-line argument.
     # This helper function is simply a switch statement.
-    pdef.setOptimizationObjective(allocate_objective(si, objective_type, wind_direction, turning_cost))
+    objective = allocate_objective(si, objective_type)
+    ss.setOptimizationObjective(objective)
 
     # Construct the optimal planner specified by our command line argument.
     # This helper function is simply a switch statement.
     optimizing_planner = allocate_planner(si, planner_type)
 
-    # Set the problem instance for our planner to solve
-    optimizing_planner.setProblemDefinition(pdef)
-    optimizing_planner.setup()
+    ss.setPlanner(optimizing_planner)
 
     # attempt to solve the planning problem in the given runtime
-    solved = optimizing_planner.solve(run_time)
+    solved = ss.solve(run_time)
 
     if solved:
         # Output the length of the path found
         print('{0} found solution of path length {1:.4f} with an optimization '
-              'objective value of {2:.4f}'.format(optimizing_planner.getName(),
-                                                  pdef.getSolutionPath().length(),
-                                                  pdef.getSolutionPath().cost(pdef.getOptimizationObjective()).value()))
-        print(pdef.getSolutionPath().printAsMatrix())
-        print(pdef.hasApproximateSolution())
-        plot_path(pdef, dimensions, obstacles)
+              'objective value of {2:.4f}'.format(ss.getPlanner().getName(),
+                                                  ss.getSolutionPath().length(),
+                                                  0.1))
+        print(ss.getSolutionPath().printAsMatrix())
+        print(ss.haveExactSolutionPath())
+        plot_path(ss.getSolutionPath(), dimensions, obstacles)
 
     else:
         print("No solution found.")
 
 
-def plot_path(pdef, dimensions, obstacles):
-    matrix = pdef.getSolutionPath().printAsMatrix()
+def reverseAngle(angle):
+    if angle <= 0:
+        return angle + math.pi
+    else:
+        return angle - math.pi
+
+
+def get_state_propagator(wind_direction):
+    def propagate(start, control, duration, state):
+        new_angle = start.getYaw() + control[0] * duration
+        boat_wind_angle = absolute_distance_between_angles(reverseAngle(wind_direction), start.getYaw())
+
+        boat_speed = pow((boat_wind_angle / math.pi)*10, 2)
+        rotation_cost = absolute_distance_between_angles(new_angle, state.getYaw()) / math.pi
+        boat_speed -= rotation_cost*0.1
+
+        state.setX(start.getX() + boat_speed * duration * math.cos(start.getYaw()))
+        state.setY(start.getY() + boat_speed * duration * math.sin(start.getYaw()))
+        state.setYaw(new_angle)
+        # print("%.2f %.2f %.2f", state.getX(), state.getYaw(), state.getX())
+
+    return propagate
+
+
+def plot_path(solution_path, dimensions, obstacles):
+    matrix = solution_path.printAsMatrix()
     path = create_numpy_path(matrix)
     x, y = path.T
     ax = plt.gca()
@@ -298,21 +278,19 @@ if __name__ == "__main__":
     # Add a filename argument
     parser.add_argument('-t', '--runtime', type=float, default=5.0, help=
     '(Optional) Specify the runtime in seconds. Defaults to 1 and must be greater than 0.')
-    parser.add_argument('-p', '--planner', default='RRTstar',
+    parser.add_argument('-p', '--planner', default='RRT',
                         choices=['BFMTstar', 'BITstar', 'FMTstar', 'InformedRRTstar', 'PRMstar', 'RRTstar',
                                  'SORRTstar'],
                         help='(Optional) Specify the optimal planner to use, defaults to RRTstar if not given.')
-    parser.add_argument('-o', '--objective', default='Sailbot',
+    parser.add_argument('-o', '--objective', default='PathLength',
                         choices=['PathClearance', 'PathLength', 'ThresholdPathLength',
-                                 'WeightedLengthAndClearanceCombo', 'Sailbot'],
+                                 'WeightedLengthAndClearanceCombo'],
                         help='(Optional) Specify the optimization objective, defaults to PathLength if not given.')
     parser.add_argument('-i', '--info', type=int, default=2, choices=[0, 1, 2],
                         help='(Optional) Set the OMPL log level. 0 for WARN, 1 for INFO, 2 for DEBUG.' \
                              ' Defaults to WARN.')
     parser.add_argument('-w', '--windDirection', type=lambda x: math.degrees(int(x)), default=-135,
                         help='(Optional) Wind direction in degrees')
-
-    parser.add_argument('-c', '--turningCost', type=float, default=1.0, help='(Optional) Wind direction in degrees')
 
     parser.add_argument('-d', '--dimensions', nargs=4, type=int, default=[0, 0, 5, 5],
                         help='(Optional) dimensions of the space')
@@ -339,5 +317,5 @@ if __name__ == "__main__":
         ou.OMPL_ERROR("Invalid log-level integer.")
 
     # Solve the planning problem
-    plan(args.runtime, args.planner, args.objective, args.windDirection, args.turningCost, args.dimensions,
+    plan(args.runtime, args.planner, args.objective, args.windDirection, args.dimensions,
          args.obstacles)
