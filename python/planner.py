@@ -70,6 +70,40 @@ def absolute_distance_between_angles(angle1, angle2):
     return fabs
 
 
+class MyDecomposition(oc.GridDecomposition):
+    def __init__(self, length, bounds):
+        super(MyDecomposition, self).__init__(length, 2, bounds)
+
+    def project(self, s, coord):
+        coord[0] = s.getX()
+        coord[1] = s.getY()
+
+    def sampleFullState(self, sampler, coord, s):
+        sampler.sampleUniform(s)
+        s.setXY(coord[0], coord[1])
+
+
+def get_state_propagator(wind_direction):
+    def propagate(start, control, duration, state):
+        # Get angle after applying control for duration
+        new_angle = start.getYaw() + control[0] * duration * 0.6
+
+        #Angle between the boat and the wind
+        boat_wind_angle = absolute_distance_between_angles(reverseAngle(wind_direction), new_angle)
+
+        # Hacky formulas to allow wind direction to influence boat speed. Should be replace with real ones later
+        boat_speed = pow((boat_wind_angle * 10) / (math.pi / 2), 1.1) / 3
+        rotation_cost = absolute_distance_between_angles(new_angle, state.getYaw()) / math.pi
+        boat_speed -= rotation_cost * 0.1
+
+        state.setX(start.getX() + boat_speed * duration * math.cos(start.getYaw()))
+        state.setY(start.getY() + boat_speed * duration * math.sin(start.getYaw()))
+        state.setYaw(new_angle)
+        # print(state.getX(), state.getYaw(), state.getX())
+
+    return propagate
+
+
 def get_path_length_objective(si):
     return ob.PathLengthOptimizationObjective(si)
 
@@ -86,7 +120,6 @@ class ClearanceObjective(ob.StateCostIntegralObjective):
         self.si_ = si
 
     # Our requirement is to maximize path clearance from obstacles,
-    # but we want to represent the objective as a path cost
     # minimization. Therefore, we set each state's cost to be the
     # reciprocal of its clearance, so that as state clearance
     # increases, the state cost decreases.
@@ -107,23 +140,20 @@ def get_path_length_obj_with_cost_to_go(si):
 
 
 # Keep these in alphabetical order and all lower case
-def allocate_planner(si, planner_type):
-    if planner_type.lower() == "bfmtstar":
-        return og.BFMT(si)
-    elif planner_type.lower() == "bitstar":
-        return og.BITstar(si)
-    elif planner_type.lower() == "fmtstar":
-        return og.FMT(si)
-    elif planner_type.lower() == "informedrrtstar":
-        return og.InformedRRTstar(si)
-    elif planner_type.lower() == "prmstar":
-        return og.PRMstar(si)
-    elif planner_type.lower() == "rrtstar":
-        return og.RRTstar(si)
-    elif planner_type.lower() == "sorrtstar":
-        return og.SORRTstar(si)
+def allocate_planner(si, planner_type, decomp):
+    if planner_type.lower() == "est":
+        return oc.EST(si)
+    elif planner_type.lower() == "kpiece":
+        return oc.KPIECE1(si)
+    elif planner_type.lower() == "pdst":
+        return og.PDST(si)
     elif planner_type.lower() == "rrt":
         return oc.RRT(si)
+    elif planner_type.lower() == "syclopest":
+        return oc.SyclopEST(si, decomp)
+    elif planner_type.lower() == "sycloprrt":
+        return oc.SyclopRRT(si, decomp)
+
     else:
         ou.OMPL_ERROR("Planner-type is not implemented in allocation function.")
 
@@ -204,16 +234,19 @@ def plan(run_time, planner_type, objective_type, wind_direction, dimensions, obs
     goal[2] = math.pi / 4
 
     # Set the start and goal states
-    ss.setStartAndGoalStates(start, goal, 0.001)
+    ss.setStartAndGoalStates(start, goal)
 
     # Create the optimization objective specified by our command-line argument.
     # This helper function is simply a switch statement.
     objective = allocate_objective(si, objective_type)
     ss.setOptimizationObjective(objective)
 
+    # Create a decomposition of the state space
+    decomp = MyDecomposition(256, bounds)
+
     # Construct the optimal planner specified by our command line argument.
     # This helper function is simply a switch statement.
-    optimizing_planner = allocate_planner(si, planner_type)
+    optimizing_planner = allocate_planner(si, planner_type, decomp)
 
     ss.setPlanner(optimizing_planner)
 
@@ -241,23 +274,6 @@ def reverseAngle(angle):
         return angle - math.pi
 
 
-def get_state_propagator(wind_direction):
-    def propagate(start, control, duration, state):
-        new_angle = start.getYaw() + control[0] * duration
-        boat_wind_angle = absolute_distance_between_angles(reverseAngle(wind_direction), start.getYaw())
-
-        boat_speed = pow((boat_wind_angle / math.pi)*10, 2)
-        rotation_cost = absolute_distance_between_angles(new_angle, state.getYaw()) / math.pi
-        boat_speed -= rotation_cost*0.1
-
-        state.setX(start.getX() + boat_speed * duration * math.cos(start.getYaw()))
-        state.setY(start.getY() + boat_speed * duration * math.sin(start.getYaw()))
-        state.setYaw(new_angle)
-        # print("%.2f %.2f %.2f", state.getX(), state.getYaw(), state.getX())
-
-    return propagate
-
-
 def plot_path(solution_path, dimensions, obstacles):
     matrix = solution_path.printAsMatrix()
     path = create_numpy_path(matrix)
@@ -279,8 +295,7 @@ if __name__ == "__main__":
     parser.add_argument('-t', '--runtime', type=float, default=5.0, help=
     '(Optional) Specify the runtime in seconds. Defaults to 1 and must be greater than 0.')
     parser.add_argument('-p', '--planner', default='RRT',
-                        choices=['BFMTstar', 'BITstar', 'FMTstar', 'InformedRRTstar', 'PRMstar', 'RRTstar',
-                                 'SORRTstar'],
+                        choices=['EST', 'KPIECE', 'PDST', 'RRT', 'SyclopEST', 'SyclopRRT'],
                         help='(Optional) Specify the optimal planner to use, defaults to RRTstar if not given.')
     parser.add_argument('-o', '--objective', default='PathLength',
                         choices=['PathClearance', 'PathLength', 'ThresholdPathLength',
@@ -289,7 +304,7 @@ if __name__ == "__main__":
     parser.add_argument('-i', '--info', type=int, default=2, choices=[0, 1, 2],
                         help='(Optional) Set the OMPL log level. 0 for WARN, 1 for INFO, 2 for DEBUG.' \
                              ' Defaults to WARN.')
-    parser.add_argument('-w', '--windDirection', type=lambda x: math.degrees(int(x)), default=-135,
+    parser.add_argument('-w', '--windDirection', type=lambda x: math.radians(int(x)), default=math.radians(-135),
                         help='(Optional) Wind direction in degrees')
 
     parser.add_argument('-d', '--dimensions', nargs=4, type=int, default=[0, 0, 5, 5],
