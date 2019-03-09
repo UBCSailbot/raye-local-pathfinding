@@ -30,6 +30,7 @@ sudo apt-get install build-essential cppcheck cmake clang -y
 # Install ompl
 wget http://ompl.kavrakilab.org/install-ompl-ubuntu.sh
 ./install-ompl-ubuntu.sh --python
+chmod +x install-ompl-ubuntu.sh
 rm install-ompl-ubuntu.sh
 
 # Install required libraries
