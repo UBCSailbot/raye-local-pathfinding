@@ -27,16 +27,14 @@ sudo apt-get update
 # Install build tools
 sudo apt-get install build-essential cppcheck cmake clang -y
 
-# Install ompl
-wget http://ompl.kavrakilab.org/install-ompl-ubuntu.sh
-chmod u+x install-ompl-ubuntu.sh
-./install-ompl-ubuntu.sh --python
-rm install-ompl-ubuntu.sh
-
 # Install required libraries
 sudo apt-get install libboost-dev libboost-program-options-dev -y
 
 INSTALL_DEPS_DIRECTORY=${BASH_SOURCE%/*}
+
+# Install OMPL
+${INSTALL_DEPS_DIRECTORY}/install_ompl_ubuntu.sh
+
 LIB_DIRECTORY=${INSTALL_DEPS_DIRECTORY}/../lib
 
 ${LIB_DIRECTORY}/protofiles/scripts/install_deps_debian.sh
