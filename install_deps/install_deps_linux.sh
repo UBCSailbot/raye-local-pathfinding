@@ -37,4 +37,4 @@ ${INSTALL_DEPS_DIRECTORY}/install_ompl_ubuntu.sh
 
 LIB_DIRECTORY=${INSTALL_DEPS_DIRECTORY}/../lib
 
-${LIB_DIRECTORY}/protofiles/scripts/install_deps_debian.sh
+${LIB_DIRECTORY}/protofiles/scripts/install_deps_debian.sh --python
