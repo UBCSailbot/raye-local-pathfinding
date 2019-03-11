@@ -15,8 +15,7 @@ steps:
 
 - script: |
     python3 python/planner.py
-    make all -j 4
-  displayName: 'make'
+  displayName: 'Run Python'
     
 - script: |
     ./scripts/run_cpplint.sh

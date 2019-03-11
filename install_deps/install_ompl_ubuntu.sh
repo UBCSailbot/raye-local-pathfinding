@@ -29,7 +29,7 @@ install_common_dependencies()
 
 install_python_binding_dependencies()
 {
-    sudo apt-get -y install python${PYTHONV}-dev python${PYTHONV}-pip
+    sudo apt-get -y install python${PYTHONV}-dev python${PYTHONV}-pip python${PYTHONV}-setuptools
     # install additional python dependencies via pip
     sudo -H pip${PYTHONV} install -vU pygccxml pyplusplus
     # install castxml
