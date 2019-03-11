@@ -33,7 +33,7 @@ sudo apt-get install libboost-dev libboost-program-options-dev -y
 INSTALL_DEPS_DIRECTORY=${BASH_SOURCE%/*}
 
 # Install OMPL
-${INSTALL_DEPS_DIRECTORY}/install_ompl_ubuntu.sh
+${INSTALL_DEPS_DIRECTORY}/install_ompl_ubuntu.sh --python
 
 LIB_DIRECTORY=${INSTALL_DEPS_DIRECTORY}/../lib
 
