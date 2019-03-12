@@ -33,8 +33,6 @@ install_python_binding_dependencies()
     # install additional python dependencies via pip
     sudo -H pip${PYTHONV} install -vU pygccxml pyplusplus
     # install castxml
-    wget -q -O- https://data.kitware.com/api/v1/file/5b68c2c28d777f06857c1f48/download | tar zxf - -C ${HOME}
-    export PATH=${HOME}/castxml/bin/castxml:${PATH}
     if [[ $ubuntu_version > 1410 ]]; then
         sudo apt-get -y install libboost-python-dev
         if [[ $ubuntu_version > 1710 ]]; then
