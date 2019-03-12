@@ -33,8 +33,8 @@ install_python_binding_dependencies()
     # install additional python dependencies via pip
     sudo -H pip${PYTHONV} install -vU pygccxml pyplusplus
     # install castxml
-    wget -q -O- https://data.kitware.com/api/v1/file/57b5dea08d777f10f2696379/download | sudo tar zxf - -C /usr/
-    export PATH=${HOME}/usr/bin/castxml:${PATH}
+    wget -q -O- https://data.kitware.com/api/v1/file/57b5dea08d777f10f2696379/download | tar zxf - -C ${HOME}
+       export PATH=${HOME}/castxml/bin/castxml:${PATH}
     
     if [[ $ubuntu_version > 1410 ]]; then
         sudo apt-get -y install libboost-python-dev
@@ -86,7 +86,7 @@ install_ompl()
     cd $OMPL-1.4.2-Source
     mkdir -p build/Release
     cd build/Release
-    cmake ../.. -DPYTHON_EXEC=/usr/bin/python${PYTHONV} -DCASTXML=/usr/bin/castxml
+    cmake ../.. -DPYTHON_EXEC=/usr/bin/python${PYTHONV} -DCASTXML=${HOME}/castxml/bin/castxml
     if [ ! -z $1 ]; then
         make update_bindings
     fi
