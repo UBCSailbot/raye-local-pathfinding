@@ -1,0 +1,34 @@
+# The main pipeline for UBC Sailbot projects
+pool:
+  vmImage: 'Ubuntu 16.04'
+
+steps:
+- script: |
+    sudo ./install_deps/install_deps_linux.sh
+  displayName: 'Install deps'
+
+- script: |
+    ./scripts/run_cpplint.sh
+  displayName: 'CPPLlint'  
+
+- task: CMake@1
+  displayName: Generate Build Files
+  inputs:
+    workingDirectory: build
+    cmakeArgs: '../'
+
+- script: |
+    cd build
+    make all -j 4
+  displayName: 'make'
+  
+- script: |
+    cd build
+    bin/run_basic_tests --gtest_output=xml
+  displayName: 'Run tests'  
+  
+  # Publish Test Results to Azure Pipelines/TFS
+- task: PublishTestResults@2
+  inputs:
+    testResultsFormat: 'JUnit' 
+    testResultsFiles: '**/*.xml' 

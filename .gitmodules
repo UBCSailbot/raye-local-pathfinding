@@ -1,0 +1,6 @@
+[submodule "lib/protofiles"]
+	path = lib/protofiles
+	url = https://github.com/UBCSailbot/protofiles.git
+[submodule "test/lib/googletest"]
+	path = test/lib/googletest
+	url = https://github.com/google/googletest.git
