@@ -29,10 +29,14 @@ install_common_dependencies()
 
 install_python_binding_dependencies()
 {
-    sudo apt-get -y install castxml python${PYTHONV}-dev python${PYTHONV}-pip python${PYTHONV}-setuptools
+    sudo apt-get -y install python${PYTHONV}-dev python${PYTHONV}-pip python${PYTHONV}-setuptools
     # install additional python dependencies via pip
     sudo -H pip${PYTHONV} install -vU pygccxml pyplusplus
     # install castxml
+        # install castxml
+    wget -q -O- https://data.kitware.com/api/v1/file/57b5dea08d777f10f2696379/download | tar zxf - -C ${HOME}
+    export PATH=${HOME}/castxml/bin/castxml:${PATH}
+    
     if [[ $ubuntu_version > 1410 ]]; then
         sudo apt-get -y install libboost-python-dev
         if [[ $ubuntu_version > 1710 ]]; then
