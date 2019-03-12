@@ -33,8 +33,7 @@ install_python_binding_dependencies()
     # install additional python dependencies via pip
     sudo -H pip${PYTHONV} install -vU pygccxml pyplusplus
     # install castxml
-        # install castxml
-    sudo wget -q -O- https://data.kitware.com/api/v1/file/57b5dea08d777f10f2696379/download | tar zxf - -C /usr/
+    wget -q -O- https://data.kitware.com/api/v1/file/57b5dea08d777f10f2696379/download | sudo tar zxf - -C /usr/
     export PATH=${HOME}/usr/bin/castxml:${PATH}
     
     if [[ $ubuntu_version > 1410 ]]; then
