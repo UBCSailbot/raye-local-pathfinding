@@ -8,10 +8,6 @@ steps:
   displayName: 'Install deps'
 
 - script: |
-    python3 python/planner.py
-  displayName: 'Run Python'
-    
-- script: |
     ./scripts/run_cpplint.sh
   displayName: 'CPPLlint'  
 
