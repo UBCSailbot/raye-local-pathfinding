@@ -2,8 +2,14 @@
 
 #include <iostream>
 #include <example/Example.h>
+#include <ompl/config.h>
+#include <example/Planner.h>
 
 int main(int, char *[]) {
-  Example example;
-  std::cout << example.add(2, 2) << std::endl;
+  Planner p;
+  std::cout << "OMPL version: " << OMPL_VERSION << std::endl;
+
+  p.planWithSimpleSetup();
+
+  std::cout << std::endl << std::endl;
 }
