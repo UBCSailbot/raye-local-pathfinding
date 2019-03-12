@@ -28,7 +28,7 @@ sudo apt-get update
 sudo apt-get install build-essential cppcheck cmake clang -y
 
 # Install required libraries
-sudo apt-get install ompl-dev libboost-dev libboost-program-options-dev -y
+sudo apt-get install libeigen3-dev libompl-dev libboost-dev libboost-program-options-dev -y
 
 INSTALL_DEPS_DIRECTORY=${BASH_SOURCE%/*}
 
