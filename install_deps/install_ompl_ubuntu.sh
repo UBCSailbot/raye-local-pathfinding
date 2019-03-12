@@ -86,7 +86,7 @@ install_ompl()
     cd $OMPL-1.4.2-Source
     mkdir -p build/Release
     cd build/Release
-    cmake ../.. -DPYTHON_EXEC=/usr/bin/python${PYTHONV}
+    cmake ../.. -DPYTHON_EXEC=/usr/bin/python${PYTHONV} -DCASTXML=/usr/bin/castxml
     if [ ! -z $1 ]; then
         make update_bindings
     fi
