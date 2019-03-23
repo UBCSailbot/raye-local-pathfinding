@@ -21,3 +21,8 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/lib/protofiles)
 include_directories(${ProtobufIncludePath})
 list(APPEND CORE_LIBS protofiles)
 
+# ROS
+find_package(catkin REQUIRED COMPONENTS roscpp rospy std_msgs genmsg)
+include_directories(include ${catkin_INCLUDE_DIRS})
+
+list(APPEND CORE_LIBS ${catkin_LIBRARIES})

@@ -3,13 +3,10 @@
 ###########
 
 set(LIB_SRCS
-        example/Example.cpp
-        example/Planner.cpp )
+        planning/Planner.cpp)
 
 set(LIB_HDRS
-        example/Example.h
-        example/Planner.h
-        )
+        planning/Planner.h)
 
 # Define the src_core library target
 add_library(src_core STATIC ${LIB_SRCS} ${LIB_HDRS})

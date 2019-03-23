@@ -1,9 +1,9 @@
-include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 
 set(TEST_FILES
-        example/ExampleTest.cpp)
+        planning/PlannerTest.cpp)
 
-add_executable(run_basic_tests ${TEST_FILES})
+find_package(rostest REQUIRED)
 
-target_link_libraries(run_basic_tests gtest gtest_main)
-target_link_libraries(run_basic_tests src_core)
+catkin_add_gtest(run_basic_tests ${TEST_FILES})
+
+target_link_libraries(run_basic_tests src_core gtest_main ${catkin_LIBRARIES})
