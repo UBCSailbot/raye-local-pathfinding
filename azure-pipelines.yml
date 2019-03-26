@@ -20,6 +20,7 @@ steps:
 - script: |
     cd build
     make all -j 4
+    make tests -j 4
   displayName: 'make'
   
 - script: |

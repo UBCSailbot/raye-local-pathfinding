@@ -1,11 +1,11 @@
 // Copyright 2017 UBC Sailbot
 
-#include <iostream>
-#include <ompl/config.h>
+#include "PlannerTest.h"
 #include <planning/Planner.h>
 
-int main(int, char *[]) {
-  std::cout << "OMPL version: " << OMPL_VERSION << std::endl;
+PlannerTest::PlannerTest() {}
+
+TEST_F(PlannerTest, PlannerTest) {
   Planner p;
 
   p.printSetup();
@@ -19,5 +19,5 @@ int main(int, char *[]) {
     std::cout << "No solution found" << std::endl;
   }
 
-  std::cout << std::endl << std::endl;
+  EXPECT_TRUE(solved);
 }
