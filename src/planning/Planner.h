@@ -17,7 +17,7 @@ class Planner {
  private:
   bool isStateValid(const ompl::base::State *state);
 
-  ompl::geometric::SimpleSetupPtr ss;
+  std::shared_ptr<ompl::geometric::SimpleSetup> ss;
 };
 
 #endif  // PLANNING_PLANNER_H_
