@@ -1,7 +1,7 @@
 // Copyright 2019 UBC Sailbot
 
-#ifndef EXAMPLE_PLANNER_H_
-#define EXAMPLE_PLANNER_H_
+#ifndef PLANNING_PLANNER_H_
+#define PLANNING_PLANNER_H_
 
 #include <ompl/base/State.h>
 #include <ompl/geometric/SimpleSetup.h>
@@ -18,7 +18,6 @@ class Planner {
   bool isStateValid(const ompl::base::State *state);
 
   ompl::geometric::SimpleSetupPtr ss;
-
 };
 
-#endif  // EXAMPLE_PLANNER_H_
+#endif  // PLANNING_PLANNER_H_

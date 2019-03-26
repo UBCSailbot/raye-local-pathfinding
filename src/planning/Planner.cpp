@@ -1,13 +1,8 @@
-#include <memory>
-
 // Copyright 2019 UBC Sailbot
 
 #include "Planner.h"
 
-#include <ompl/base/SpaceInformation.h>
 #include <ompl/base/spaces/SE2StateSpace.h>
-#include <ompl/geometric/planners/rrt/RRTConnect.h>
-#include <ompl/geometric/SimpleSetup.h>
 
 namespace ob = ompl::base;
 namespace og = ompl::geometric;
@@ -57,7 +52,6 @@ void Planner::printSetup() {
 }
 
 ompl::geometric::PathGeometric &Planner::getPath() {
-
   ss->simplifySolution();
   return ss->getSolutionPath();
 }
