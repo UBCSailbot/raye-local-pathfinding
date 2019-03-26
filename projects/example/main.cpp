@@ -5,7 +5,6 @@
 #include <planning/Planner.h>
 
 int main(int, char *[]) {
-  Planner p;
   std::cout << "OMPL version: " << OMPL_VERSION << std::endl;
   Planner p;
 

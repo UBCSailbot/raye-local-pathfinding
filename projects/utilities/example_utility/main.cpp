@@ -3,7 +3,6 @@
 #include <iostream>
 
 #include <boost/program_options.hpp>
-#include <example/Planner.h>
 #include <ompl/config.h>
 
 int main(int argc, char const *argv[]) {
