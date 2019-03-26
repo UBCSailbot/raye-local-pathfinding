@@ -1,15 +1,24 @@
 // Copyright 2017 UBC Sailbot
 
 #include <iostream>
-#include <example/Example.h>
 #include <ompl/config.h>
-#include <example/Planner.h>
+#include <planning/Planner.h>
 
 int main(int, char *[]) {
   Planner p;
   std::cout << "OMPL version: " << OMPL_VERSION << std::endl;
+  Planner p;
 
-  p.planWithSimpleSetup();
+  p.printSetup();
+  auto solved = p.Solve();
+
+  if (solved) {
+    std::cout << "Found solution:" << std::endl;
+    // print the path to screen
+    p.getPath().print(std::cout);
+  } else {
+    std::cout << "No solution found" << std::endl;
+  }
 
   std::cout << std::endl << std::endl;
 }
