@@ -11,7 +11,7 @@ set(LIB_HDRS
         planning/Planner.h
         planning/Obstacle.h
         planning/ValidityChecker.h
-        planning/SailboatStatePropagator.cpp planning/SailboatStatePropagator.h)
+        planning/SailboatStatePropagator.cpp planning/SailboatStatePropagator.h util/AngleCalc.cpp util/AngleCalc.h)
 
 # Define the src_core library target
 add_library(src_core STATIC ${LIB_SRCS} ${LIB_HDRS})
