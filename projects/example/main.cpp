@@ -6,7 +6,7 @@
 
 int main(int, char *[]) {
   std::cout << "OMPL version: " << OMPL_VERSION << std::endl;
-  Planner p(0);
+  Planner p(0, std::vector<Obstacle>());
 
   p.printSetup();
   auto solved = p.Solve();

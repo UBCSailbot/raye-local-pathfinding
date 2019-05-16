@@ -1,7 +1,10 @@
+#include <utility>
+
 // Copyright 2019 UBC Sailbot
 
 #include "Planner.h"
 #include "SailboatStatePropagator.h"
+#include "ValidityChecker.h"
 
 #include <ompl/base/spaces/SE2StateSpace.h>
 #include <ompl/control/StatePropagator.h>
@@ -12,7 +15,8 @@ namespace ob = ompl::base;
 namespace og = ompl::geometric;
 namespace oc = ompl::control;
 
-Planner::Planner(float windDirection) : wind_direction_(windDirection) {
+Planner::Planner(float windDirection, std::vector<Obstacle> obstacles)
+    : wind_direction_(windDirection), obstacles_(std::move(obstacles)) {
   // construct the state space we are planning in
   ob::StateSpacePtr space(new ob::SE2StateSpace());
 
@@ -28,15 +32,17 @@ Planner::Planner(float windDirection) : wind_direction_(windDirection) {
   cbounds.setLow(-M_PI / 3);
   cbounds.setHigh(M_PI / 3);
   cspace->as<oc::RealVectorControlSpace>()->setBounds(cbounds);
+  ompl::control::SpaceInformationPtr si = ss_->getSpaceInformation();
 
   // define a simple setup class
   ss_ = std::make_shared<oc::SimpleSetup>(cspace);
 
-  // set state validity checking for this space
-  ss_->setStateValidityChecker([this](const ob::State *state) { return isStateValid(state); });
+  ob::StateValidityCheckerPtr vc(new ValidityChecker(si, obstacles_));
 
-  ompl::control::SpaceInformationPtr si = ss_->getSpaceInformation();
-  oc::StatePropagatorPtr statePropagator(new SailboatStatePropagator(si.get(), wind_direction_));
+  // set state validity checking for this space
+  ss_->setStateValidityChecker(vc);
+
+  oc::StatePropagatorPtr statePropagator(new SailboatStatePropagator(si, wind_direction_));
 
   ss_->setStatePropagator(statePropagator);
 
@@ -55,9 +61,6 @@ Planner::Planner(float windDirection) : wind_direction_(windDirection) {
   ss_->setup();
 }
 
-bool Planner::isStateValid(const ob::State *state) {
-  return true;
-}
 
 ob::PlannerStatus Planner::Solve() {
   // attempt to solve the problem within one second of planning time

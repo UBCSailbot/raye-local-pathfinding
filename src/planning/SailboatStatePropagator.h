@@ -7,9 +7,8 @@
 
 class SailboatStatePropagator : public ompl::control::StatePropagator {
  public:
-  SailboatStatePropagator(ompl::control::SpaceInformation *si,
+  SailboatStatePropagator(const ompl::control::SpaceInformationPtr &si,
                           float windDirection);
-
 
  private:
   void propagate(const ompl::base::State *state,

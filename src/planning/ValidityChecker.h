@@ -7,7 +7,7 @@
 #include <vector>
 #include "Obstacle.h"
 
-class ValidityChecker : ompl::base::StateValidityChecker {
+class ValidityChecker : public ompl::base::StateValidityChecker {
  public:
   ValidityChecker(const ompl::base::SpaceInformationPtr &si,
                     std::vector<Obstacle> obstacles);

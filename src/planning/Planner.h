@@ -8,19 +8,19 @@
 #include <ompl/base/PlannerStatus.h>
 #include <ompl/control/SimpleSetup.h>
 #include "SailboatStatePropagator.h"
+#include "Obstacle.h"
 
 class Planner {
  public:
-  Planner(float windDirection);
+  Planner(float windDirection, std::vector<Obstacle> obstacles);
   ompl::base::PlannerStatus Solve();
   void printSetup();
   ompl::control::PathControl & getPath();
 
  private:
-  bool isStateValid(const ompl::base::State *state);
-
   ompl::control::SimpleSetupPtr ss_;
   float wind_direction_;
+  std::vector<Obstacle> obstacles_;
 };
 
 #endif  // PLANNING_PLANNER_H_

@@ -3,9 +3,10 @@
 #include <ompl/base/spaces/SE2StateSpace.h>
 #include <ompl/control/spaces/RealVectorControlSpace.h>
 #include <util/AngleCalc.h>
+#include <ompl/control/SpaceInformation.h>
 #include "SailboatStatePropagator.h"
 
-SailboatStatePropagator::SailboatStatePropagator(ompl::control::SpaceInformation *si,
+SailboatStatePropagator::SailboatStatePropagator(const ompl::control::SpaceInformationPtr &si,
                                                  float windDirection)
     : StatePropagator(si), wind_angle_(windDirection) {}
 
