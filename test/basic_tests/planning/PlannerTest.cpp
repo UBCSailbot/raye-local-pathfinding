@@ -6,7 +6,7 @@
 PlannerTest::PlannerTest() {}
 
 TEST_F(PlannerTest, PlannerTest) {
-  Planner p;
+  Planner p(0);
 
   p.printSetup();
   auto solved = p.Solve();

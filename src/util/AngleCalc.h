@@ -1,14 +1,12 @@
-//
-// Created by denis on 30/03/19.
-//
+// Copyright 2019 UBC Sailbot
 
 #ifndef LOCAL_PATHFINDING_ANGLECALC_H
 #define LOCAL_PATHFINDING_ANGLECALC_H
 
 class AngleCalc {
  public:
-  static double  absoltuteDistanceBetweenAngles(double angle1, double angle2);
-  static double reverseAngle(double angle);
+  static double absoluteDistanceBetweenAngles(float angle1, float angle2);
+  static double reverseAngle(float angle);
 };
 
 #endif //LOCAL_PATHFINDING_ANGLECALC_H
