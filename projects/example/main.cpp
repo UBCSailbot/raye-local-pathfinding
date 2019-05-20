@@ -9,7 +9,7 @@ int main(int, char *[]) {
   Planner p(0, std::vector<Obstacle>());
 
   p.printSetup();
-  auto solved = p.Solve();
+  auto solved = p.Solve(1.0);
 
   if (solved) {
     std::cout << "Found solution:" << std::endl;

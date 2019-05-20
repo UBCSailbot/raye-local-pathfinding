@@ -21,8 +21,8 @@ Planner::Planner(float windDirection, std::vector<Obstacle> obstacles)
   ob::StateSpacePtr space(new ob::SE2StateSpace());
 
   ob::RealVectorBounds bounds(2);
-  bounds.setLow(-1);
-  bounds.setHigh(1);
+  bounds.setLow(0);
+  bounds.setHigh(5);
 
   space->as<ob::SE2StateSpace>()->setBounds(bounds);
 
@@ -32,10 +32,11 @@ Planner::Planner(float windDirection, std::vector<Obstacle> obstacles)
   cbounds.setLow(-M_PI / 3);
   cbounds.setHigh(M_PI / 3);
   cspace->as<oc::RealVectorControlSpace>()->setBounds(cbounds);
-  ompl::control::SpaceInformationPtr si = ss_->getSpaceInformation();
+
 
   // define a simple setup class
   ss_ = std::make_shared<oc::SimpleSetup>(cspace);
+  oc::SpaceInformationPtr si(ss_->getSpaceInformation());
 
   ob::StateValidityCheckerPtr vc(new ValidityChecker(si, obstacles_));
 
@@ -48,12 +49,16 @@ Planner::Planner(float windDirection, std::vector<Obstacle> obstacles)
 
   // create a random start state
   ob::ScopedState<> start(space);
-  start.random();
+  start[0] = 0;
+  start[1] = 0;
+  start[2] = M_PI/ 4;
 
   // create a random goal state
   ob::ScopedState<> goal(space);
-  goal.random();
-
+  goal[0] = 5;
+  goal[1] = 5;
+  goal[2] = M_PI/ 4;
+  
   // set the start and goal states
   ss_->setStartAndGoalStates(start, goal);
 
@@ -62,9 +67,8 @@ Planner::Planner(float windDirection, std::vector<Obstacle> obstacles)
 }
 
 
-ob::PlannerStatus Planner::Solve() {
-  // attempt to solve the problem within one second of planning time
-  ob::PlannerStatus solved = ss_->solve(1.0);
+ob::PlannerStatus Planner::Solve(double time) {
+  ob::PlannerStatus solved = ss_->solve(time);
   return solved;
 }
 

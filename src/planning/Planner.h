@@ -13,7 +13,7 @@
 class Planner {
  public:
   Planner(float windDirection, std::vector<Obstacle> obstacles);
-  ompl::base::PlannerStatus Solve();
+  ompl::base::PlannerStatus Solve(double time);
   void printSetup();
   ompl::control::PathControl & getPath();
 
