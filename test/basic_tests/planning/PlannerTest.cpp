@@ -6,7 +6,18 @@
 PlannerTest::PlannerTest() {}
 
 TEST_F(PlannerTest, PlannerTestNoObstacles) {
-  Planner p(0, std::vector<Obstacle>());
+  ompl::base::StateSpacePtr space(new ompl::base::SE2StateSpace());
+  ompl::base::ScopedState<ompl::base::SE2StateSpace> start(space);
+  start->setX(0);
+  start->setY(0);
+  start->setYaw(M_PI/ 4);
+
+  ompl::base::ScopedState<ompl::base::SE2StateSpace> goal(space);
+  goal->setX(5);
+  goal->setY(5);
+  goal->setYaw(M_PI/ 4);
+
+  Planner p(0, std::vector<Obstacle>(), 0, 5, start, goal);
 
   p.printSetup();
   auto solved = p.Solve(1.0);
@@ -23,7 +34,19 @@ TEST_F(PlannerTest, PlannerTestNoObstacles) {
 }
 
 TEST_F(PlannerTest, PlannerTestObstacle) {
-  Planner p(0, std::vector<Obstacle>({Obstacle(2.5,2.5,0.4)}));
+  ompl::base::StateSpacePtr space(new ompl::base::SE2StateSpace());
+  ompl::base::ScopedState<ompl::base::SE2StateSpace> start(space);
+  start->setX(0);
+  start->setY(0);
+  start->setYaw(M_PI/ 4);
+
+  ompl::base::ScopedState<ompl::base::SE2StateSpace> goal(space);
+  goal->setX(5);
+  goal->setY(5);
+  goal->setYaw(M_PI/ 4);
+
+
+  Planner p(0, std::vector<Obstacle>({Obstacle(2.5, 2.5, 0.4)}), -2, 7, start, goal);
 
   p.printSetup();
   auto solved = p.Solve(5.0);

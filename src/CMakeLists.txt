@@ -7,14 +7,16 @@ set(LIB_SRCS
         planning/ValidityChecker.cpp
         planning/SailboatStatePropagator.cpp
         util/AngleCalc.cpp
+        planning/SailboatGoalRegion.cpp
         )
 
 set(LIB_HDRS
         planning/Planner.h
         planning/Obstacle.h
         planning/ValidityChecker.h
-        planning/SailboatStatePropagator.H
-        util/AngleCalc.h)
+        planning/SailboatStatePropagator.h
+        util/AngleCalc.h
+        planning/SailboatGoalRegion.h)
 
 
 
