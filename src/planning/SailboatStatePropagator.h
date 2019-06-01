@@ -3,6 +3,7 @@
 #ifndef PLANNING_SAILBOATSTATEPROPAGATOR_H_
 #define PLANNING_SAILBOATSTATEPROPAGATOR_H_
 
+#include <ompl/base/State.h>
 #include <ompl/control/StatePropagator.h>
 
 class SailboatStatePropagator : public ompl::control::StatePropagator {
