@@ -1,4 +1,4 @@
-// Copyright 2017 UBC Sailbot
+// Copyright 2019 UBC Sailbot
 
 #ifndef PLANNING_PLANNERTEST_H_
 #define PLANNING_PLANNERTEST_H_

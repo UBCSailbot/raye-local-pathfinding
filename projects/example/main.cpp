@@ -6,10 +6,10 @@
 
 int main(int, char *[]) {
   std::cout << "OMPL version: " << OMPL_VERSION << std::endl;
-  Planner p;
+  Planner p(0, std::vector<Obstacle>(), 0, 0, nullptr, nullptr);
 
   p.printSetup();
-  auto solved = p.Solve();
+  auto solved = p.Solve(1.0);
 
   if (solved) {
     std::cout << "Found solution:" << std::endl;

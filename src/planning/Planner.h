@@ -3,21 +3,38 @@
 #ifndef PLANNING_PLANNER_H_
 #define PLANNING_PLANNER_H_
 
+#include <ompl/base/spaces/SE2StateSpace.h>
 #include <ompl/base/State.h>
 #include <ompl/geometric/SimpleSetup.h>
 #include <ompl/base/PlannerStatus.h>
+#include <ompl/control/SimpleSetup.h>
+#include <ompl/base/ScopedState.h>
+#include "SailboatStatePropagator.h"
+#include "Obstacle.h"
+#include "Coordinate.h"
+
+namespace ob = ompl::base;
+namespace og = ompl::geometric;
+namespace oc = ompl::control;
 
 class Planner {
  public:
-  Planner();
-  ompl::base::PlannerStatus Solve();
+  Planner(double windDirection,
+          const std::vector<Obstacle> &obstacles,
+          double lowerBound,
+          double upperBound,
+          const ompl::base::ScopedState<ompl::base::SE2StateSpace> &start,
+          const Coordinate &goal);
+  ob::PlannerStatus Solve(double time);
   void printSetup();
-  ompl::geometric::PathGeometric & getPath();
 
+  static ompl::base::StateSpacePtr getStateSpace(double lowerBound, double upperBound);
+
+  oc::PathControl &getPath();
  private:
-  bool isStateValid(const ompl::base::State *state);
-
-  std::shared_ptr<ompl::geometric::SimpleSetup> ss;
+  std::shared_ptr<oc::SimpleSetup> ss_;
+  float wind_direction_;
+  std::vector<Obstacle> obstacles_;
 };
 
 #endif  // PLANNING_PLANNER_H_
