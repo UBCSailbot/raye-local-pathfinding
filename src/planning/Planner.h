@@ -32,7 +32,7 @@ class Planner {
 
   oc::PathControl &getPath();
  private:
-  oc::SimpleSetupPtr ss_;
+  std::shared_ptr<oc::SimpleSetup> ss_;
   float wind_direction_;
   std::vector<Obstacle> obstacles_;
 };
