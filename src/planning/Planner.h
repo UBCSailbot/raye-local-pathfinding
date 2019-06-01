@@ -11,11 +11,11 @@
 #include <ompl/base/ScopedState.h>
 #include "SailboatStatePropagator.h"
 #include "Obstacle.h"
+#include "Coordinate.h"
 
 namespace ob = ompl::base;
 namespace og = ompl::geometric;
 namespace oc = ompl::control;
-
 
 class Planner {
  public:
@@ -24,11 +24,13 @@ class Planner {
           double lowerBound,
           double upperBound,
           const ompl::base::ScopedState<ompl::base::SE2StateSpace> &start,
-          const ompl::base::ScopedState<ompl::base::SE2StateSpace> &goal);
+          const Coordinate &goal);
   ob::PlannerStatus Solve(double time);
   void printSetup();
-  oc::PathControl & getPath();
 
+  static ompl::base::StateSpacePtr getStateSpace(double lowerBound, double upperBound);
+
+  oc::PathControl &getPath();
  private:
   oc::SimpleSetupPtr ss_;
   float wind_direction_;

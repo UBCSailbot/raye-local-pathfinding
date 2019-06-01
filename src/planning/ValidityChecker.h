@@ -10,7 +10,7 @@
 class ValidityChecker : public ompl::base::StateValidityChecker {
  public:
   ValidityChecker(const ompl::base::SpaceInformationPtr &si,
-                    std::vector<Obstacle> obstacles);
+                  const std::vector<Obstacle> &obstacles);
  private:
   bool isValid(const ompl::base::State *state) const override;
   std::vector<Obstacle> obstacles_;

@@ -2,20 +2,18 @@
 
 #include "PlannerTest.h"
 #include <planning/Planner.h>
+#include <planning/SailboatGoalRegion.h>
 
 PlannerTest::PlannerTest() {}
 
 TEST_F(PlannerTest, PlannerTestNoObstacles) {
-  ompl::base::StateSpacePtr space(new ompl::base::SE2StateSpace());
-  ompl::base::ScopedState<ompl::base::SE2StateSpace> start(space);
-  start->setX(0);
-  start->setY(0);
-  start->setYaw(M_PI/ 4);
+  ompl::base::StateSpacePtr space(Planner::getStateSpace(0, 5));
+  ompl::base::ScopedState<ompl::base::CompoundStateSpace> start(space);
+  start->as<ompl::base::SE2StateSpace::StateType>(0)->setXY(0, 0);
+  start->as<ompl::base::SE2StateSpace::StateType>(0)->setYaw(M_PI / 4);
+  start->as<ompl::base::RealVectorStateSpace::StateType>(1)->values[0] = 0;
 
-  ompl::base::ScopedState<ompl::base::SE2StateSpace> goal(space);
-  goal->setX(5);
-  goal->setY(5);
-  goal->setYaw(M_PI/ 4);
+  Coordinate goal(5, 5, M_PI / 4);
 
   Planner p(0, std::vector<Obstacle>(), 0, 5, start, goal);
 
@@ -34,17 +32,13 @@ TEST_F(PlannerTest, PlannerTestNoObstacles) {
 }
 
 TEST_F(PlannerTest, PlannerTestObstacle) {
-  ompl::base::StateSpacePtr space(new ompl::base::SE2StateSpace());
-  ompl::base::ScopedState<ompl::base::SE2StateSpace> start(space);
-  start->setX(0);
-  start->setY(0);
-  start->setYaw(M_PI/ 4);
+  ompl::base::StateSpacePtr space(Planner::getStateSpace(0, 5));
+  ompl::base::ScopedState<ompl::base::CompoundStateSpace> start(space);
+  start->as<ompl::base::SE2StateSpace::StateType>(0)->setXY(0, 0);
+  start->as<ompl::base::SE2StateSpace::StateType>(0)->setYaw(M_PI / 4);
+  start->as<ompl::base::RealVectorStateSpace::StateType>(1)->values[0] = 3;
 
-  ompl::base::ScopedState<ompl::base::SE2StateSpace> goal(space);
-  goal->setX(5);
-  goal->setY(5);
-  goal->setYaw(M_PI/ 4);
-
+  Coordinate goal(5, 5, M_PI / 4);
 
   Planner p(0, std::vector<Obstacle>({Obstacle(2.5, 2.5, 0.4)}), -2, 7, start, goal);
 

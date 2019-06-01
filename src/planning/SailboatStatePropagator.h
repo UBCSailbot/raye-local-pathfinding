@@ -1,7 +1,7 @@
 // Copyright 2019 UBC Sailbot
 
-#ifndef LOCAL_PATHFINDING_SAILBOATSTATEPROPAGATOR_H
-#define LOCAL_PATHFINDING_SAILBOATSTATEPROPAGATOR_H
+#ifndef PLANNING_SAILBOATSTATEPROPAGATOR_H_
+#define PLANNING_SAILBOATSTATEPROPAGATOR_H_
 
 #include <ompl/control/StatePropagator.h>
 
@@ -19,9 +19,8 @@ class SailboatStatePropagator : public ompl::control::StatePropagator {
   bool canPropagateBackward() const override;
 
   bool canSteer() const override;
- private:
-  float wind_angle_;
 
+  float wind_angle_;
 };
 
-#endif  // LOCAL_PATHFINDING_SAILBOATSTATEPROPAGATOR_H
+#endif  // PLANNING_SAILBOATSTATEPROPAGATOR_H_

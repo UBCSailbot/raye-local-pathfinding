@@ -16,7 +16,8 @@ set(LIB_HDRS
         planning/ValidityChecker.h
         planning/SailboatStatePropagator.h
         util/AngleCalc.h
-        planning/SailboatGoalRegion.h)
+        planning/SailboatGoalRegion.h
+        planning/Coordinate.h)
 
 
 

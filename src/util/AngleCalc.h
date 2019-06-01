@@ -1,7 +1,7 @@
 // Copyright 2019 UBC Sailbot
 
-#ifndef LOCAL_PATHFINDING_ANGLECALC_H
-#define LOCAL_PATHFINDING_ANGLECALC_H
+#ifndef UTIL_ANGLECALC_H_
+#define UTIL_ANGLECALC_H_
 
 class AngleCalc {
  public:
@@ -9,4 +9,4 @@ class AngleCalc {
   static double reverseAngle(float angle);
 };
 
-#endif //LOCAL_PATHFINDING_ANGLECALC_H
+#endif  // UTIL_ANGLECALC_H_
