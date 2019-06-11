@@ -10,8 +10,8 @@
 #include <ompl/control/SimpleSetup.h>
 #include <ompl/base/ScopedState.h>
 #include "SailboatStatePropagator.h"
-#include "Obstacle.h"
-#include "Coordinate.h"
+#include "datatypes/Obstacle.h"
+#include "datatypes/Coordinate.h"
 
 namespace ob = ompl::base;
 namespace og = ompl::geometric;
@@ -24,7 +24,7 @@ class Planner {
           double lowerBound,
           double upperBound,
           const ompl::base::ScopedState<ompl::base::SE2StateSpace> &start,
-          const Coordinate &goal);
+          const BoatPosition &goal);
   ob::PlannerStatus Solve(double time);
   void printSetup();
 

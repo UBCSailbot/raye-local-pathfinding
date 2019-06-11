@@ -8,16 +8,20 @@ set(LIB_SRCS
         planning/SailboatStatePropagator.cpp
         util/AngleCalc.cpp
         planning/SailboatGoalRegion.cpp
+        util/CoordinateTranslator.cpp
+        util/UTM.cpp
         )
 
 set(LIB_HDRS
         planning/Planner.h
-        planning/Obstacle.h
+        datatypes/Obstacle.h
         planning/ValidityChecker.h
         planning/SailboatStatePropagator.h
         util/AngleCalc.h
         planning/SailboatGoalRegion.h
-        planning/Coordinate.h)
+        datatypes/Coordinate.h
+        util/CoordinateTranslator.h
+        util/UTM.h ../test/basic_tests/util/CoordinateTranslatorTest.cpp ../test/basic_tests/util/CoordinateTranslatorTest.h)
 
 
 

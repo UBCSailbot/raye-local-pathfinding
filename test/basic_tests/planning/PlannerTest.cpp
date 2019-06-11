@@ -13,7 +13,7 @@ TEST_F(PlannerTest, PlannerTestNoObstacles) {
   start->as<ompl::base::SE2StateSpace::StateType>(0)->setYaw(M_PI / 4);
   start->as<ompl::base::RealVectorStateSpace::StateType>(1)->values[0] = 0;
 
-  Coordinate goal(5, 5, M_PI / 4);
+  BoatPosition goal(Coordinate(4, 4), M_PI / 4);
 
   Planner p(0, std::vector<Obstacle>(), 0, 5, start, goal);
 
@@ -38,9 +38,9 @@ TEST_F(PlannerTest, PlannerTestObstacle) {
   start->as<ompl::base::SE2StateSpace::StateType>(0)->setYaw(M_PI / 4);
   start->as<ompl::base::RealVectorStateSpace::StateType>(1)->values[0] = 3;
 
-  Coordinate goal(5, 5, M_PI / 4);
+  BoatPosition goal(Coordinate(0, 0), M_PI / 4);
 
-  Planner p(0, std::vector<Obstacle>({Obstacle(2.5, 2.5, 0.4)}), -2, 7, start, goal);
+  Planner p(0, std::vector<Obstacle>({Obstacle(Coordinate(2.5, 2.5), 0.4)}), -2, 7, start, goal);
 
   p.printSetup();
   auto solved = p.Solve(5.0);

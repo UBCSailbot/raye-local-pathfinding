@@ -18,7 +18,7 @@ Planner::Planner(double windDirection,
                  double lowerBound,
                  double upperBound,
                  const ompl::base::ScopedState<ompl::base::SE2StateSpace> &start,
-                 const Coordinate &goal)
+                 const BoatPosition &goal)
     : wind_direction_(windDirection), obstacles_(obstacles) {
   // construct the state space we are planning in
   ompl::base::StateSpacePtr space = getStateSpace(lowerBound, upperBound);
@@ -49,9 +49,6 @@ Planner::Planner(double windDirection,
   oc::StatePropagatorPtr statePropagator(new SailboatStatePropagator(si, wind_direction_));
 
   ss_->setStatePropagator(statePropagator);
-//
-//  ob::OptimizationObjectivePtr lengthObj(new ob::PathLengthOptimizationObjective(si));
-//  ss_->setOptimizationObjective(lengthObj);
 
   // this call is optional, but we put it in to get more output information
   ss_->setup();
