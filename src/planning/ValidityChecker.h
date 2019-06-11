@@ -5,7 +5,7 @@
 
 #include <ompl/base/StateValidityChecker.h>
 #include <vector>
-#include "Obstacle.h"
+#include "datatypes/Obstacle.h"
 
 class ValidityChecker : public ompl::base::StateValidityChecker {
  public:

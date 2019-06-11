@@ -5,7 +5,7 @@
 
 SailboatGoalRegion::SailboatGoalRegion(const ompl::base::SpaceInformationPtr &si,
                                        double threshold,
-                                       const Coordinate &goal)
+                                       const BoatPosition &goal)
     : ompl::base::GoalRegion(si), goal_(goal) {
   setThreshold(threshold);
 }

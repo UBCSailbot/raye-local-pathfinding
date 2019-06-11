@@ -1,6 +1,8 @@
 
 set(TEST_FILES
-        planning/PlannerTest.cpp)
+        planning/PlannerTest.cpp
+        util/CoordinateTranslatorTest.cpp
+        )
 
 find_package(rostest REQUIRED)
 
