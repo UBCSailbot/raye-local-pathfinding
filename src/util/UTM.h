@@ -14,6 +14,7 @@
 
 #ifndef UTIL_UTM_H_
 #define UTIL_UTM_H_
+
 namespace UTM {
 
 /**
