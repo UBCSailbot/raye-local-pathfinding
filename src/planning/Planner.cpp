@@ -12,6 +12,7 @@
 #include <ompl/control/SimpleSetup.h>
 #include <ompl/base/objectives/PathLengthOptimizationObjective.h>
 #include <ompl/base/ProjectionEvaluator.h>
+#include <ompl/base/spaces/TimeStateSpace.h>
 
 Planner::Planner(double windDirection,
                  const std::vector<Obstacle> &obstacles,
@@ -70,7 +71,10 @@ ompl::base::StateSpacePtr Planner::getStateSpace(double lowerBound, double upper
   velocity_bounds.setHigh(50);
   velocity->as<ob::RealVectorStateSpace>()->setBounds(velocity_bounds);
 
-  ob::StateSpacePtr space = se2_space + velocity;
+
+  ob::StateSpacePtr time(new ob::TimeStateSpace());
+
+  ob::StateSpacePtr space = se2_space + velocity + time;
   ob::ProjectionEvaluatorPtr proj(new ob::SubspaceProjectionEvaluator(space.get(), 0));
   space->registerDefaultProjection(proj);
 
