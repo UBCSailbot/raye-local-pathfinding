@@ -15,7 +15,6 @@ void SailboatStatePropagator::propagate(const ompl::base::State *state,
                                         const ompl::control::Control *controlState,
                                         double duration,
                                         ompl::base::State *result) const {
-
   const auto start_compound_state = state->as<ompl::base::CompoundStateSpace::StateType>();
 
   // Has the position of the boat in x, y, yaw
