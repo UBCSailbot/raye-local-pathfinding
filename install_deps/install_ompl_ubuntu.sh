@@ -6,6 +6,7 @@ install_common_dependencies()
 {
     # install most dependencies via apt-get
     sudo apt-get -y update
+    sudo apt-get -y upgrade
     # On Ubuntu 14.04 we need to add a PPA to get a recent compiler (g++-4.8 is too old).
     # We also need to specify a Boost version, since the default Boost is too old.
     #
@@ -29,13 +30,16 @@ install_common_dependencies()
 
 install_python_binding_dependencies()
 {
-    sudo apt-get -y install python${PYTHONV}-dev python${PYTHONV}-pip python${PYTHONV}-setuptools
+    sudo apt-get -y install python${PYTHONV}-dev python${PYTHONV}-pip
     # install additional python dependencies via pip
     sudo -H pip${PYTHONV} install -vU pygccxml pyplusplus
     # install castxml
-    wget -q -O- https://data.kitware.com/api/v1/file/57b5dea08d777f10f2696379/download | tar zxf - -C ${HOME}
-       export PATH=${HOME}/castxml/bin/castxml:${PATH}
-    
+    if [[ $ubuntu_version < 1610 ]]; then
+        wget -O - https://data.kitware.com/api/v1/file/57b5dea08d777f10f2696379/download | tar zxf - -C ${HOME}
+        export PATH=$HOME/castxml/bin:$PATH
+    else
+        sudo apt-get -y install castxml
+    fi
     if [[ $ubuntu_version > 1410 ]]; then
         sudo apt-get -y install libboost-python-dev
         if [[ $ubuntu_version > 1710 ]]; then
@@ -86,7 +90,7 @@ install_ompl()
     cd $OMPL-1.4.2-Source
     mkdir -p build/Release
     cd build/Release
-    cmake ../.. -DPYTHON_EXEC=/usr/bin/python${PYTHONV} -DCASTXML=${HOME}/castxml/bin/castxml
+    cmake ../.. -DPYTHON_EXEC=/usr/bin/python${PYTHONV}
     if [ ! -z $1 ]; then
         make update_bindings
     fi
@@ -137,4 +141,3 @@ if [ ! -z $APP ]; then
     install_app_dependencies
 fi
 install_ompl $PYTHON $APP
-
