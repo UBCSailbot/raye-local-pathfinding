@@ -6,7 +6,16 @@
 
 int main(int, char *[]) {
   std::cout << "OMPL version: " << OMPL_VERSION << std::endl;
-  Planner p(0, std::vector<Obstacle>(), 0, 0, nullptr, nullptr);
+
+  ompl::base::StateSpacePtr space(Planner::getStateSpace(0, 5));
+  ompl::base::ScopedState<ompl::base::CompoundStateSpace> start(space);
+  start->as<ompl::base::SE2StateSpace::StateType>(0)->setXY(0, 1);
+  start->as<ompl::base::SE2StateSpace::StateType>(0)->setYaw(M_PI / 4);
+  start->as<ompl::base::RealVectorStateSpace::StateType>(1)->values[0] = 0;
+
+  BoatPosition goal(Coordinate(4, 4), M_PI / 4);
+
+  Planner p(0, std::vector<Obstacle>(), -2, 7, start, goal);
 
   p.printSetup();
   auto solved = p.Solve(1.0);
