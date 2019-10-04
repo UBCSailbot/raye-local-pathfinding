@@ -19,3 +19,5 @@ A docker container for running the Open Motion Planning Library (with GUI) on Ma
 - `docker run -it -e DISPLAY=$ip:0 -v /tmp/.X11-unix:/tmp/.X11-unix <name of build image>`
 - From docker bash: `python3 ~/omplapp/gui/ompl_app.py`
 
+(OMPL.app might not be needed)
+
