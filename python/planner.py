@@ -279,7 +279,8 @@ def plot_path(solution_path, dimensions, obstacles):
     path = create_numpy_path(matrix)
     x, y = path.T
     ax = plt.gca()
-    ax.plot(x, y)
+    ax.plot(x, y, 'r--')
+    ax.plot(x, y, 'go') 
     ax.axis(xmin=dimensions[0], xmax=dimensions[2], ymin=dimensions[1], ymax=dimensions[3])
     for obstacle in obstacles:
         ax.add_patch(plt.Circle((obstacle.x, obstacle.y), radius=obstacle.radius))
