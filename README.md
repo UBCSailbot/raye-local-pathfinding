@@ -1,6 +1,15 @@
 # Python planning code 
 
-The main planning code in python can be found in `python/planner.py`. This code is meant to provide a baseline for the C++ implementation. 
+The main planning code in python can be found in `python/planner.py`. This code is meant to provide a baseline for the C++ implementation. When finished, this program will return a path based on the following parameters:
+
+- Measured wind from sensors
+- Other AIS-enabled ships are considered obstacles
+- Heading
+- GPS location
+- Output from global path planner
+- Heel angle
+
+The local planner will be run on an on-demand basis and the output will be fed into the sailbot's MPC controller.
 
 # Ubuntu OMPL Docker for mac
 A docker container for running the Open Motion Planning Library (with GUI) on Mac OS in an Ubuntu environment.
