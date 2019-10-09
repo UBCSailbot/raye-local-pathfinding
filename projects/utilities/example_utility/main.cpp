@@ -19,8 +19,7 @@ int main(int argc, char const *argv[]) {
       std::cout << desc;
       return EXIT_SUCCESS;
     }
-
-    // TODO(tbd): Do something.
+    
   } catch (const boost::program_options::error &ex) {
     std::cerr << ex.what() << std::endl;
   } catch (const std::runtime_error &ex) {

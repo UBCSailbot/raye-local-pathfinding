@@ -21,7 +21,7 @@ set(LIB_HDRS
         planning/SailboatGoalRegion.h
         datatypes/Coordinate.h
         util/CoordinateTranslator.h
-        util/UTM.h ../test/basic_tests/util/CoordinateTranslatorTest.cpp ../test/basic_tests/util/CoordinateTranslatorTest.h)
+        util/UTM.h ../test/basic_tests/util/CoordinateTranslatorTest.cpp ../test/basic_tests/util/CoordinateTranslatorTest.h planning/TimeObjective.cpp planning/TimeObjective.h)
 
 
 

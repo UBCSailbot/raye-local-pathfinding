@@ -4,6 +4,7 @@
 #include "SailboatStatePropagator.h"
 #include "ValidityChecker.h"
 #include "SailboatGoalRegion.h"
+#include "TimeObjective.h"
 
 #include <utility>
 
@@ -43,6 +44,12 @@ Planner::Planner(double windDirection,
   ss_->addStartState(start);
 
   ob::StateValidityCheckerPtr vc(new ValidityChecker(si, obstacles_));
+
+  ob::OptimizationObjectivePtr obj(new TimeObjective(si));
+  obj->setCostToGoHeuristic(ob::goalRegionCostToGo);
+
+  ss_->setOptimizationObjective(obj);
+
 
   // set state validity checking for this space
   ss_->setStateValidityChecker(vc);
