@@ -5,9 +5,9 @@ set(PROJECT_NAME example)
 project(${PROJECT_NAME} CXX)
 
 # Define the source code
-set(${PROJECT_NAME}_SRCS main.cpp)
+set(${PROJECT_NAME}_SRCS main.cpp PathfindingService.cpp)
 set(${PROJECT_NAME}_LIBS src_core)
 
 # Define the executable
-add_executable(${PROJECT_NAME} ${${PROJECT_NAME}_SRCS})
+add_executable(${PROJECT_NAME} ${${PROJECT_NAME}_SRCS} PathfindingService.cpp)
 target_link_libraries(${PROJECT_NAME} ${${PROJECT_NAME}_LIBS})
