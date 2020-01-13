@@ -114,7 +114,16 @@ class MinTurningObjective(ob.StateCostIntegralObjective):
 
     # Our requirement is to minimize turning. 
     def motionCost(self, s1, s2):
-        return ob.Cost(math.fabs(s2.getYaw() - s1.getYaw()))
+        direction = math.atan2(s2.getY() - s1.getY(), s2.getX() - s1.getX())
+        try:
+            diff = math.fabs(direction - self.last_direction)
+        except AttributeError:
+            self.last_direction = direction
+            diff = math.fabs(direction - self.last_direction)
+        if diff > math.radians(60):
+            return 500.0
+        else:
+            return diff*10
 
 class WindObjective(ob.StateCostIntegralObjective):
     def __init__(self, si):
@@ -137,16 +146,16 @@ class TackingObjective(ob.StateCostIntegralObjective):
     def motionCost(self, s1, s2):
         direction = math.atan2(s2.getY() - s1.getY(), s2.getX() - s1.getX())
         distance = ((s2.getY() - s1.getY())**2 + (s2.getX() - s1.getX())**2)**0.5
-        wind_direction = math.radians(45)
+        wind_direction = math.radians(90)
         relative_wind_direction = wind_direction - direction
 
-        upwind_angle = math.radians(45)
+        upwind_angle = math.radians(30)
         downwind_angle = math.radians(30)
 
         if math.fabs(relative_wind_direction) < upwind_angle:
-            multiplier = 2.0
+            multiplier = sys.maxsize
         elif math.fabs(relative_wind_direction - math.radians(180)) < downwind_angle:
-            multiplier = 1.5
+            multiplier = 10.0
         else:
             multiplier = 0.0
 
@@ -207,8 +216,8 @@ def getBalancedObjective(si):
 
     opt = ob.MultiOptimizationObjective(si)
     opt.addObjective(lengthObj, 1.0)
-    opt.addObjective(clearObj, 5.0)
-    opt.addObjective(minTurnObj, 0.0)
+    opt.addObjective(clearObj, 1.0)
+    opt.addObjective(minTurnObj, 1.0)
     opt.addObjective(windObj, 0.0)
     opt.addObjective(tackingObj, 1.0)
     # opt.setCostThreshold(ob.Cost(5))
@@ -392,7 +401,7 @@ if __name__ == "__main__":
         choices=['BFMTstar', 'BITstar', 'FMTstar', 'InformedRRTstar', 'PRMstar', 'RRTstar', \
         'SORRTstar'], \
          help='(Optional) Specify the optimal planner to use, defaults to RRTstar if not given.')
-    parser.add_argument('-o', '--objective', default='PathLength',
+    parser.add_argument('-o', '--objective', default='WeightedLengthAndClearanceCombo',
                         choices=['PathClearance', 'PathLength', 'ThresholdPathLength',
                                  'WeightedLengthAndClearanceCombo'],
                         help='(Optional) Specify the optimization objective, defaults to PathLength if not given.')
