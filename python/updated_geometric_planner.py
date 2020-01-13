@@ -249,7 +249,7 @@ def create_numpy_path(states):
     return array
 
 
-def plan(run_time, planner_type, objective_type, wind_direction, dimensions, obstacles):
+def plan(run_time, planner_type, objective_type, wind_direction, dimensions, goal_pos, obstacles):
     # Construct the robot state space in which we're planning. We're
     # planning in [0,1]x[0,1], a subset of R^2.
 
@@ -281,16 +281,14 @@ def plan(run_time, planner_type, objective_type, wind_direction, dimensions, obs
     # Set our robot's starting state to be the bottom-left corner of
     # the environment, or (0,0).
     start = ob.State(space)
-    start[0] = dimensions[0]
-    start[1] = dimensions[1]
-    start[2] = math.pi / 4
+    start[0] = 0
+    start[1] = 0
 
     # Set our robot's goal state to be the top-right corner of the
     # environment, or (1,1).
     goal = ob.State(space)
-    goal[0] = dimensions[2]
-    goal[1] = dimensions[3]
-    goal[2] = math.pi / 4
+    goal[0] = goal_pos[0]
+    goal[1] = goal_pos[1]
 
     # Set the start and goal states
     ss.setStartAndGoalStates(start, goal)
@@ -413,6 +411,8 @@ if __name__ == "__main__":
 
     parser.add_argument('-d', '--dimensions', nargs=4, type=int, default=[0, 0, 10, 10],
                         help='(Optional) dimensions of the space')
+    parser.add_argument('-g', '--goal', nargs=2, type=int, default=[10,10],
+                        help='(Optional) planner goal')
     parser.add_argument('-ob', '--obstacles', nargs='+', type=parse_obstacle, default=[parse_obstacle("2.5,2.5,1")],
                         help='(Optional) dimensions of the space')
 
@@ -435,6 +435,15 @@ if __name__ == "__main__":
     else:
         ou.OMPL_ERROR("Invalid log-level integer.")
 
+    # Find the dimensions of the space
+    max_dist = max(args.goal)
+    args.dimensions = [
+            -abs(max_dist),
+            -abs(max_dist),
+            abs(max_dist),
+            abs(max_dist),
+            ]
+
     # Solve the planning problem
-    plan(args.runtime, args.planner, args.objective, args.windDirection, args.dimensions,
+    plan(args.runtime, args.planner, args.objective, args.windDirection, args.dimensions, args.goal,
          args.obstacles)
