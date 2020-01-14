@@ -112,7 +112,8 @@ class MinTurningObjective(ob.StateCostIntegralObjective):
         super(MinTurningObjective, self).__init__(si, True)
         self.si_ = si
 
-    # Our requirement is to minimize turning. 
+    # This objective function punishes the boat for tacking or jibing
+    # by adding a 500 cost for turns over 60 degrees
     def motionCost(self, s1, s2):
         direction = math.atan2(s2.getY() - s1.getY(), s2.getX() - s1.getX())
         try:
@@ -130,19 +131,7 @@ class WindObjective(ob.StateCostIntegralObjective):
         super(WindObjective, self).__init__(si, True)
         self.si_ = si
 
-    # TODO: add requirement about wind alignment
-    def motionCost(self, s1, s2):
-        direction = math.atan2(s2.getY() - s1.getY(), s2.getX() - s1.getX())
-        diff = absolute_distance_between_angles(direction, math.radians(80))
-        return diff * ((s1.getX() - s2.getX())**2 + (s1.getY() - s2.getY())**2)
-
-
-class TackingObjective(ob.StateCostIntegralObjective):
-    def __init__(self, si):
-        super(TackingObjective, self).__init__(si, True)
-        self.si_ = si
-
-    # TODO: Cost based on tacking paper
+    # This objective function punishes the boat for going up/downwind
     def motionCost(self, s1, s2):
         direction = math.atan2(s2.getY() - s1.getY(), s2.getX() - s1.getX())
         distance = ((s2.getY() - s1.getY())**2 + (s2.getX() - s1.getX())**2)**0.5
@@ -155,7 +144,7 @@ class TackingObjective(ob.StateCostIntegralObjective):
         if math.fabs(relative_wind_direction) < upwind_angle:
             multiplier = sys.maxsize
         elif math.fabs(relative_wind_direction - math.radians(180)) < downwind_angle:
-            multiplier = 10.0
+            multiplier = sys.maxsize
         else:
             multiplier = 0.0
 
@@ -163,7 +152,6 @@ class TackingObjective(ob.StateCostIntegralObjective):
 
 def get_clearance_objective(si):
     return ClearanceObjective(si)
-
 
 def get_path_length_obj_with_cost_to_go(si):
     obj = ob.PathLengthOptimizationObjective(si)
@@ -212,14 +200,12 @@ def getBalancedObjective(si):
     clearObj = ClearanceObjective(si)
     minTurnObj = MinTurningObjective(si)
     windObj = WindObjective(si)
-    tackingObj = TackingObjective(si)
 
     opt = ob.MultiOptimizationObjective(si)
     opt.addObjective(lengthObj, 1.0)
     opt.addObjective(clearObj, 1.0)
     opt.addObjective(minTurnObj, 1.0)
-    opt.addObjective(windObj, 0.0)
-    opt.addObjective(tackingObj, 1.0)
+    opt.addObjective(windObj, 1.0)
     # opt.setCostThreshold(ob.Cost(5))
 
     return opt
@@ -300,7 +286,6 @@ def plan(run_time, planner_type, objective_type, wind_direction, dimensions, goa
     clearObj = ClearanceObjective(si)
     minTurnObj = MinTurningObjective(si)
     windObj = WindObjective(si)
-    tackingObj = TackingObjective(si)
     ss.setOptimizationObjective(objective)
     print("ss.getProblemDefinition().hasOptimizationObjective( ){}".format(ss.getProblemDefinition().hasOptimizationObjective()))
     print("ss.getProblemDefinition().hasOptimizedSolution() {}".format(ss.getProblemDefinition().hasOptimizedSolution()))
@@ -316,7 +301,12 @@ def plan(run_time, planner_type, objective_type, wind_direction, dimensions, goa
     ss.setPlanner(optimizing_planner)
 
     # attempt to solve the planning problem in the given runtime
-    solved = ss.solve(run_time)
+    # (but if the solution is terrible, try again)
+    final_cost = sys.maxsize
+    while final_cost > 100000:
+        ss.setPlanner(optimizing_planner)
+        solved = ss.solve(run_time)
+        final_cost = ss.getSolutionPath().cost(objective).value()
 
     if solved:
         # Output the length of the path found
@@ -344,7 +334,6 @@ def plan(run_time, planner_type, objective_type, wind_direction, dimensions, goa
         print("ss.getSolutionPath().cost(clearObj).value() = {}".format(ss.getSolutionPath().cost(clearObj).value()))
         print("ss.getSolutionPath().cost(minTurnObj).value() = {}".format(ss.getSolutionPath().cost(minTurnObj).value()))
         print("ss.getSolutionPath().cost(windObj ).value() = {}".format(ss.getSolutionPath().cost(windObj).value()))
-        print("ss.getSolutionPath().cost(tackingObj ).value() = {}".format(ss.getSolutionPath().cost(tackingObj).value()))
         print("ss.getProblemDefinition().hasOptimizedSolution() {}".format(ss.getProblemDefinition().hasOptimizedSolution()))
         plot_path(ss.getSolutionPath(), dimensions, obstacles)
         print("***")
