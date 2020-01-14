@@ -338,27 +338,6 @@ def plan(run_time, planner_type, objective_type, wind_direction, dimensions, goa
         plot_path(ss.getSolutionPath(), dimensions, obstacles)
         print("***")
 
-        # print("Simplifying path")
-        # ss.simplifySolution()
-        # solution_path = ss.getSolutionPath()
-        # states = solution_path.getStates()
-        # prevState = states[0]
-        # for state in states[1:]:
-        #     print(space.validSegmentCount(prevState, state))
-        #     prevState = state
-        # print("ss.getSolutionPath().printAsMatrix() = {}".format(ss.getSolutionPath().printAsMatrix()))
-        # print("ss.haveSolutionPath() = {}".format(ss.haveSolutionPath()))
-        # print("ss.haveExactSolutionPath() = {}".format(ss.haveExactSolutionPath()))
-        # print("***")
-        # print("ss.getSolutionPath().length() = {}".format(ss.getSolutionPath().length()))
-        # print("ss.getSolutionPath().check() = {}".format(ss.getSolutionPath().check()))
-        # print("ss.getSolutionPath().clearance() = {}".format(ss.getSolutionPath().clearance()))
-        # print("ss.getSolutionPath().cost(objective).value() = {}".format(ss.getSolutionPath().cost(objective).value()))
-        # print("ss.getSolutionPath().cost(lengthObj).value() = {}".format(ss.getSolutionPath().cost(lengthObj).value()))
-        # print("ss.getSolutionPath().cost(clearObj).value() = {}".format(ss.getSolutionPath().cost(clearObj).value()))
-        # print("ss.getSolutionPath().cost(minTurnObj).value() = {}".format(ss.getSolutionPath().cost(minTurnObj).value()))
-        # plot_path(ss.getSolutionPath(), dimensions, obstacles)
-
     else:
         print("No solution found.")
 
