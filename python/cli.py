@@ -4,6 +4,7 @@ import math
 from ompl import util as ou
 
 from updated_geometric_planner import plan, Obstacle
+from plotting import plot_path
 
 def parse_obstacle(s):
     try:
@@ -17,7 +18,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Sailbot motion planning CLI.')
 
     # Add a filename argument
-    parser.add_argument('-t', '--runtime', type=float, default=30.0, help=
+    parser.add_argument('-t', '--runtime', type=float, default=3.0, help=
     '(Optional) Specify the runtime in seconds. Defaults to 1 and must be greater than 0.')
     parser.add_argument('-p', '--planner', default='RRTstar', \
         choices=['BFMTstar', 'BITstar', 'FMTstar', 'InformedRRTstar', 'PRMstar', 'RRTstar', \
@@ -69,5 +70,12 @@ if __name__ == "__main__":
             ]
 
     # Solve the planning problem
-    plan(args.runtime, args.planner, args.objective, args.windDirection, args.dimensions, args.goal,
-         args.obstacles)
+    solutions = []
+    for i in range(10):
+        solutions.append(plan(args.runtime, args.planner, args.objective, args.windDirection, args.dimensions, args.goal,
+         args.obstacles))
+
+    solution = min(solutions, key=lambda x: x[0])
+    print(solution)
+    plot_path(solution[1], args.dimensions, args.obstacles)
+

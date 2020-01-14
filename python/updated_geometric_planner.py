@@ -9,7 +9,6 @@ from math import sqrt
 
 import planner_helpers as ph
 
-from plotting import plot_path
 
 
 class Obstacle:
@@ -106,10 +105,13 @@ def plan(run_time, planner_type, objective_type, wind_direction, dimensions, goa
     # attempt to solve the planning problem in the given runtime
     # (but if the solution is terrible, try again)
     final_cost = sys.maxsize
-    while final_cost > 100000:
-        ss.setPlanner(optimizing_planner)
-        solved = ss.solve(run_time)
-        final_cost = ss.getSolutionPath().cost(objective).value()
+    #while final_cost > 100000:
+    ss.setPlanner(optimizing_planner)
+    solved = ss.solve(run_time)
+    final_cost = ss.getSolutionPath().cost(objective).value()
+    print(final_cost)
+    return (final_cost, ss.getSolutionPath().printAsMatrix())
+    # everything after this is commented out
 
     if solved:
         # Output the length of the path found
@@ -138,7 +140,6 @@ def plan(run_time, planner_type, objective_type, wind_direction, dimensions, goa
         print("ss.getSolutionPath().cost(minTurnObj).value() = {}".format(ss.getSolutionPath().cost(minTurnObj).value()))
         print("ss.getSolutionPath().cost(windObj ).value() = {}".format(ss.getSolutionPath().cost(windObj).value()))
         print("ss.getProblemDefinition().hasOptimizedSolution() {}".format(ss.getProblemDefinition().hasOptimizedSolution()))
-        plot_path(ss.getSolutionPath(), dimensions, obstacles)
         print("***")
 
     else:

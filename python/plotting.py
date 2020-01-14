@@ -12,9 +12,8 @@ def create_numpy_path(states):
         array[i][1] = float(lines[i].split(" ")[1])
     return array
 
-def plot_path(solution_path, dimensions, obstacles):
-    matrix = solution_path.printAsMatrix()
-    path = create_numpy_path(matrix)
+def plot_path(solution_matrix, dimensions, obstacles):
+    path = create_numpy_path(solution_matrix)
     x, y = path.T
     ax = plt.gca()
     ax.plot(x, y, 'r--')
