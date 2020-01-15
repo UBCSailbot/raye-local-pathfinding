@@ -101,7 +101,7 @@ class WindObjective(ob.StateCostIntegralObjective):
         wind_direction = math.radians(90) # 90: wind from north
         relative_wind_direction = wind_direction - direction
 
-        upwind_angle = math.radians(45)
+        upwind_angle = math.radians(30)
         downwind_angle = math.radians(30)
 
         if math.fabs(relative_wind_direction) < upwind_angle:
