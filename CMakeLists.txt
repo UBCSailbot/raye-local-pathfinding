@@ -51,6 +51,10 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files(
   FILES
   wind.msg
+  GPS.msg
+  desired_heading.msg
+  latlon.msg
+  global_path.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -161,8 +165,9 @@ include_directories(
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
 install(PROGRAMS
+  python/MOCK_global_planner.py
+  python/MOCK_controller_and_boat.py
   python/MOCK_wind_sensor.py
-  python/main_ros_node.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
