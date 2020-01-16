@@ -55,6 +55,8 @@ add_message_files(
   desired_heading.msg
   latlon.msg
   global_path.msg
+  AIS_ship.msg
+  AIS_msg.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -168,6 +170,7 @@ install(PROGRAMS
   python/MOCK_global_planner.py
   python/MOCK_controller_and_boat.py
   python/MOCK_wind_sensor.py
+  python/MOCK_AIS.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
