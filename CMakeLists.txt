@@ -57,6 +57,7 @@ add_message_files(
   global_path.msg
   AIS_ship.msg
   AIS_msg.msg
+  AIS.msg
 )
 
 ## Generate services in the 'srv' folder
