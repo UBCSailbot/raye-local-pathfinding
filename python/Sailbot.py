@@ -1,18 +1,7 @@
 #!/usr/bin/env python
 import rospy
-from local_pathfinding.msg import wind
-from local_pathfinding.msg import AIS
-from geometry_msgs.msg import Pose2D
 from std_msgs.msg import Float64
-from local_pathfinding.msg import AIS_msg, GPS, global_path, latlon
-
-class GPSCoordinates:
-    def __init__(self, latitude, longitude):
-        self.latitude = latitude
-        self.longitude = longitude
-
-    def __str__(self):
-        return "Lat: {0}. Long: {1}".format(self.latitude, self.longitude)
+from local_pathfinding.msg import AIS_msg, GPS, global_path, latlon, wind
 
 class BoatState:
     def __init__(self, globalWaypoint, currentPosition, wind_direction, wind_speed, AISData, heading, speed):
@@ -39,11 +28,11 @@ class BoatState:
 class Sailbot:
 
     def getCurrentState(self):
-        return BoatState(self.globalWaypoint, self.currentPosition, self.wind_direction, self.wind_speed, self.AISData, self.heading, self.speed)
+        return BoatState(self.globalPath[self.globalPathIndex], self.currentPosition, self.wind_direction, self.wind_speed, self.AISData, self.heading, self.speed)
 
     def currentPositionCallback(self, data):
-        self.currentPosition.latitude = data.lat
-        self.currentPosition.longitude = data.lon
+        self.currentPosition[0] = data.lat
+        self.currentPosition[1] = data.lon
         self.heading = data.heading
         self.speed = data.speed
 
@@ -55,17 +44,30 @@ class Sailbot:
         self.AISData = data
 
     def globalPathCallback(self, data):
-        self.globalWaypoint.latitude = data.global_path[0].lat
-        self.globalWaypoint.longitude = data.global_path[0].lon
+        self.globalPath = data.global_path
+
+    def globalWaypointReached(self):
+        if self.distance(self.globalPathIndex) < 0.001:
+            self.globalPathIndex += 1
+
+    def distance(self, index):
+        xDistance = self.globalPath[index].lat - self.currentPosition[0]
+        yDistance = self.globalPath[index].lon - self.currentPosition[1]
+
+        return (xDistance**2 + yDistance**2) ** (0.5)
+        
+
 
     def __init__(self):
-        self.globalWaypoint = GPSCoordinates(0, 0)
-        self.currentPosition = GPSCoordinates(0, 0)
+        self.globalWaypoint = [0, 0]
+        self.currentPosition = [0, 0]
         self.wind_direction = 0
         self.wind_speed = 0
         self.AISData = AIS_msg()
         self.heading = 0
         self.speed = 0
+        self.globalPath = [global_path([0, 0])]
+        self.globalPathIndex = 0
 
         rospy.init_node('local_pathfinding', anonymous=True)
         rospy.Subscriber("MOCK_GPS", GPS, self.currentPositionCallback)
