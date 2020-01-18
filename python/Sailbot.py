@@ -4,6 +4,7 @@ from local_pathfinding.msg import wind
 from local_pathfinding.msg import AIS
 from geometry_msgs.msg import Pose2D
 from std_msgs.msg import Float64
+from local_pathfinding.msg import AIS_msg, GPS, global_path, latlon
 
 class GPSCoordinates:
     def __init__(self, latitude, longitude):
@@ -22,6 +23,7 @@ class BoatState:
         self.AISData = AISData
         self.heading = heading
 
+    #AISData currently printing out a list of all ships and their attributes
     def __str__(self):
         return (("Global waypoint: {0}\n"
                  "Current position: {1}\n"
@@ -29,7 +31,7 @@ class BoatState:
                  "Wind speed: {3}\n"
                  "AISData: {4}\n"
                  "Heading: {5}\n")
-                 .format(self.globalWaypoint, self.currentPosition, self.wind_direction, self.wind_speed, self.AISData.MMSI, self.heading))
+                 .format(self.globalWaypoint, self.currentPosition, self.wind_direction, self.wind_speed, self.AISData.ships, self.heading))
 
 
 class Sailbot:
@@ -38,36 +40,47 @@ class Sailbot:
         return BoatState(self.globalWaypoint, self.currentPosition, self.wind_direction, self.wind_speed, self.AISData, self.heading)
 
     def currentPositionCallback(self, data):
-        rospy.loginfo(data)
-        self.currentPosition.latitude = data.x
-        self.currentPosition.longitude = data.y
-    
+        #rospy.loginfo(data)
+        #self.currentPosition.latitude = data.x
+        #self.currentPosition.longitude = data.y
+        self.currentPosition.latitude = data.lat
+        self.currentPosition.longitude = data.lon
+        self.heading = data.heading
+
     def windCallback(self, data):
-        rospy.loginfo(data)
+        ##rospy.loginfo(data)
         self.wind_direction = data.direction
         self.wind_speed = data.speed
 
     def AISDataCallback(self, data):
-        rospy.loginfo(data)
+        #rospy.loginfo(data)
         self.AISData = data
 
-    def headingCallback(self, data):
-        rospy.loginfo(data)
-        self.heading = data.data
+    """def headingCallback(self, data):
+        #rospy.loginfo(data)
+        self.heading = data.data """
+
+    def globalPathCallback(self, data):
+        #rospy.loginfo(data)
+        #temporarily set to print first of all global waypoints
+        self.globalWaypoint.latitude = data.global_path[0].lat
+        self.globalWaypoint.longitude = data.global_path[0].lon
 
     def __init__(self):
         self.globalWaypoint = GPSCoordinates(0, 0)
         self.currentPosition = GPSCoordinates(0, 0)
         self.wind_direction = 0
         self.wind_speed = 0
-        self.AISData = AIS()
+        self.AISData = AIS_msg()
         self.heading = 0
 
         rospy.init_node('local_pathfinding', anonymous=True)
-        rospy.Subscriber("current_position", Pose2D, self.currentPositionCallback)
+        #rospy.Subscriber("current_position", Pose2D, self.currentPositionCallback)
+        rospy.Subscriber("MOCK_GPS", GPS, self.currentPositionCallback)
         rospy.Subscriber("MOCK_wind", wind, self.windCallback)
-        rospy.Subscriber("AISData", AIS, self.AISDataCallback)
-        rospy.Subscriber("heading", Float64, self.headingCallback)
+        rospy.Subscriber("MOCK_AIS", AIS_msg, self.AISDataCallback)
+        rospy.Subscriber("MOCK_global_path", global_path, self.globalPathCallback)
+        #rospy.Subscriber("heading", Float64, self.headingCallback)
 
 
 # Example code of how this class works.
