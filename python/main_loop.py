@@ -12,29 +12,22 @@ from utilities import *
 import time
 
 if __name__ == '__main__':
-    # Given globalPath from start, assume doesn't change for now
-    globalPath = [GPSCoordinates(1,0), GPSCoordinates(10,11), GPSCoordinates(24,10)]
-
     # Create sailbot ROS object that subscribes to relevant topics
     sailbot = Sailbot()
 
-    # Set current global waypoint
-    globalPathIndex = 0
-    sailbot.globalWaypoint = globalPath[globalPathIndex]
-
     # Create ros publisher for the next local waypoint for the controller
-    nextLocalWaypointPublisher = rospy.Publisher('nextLocalWaypoint', Pose2D)
+    desiredHeadingPublisher = rospy.Publisher('nextLocalWaypoint', Pose2D)
     publishRate = rospy.Rate(10) # Hz
     nextLocalWaypointMsg = Pose2D()
 
     # Create first path and track time of updates
     currentState = sailbot.getCurrentState()
-    currentLandAndBorderData = getCurrentLandAndBorderData(currentState)
-    currentPath = createNewPath(currentState, currentLandAndBorderData)
+    currentPath = createNewPath(currentState)
     lastTimePathCreated = time.time()
 
     while not rospy.is_shutdown():
         currentState = sailbot.getCurrentState()
+        path = createNewPath(currentState)
 
         # If next global waypoint reached, update land and border data
         # Update global waypoint in sailbot object
