@@ -29,26 +29,25 @@ if __name__ == '__main__':
     while not rospy.is_shutdown():
         state = sailbot.getCurrentState()
 
-        # If globalWaypoint met, increment the index
-        isGlobalWaypointReached = globalWaypointReached(state.currentPosition, state.globalWaypoint)
-        if isGlobalWaypointReached:
-            sailbot.globalPathIndex += 1
-
-        # If localWaypoint met, increment the index
-        if localWaypointReached(state.currentPosition, localPath, localPathIndex):
-            localPathIndex += 1
-
-        # Update local path if needed.
+        # Generate new local path if needed.
         isBad = isBadPath(state, localPath)
         isTimeLimitExceeded = timeLimitExceeded(lastTimePathCreated)
+        isGlobalWaypointReached = globalWaypointReached(state.currentPosition, state.globalWaypoint)
         if isBad or isTimeLimitExceeded or isGlobalWaypointReached:
             rospy.loginfo("Updating localPath")
             rospy.loginfo("isBad? {}. isTimeLimitExceeded? {}. isGlobalWaypointReached? {}.".format(isBad, isTimeLimitExceeded, isGlobalWaypointReached))
+
+            # If globalWaypoint met, increment the index
+            if isGlobalWaypointReached:
+                sailbot.globalPathIndex += 1
 
             # Update local path
             localPath = createLocalPath(state)
             localPathIndex = 0
             lastTimePathCreated = time.time()
+        # If localWaypoint met, increment the index
+        elif localWaypointReached(state.currentPosition, localPath, localPathIndex):
+            localPathIndex += 1
 
         # Publish desiredHeading
         desiredHeadingMsg.heading = getDesiredHeading(state.currentPosition, localPath[localPathIndex])
