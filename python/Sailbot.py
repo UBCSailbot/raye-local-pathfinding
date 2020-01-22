@@ -26,10 +26,8 @@ class BoatState:
 
 
 class Sailbot:
-
     def getCurrentState(self):
         return BoatState(self.globalPath[self.globalPathIndex], self.currentPosition, self.wind_direction, self.wind_speed, self.AISData, self.heading, self.speed)
-
     def currentPositionCallback(self, data):
         self.currentPosition[0] = data.lat
         self.currentPosition[1] = data.lon
@@ -44,22 +42,12 @@ class Sailbot:
         self.AISData = data
 
     def globalPathCallback(self, data):
-        self.globalPath = data.global_path
-
-    def globalWaypointReached(self):
-        if self.distance(self.globalPathIndex) < 0.001:
-            self.globalPathIndex += 1
-
-    def distance(self, index):
-        xDistance = self.globalPath[index].lat - self.currentPosition[0]
-        yDistance = self.globalPath[index].lon - self.currentPosition[1]
-
-        return (xDistance**2 + yDistance**2) ** (0.5)
-        
-
+        # If new path received, update globalPath
+        if not self.globalPath is None and data.global_path[0].lat - self.globalPath[0].lat > 0.1 and data.global_path[0].lon - self.global_path[0].lon > 0.1:
+            self.globalPath = data.global_path
+            self.globalPathIndex = 0
 
     def __init__(self):
-        self.globalWaypoint = [0, 0]
         self.currentPosition = [0, 0]
         self.wind_direction = 0
         self.wind_speed = 0
