@@ -38,6 +38,8 @@ if __name__ == "__main__":
                         help='(Optional) dimensions of the space')
     parser.add_argument('-g', '--goal', nargs=2, type=int, default=[10,10],
                         help='(Optional) planner goal')
+    parser.add_argument('-s', '--start', nargs=2, type=int, default=[0,0],
+                        help='(Optional) planner start')
     parser.add_argument('-ob', '--obstacles', nargs='+', type=parse_obstacle, default=[parse_obstacle("2.5,2.5,1")],
                         help='(Optional) dimensions of the space')
 
@@ -72,7 +74,7 @@ if __name__ == "__main__":
     # Solve the planning problem
     solutions = []
     for i in range(10):
-        solutions.append(plan(args.runtime, args.planner, args.objective, args.windDirection, args.dimensions, args.goal,
+        solutions.append(plan(args.runtime, args.planner, args.objective, args.windDirection, args.dimensions, args.start, args.goal,
          args.obstacles))
 
     solution = min(solutions, key=lambda x: x[0])

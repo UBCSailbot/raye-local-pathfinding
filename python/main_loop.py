@@ -30,7 +30,7 @@ if __name__ == '__main__':
         state = sailbot.getCurrentState()
 
         # Generate new local path if needed.
-        isBad = isBadPath(state, localPath)
+        isBad = isBadPath(state, localPath, localPathIndex)
         isTimeLimitExceeded = timeLimitExceeded(lastTimePathCreated)
         isGlobalWaypointReached = globalWaypointReached(state.currentPosition, state.globalWaypoint)
         if isBad or isTimeLimitExceeded or isGlobalWaypointReached:

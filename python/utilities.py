@@ -1,19 +1,42 @@
 #!/usr/bin/env python
 import time
-from Sailbot import GPSCoordinates
+from plotting import plot_path
+from ompl import util as ou
+from ompl import geometric as og
+from updated_geometric_planner import plan, Obstacle
+from cli import parse_obstacle
+import math
 
-def getCurrentLandAndBorderData(currentState):
-    return None
 
-def createNewPath(currentState, currentLandAndBorderData):
-    return [ [currentState.currentPosition.latitude, currentState.currentPosition.longitude], [currentState.currentPosition.latitude + 1, currentState.currentPosition.longitude + 1] ]
+def createLocalPath(currentState):
+    # Solve the planning problem
+    solutions = []
+    dimensions = [0,0,10,10]
+    obstacles = [parse_obstacle("2.5,2.5,1")]
+    runtime = 0.1
+    for i in range(4):
+        solutions.append(plan(runtime, "RRTStar", 'WeightedLengthAndClearanceCombo', 0, dimensions, [0,0], [10,10],
+         obstacles))
+
+    solution = min(solutions, key=lambda x: x[0])
+    solution_path = solution[2]
+    plot_path(solution[1], dimensions, obstacles)
+    return solution_path
 
 def nextGlobalWaypointReached(currentState):
     distanceThreshold = 0.5
     return distance(currentState.currentPosition, currentState.globalWaypoint) < distanceThreshold
 
-def isBadPath(currentState, currentPath, currentLandAndBorderData):
-    return None
+def isBadPath(state, localPath, localPathIndex):
+    # If sailing upwind or downwind, isBad
+    if abs(state.wind_direction - getDesiredHeading(state.currentPosition, localPath[localPathIndex])):
+        return True
+
+    # Check if path will hit objects
+    return False
+
+def globalWaypointReached(currentPosition, globalWaypoint):
+    return False
 
 def nextLocalWaypointReached(currentState, nextLocalWaypointMsg):
     distanceThreshold = 0.5
@@ -23,5 +46,5 @@ def timeLimitExceeded(lastTimePathCreated):
     secondsLimit = 5
     return time.time() - lastTimePathCreated > secondsLimit
 
-def distance(gpsCoord1, gpsCoord2):
-    return ((gpsCoord1.latitude - gpsCoord2.latitude)**2 + (gpsCoord1.longitude - gpsCoord2.longitude)**2)**0.5
+def getDesiredHeading(currentPosition, localWaypoint):
+    return math.radians(180)
