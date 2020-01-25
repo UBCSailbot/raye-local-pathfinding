@@ -6,6 +6,7 @@ from ompl import geometric as og
 from updated_geometric_planner import plan, Obstacle
 from cli import parse_obstacle
 import math
+from geopy.distance import great_circle
 
 
 def createLocalPath(currentState):
@@ -23,10 +24,6 @@ def createLocalPath(currentState):
     plot_path(solution[1], dimensions, obstacles)
     return solution_path
 
-def nextGlobalWaypointReached(currentState):
-    distanceThreshold = 0.5
-    return distance(currentState.currentPosition, currentState.globalWaypoint) < distanceThreshold
-
 def isBadPath(state, localPath, localPathIndex):
     # If sailing upwind or downwind, isBad
     if abs(state.wind_direction - getDesiredHeading(state.currentPosition, localPath[localPathIndex])):
@@ -36,7 +33,10 @@ def isBadPath(state, localPath, localPathIndex):
     return False
 
 def globalWaypointReached(currentPosition, globalWaypoint):
-    return False
+    radius = 2
+    sailbot = (currentPosition.latitude, currentPosition.longitude)
+    waypt = (globalWaypoint.latitude, globalWaypoint.longitude)
+    return great_circle(sailbot, waypt) < radius
 
 def nextLocalWaypointReached(currentState, nextLocalWaypointMsg):
     distanceThreshold = 0.5
