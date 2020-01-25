@@ -30,9 +30,9 @@ if __name__ == '__main__':
         state = sailbot.getCurrentState()
 
         # Generate new local path if needed.
-        isBad = isBadPath(state, localPath, localPathIndex)
+        isBad = badPath(state, localPath, localPathIndex)
         isTimeLimitExceeded = timeLimitExceeded(lastTimePathCreated)
-        isGlobalWaypointReached = globalWaypointReached(state.currentPosition, state.globalWaypoint)
+        isGlobalWaypointReached = globalWaypointReached(state.position, state.globalWaypoint)
         if isBad or isTimeLimitExceeded or isGlobalWaypointReached:
             rospy.loginfo("Updating localPath")
             rospy.loginfo("isBad? {}. isTimeLimitExceeded? {}. isGlobalWaypointReached? {}.".format(isBad, isTimeLimitExceeded, isGlobalWaypointReached))
@@ -45,12 +45,13 @@ if __name__ == '__main__':
             localPath = createLocalPath(state)
             localPathIndex = 0
             lastTimePathCreated = time.time()
+
         # If localWaypoint met, increment the index
-        elif localWaypointReached(state.currentPosition, localPath, localPathIndex):
+        elif localWaypointReached(state.position, localPath, localPathIndex):
             localPathIndex += 1
 
         # Publish desiredHeading
-        desiredHeadingMsg.heading = getDesiredHeading(state.currentPosition, localPath[localPathIndex])
+        desiredHeadingMsg.heading = getDesiredHeading(state.position, localPath[localPathIndex])
         rospy.loginfo_throttle(1, "desiredHeadingMsg: {}".format(desiredHeadingMsg.heading))  # Prints every x seconds
         desiredHeadingPublisher.publish(desiredHeadingMsg)
         publishRate.sleep()

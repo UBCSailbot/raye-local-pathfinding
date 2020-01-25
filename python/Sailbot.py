@@ -5,11 +5,11 @@ from local_pathfinding.msg import AIS_msg, GPS, global_path, latlon, wind
 from geopy.distance import great_circle
 
 class BoatState:
-    def __init__(self, globalWaypoint, currentPosition, wind_direction, wind_speed, AISData, heading, speed):
+    def __init__(self, globalWaypoint, position, windDirection, windSpeed, AISData, heading, speed):
         self.globalWaypoint = globalWaypoint
-        self.currentPosition = currentPosition
-        self.wind_direction = wind_direction
-        self.wind_speed = wind_speed
+        self.position = position
+        self.windDirection = windDirection
+        self.windSpeed = windSpeed
         self.AISData = AISData
         self.heading = heading
         self.speed = speed
@@ -23,21 +23,21 @@ class BoatState:
                  "AISData: {4}\n"
                  "Heading: {5}\n"
                  "Speed: {6}\n")
-                 .format(self.globalWaypoint, self.currentPosition, self.wind_direction, self.wind_speed, self.AISData.ships, self.heading, self.speed))
+                 .format(self.globalWaypoint, self.position, self.windDirection, self.windSpeed, self.AISData.ships, self.heading, self.speed))
 
 
 class Sailbot:
     def getCurrentState(self):
-        return BoatState(self.globalPath[self.globalPathIndex], self.currentPosition, self.wind_direction, self.wind_speed, self.AISData, self.heading, self.speed)
-    def currentPositionCallback(self, data):
-        self.currentPosition[0] = data.lat
-        self.currentPosition[1] = data.lon
+        return BoatState(self.globalPath[self.globalPathIndex], self.position, self.windDirection, self.windSpeed, self.AISData, self.heading, self.speed)
+    def positionCallback(self, data):
+        self.position[0] = data.lat
+        self.position[1] = data.lon
         self.heading = data.heading
         self.speed = data.speed
 
     def windCallback(self, data):
-        self.wind_direction = data.direction
-        self.wind_speed = data.speed
+        self.windDirection = data.direction
+        self.windSpeed = data.speed
 
     def AISDataCallback(self, data):
         self.AISData = data
@@ -57,9 +57,9 @@ class Sailbot:
 
 
     def __init__(self):
-        self.currentPosition = [0, 0]
-        self.wind_direction = 0
-        self.wind_speed = 0
+        self.position = [0, 0]
+        self.windDirection = 0
+        self.windSpeed = 0
         self.AISData = AIS_msg()
         self.heading = 0
         self.speed = 0
@@ -70,7 +70,7 @@ class Sailbot:
         self.globalPathIndex = 0
 
         rospy.init_node('local_pathfinding', anonymous=True)
-        rospy.Subscriber("MOCK_GPS", GPS, self.currentPositionCallback)
+        rospy.Subscriber("MOCK_GPS", GPS, self.positionCallback)
         rospy.Subscriber("MOCK_wind", wind, self.windCallback)
         rospy.Subscriber("MOCK_AIS", AIS_msg, self.AISDataCallback)
         rospy.Subscriber("MOCK_global_path", global_path, self.globalPathCallback)
