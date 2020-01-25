@@ -36,7 +36,7 @@ import planner_helpers as ph
 def createLocalPath(state):
     ou.setLogLevel(ou.LOG_WARN)
     # Get setup parameters from state
-    start = [state.position[0], state.position[1]]
+    start = [state.position.lat, state.position.lon]
     goal = [state.globalWaypoint.lat, state.globalWaypoint.lon]
     extra = 3   # Extra dimensions to show more in the plot
     dimensions = [start[0] - extra, start[1] - extra, goal[0] + extra, goal[1] + extra]
@@ -98,7 +98,7 @@ def badPath(state, localPath, localPathIndex, myVector):
 
 def globalWaypointReached(position, globalWaypoint):
     radius = 2
-    sailbot = (position[0], position[1])
+    sailbot = (position.lat, position.lon)
     waypt = (globalWaypoint.lat, globalWaypoint.lon)
     return great_circle(sailbot, waypt) < radius
 
@@ -112,5 +112,15 @@ def timeLimitExceeded(lastTimePathCreated):
     secondsLimit = 5
     return time.time() - lastTimePathCreated > secondsLimit
 
+# this will give initial bearing on a great-circle path
+#if we keep local waypoints close enough to each other it approx the final bearing
 def getDesiredHeading(position, localWaypoint):
-    return math.atan2(localWaypoint[1] - position[1], localWaypoint[0] - position[0])
+    term1 = math.sin(localWaypoint.lon - position.lon) * math.cos(localWaypoint.lat)
+    term2 = math.cos(position.lat) * math.sin(localWaypoint.lat) - math.sin(position.lat) * math.cos(localWaypoint.lat)*math.cos(localWaypoint.lon - position.lon)
+    bearing = math.degrees(math.atan2(term1, term2))
+    
+    #this changes the bearing into a heading assuming 0 degrees pointing east for heading measurements
+    heading = bearing - 90
+    if (heading < 0):
+        heading += 360
+    return heading

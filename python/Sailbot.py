@@ -31,8 +31,8 @@ class Sailbot:
         return BoatState(self.globalPath[self.globalPathIndex], self.position, self.windDirection, self.windSpeed, self.AISData, self.heading, self.speed)
 
     def positionCallback(self, data):
-        self.position[0] = data.lat
-        self.position[1] = data.lon
+        self.position.lat = data.lat
+        self.position.lon = data.lon
         self.heading = data.heading
         self.speed = data.speed
 
@@ -58,7 +58,7 @@ class Sailbot:
 
 
     def __init__(self):
-        self.position = [0, 0]
+        self.position = latlon() 
         self.windDirection = 0
         self.windSpeed = 0
         self.AISData = AIS_msg()
