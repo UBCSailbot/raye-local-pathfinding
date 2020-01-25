@@ -84,7 +84,7 @@ def badPath(state, localPath, localPathIndex, myVector):
 #         return True
 
     # Check if path will hit objects
-    start = [state.position[0], state.position[1]]
+    start = [state.position.lat, state.position.lon]
     goal = [state.globalWaypoint.lat, state.globalWaypoint.lon]
     extra = 3   # Extra dimensions to show more in the plot
     dimensions = [start[0] - extra, start[1] - extra, goal[0] + extra, goal[1] + extra]
@@ -104,8 +104,8 @@ def globalWaypointReached(position, globalWaypoint):
 
 def localWaypointReached(position, localPath, localPathIndex):
     radius = 1
-    sailbot = (position[0], position[1])
-    waypt = (localPath[localPathIndex][0], localPath[localPathIndex][1])
+    sailbot = (position.lat, position.lon)
+    waypt = (localPath[localPathIndex].lat, localPath[localPathIndex].lon)
     return great_circle(sailbot, waypt) < radius
 
 def timeLimitExceeded(lastTimePathCreated):

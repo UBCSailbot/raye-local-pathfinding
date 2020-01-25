@@ -66,7 +66,7 @@ if __name__ == '__main__':
             localPathIndex += 1
 
         # Publish desiredHeading
-        desiredHeadingMsg.heading = getDesiredHeading(state.position, localPath.[localPathIndex])
+        desiredHeadingMsg.heading = getDesiredHeading(state.position, localPath[localPathIndex])
         rospy.loginfo_throttle(1, "desiredHeadingMsg: {}".format(desiredHeadingMsg.heading))  # Prints every x seconds
         desiredHeadingPublisher.publish(desiredHeadingMsg)
         publishRate.sleep()

@@ -64,10 +64,7 @@ class Sailbot:
         self.AISData = AIS_msg()
         self.heading = 0
         self.speed = 0
-        msg = latlon()
-        msg.lat = 0
-        msg.lon = 0
-        self.globalPath = global_path([msg]).global_path
+        self.globalPath = global_path([latlon()]).global_path
         self.globalPathIndex = 0
 
         rospy.init_node('local_pathfinding', anonymous=True)
