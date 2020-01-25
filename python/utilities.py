@@ -10,33 +10,27 @@ from geopy.distance import great_circle
 import local_pathfinding.msg as msg
 
 
-def parse_AIS_msg(AIS_msg):
-    obstacles = []
-    for ship in AIS_msg.ships:
-        obstacles.append(parse_obstacle("{},{},{}".format(ship.lat, ship.lon, ship.speed)))
-    return obstacles
-
-
 def createLocalPath(currentState):
-    # Solve the planning problem
-    solutions = []
+    # Get setup parameters from currentState
     start = [currentState.currentPosition[0], currentState.currentPosition[1]]
     goal = [currentState.globalWaypoint.lat, currentState.globalWaypoint.lon]
     print("Start: {0}, {1}".format(start[0], start[1]))
     print("Goal: {0}, {1}".format(goal[0], goal[1]))
-    # dimensions = [min(start[0], goal[0]), min(start[1], goal[1]), max(start[0], goal[0]), max(start[1], goal[1])]
-    extra = 3
+    extra = 3   # Extra dimensions to show more in the plot
     dimensions = [start[0] - extra, start[1] - extra, goal[0] + extra, goal[1] + extra]
-    # obstacles = [parse_obstacle("2.5,2.5,1")]
-    obstacles = parse_AIS_msg(currentState.AISData)
+    obstacles = [parse_obstacle("{},{},{}".format(ship.lat, ship.lon, ship.speed)) for ship in currentState.AISData.ships]
     windDirection = currentState.wind_direction
     runtime = 3
+
+    # Run the planner multiple times and find the best one
+    solutions = []
     for i in range(4):
         solutions.append(plan(runtime, "RRTStar", 'WeightedLengthAndClearanceCombo', windDirection, dimensions, start, goal,
          obstacles))
-
     solution = min(solutions, key=lambda x: x[0])
     solution_path = solution[2]
+
+    # Plot
     plot_path(solution[1], dimensions, obstacles)
     return solution_path
 

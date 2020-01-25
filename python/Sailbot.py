@@ -43,12 +43,15 @@ class Sailbot:
         self.AISData = data
 
     def globalPathCallback(self, data):
-        if not self.globalPath is None:
-            oldFirstPoint = (self.globalPath[0].lat, self.globalPath[0].lon)
-            newFirstPoint = (data.global_path[0].lat, data.global_path[0].lon)
+        # Update globalPath current one is None
+        if self.globalPath is None:
+            self.globalPath = data.global_path
+            self.globalPathIndex = 0
 
-        # Update globalPath if it is current None or different from the new path
-        if self.globalPath is None or great_circle(oldFirstPoint, newFirstPoint) > 0.001:
+        # Update globalPath current one different from new one
+        oldFirstPoint = (self.globalPath[0].lat, self.globalPath[0].lon)
+        newFirstPoint = (data.global_path[0].lat, data.global_path[0].lon)
+        if great_circle(oldFirstPoint, newFirstPoint) > 0.001:
             self.globalPath = data.global_path
             self.globalPathIndex = 0
 
