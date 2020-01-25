@@ -10,6 +10,18 @@ import utilities
 from utilities import *
 
 import time
+#############
+import math
+import sys
+
+from ompl import util as ou
+from ompl import base as ob
+from ompl import geometric as og
+from ompl import control as oc
+from math import sqrt
+
+import planner_helpers as ph
+
 
 if __name__ == '__main__':
     # Create sailbot ROS object that subscribes to relevant topics
@@ -22,7 +34,10 @@ if __name__ == '__main__':
 
     # Create first path and track time of updates
     state = sailbot.getCurrentState()
-    localPath = createLocalPath(state)
+    localPathSS = createLocalPath(state)
+    for lwp in ss.getSolutionPath().getStates():
+        print(lwp.getX())
+
     localPathIndex = 0
     lastTimePathCreated = time.time()
 
@@ -30,7 +45,7 @@ if __name__ == '__main__':
         state = sailbot.getCurrentState()
 
         # Generate new local path if needed.
-        isBad = badPath(state, localPath, localPathIndex)
+        isBad = badPath(state, localPath, localPathIndex, myVector)
         isTimeLimitExceeded = timeLimitExceeded(lastTimePathCreated)
         isGlobalWaypointReached = globalWaypointReached(state.position, state.globalWaypoint)
         if isBad or isTimeLimitExceeded or isGlobalWaypointReached:
@@ -42,7 +57,7 @@ if __name__ == '__main__':
                 sailbot.globalPathIndex += 1
 
             # Update local path
-            localPath = createLocalPath(state)
+            localPathSS = createLocalPath(state)
             localPathIndex = 0
             lastTimePathCreated = time.time()
 
@@ -51,7 +66,7 @@ if __name__ == '__main__':
             localPathIndex += 1
 
         # Publish desiredHeading
-        desiredHeadingMsg.heading = getDesiredHeading(state.position, localPath[localPathIndex])
+        desiredHeadingMsg.heading = getDesiredHeading(state.position, localPath.[localPathIndex])
         rospy.loginfo_throttle(1, "desiredHeadingMsg: {}".format(desiredHeadingMsg.heading))  # Prints every x seconds
         desiredHeadingPublisher.publish(desiredHeadingMsg)
         publishRate.sleep()

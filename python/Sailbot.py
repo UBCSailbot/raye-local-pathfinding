@@ -14,7 +14,7 @@ class BoatState:
         self.heading = heading
         self.speed = speed
 
-    #AISData currently printing out a list of all ships and their attributes
+    # AISData currently printing out a list of all ships and their attributes
     def __str__(self):
         return (("Global waypoint: {0}\n"
                  "Current position: {1}\n"
@@ -29,6 +29,7 @@ class BoatState:
 class Sailbot:
     def getCurrentState(self):
         return BoatState(self.globalPath[self.globalPathIndex], self.position, self.windDirection, self.windSpeed, self.AISData, self.heading, self.speed)
+
     def positionCallback(self, data):
         self.position[0] = data.lat
         self.position[1] = data.lon

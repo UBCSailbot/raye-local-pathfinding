@@ -1,6 +1,5 @@
 import math
 import sys
-
 from ompl import util as ou
 from ompl import base as ob
 from ompl import geometric as og
@@ -8,8 +7,6 @@ from ompl import control as oc
 from math import sqrt
 
 import planner_helpers as ph
-
-
 
 class Obstacle:
     def __init__(self, x, y, radius):
@@ -41,6 +38,52 @@ def allocatePlanner(si, plannerType):
     else:
         ou.OMPL_ERROR("Planner-type is not implemented in allocation function.")
 
+def hasNoCollisions(localPath, obstacles, dimensions, myVector):
+
+    print("Start of hasNoCollisions")
+    space = ob.SE2StateSpace()
+
+    bounds = ob.RealVectorBounds(2)
+    bounds.setLow(0, dimensions[0])
+    bounds.setLow(1, dimensions[1])
+
+    bounds.setHigh(0, dimensions[2])
+    bounds.setHigh(1, dimensions[3])
+
+    # Set the bounds of space to be in [0,1].
+    space.setBounds(bounds)
+
+    # define a simple setup class
+    ss = og.SimpleSetup(space)
+
+    # Construct a space information instance for this state space
+    si = ss.getSpaceInformation()
+
+    # Set resolution of state validity checking. This is fraction of space's extent.
+    # si.setStateValidityCheckingResolution(0.001)
+
+    print("Middle")
+    # Set the object used to check which states in the space are valid
+    validity_checker = ph.ValidityChecker(si, obstacles)
+    ss.setStateValidityChecker(validity_checker)
+
+    print("End 0")
+    print("myVector type: {}".format(type(myVector)))
+    checkMotion = ss.getSpaceInformation().checkMotion(myVector, len(localPath))
+    print("End 1")
+    # states = []
+    # for waypoint in localPath:
+    #     states.append(createState(waypoint, space))
+
+    # checkMotion = ss.getSpaceInformation().checkMotion(states, len(localPath))
+    return checkMotion
+
+def createState(waypoint, space):
+    state = ob.State(space)
+    state[0] = waypoint[0]
+    state[1] = waypoint[1]
+    return state
+
 def plan(run_time, planner_type, objective_type, wind_direction, dimensions, start_pos, goal_pos, obstacles):
     # Construct the robot state space in which we're planning. We're
     # planning in [0,1]x[0,1], a subset of R^2.
@@ -62,8 +105,7 @@ def plan(run_time, planner_type, objective_type, wind_direction, dimensions, sta
 
     # Construct a space information instance for this state space
     si = ss.getSpaceInformation()
-
-    # Set resolution of state validity checking. This is fraction of space's extent.
+# Set resolution of state validity checking. This is fraction of space's extent.
     # si.setStateValidityCheckingResolution(0.001)
 
     # Set the object used to check which states in the space are valid
@@ -109,7 +151,15 @@ def plan(run_time, planner_type, objective_type, wind_direction, dimensions, sta
 
     # Create solution list
     solution = []
+    print("type(ss.getSolutionPath().getStates()): {}".format(type(ss.getSolutionPath().getStates())))
+    print("print(ss.getSolutionPath().getStates()): {}".format(ss.getSolutionPath().getStates()))
+    print("About to start loop 1")
     for state in ss.getSolutionPath().getStates():
+        print("In loop")
+        print("{}, {}, {}".format(state.getX(), state.getY(), state.getYaw()))
         solution.append((state.getX(), state.getY(), state.getYaw()))
+    print("Done loop 1")
 
-    return (final_cost, ss.getSolutionPath().printAsMatrix(), solution) 
+    # return (final_cost, ss.getSolutionPath().printAsMatrix(), solution, ss.getSolutionPath().getStates())
+    # return s.getSolutionPath().getStates()
+    return ss
