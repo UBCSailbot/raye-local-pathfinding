@@ -87,13 +87,38 @@ def globalWaypointReached(position, globalWaypoint):
     return great_circle(sailbot, waypt) < radius
 
 def localWaypointReached(position, localPath, localPathIndex):
-    radius = 1
-    sailbot = (position.lat, position.lon)
-    waypt = (localPath[localPathIndex].getX(), localPath[localPathIndex].getY())
-    return great_circle(sailbot, waypt) < radius
+    previousWaypoint = localPath[localPathIndex - 1]
+    localWaypoint = localPath[localPathIndex]
+    isSlopePos = localWaypoint.lat < previousWaypoint.lat
+    isStartNorth = isSlopePos
+    isStartEast = localWaypoint.lon > previousWaypoint.lon
+
+    normal = math.fabs(math.tan(math.radians(getDesiredHeading(previousWaypoint, localWaypoint) - math.pi)))
+
+    #if init slope is pos then normal is neg
+    if isSlopePos:
+        normal = -normal
+
+    boatX = localWaypoint.lon - previousWaypoint.lon if isStartEast else previousWaypoint.lon - localWaypoint.lon
+    boatY = previousWaypoint.lat - localWaypoint.lat if isStartNorth else localWaypoint.lat - previousWaypoint.lat
+    
+    y = lambda x: normal * x
+    x = lambda y: y / float(normal)
+
+    if isStartNorth and boatY < y(boatX):
+        return True
+    elif boatY > y(boatX):
+        return True
+
+    if isStartEast and boatX < x(boatY):
+        return True
+    elif boatX > x(boatY):
+        return True
+
+    return False
 
 def timeLimitExceeded(lastTimePathCreated):
-    secondsLimit = 4
+    secondsLimit = 5
     return time.time() - lastTimePathCreated > secondsLimit
 
 def setLocalWaypointLatLon(localWaypointLatLon, localWaypoint):
