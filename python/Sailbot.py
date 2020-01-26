@@ -46,6 +46,7 @@ class Sailbot:
     def globalPathCallback(self, data):
         # Update globalPath current one is None
         if self.globalPath is None:
+            rospy.loginfo("NEW GLOBAL PATH RECEIVED")
             self.globalPath = data.global_path
             self.globalPathIndex = 0
 
@@ -53,6 +54,7 @@ class Sailbot:
         oldFirstPoint = (self.globalPath[0].lat, self.globalPath[0].lon)
         newFirstPoint = (data.global_path[0].lat, data.global_path[0].lon)
         if great_circle(oldFirstPoint, newFirstPoint) > 0.001:
+            rospy.loginfo("NEW GLOBAL PATH RECEIVED")
             self.globalPath = data.global_path
             self.globalPathIndex = 0
 

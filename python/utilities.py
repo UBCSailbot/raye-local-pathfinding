@@ -61,12 +61,11 @@ def createLocalPathSS(state):
 
     return solution
 
-def badPath(state, localPathSS):
+def badPath(state, localPathSS, desiredHeading):
     # If sailing upwind or downwind, isBad
-#     desiredHeading = getDesiredHeading(state.position, localPath[localPathIndex])
-#     if math.fabs(state.windDirection - desiredHeading) < math.radians(30) or math.fabs(state.windDirection - desiredHeading - math.radians(180)) < math.radians(30):
-#         rospy.loginfo_throttle(1, "Sailing upwind/downwind. Wind direction: {}. Desired Heading: {}".format(state.windDirection, desiredHeading))  # Prints every x seconds
-#         return True
+    if math.fabs(state.windDirection - desiredHeading) < math.radians(30) or math.fabs(state.windDirection - desiredHeading - math.radians(180)) < math.radians(30):
+        rospy.loginfo_throttle(1, "Sailing upwind/downwind. Wind direction: {}. Desired Heading: {}".format(state.windDirection, desiredHeading))  # Prints every x seconds
+        return True
 
     # Check if path will hit objects
     obstacles = [parse_obstacle("{},{},{}".format(ship.lat, ship.lon, ship.speed)) for ship in state.AISData.ships]
@@ -91,7 +90,7 @@ def localWaypointReached(position, localPath, localPathIndex):
     return great_circle(sailbot, waypt) < radius
 
 def timeLimitExceeded(lastTimePathCreated):
-    secondsLimit = 5
+    secondsLimit = 5000
     return time.time() - lastTimePathCreated > secondsLimit
 
 def setLocalWaypointLatLon(localWaypointLatLon, localWaypoint):

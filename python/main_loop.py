@@ -42,10 +42,12 @@ if __name__ == '__main__':
     lastTimePathCreated = time.time()
 
     while not rospy.is_shutdown():
+        print("sailbot.globalPathIndex: {}".format(sailbot.globalPathIndex))
+        print("localPathIndex: {}".format(localPathIndex))
         state = sailbot.getCurrentState()
 
         # Generate new local path if needed.
-        isBad = badPath(state, localPathSS)
+        isBad = badPath(state, localPathSS, desiredHeadingMsg.heading)
         isTimeLimitExceeded = timeLimitExceeded(lastTimePathCreated)
         isGlobalWaypointReached = globalWaypointReached(state.position, state.globalWaypoint)
         if isBad or isTimeLimitExceeded or isGlobalWaypointReached:
