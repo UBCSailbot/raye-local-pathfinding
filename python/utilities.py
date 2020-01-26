@@ -39,9 +39,9 @@ def createLocalPathSS(state):
     # Get setup parameters from state
     start = [state.position.lat, state.position.lon]
     goal = [state.globalWaypoint.lat, state.globalWaypoint.lon]
-    extra = 3   # Extra length to show more in the plot
+    extra = 10   # Extra length to show more in the plot
     dimensions = [min(start[0], goal[0]) - extra, min(start[1], goal[1]) - extra, max(start[0], goal[0]) + extra, max(start[1], goal[1]) + extra]
-    obstacles = [parse_obstacle("{},{},{}".format(ship.lat, ship.lon, ship.speed)) for ship in state.AISData.ships]
+    obstacles = [parse_obstacle("{},{},{}".format(ship.lat, ship.lon, ship.speed/10)) for ship in state.AISData.ships]
     windDirection = state.windDirection
     runtime = 1
 
@@ -51,6 +51,9 @@ def createLocalPathSS(state):
     print("start: {} {}".format(start[0], start[1]))
     print("goal: {} {}".format(goal[0], goal[1]))
     print("dimensions: {} {} {} {}".format(dimensions[0], dimensions[1], dimensions[2], dimensions[3]))
+    for o in obstacles:
+        print("{}, {}, {}".format(o.x, o.y, o.radius))
+
     for i in range(numRuns):
         solutions.append(plan(runtime, "RRTStar", 'WeightedLengthAndClearanceCombo', windDirection, dimensions, start, goal, obstacles))
 
@@ -90,7 +93,7 @@ def localWaypointReached(position, localPath, localPathIndex):
     return great_circle(sailbot, waypt) < radius
 
 def timeLimitExceeded(lastTimePathCreated):
-    secondsLimit = 5000
+    secondsLimit = 4
     return time.time() - lastTimePathCreated > secondsLimit
 
 def setLocalWaypointLatLon(localWaypointLatLon, localWaypoint):

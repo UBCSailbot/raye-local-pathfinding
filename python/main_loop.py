@@ -27,10 +27,14 @@ if __name__ == '__main__':
     # Create sailbot ROS object that subscribes to relevant topics
     sailbot = Sailbot()
 
-    # Create ros publisher for the next local waypoint for the controller
+    # Create ros publisher for the desired heading for the controller
     desiredHeadingPublisher = rospy.Publisher('MOCK_desired_heading', msg.desired_heading)
+    localPathPublisher = rospy.Publisher('MOCK_local_path', msg.local_path)
     publishRate = rospy.Rate(1) # Hz
     desiredHeadingMsg = msg.desired_heading()
+
+    # Create ros publisher for the local path, only for testing
+    localPathPublisher = rospy.Publisher('MOCK_local_path', msg.local_path)
 
     # Create first path and track time of updates
     state = sailbot.getCurrentState()
@@ -76,3 +80,13 @@ if __name__ == '__main__':
         rospy.loginfo_throttle(1, "desiredHeadingMsg: {}".format(desiredHeadingMsg.heading))  # Prints every x seconds
         desiredHeadingPublisher.publish(desiredHeadingMsg)
         publishRate.sleep()
+
+        # Publish local path
+        path = []
+        for state in localPathSS.getSolutionPath().getStates():
+            latlon = msg.latlon()
+            latlon.lat = state.getX()
+            latlon.lon = state.getY()
+            path.append(latlon)
+
+        localPathPublisher.publish(msg.local_path(path))
