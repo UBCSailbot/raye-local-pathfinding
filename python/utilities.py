@@ -33,50 +33,35 @@ from math import sqrt
 
 import planner_helpers as ph
 
-def createLocalPath(state):
+def createLocalPathSS(state):
     ou.setLogLevel(ou.LOG_WARN)
+
     # Get setup parameters from state
     start = [state.position.lat, state.position.lon]
     goal = [state.globalWaypoint.lat, state.globalWaypoint.lon]
-    extra = 3   # Extra dimensions to show more in the plot
-    dimensions = [start[0] - extra, start[1] - extra, goal[0] + extra, goal[1] + extra]
+    extra = 3   # Extra length to show more in the plot
+    dimensions = [min(start[0], goal[0]) - extra, min(start[1], goal[1]) - extra, max(start[0], goal[0]) + extra, max(start[1], goal[1]) + extra]
     obstacles = [parse_obstacle("{},{},{}".format(ship.lat, ship.lon, ship.speed)) for ship in state.AISData.ships]
     windDirection = state.windDirection
     runtime = 1
 
-#     # Run the planner multiple times and find the best one
-#     solutions = []
-#     for i in range(4):
-#         solutions.append(plan(runtime, "RRTStar", 'WeightedLengthAndClearanceCombo', windDirection, dimensions, start, goal,
-#          obstacles))
-# 
-#     solution = min(solutions, key=lambda x: x[0])
-#     solution_path = solution[2]
-# 
-#     print("About to start loop")
-#     for state in solution[3]:
-#         print("In loop")
-#         print("{}{}{}".format(state.getX(), state.getY(), state.getYaw()))
-#     print("After loop")
-#     # Plot
-#     plot_path(solution[1], dimensions, obstacles)
-#     return (solution_path, solution[3])
+    # Run the planner multiple times and find the best one
+    numRuns = 2
+    solutions = []
+    print("start: {} {}".format(start[0], start[1]))
+    print("goal: {} {}".format(goal[0], goal[1]))
+    print("dimensions: {} {} {} {}".format(dimensions[0], dimensions[1], dimensions[2], dimensions[3]))
+    for i in range(numRuns):
+        solutions.append(plan(runtime, "RRTStar", 'WeightedLengthAndClearanceCombo', windDirection, dimensions, start, goal, obstacles))
 
-    ss = plan(runtime, "RRTStar", 'WeightedLengthAndClearanceCombo', windDirection, dimensions, start, goal, obstacles)
-    states = ss.getSolutionPath().getStates()
-    print("****")
-    print("type(states): {}".format(type(states)))
-    print("print(states): {}".format(states))
+    solution = min(solutions, key=lambda x: x.getSolutionPath().cost(x.getOptimizationObjective()).value())
 
-    print("About to start loop 2")
-    for state in states:
-        print("In loop")
-        print("{}, {}, {}".format(state.getX(), state.getY(), state.getYaw()))
-    print("After loop")
+    # Plot
+    plot_path(solution.getSolutionPath().printAsMatrix(), dimensions, obstacles)
 
-    return ss
+    return solution
 
-def badPath(state, localPath, localPathIndex, myVector):
+def badPath(state, localPathSS):
     # If sailing upwind or downwind, isBad
 #     desiredHeading = getDesiredHeading(state.position, localPath[localPathIndex])
 #     if math.fabs(state.windDirection - desiredHeading) < math.radians(30) or math.fabs(state.windDirection - desiredHeading - math.radians(180)) < math.radians(30):
@@ -84,15 +69,12 @@ def badPath(state, localPath, localPathIndex, myVector):
 #         return True
 
     # Check if path will hit objects
-    start = [state.position.lat, state.position.lon]
-    goal = [state.globalWaypoint.lat, state.globalWaypoint.lon]
-    extra = 3   # Extra dimensions to show more in the plot
-    dimensions = [start[0] - extra, start[1] - extra, goal[0] + extra, goal[1] + extra]
     obstacles = [parse_obstacle("{},{},{}".format(ship.lat, ship.lon, ship.speed)) for ship in state.AISData.ships]
-    print("OK 1")
-    if hasNoCollisions(localPath, obstacles, dimensions, myVector):
-        rospy.loginfo_throttle(1, "Going to hit obstacle.")  # Prints every x seconds
+    if not hasNoCollisions(localPathSS, obstacles):
+        rospy.loginfo("Going to hit obstacle.")
         return True
+    else:
+        rospy.loginfo("Not going to hit obstacle.")
 
     return False
 
@@ -105,12 +87,17 @@ def globalWaypointReached(position, globalWaypoint):
 def localWaypointReached(position, localPath, localPathIndex):
     radius = 1
     sailbot = (position.lat, position.lon)
-    waypt = (localPath[localPathIndex].lat, localPath[localPathIndex].lon)
+    waypt = (localPath[localPathIndex].getX(), localPath[localPathIndex].getY())
     return great_circle(sailbot, waypt) < radius
 
 def timeLimitExceeded(lastTimePathCreated):
     secondsLimit = 5
     return time.time() - lastTimePathCreated > secondsLimit
+
+def setLocalWaypointLatLon(localWaypointLatLon, localWaypoint):
+    localWaypointLatLon.lat = localWaypoint.getX()
+    localWaypointLatLon.lon = localWaypoint.getY()
+    return localWaypointLatLon
 
 # this will give initial bearing on a great-circle path
 #if we keep local waypoints close enough to each other it approx the final bearing
