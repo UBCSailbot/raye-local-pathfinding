@@ -34,6 +34,8 @@ class MOCK_UDPBridge:
         rospy.Subscriber("MOCK_GPS", msg.GPS, self.gpsCallback)
         rospy.Subscriber("MOCK_AIS", msg.AIS_msg, self.aisCallback)
         rospy.Subscriber("MOCK_wind", msg.wind, self.windCallback)
+        rospy.Subscriber("MOCK_global_path", msg.path, self.globalPathCallback)
+        rospy.Subscriber("MOCK_local_path", msg.path, self.localPathCallback)
 
     def gpsCallback(self, data):
         # TODO: fix heading
@@ -52,6 +54,21 @@ class MOCK_UDPBridge:
     def windCallback(self, data):
         nmea_msg = nmea.MWV('--', 'MWV', (str(math.degrees(data.direction)), 'T', str(data.speed), 'M', 'A'))
         sock.sendto(str(nmea_msg), (UDP_IP, UDP_PORT))
+    
+    def globalPathCallback(self, data):
+        i = 0
+        for wp in data.path:
+            if (i % 25 == 0):
+                nmea_msg = nmea.WPL('GP', 'WPL', (str(100*wp.lat), 'N', str(100*wp.lon), 'E', 'G' + str(i)))
+                sock.sendto(str(nmea_msg), (UDP_IP, UDP_PORT))
+            i += 1
+
+    def localPathCallback(self, data):
+        for wp in data.path:
+            nmea_msg = nmea.WPL('GP', 'WPL', (str(100*wp.lat), 'N', str(100*wp.lon), 'E', 'G' + str(i)))
+            sock.sendto(str(nmea_msg), (UDP_IP, UDP_PORT))
+
+
 
 if __name__ == '__main__':
     bridge = MOCK_UDPBridge()

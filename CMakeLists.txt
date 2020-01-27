@@ -54,7 +54,7 @@ add_message_files(
   GPS.msg
   desired_heading.msg
   latlon.msg
-  global_path.msg
+  path.msg
   AIS_ship.msg
   AIS_msg.msg
   AIS.msg
