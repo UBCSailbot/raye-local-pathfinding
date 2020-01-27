@@ -49,10 +49,6 @@ class MOCK_UDPBridge:
             sock.sendto(aismsg.build_payload(), (UDP_IP, UDP_PORT))
 
 
-    def desiredHeadingCallback(self, data):
-        rospy.loginfo(data)
-        self.heading = data.heading + random.gauss(0, 0.1)
-
 if __name__ == '__main__':
     bridge = MOCK_UDPBridge()
     r = rospy.Rate(1) #hz
