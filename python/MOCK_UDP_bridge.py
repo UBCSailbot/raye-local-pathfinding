@@ -32,7 +32,8 @@ class MOCK_UDPBridge:
     def __init__(self):
         rospy.init_node('UDPBridge', anonymous=True)
         rospy.Subscriber("MOCK_GPS", msg.GPS, self.gpsCallback)
-	rospy.Subscriber("MOCK_AIS", msg.AIS_msg, self.aisCallback)
+        rospy.Subscriber("MOCK_AIS", msg.AIS_msg, self.aisCallback)
+        rospy.Subscriber("MOCK_wind", msg.wind, self.windCallback)
 
     def gpsCallback(self, data):
         # TODO: fix heading
@@ -48,6 +49,9 @@ class MOCK_UDPBridge:
             aismsg = ais.AIS(aisreport)
             sock.sendto(aismsg.build_payload(), (UDP_IP, UDP_PORT))
 
+    def windCallback(self, data):
+        nmea_msg = nmea.MWV('--', 'MWV', (str(math.degrees(data.direction)), 'T', str(data.speed), 'M', 'A'))
+        sock.sendto(str(nmea_msg), (UDP_IP, UDP_PORT))
 
 if __name__ == '__main__':
     bridge = MOCK_UDPBridge()
