@@ -29,12 +29,12 @@ if __name__ == '__main__':
 
     # Create ros publisher for the desired heading for the controller
     desiredHeadingPublisher = rospy.Publisher('MOCK_desired_heading', msg.desired_heading)
-    localPathPublisher = rospy.Publisher('MOCK_local_path', msg.local_path)
+    localPathPublisher = rospy.Publisher('MOCK_local_path', msg.path)
     publishRate = rospy.Rate(1) # Hz
     desiredHeadingMsg = msg.desired_heading()
 
     # Create ros publisher for the local path, only for testing
-    localPathPublisher = rospy.Publisher('MOCK_local_path', msg.local_path)
+    localPathPublisher = rospy.Publisher('MOCK_local_path', msg.path)
 
     # Create first path and track time of updates
     state = sailbot.getCurrentState()
@@ -89,4 +89,4 @@ if __name__ == '__main__':
             latlon.lon = state.getY()
             path.append(latlon)
 
-        localPathPublisher.publish(msg.local_path(path))
+        localPathPublisher.publish(msg.path(path))

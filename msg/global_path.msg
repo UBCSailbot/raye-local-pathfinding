@@ -1,1 +1,0 @@
-latlon[] global_path

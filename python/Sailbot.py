@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import rospy
 from std_msgs.msg import Float64
-from local_pathfinding.msg import AIS_msg, GPS, global_path, latlon, wind
+from local_pathfinding.msg import AIS_msg, GPS, path, latlon, wind
 from geopy.distance import great_circle
 
 class BoatState:
@@ -47,15 +47,15 @@ class Sailbot:
         # Update globalPath current one is None
         if self.globalPath is None:
             rospy.loginfo("NEW GLOBAL PATH RECEIVED")
-            self.globalPath = data.global_path
+            self.globalPath = data.path
             self.globalPathIndex = 0
 
         # Update globalPath current one different from new one
         oldFirstPoint = (self.globalPath[0].lat, self.globalPath[0].lon)
-        newFirstPoint = (data.global_path[0].lat, data.global_path[0].lon)
+        newFirstPoint = (data.path[0].lat, data.path[0].lon)
         if great_circle(oldFirstPoint, newFirstPoint) > 0.001:
             rospy.loginfo("NEW GLOBAL PATH RECEIVED")
-            self.globalPath = data.global_path
+            self.globalPath = data.path
             self.globalPathIndex = 0
 
 
@@ -66,14 +66,14 @@ class Sailbot:
         self.AISData = AIS_msg()
         self.heading = 0
         self.speed = 0
-        self.globalPath = global_path([latlon()]).global_path
+        self.globalPath = path([latlon()]).path
         self.globalPathIndex = 0
 
         rospy.init_node('local_pathfinding', anonymous=True)
         rospy.Subscriber("MOCK_GPS", GPS, self.positionCallback)
         rospy.Subscriber("MOCK_wind", wind, self.windCallback)
         rospy.Subscriber("MOCK_AIS", AIS_msg, self.AISDataCallback)
-        rospy.Subscriber("MOCK_global_path", global_path, self.globalPathCallback)
+        rospy.Subscriber("MOCK_global_path", path, self.globalPathCallback)
 
 
 # Example code of how this class works.
