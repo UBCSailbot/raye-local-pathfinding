@@ -2,13 +2,13 @@
 import rospy
 import math
 
-from local_pathfinding.msg import latlon, global_path
+import local_pathfinding.msg as msg
 
 def create_path(init, goal):
     path = []
 
     # Insert the initial position
-    init_wp = latlon()
+    init_wp = msg.latlon()
     init_wp.lat = init[0]
     init_wp.lon = init[1]
     path.append(init_wp)
@@ -21,13 +21,13 @@ def create_path(init, goal):
         lat = (1 - coeff)*init[0] + coeff*goal[0]
         lon = (1 - coeff)*init[1] + coeff*goal[1]
         print(lat, lon)
-        wp = latlon()
+        wp = msg.latlon()
         wp.lat = lat
         wp.lon = lon
         path.append(wp)
 
     # Insert the goal
-    last_wp = latlon()
+    last_wp = msg.latlon()
     last_wp.lat = goal[0]
     last_wp.lon = goal[1]
     path.append(last_wp)
@@ -39,11 +39,11 @@ def MOCK_global():
     path = create_path(init, goal)
 
     rospy.init_node('MOCK_global_planner', anonymous=True)
-    pub = rospy.Publisher("MOCK_global_path", global_path)
+    pub = rospy.Publisher("MOCK_global_path", msg.path)
     r = rospy.Rate(1.0) # TODO: set this rate
 
     while not rospy.is_shutdown():
-        pub.publish(global_path(path))
+        pub.publish(msg.path(path))
         r.sleep()
 
 if __name__ == '__main__':
