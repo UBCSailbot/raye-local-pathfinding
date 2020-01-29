@@ -174,6 +174,7 @@ install(PROGRAMS
   python/MOCK_controller_and_boat.py
   python/MOCK_wind_sensor.py
   python/MOCK_AIS.py
+  python/MOCK_UDP_bridge.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
