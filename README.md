@@ -1,5 +1,7 @@
 # Python planning code 
 
+[How to setup OpenCPN for visualisation](https://github.com/UBCSailbot/local-pathfinding/blob/master/visualisation.md)
+
 The main planning code in python can be found in the `python` directory. This code is meant to provide a baseline for the C++ implementation.
 
 Inputs:
@@ -15,6 +17,8 @@ Outputs:
 
 How to run:
 `python2 python/cli.py`
+
+
 
 # Ubuntu OMPL Docker for mac
 A docker container for running the Open Motion Planning Library (with GUI) on Mac OS in an Ubuntu environment.
