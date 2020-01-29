@@ -7,7 +7,7 @@ from ompl import util as ou
 from ompl import geometric as og
 from updated_geometric_planner import plan, Obstacle, hasNoCollisions
 from cli import parse_obstacle
-import math
+import math 
 from geopy.distance import great_circle
 import local_pathfinding.msg as msg
 import planner_helpers as ph
@@ -37,11 +37,11 @@ def createLocalPathSS(state):
     ou.setLogLevel(ou.LOG_WARN)
 
     # Get setup parameters from state
-    start = [state.position.lat, state.position.lon]
-    goal = [state.globalWaypoint.lat, state.globalWaypoint.lon]
+    start = [state.position.lon, state.position.lat]
+    goal = [state.globalWaypoint.lon, state.globalWaypoint.lat]
     extra = 10   # Extra length to show more in the plot
     dimensions = [min(start[0], goal[0]) - extra, min(start[1], goal[1]) - extra, max(start[0], goal[0]) + extra, max(start[1], goal[1]) + extra]
-    obstacles = [parse_obstacle("{},{},{}".format(ship.lat, ship.lon, ship.speed/10)) for ship in state.AISData.ships]
+    obstacles = [parse_obstacle("{},{},{}".format(ship.lon, ship.lat, ship.speed/10)) for ship in state.AISData.ships]
     windDirection = state.windDirection
     runtime = 1
 
@@ -87,8 +87,8 @@ def globalWaypointReached(position, globalWaypoint):
     return great_circle(sailbot, waypt) < radius
 
 def localWaypointReached(position, localPath, localPathIndex):
-    previousWaypoint = localPath[localPathIndex - 1]
-    localWaypoint = localPath[localPathIndex]
+    previousWaypoint = msg.latlon(localPath[localPathIndex - 1].getY(), localPath[localPathIndex - 1].getX())
+    localWaypoint = msg.latlon(localPath[localPathIndex].getY(), localPath[localPathIndex].getX())
     isSlopePos = localWaypoint.lat < previousWaypoint.lat
     isStartNorth = isSlopePos
     isStartEast = localWaypoint.lon > previousWaypoint.lon
@@ -122,8 +122,8 @@ def timeLimitExceeded(lastTimePathCreated):
     return time.time() - lastTimePathCreated > secondsLimit
 
 def setLocalWaypointLatLon(localWaypointLatLon, localWaypoint):
-    localWaypointLatLon.lat = localWaypoint.getX()
-    localWaypointLatLon.lon = localWaypoint.getY()
+    localWaypointLatLon.lat = localWaypoint.getY()
+    localWaypointLatLon.lon = localWaypoint.getX()
     return localWaypointLatLon
 
 # this will give initial bearing on a great-circle path
