@@ -8,8 +8,8 @@ import local_pathfinding.msg as msg
 class Ship:
     def __init__(self, id, sailbot_lat, sailbot_lon):
         self.id = id
-        self.lat = sailbot_lat + random.gauss(0, 0.5)
-        self.lon = sailbot_lon + random.gauss(0, 0.5)
+        self.lat = sailbot_lat + random.gauss(0, 0.2)
+        self.lon = sailbot_lon + random.gauss(0, 0.2)
         self.heading = math.radians(random.randint(0, 360))
         self.speed = random.randint(0, 15)
 

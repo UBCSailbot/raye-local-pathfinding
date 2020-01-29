@@ -54,7 +54,7 @@ add_message_files(
   GPS.msg
   desired_heading.msg
   latlon.msg
-  global_path.msg
+  path.msg
   AIS_ship.msg
   AIS_msg.msg
   AIS.msg
@@ -172,6 +172,7 @@ install(PROGRAMS
   python/MOCK_controller_and_boat.py
   python/MOCK_wind_sensor.py
   python/MOCK_AIS.py
+  python/MOCK_UDP_bridge.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
