@@ -30,6 +30,8 @@ if __name__ == '__main__':
     # Create ros publisher for the desired heading for the controller
     desiredHeadingPublisher = rospy.Publisher('MOCK_desired_heading', msg.desired_heading)
     localPathPublisher = rospy.Publisher('MOCK_local_path', msg.path)
+    nextLocalWaypointPublisher = rospy.Publisher('MOCK_next_local_waypoint', msg.latlon)
+    nextGlobalWaypointPublisher = rospy.Publisher('MOCK_next_global_waypoint', msg.latlon)
     publishRate = rospy.Rate(1) # Hz
     desiredHeadingMsg = msg.desired_heading()
 
@@ -39,9 +41,8 @@ if __name__ == '__main__':
     # Create first path and track time of updates
     state = sailbot.getCurrentState()
     localPathSS = createLocalPathSS(state)
-    localPathIndex = 0
-    localWaypoint = msg.latlon()
-    localWaypoint = setLocalWaypointLatLon(localWaypoint, localPathSS.getSolutionPath().getStates()[localPathIndex])
+    localPathIndex = 1  # First waypoint is the start point, so second waypoint is the next local waypoint
+    localWaypoint = getLocalWaypointLatLon(localPathSS, localPathIndex)
 
     lastTimePathCreated = time.time()
 
@@ -65,15 +66,15 @@ if __name__ == '__main__':
 
             # Update local path
             localPathSS = createLocalPathSS(state)
-            localPathIndex = 0
-            localWaypoint = setLocalWaypointLatLon(localWaypoint, localPathSS.getSolutionPath().getStates()[localPathIndex])
+            localPathIndex = 1  # First waypoint is the start point, so second waypoint is the next local waypoint
+            localWaypoint = getLocalWaypointLatLon(localPathSS, localPathIndex)
             lastTimePathCreated = time.time()
 
         # If localWaypoint met, increment the index
         elif localWaypointReached(state.position, localPathSS.getSolutionPath().getStates(), localPathIndex):
             rospy.loginfo("Local waypoint reached")
             localPathIndex += 1
-            localWaypoint = setLocalWaypointLatLon(localWaypoint, localPathSS.getSolutionPath().getStates()[localPathIndex])
+            localWaypoint = getLocalWaypointLatLon(localPathSS, localPathIndex)
 
         # Publish desiredHeading
         desiredHeadingMsg.heading = getDesiredHeading(state.position, localWaypoint)
@@ -85,8 +86,12 @@ if __name__ == '__main__':
         path = []
         for state in localPathSS.getSolutionPath().getStates():
             latlon = msg.latlon()
-            latlon.lat = state.getX()
-            latlon.lon = state.getY()
+            latlon.lat = state.getY()
+            latlon.lon = state.getX()
             path.append(latlon)
 
         localPathPublisher.publish(msg.path(path))
+
+        # Publish nextLocalWaypoint and nextGlobalWaypoint
+        nextLocalWaypointPublisher.publish(localWaypoint)
+        nextGlobalWaypointPublisher.publish(sailbot.getCurrentState().globalWaypoint)

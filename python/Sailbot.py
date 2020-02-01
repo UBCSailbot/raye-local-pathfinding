@@ -28,7 +28,12 @@ class BoatState:
 
 class Sailbot:
     def getCurrentState(self):
-        return BoatState(self.globalPath[self.globalPathIndex], self.position, self.windDirection, self.windSpeed, self.AISData, self.heading, self.speed)
+        if self.globalPathIndex >= len(self.globalPath):
+            rospy.loginfo("Global path index is out of range: index = {} len(globalPath) = {}".format(self.globalPathIndex, self.globalPath))
+            rospy.loginfo("Setting globalWaypoint to be the boat's position: {}".format(self.position))
+            return BoatState(self.position, self.position, self.windDirection, self.windSpeed, self.AISData, self.heading, self.speed)
+        else:
+            return BoatState(self.globalPath[self.globalPathIndex], self.position, self.windDirection, self.windSpeed, self.AISData, self.heading, self.speed)
 
     def positionCallback(self, data):
         self.position.lat = data.lat
@@ -44,30 +49,39 @@ class Sailbot:
         self.AISData = data
 
     def globalPathCallback(self, data):
-        # Update globalPath current one is None
-        if self.globalPath is None:
-            rospy.loginfo("NEW GLOBAL PATH RECEIVED")
-            self.globalPath = data.path
-            self.globalPathIndex = 0
+        # Check that new path is valid
+        isValidNewPath = (not data.path is None and len(data.path) >= 2)
+        if not isValidNewPath:
+            rospy.loginfo("Invalid global path received.")
+            return
 
-        # Update globalPath current one different from new one
+        # Update globalPath if current path is None
+        if self.globalPath is None:
+            rospy.loginfo("New global path received.")
+            self.globalPath = data.path
+            self.globalPathIndex = 1
+            return
+
+        # Update globalPath if current path different from new path
         oldFirstPoint = (self.globalPath[0].lat, self.globalPath[0].lon)
         newFirstPoint = (data.path[0].lat, data.path[0].lon)
         if great_circle(oldFirstPoint, newFirstPoint) > 0.001:
-            rospy.loginfo("NEW GLOBAL PATH RECEIVED")
+            rospy.loginfo("New global path received.")
             self.globalPath = data.path
-            self.globalPathIndex = 0
+            self.globalPathIndex = 1
+        else:
+            rospy.loginfo("New global path is the same as the current path.")
 
 
     def __init__(self):
-        self.position = latlon() 
+        self.position = latlon(0, 0) 
         self.windDirection = 0
         self.windSpeed = 0
         self.AISData = AIS_msg()
         self.heading = 0
         self.speed = 0
-        self.globalPath = path([latlon()]).path
-        self.globalPathIndex = 0
+        self.globalPath = path([self.position, latlon(1, 1)]).path
+        self.globalPathIndex = 1  # First waypoint is the start point, so second waypoint is the next global waypoint
 
         rospy.init_node('local_pathfinding', anonymous=True)
         rospy.Subscriber("MOCK_GPS", GPS, self.positionCallback)
