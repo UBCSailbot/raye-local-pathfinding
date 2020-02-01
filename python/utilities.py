@@ -3,37 +3,11 @@ from ompl import util as ou
 import rospy
 import time
 from plotting import plot_path
-from ompl import util as ou
-from ompl import geometric as og
 from updated_geometric_planner import plan, Obstacle, hasNoCollisions
 from cli import parse_obstacle
 import math 
 from geopy.distance import great_circle
 from local_pathfinding.msg import latlon, AIS_ship
-import planner_helpers as ph
-import matplotlib.pyplot as plt
-import numpy as np
-
-import math
-import sys
-
-from ompl import util as ou
-from ompl import base as ob
-from ompl import geometric as og
-from ompl import control as oc
-from math import sqrt
-
-import planner_helpers as ph
-
-import math
-import sys
-from ompl import util as ou
-from ompl import base as ob
-from ompl import geometric as og
-from ompl import control as oc
-from math import sqrt
-
-import planner_helpers as ph
 
 def createLocalPathSS(state):
     ou.setLogLevel(ou.LOG_WARN)
@@ -43,7 +17,7 @@ def createLocalPathSS(state):
     goal = [state.globalWaypoint.lon, state.globalWaypoint.lat]
     extra = 10   # Extra length to show more in the plot
     dimensions = [min(start[0], goal[0]) - extra, min(start[1], goal[1]) - extra, max(start[0], goal[0]) + extra, max(start[1], goal[1]) + extra]
-    obstacles = [parse_obstacle("{},{},{}".format(ship.lon, ship.lat, ship.speed/10)) for ship in state.AISData.ships]
+    obstacles = [parse_obstacle("{},{},{}".format(ship.lon, ship.lat, 0.01)) for ship in state.AISData.ships]
     windDirection = state.windDirection
     runtime = 1
 
@@ -89,7 +63,6 @@ def globalWaypointReached(position, globalWaypoint):
     return great_circle(sailbot, waypt) < radius
 
 def localWaypointReached(position, localPath, localPathIndex):
-    position = latlon(float(position.getY()), float(position.getX()))
     previousWaypoint = latlon(float(localPath[localPathIndex - 1].getY()), float(localPath[localPathIndex - 1].getX()))
     localWaypoint = latlon(float(localPath[localPathIndex].getY()), float(localPath[localPathIndex].getX()))
     isStartNorth = localWaypoint.lat < previousWaypoint.lat 
@@ -138,7 +111,24 @@ def timeLimitExceeded(lastTimePathCreated):
     secondsLimit = 5
     return time.time() - lastTimePathCreated > secondsLimit
 
-def setLocalWaypointLatLon(localWaypointLatLon, localWaypoint):
+def getLocalWaypointLatLon(localPathSS, localPathIndex):
+    # If local path is empty, return (0, 0)
+    if len(localPathSS.getSolutionPath().getStates()) == 0:
+        rospy.loginfo("Local path is empty.")
+        rospy.loginfo("Setting localWaypoint to be (0, 0).")
+        return latlon(0, 0)
+
+    # If index out of range, return last waypoint in path
+    if localPathIndex >= len(localPathSS.getSolutionPath().getStates()):
+        rospy.loginfo("Local path index is out of range: index = {} len(localPath) = {}".format(localPathIndex, len(localPathSS.getSolutionPath().getStates())))
+        rospy.loginfo("Setting localWaypoint to be the last element of the localPath")
+        localWaypoint = localPathSS.getSolutionPath().getStates()[len(localPathSS.getSolutionPath().getStates())]
+
+    # If index in range, return the correct waypoint
+    else:
+        localWaypoint = localPathSS.getSolutionPath().getStates()[localPathIndex]
+
+    localWaypointLatLon = latlon()
     localWaypointLatLon.lat = localWaypoint.getY()
     localWaypointLatLon.lon = localWaypoint.getX()
     return localWaypointLatLon
