@@ -48,13 +48,6 @@ def hasNoCollisions(localPathSS, obstacles):
     return checkMotion
 
 
-def createState(waypoint, space):
-    state = ob.State(space)
-    state[0] = waypoint[0]
-    state[1] = waypoint[1]
-    return state
-
-
 def plan(run_time, planner_type, objective_type, wind_direction, dimensions, start_pos, goal_pos, obstacles):
     # Construct the robot state space in which we're planning
     space = ob.SE2StateSpace()
@@ -95,7 +88,7 @@ def plan(run_time, planner_type, objective_type, wind_direction, dimensions, sta
     # Create the optimization objective (helper function is simply a switch statement) and set wind direction
     objective = ph.allocate_objective(si, objective_type)
     for i in range(objective.getObjectiveCount()):
-        if type(objective.getObjective(i)) is WindObjective:
+        if type(objective.getObjective(i)) is ph.WindObjective:
             objective.getObjective(i).windDirection = wind_direction
     ss.setOptimizationObjective(objective)
 
