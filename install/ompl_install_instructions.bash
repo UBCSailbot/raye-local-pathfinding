@@ -36,6 +36,7 @@ wget -q -O- https://data.kitware.com/api/v1/file/5b68c2c28d777f06857c1f48/downlo
 # Install pypy2:
 wget -q -O- https://bitbucket.org/pypy/pypy/downloads/pypy2-v6.0.0-linux64.tar.bz2 |tar jxf - && \
 sudo pip2 install pygccxml pyplusplus
+sudo pip2 install geopy
 
 # Install additional dependency for plotting
 DEBIAN_FRONTEND=noninteractive sudo apt-get install -y python-matplotlib
