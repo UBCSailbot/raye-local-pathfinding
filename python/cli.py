@@ -73,11 +73,15 @@ if __name__ == "__main__":
 
     # Solve the planning problem
     solutions = []
-    for i in range(10):
+    numRuns = 4
+    for i in range(numRuns):
         solutions.append(plan(args.runtime, args.planner, args.objective, args.windDirection, args.dimensions, args.start, args.goal,
          args.obstacles))
 
-    solution = min(solutions, key=lambda x: x[0])
-    print(solution)
-    plot_path(solution[1], args.dimensions, args.obstacles)
+    solution = min(solutions, key=lambda x: x.getSolutionPath().cost(x.getOptimizationObjective()).value())
+    print("Solution Path:")
+    for state in solution.getSolutionPath().getStates():
+        print("{}, {}, {}".format(state.getX(), state.getY(), state.getYaw()))
+    print("******************")
+    plot_path(solution.getSolutionPath().printAsMatrix(), args.dimensions, args.obstacles)
 
