@@ -19,7 +19,7 @@ Be sure to run the installation instructions below before running.
 
 To test the OMPL code through a simple command line interface, run `python2 python/cli.py`.
 
-To run the local pathfinding system with ROS, run `source ~/catkin_ws/devel/setup.bash` and then `roslaunch local_pathfinding launch_all_mocks.launch` to setup the mock nodes. In a new terminal, run `source ~/catkin_ws/devel/setup.bash` and then `rosrun local_pathfinding main_loop.py`.
+To run the local pathfinding system with ROS, run `source ~/catkin_ws/devel/setup.bash` and then `roslaunch local_pathfinding launch_all_mocks.launch` to setup the mock nodes. In a new terminal, run `source ~/catkin_ws/devel/setup.bash` and then `rosrun local_pathfinding main_loop.py`. You can also open OpenCPN and follow the instructions in the OpenCPN file to visualize the path finding progression.
 
 ## Installation
 
@@ -84,5 +84,5 @@ This will allow you to plot paths.
 
 ### Setting up OpenCPN
 
-[How to setup OpenCPN for visualisation](https://github.com/UBCSailbot/local-pathfinding/blob/master/visualisation.md)
+[How to setup OpenCPN for visualisation](visualisation.md)
 
