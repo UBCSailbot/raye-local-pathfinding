@@ -54,10 +54,10 @@ add_message_files(
   GPS.msg
   desired_heading.msg
   latlon.msg
+  path.msg
   AIS_ship.msg
   AIS_msg.msg
   AIS.msg
-  path.msg
 )
 
 ## Generate services in the 'srv' folder
