@@ -71,20 +71,23 @@ if __name__ == "__main__":
             abs(max_dist),
             ]
 
-    # Solve the planning problem
+    # Solve the planning problem multiple times and find the best one
     solutions = []
     numRuns = 4
     for i in range(numRuns):
         solutions.append(plan(args.runtime, args.planner, args.objective, args.windDirection, args.dimensions, args.start, args.goal,
          args.obstacles))
-
     solution = min(solutions, key=lambda x: x.getSolutionPath().cost(x.getOptimizationObjective()).value())
+
+    # Print and plot the solution path
     print("Solution Path Before Interpolation:")
     for state in solution.getSolutionPath().getStates():
         print("{}, {}, {}".format(state.getX(), state.getY(), state.getYaw()))
     print("******************")
     plot_path(solution.getSolutionPath().printAsMatrix(), args.dimensions, args.obstacles)
 
+    # Interpolate the path, which ensures that the path has >= 10 waypoints
+    # Reprint and plot
     solution.getSolutionPath().interpolate(10)
     print("Solution Path After Interpolation:")
     for state in solution.getSolutionPath().getStates():
