@@ -3,35 +3,11 @@ from ompl import util as ou
 import rospy
 import time
 from plotting import plot_path
-from ompl import util as ou
-from ompl import geometric as og
 from updated_geometric_planner import plan, Obstacle, hasNoCollisions
 from cli import parse_obstacle
 import math 
 from geopy.distance import great_circle
 from local_pathfinding.msg import latlon
-import planner_helpers as ph
-
-import math
-import sys
-
-from ompl import util as ou
-from ompl import base as ob
-from ompl import geometric as og
-from ompl import control as oc
-from math import sqrt
-
-import planner_helpers as ph
-
-import math
-import sys
-from ompl import util as ou
-from ompl import base as ob
-from ompl import geometric as og
-from ompl import control as oc
-from math import sqrt
-
-import planner_helpers as ph
 
 def createLocalPathSS(state):
     ou.setLogLevel(ou.LOG_WARN)
