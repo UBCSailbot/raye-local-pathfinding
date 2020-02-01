@@ -13,6 +13,8 @@ class Obstacle:
         self.x = x
         self.y = y
         self.radius = radius
+    def __str__(self):
+        return str((self.x, self.y, self.radius))
 
 
 def absolute_distance_between_angles(angle1, angle2):

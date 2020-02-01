@@ -9,8 +9,10 @@ from updated_geometric_planner import plan, Obstacle, hasNoCollisions
 from cli import parse_obstacle
 import math 
 from geopy.distance import great_circle
-from local_pathfinding.msg import latlon
+from local_pathfinding.msg import latlon, AIS_ship
 import planner_helpers as ph
+import matplotlib.pyplot as plt
+import numpy as np
 
 import math
 import sys
@@ -153,3 +155,39 @@ def getDesiredHeading(position, localWaypoint):
     if (heading < 0):
         heading += 360
     return heading
+    
+def extendObstacles(aisData, timeToLoc):
+#modify to take in array of ships and execute below for all ships in array
+    obstacles = []
+    isHeadingWest = aisData.heading < 270 and aisData.heading > 90
+    radius = 0.2
+    spacing = 0.1
+    slope = math.tan(math.radians(aisData.heading))
+    print slope
+    if aisData.lon > 0:
+        b = aisData.lat + slope * -math.fabs(aisData.lon) #check math
+    else:
+        b = aisData.lat + slope * math.fabs(aisData.lon)
+    print b
+    xDistTravelled =  math.fabs(aisData.speed * timeToLoc * math.cos(math.radians(aisData.heading)))
+    y = lambda x: slope * x + b 
+    if isHeadingWest:
+        endLon = aisData.lon - xDistTravelled
+        xRange = np.arange(endLon, aisData.lon, spacing)
+        start = len(xRange) - 1
+    else:
+        endLon = aisData.lon + xDistTravelled
+        xRange = np.arange(aisData.lon, endLon, spacing)
+        start = 0
+    for x in xRange:
+        obstacles.append(Obstacle(x, y(x), radius))
+    obstacles = [parse_obstacle("{},{},{}".format(obstacle.x, obstacle.y, obstacle.radius)) for obstacle in obstacles]
+    x = np.linspace(aisData.lon, endLon, 100)
+    y = y(x) 
+    plt.plot(x, y, '-r')
+    ax = plt.gca()
+    for obstacle in obstacles:
+        ax.add_patch(plt.Circle((obstacle.x, obstacle.y), radius=obstacle.radius))
+    ax.add_patch(plt.Circle((obstacles[start].x, obstacles[start].y), radius=obstacles[start].radius)).set_color('green')
+    plt.show()
+    return obstacles
