@@ -92,8 +92,11 @@ def plan(run_time, planner_type, objective_type, wind_direction, dimensions, sta
     # Set the start and goal states
     ss.setStartAndGoalStates(start, goal)
 
-    # Create the optimization objective (helper function is simply a switch statement)
+    # Create the optimization objective (helper function is simply a switch statement) and set wind direction
     objective = ph.allocate_objective(si, objective_type)
+    for i in range(objective.getObjectiveCount()):
+        if type(objective.getObjective(i)) is WindObjective:
+            objective.getObjective(i).windDirection = wind_direction
     ss.setOptimizationObjective(objective)
 
     # Construct the optimal planner (helper function is simply a switch statement)
