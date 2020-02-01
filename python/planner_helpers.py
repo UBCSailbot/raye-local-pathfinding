@@ -93,20 +93,20 @@ class WindObjective(ob.StateCostIntegralObjective):
     def __init__(self, si):
         super(WindObjective, self).__init__(si, True)
         self.si_ = si
+        self.windDirection = math.radians(90) # 90: wind from north default
 
     # This objective function punishes the boat for going up/downwind
     def motionCost(self, s1, s2):
         direction = math.atan2(s2.getY() - s1.getY(), s2.getX() - s1.getX())
         distance = ((s2.getY() - s1.getY())**2 + (s2.getX() - s1.getX())**2)**0.5
-        wind_direction = math.radians(90) # 90: wind from north
-        relative_wind_direction = wind_direction - direction
+        relativeWindDirection = self.windDirection - direction
 
         upwind_angle = math.radians(30)
         downwind_angle = math.radians(30)
 
-        if math.fabs(relative_wind_direction) < upwind_angle:
+        if math.fabs(relativeWindDirection) < upwind_angle:
             multiplier = sys.maxsize
-        elif math.fabs(relative_wind_direction - math.radians(180)) < downwind_angle:
+        elif math.fabs(relativeWindDirection - math.radians(180)) < downwind_angle:
             multiplier = sys.maxsize
         else:
             multiplier = 0.0

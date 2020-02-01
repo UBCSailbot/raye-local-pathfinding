@@ -38,6 +38,8 @@ if __name__ == "__main__":
                         help='(Optional) dimensions of the space')
     parser.add_argument('-g', '--goal', nargs=2, type=int, default=[10,10],
                         help='(Optional) planner goal')
+    parser.add_argument('-s', '--start', nargs=2, type=int, default=[0,0],
+                        help='(Optional) planner start')
     parser.add_argument('-ob', '--obstacles', nargs='+', type=parse_obstacle, default=[parse_obstacle("2.5,2.5,1")],
                         help='(Optional) dimensions of the space')
 
@@ -69,13 +71,27 @@ if __name__ == "__main__":
             abs(max_dist),
             ]
 
-    # Solve the planning problem
+    # Solve the planning problem multiple times and find the best one
     solutions = []
-    for i in range(10):
-        solutions.append(plan(args.runtime, args.planner, args.objective, args.windDirection, args.dimensions, args.goal,
+    numRuns = 4
+    for i in range(numRuns):
+        solutions.append(plan(args.runtime, args.planner, args.objective, args.windDirection, args.dimensions, args.start, args.goal,
          args.obstacles))
+    solution = min(solutions, key=lambda x: x.getSolutionPath().cost(x.getOptimizationObjective()).value())
 
-    solution = min(solutions, key=lambda x: x[0])
-    print(solution)
-    plot_path(solution[1], args.dimensions, args.obstacles)
+    # Print and plot the solution path
+    print("Solution Path Before Interpolation:")
+    for state in solution.getSolutionPath().getStates():
+        print("{}, {}, {}".format(state.getX(), state.getY(), state.getYaw()))
+    print("******************")
+    plot_path(solution.getSolutionPath().printAsMatrix(), args.dimensions, args.obstacles)
+
+    # Interpolate the path, which ensures that the path has >= 10 waypoints
+    # Reprint and plot
+    solution.getSolutionPath().interpolate(10)
+    print("Solution Path After Interpolation:")
+    for state in solution.getSolutionPath().getStates():
+        print("{}, {}, {}".format(state.getX(), state.getY(), state.getYaw()))
+    print("******************")
+    plot_path(solution.getSolutionPath().printAsMatrix(), args.dimensions, args.obstacles)
 
