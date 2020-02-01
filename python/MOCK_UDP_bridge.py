@@ -64,9 +64,11 @@ class MOCK_UDPBridge:
             i += 1
 
     def localPathCallback(self, data):
+        i = 0
         for wp in data.path:
             nmea_msg = nmea.WPL('GP', 'WPL', (str(100*wp.lat), 'N', str(100*wp.lon), 'E', 'G' + str(i)))
             sock.sendto(str(nmea_msg), (UDP_IP, UDP_PORT))
+            i += 1
 
 
 
