@@ -9,7 +9,7 @@ from updated_geometric_planner import plan, Obstacle, hasNoCollisions
 from cli import parse_obstacle
 import math 
 from geopy.distance import great_circle
-import local_pathfinding.msg as msg
+from local_pathfinding.msg import latlon
 import planner_helpers as ph
 
 import math
@@ -87,31 +87,46 @@ def globalWaypointReached(position, globalWaypoint):
     return great_circle(sailbot, waypt) < radius
 
 def localWaypointReached(position, localPath, localPathIndex):
-    previousWaypoint = msg.latlon(localPath[localPathIndex - 1].getY(), localPath[localPathIndex - 1].getX())
-    localWaypoint = msg.latlon(localPath[localPathIndex].getY(), localPath[localPathIndex].getX())
-    isSlopePos = localWaypoint.lat < previousWaypoint.lat
-    isStartNorth = isSlopePos
-    isStartEast = localWaypoint.lon > previousWaypoint.lon
-
-    normal = math.fabs(math.tan(math.radians(getDesiredHeading(previousWaypoint, localWaypoint) - math.pi)))
-
-    #if init slope is pos then normal is neg
-    if isSlopePos:
-        normal = -normal
-
-    boatX = localWaypoint.lon - previousWaypoint.lon if isStartEast else previousWaypoint.lon - localWaypoint.lon
-    boatY = previousWaypoint.lat - localWaypoint.lat if isStartNorth else localWaypoint.lat - previousWaypoint.lat
+    position = latlon(float(position.getY()), float(position.getX()))
+    previousWaypoint = latlon(float(localPath[localPathIndex - 1].getY()), float(localPath[localPathIndex - 1].getX()))
+    localWaypoint = latlon(float(localPath[localPathIndex].getY()), float(localPath[localPathIndex].getX()))
+    isStartNorth = localWaypoint.lat < previousWaypoint.lat 
+    isStartEast = localWaypoint.lon < previousWaypoint.lon
+    tangentSlope = (localWaypoint.lat - previousWaypoint.lat) / (localWaypoint.lon - previousWaypoint.lon)
+    normalSlope = -1/tangentSlope
+    startX = previousWaypoint.lon - localWaypoint.lon
+    startY = previousWaypoint.lat - localWaypoint.lat 
+    boatX = position.lon - localWaypoint.lon 
+    boatY = position.lat - localWaypoint.lat
+    '''
+    plt.xlim(-200, 200)
+    plt.ylim(-200, 200)
+    plt.plot([0], [0], marker = 'o', markersize=10, color="red")
+    plt.plot([startX], [startY], marker="o", markersize=10, color="green")
+    plt.plot([boatX], [boatY], marker = "o", markersize=10, color = "black")
+    xvalues = [0, startX] 
+    yvalues = [0, startY]
+    plt.plot(xvalues, yvalues, "-g")
+    x = np.linspace(-200, 200, 100)
+    y = normalSlope * x
+    plt.plot(x, y, '-r')
+    y = tangentSlope * x
+    plt.plot(x, y, '-b')
+    plt.show()
+    '''
     
-    y = lambda x: normal * x
-    x = lambda y: y / float(normal)
-
-    if isStartNorth and boatY < y(boatX):
-        return True
+    y = lambda x: normalSlope * x
+    x = lambda y: y / float(normalSlope)
+    
+    if isStartNorth: 
+        if boatY < y(boatX):
+            return True
     elif boatY > y(boatX):
         return True
 
-    if isStartEast and boatX < x(boatY):
-        return True
+    if isStartEast: 
+        if boatX < x(boatY):
+            return True
     elif boatX > x(boatY):
         return True
 
