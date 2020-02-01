@@ -79,7 +79,14 @@ if __name__ == "__main__":
          args.obstacles))
 
     solution = min(solutions, key=lambda x: x.getSolutionPath().cost(x.getOptimizationObjective()).value())
-    print("Solution Path:")
+    print("Solution Path Before Interpolation:")
+    for state in solution.getSolutionPath().getStates():
+        print("{}, {}, {}".format(state.getX(), state.getY(), state.getYaw()))
+    print("******************")
+    plot_path(solution.getSolutionPath().printAsMatrix(), args.dimensions, args.obstacles)
+
+    solution.getSolutionPath().interpolate(10)
+    print("Solution Path After Interpolation:")
     for state in solution.getSolutionPath().getStates():
         print("{}, {}, {}".format(state.getX(), state.getY(), state.getYaw()))
     print("******************")
