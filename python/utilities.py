@@ -8,6 +8,8 @@ from cli import parse_obstacle
 import math 
 from geopy.distance import great_circle
 from local_pathfinding.msg import latlon, AIS_ship
+import numpy as np
+import matplotlib.pyplot as plt
 
 def createLocalPathSS(state):
     ou.setLogLevel(ou.LOG_WARN)
@@ -17,7 +19,11 @@ def createLocalPathSS(state):
     goal = [state.globalWaypoint.lon, state.globalWaypoint.lat]
     extra = 10   # Extra length to show more in the plot
     dimensions = [min(start[0], goal[0]) - extra, min(start[1], goal[1]) - extra, max(start[0], goal[0]) + extra, max(start[1], goal[1]) + extra]
-    obstacles = [parse_obstacle("{},{},{}".format(ship.lon, ship.lat, 0.01)) for ship in state.AISData.ships]
+#    obstacles = [parse_obstacle("{},{},{}".format(ship.lon, ship.lat, 0.01)) for ship in state.AISData.ships]
+    obstacles = []
+    for ship in state.AISData.ships:
+        extended = extendObstacles(ship, 2)
+        obstacles.extend(extended)
     windDirection = state.windDirection
     runtime = 1
 
@@ -171,13 +177,14 @@ def extendObstacles(aisData, timeToLoc):
         start = 0
     for x in xRange:
         obstacles.append(Obstacle(x, y(x), radius))
-    obstacles = [parse_obstacle("{},{},{}".format(obstacle.x, obstacle.y, obstacle.radius)) for obstacle in obstacles]
-    x = np.linspace(aisData.lon, endLon, 100)
-    y = y(x) 
-    plt.plot(x, y, '-r')
-    ax = plt.gca()
-    for obstacle in obstacles:
-        ax.add_patch(plt.Circle((obstacle.x, obstacle.y), radius=obstacle.radius))
-    ax.add_patch(plt.Circle((obstacles[start].x, obstacles[start].y), radius=obstacles[start].radius)).set_color('green')
-    plt.show()
+#    x = np.linspace(aisData.lon, endLon, 100)
+#   y = y(x) 
+#    plt.plot(x, y, '-r')
+#    ax = plt.gca()
+#    for obstacle in obstacles:
+#        ax.add_patch(plt.Circle((obstacle.x, obstacle.y), radius=obstacle.radius))
+#    ax.add_patch(plt.Circle((obstacles[start].x, obstacles[start].y), radius=obstacles[start].radius)).set_color('green')
+##    plt.show()
     return obstacles
+aisData = AIS_ship(1000, 1, 1, 45, 1)
+extendObstacles(aisData, 5)
