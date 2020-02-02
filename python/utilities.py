@@ -7,17 +7,36 @@ from updated_geometric_planner import plan, Obstacle, hasNoCollisions
 from cli import parse_obstacle
 import math 
 from geopy.distance import great_circle
-from local_pathfinding.msg import latlon, AIS_ship
+import geopy.distance
+from local_pathfinding.msg import latlon
+
+
+def latlonToXY(latlon, relativeLatlon):
+    x = great_circle((relativeLatlon.lat, relativeLatlon.lon), (relativeLatlon.lat, latlon.lon)).kilometers
+    y = great_circle((relativeLatlon.lat, relativeLatlon.lon), (latlon.lat, relativeLatlon.lon)).kilometers
+    if relativeLatlon.lon > latlon.lon:
+        x = -x
+    if relativeLatlon.lat > latlon.lat:
+        y = -y
+    return [x,y]
+
+def XYToLatlon(xy, relativeLatlon):
+    x_distance = geopy.distance.VincentyDistance(kilometers = xy[0])
+    y_distance = geopy.distance.VincentyDistance(kilometers = xy[1])
+    destination = x_distance.destination(point=(relativeLatlon.lat, relativeLatlon.lon), bearing=0)
+    destination = y_distance.destination(point=(destination.latitude, destination.longitude), bearing=0)
+    return latlon(destination.latitude, destination.longitude)
 
 def createLocalPathSS(state):
     ou.setLogLevel(ou.LOG_WARN)
 
     # Get setup parameters from state
-    start = [state.position.lon, state.position.lat]
-    goal = [state.globalWaypoint.lon, state.globalWaypoint.lat]
+    start = [0, 0]
+    goal = latlonToXY(state.globalWaypoint, state.position)
     extra = 10   # Extra length to show more in the plot
     dimensions = [min(start[0], goal[0]) - extra, min(start[1], goal[1]) - extra, max(start[0], goal[0]) + extra, max(start[1], goal[1]) + extra]
-    obstacles = [parse_obstacle("{},{},{}".format(ship.lon, ship.lat, 0.01)) for ship in state.AISData.ships]
+    ships = [latlonToXY(latlon(ship.lat, ship.lon), state.position) for ship in state.AISData.ships]
+    obstacles = [parse_obstacle("{},{},{}".format(ship[0], ship[1], 1)) for ship in ships]
     windDirection = state.windDirection
     runtime = 1
 
@@ -34,20 +53,30 @@ def createLocalPathSS(state):
         solutions.append(plan(runtime, "RRTStar", 'WeightedLengthAndClearanceCombo', windDirection, dimensions, start, goal, obstacles))
 
     solution = min(solutions, key=lambda x: x.getSolutionPath().cost(x.getOptimizationObjective()).value())
+    solution.getSolutionPath().interpolate(10)
 
     # Plot
     plot_path(solution.getSolutionPath().printAsMatrix(), dimensions, obstacles)
 
-    return solution
+    return solution, state.position
 
-def badPath(state, localPathSS, desiredHeading):
+def getLocalPath(localPathSS, position):
+    localPath = []
+    for state in localPathSS.getSolutionPath().getStates():
+        xy = (state.getX(), state.getY())
+        localPath.append(XYToLatlon(xy, position))
+
+    return localPath
+
+def badPath(state, localPathSS, referenceLatlon, desiredHeading):
     # If sailing upwind or downwind, isBad
     if math.fabs(state.windDirection - desiredHeading) < math.radians(30) or math.fabs(state.windDirection - desiredHeading - math.radians(180)) < math.radians(30):
         rospy.loginfo_throttle(1, "Sailing upwind/downwind. Wind direction: {}. Desired Heading: {}".format(state.windDirection, desiredHeading))  # Prints every x seconds
         return True
 
     # Check if path will hit objects
-    obstacles = [parse_obstacle("{},{},{}".format(ship.lat, ship.lon, ship.speed)) for ship in state.AISData.ships]
+    ships = [latlonToXY(latlon(ship.lat, ship.lon), referenceLatlon) for ship in state.AISData.ships]
+    obstacles = [parse_obstacle("{},{},{}".format(ship[0], ship[1], 1)) for ship in ships]
     if not hasNoCollisions(localPathSS, obstacles):
         rospy.loginfo("Going to hit obstacle.")
         return True
@@ -63,8 +92,8 @@ def globalWaypointReached(position, globalWaypoint):
     return great_circle(sailbot, waypt) < radius
 
 def localWaypointReached(position, localPath, localPathIndex):
-    previousWaypoint = latlon(float(localPath[localPathIndex - 1].getY()), float(localPath[localPathIndex - 1].getX()))
-    localWaypoint = latlon(float(localPath[localPathIndex].getY()), float(localPath[localPathIndex].getX()))
+    previousWaypoint = latlon(float(localPath[localPathIndex - 1].lat), float(localPath[localPathIndex - 1].lon))
+    localWaypoint = latlon(float(localPath[localPathIndex].lat), float(localPath[localPathIndex].lon))
     isStartNorth = localWaypoint.lat < previousWaypoint.lat 
     isStartEast = localWaypoint.lon < previousWaypoint.lon
     tangentSlope = (localWaypoint.lat - previousWaypoint.lat) / (localWaypoint.lon - previousWaypoint.lon)
@@ -111,27 +140,22 @@ def timeLimitExceeded(lastTimePathCreated):
     secondsLimit = 5
     return time.time() - lastTimePathCreated > secondsLimit
 
-def getLocalWaypointLatLon(localPathSS, localPathIndex):
+def getLocalWaypointLatLon(localPath, localPathIndex):
     # If local path is empty, return (0, 0)
-    if len(localPathSS.getSolutionPath().getStates()) == 0:
+    if len(localPath) == 0:
         rospy.loginfo("Local path is empty.")
         rospy.loginfo("Setting localWaypoint to be (0, 0).")
         return latlon(0, 0)
 
     # If index out of range, return last waypoint in path
-    if localPathIndex >= len(localPathSS.getSolutionPath().getStates()):
-        rospy.loginfo("Local path index is out of range: index = {} len(localPath) = {}".format(localPathIndex, len(localPathSS.getSolutionPath().getStates())))
+    if localPathIndex >= len(localPath):
+        rospy.loginfo("Local path index is out of range: index = {} len(localPath) = {}".format(localPathIndex, len(localPath)))
         rospy.loginfo("Setting localWaypoint to be the last element of the localPath")
-        localWaypoint = localPathSS.getSolutionPath().getStates()[len(localPathSS.getSolutionPath().getStates())]
+        return localPath[len(localPath) - 1]
 
     # If index in range, return the correct waypoint
     else:
-        localWaypoint = localPathSS.getSolutionPath().getStates()[localPathIndex]
-
-    localWaypointLatLon = latlon()
-    localWaypointLatLon.lat = localWaypoint.getY()
-    localWaypointLatLon.lon = localWaypoint.getX()
-    return localWaypointLatLon
+        return localPath[localPathIndex]
 
 # this will give initial bearing on a great-circle path
 #if we keep local waypoints close enough to each other it approx the final bearing
@@ -145,39 +169,11 @@ def getDesiredHeading(position, localWaypoint):
     if (heading < 0):
         heading += 360
     return heading
-    
-def extendObstacles(aisData, timeToLoc):
-#modify to take in array of ships and execute below for all ships in array
-    obstacles = []
-    isHeadingWest = aisData.heading < 270 and aisData.heading > 90
-    radius = 0.2
-    spacing = 0.1
-    slope = math.tan(math.radians(aisData.heading))
-    print slope
-    if aisData.lon > 0:
-        b = aisData.lat + slope * -math.fabs(aisData.lon) #check math
-    else:
-        b = aisData.lat + slope * math.fabs(aisData.lon)
-    print b
-    xDistTravelled =  math.fabs(aisData.speed * timeToLoc * math.cos(math.radians(aisData.heading)))
-    y = lambda x: slope * x + b 
-    if isHeadingWest:
-        endLon = aisData.lon - xDistTravelled
-        xRange = np.arange(endLon, aisData.lon, spacing)
-        start = len(xRange) - 1
-    else:
-        endLon = aisData.lon + xDistTravelled
-        xRange = np.arange(aisData.lon, endLon, spacing)
-        start = 0
-    for x in xRange:
-        obstacles.append(Obstacle(x, y(x), radius))
-    obstacles = [parse_obstacle("{},{},{}".format(obstacle.x, obstacle.y, obstacle.radius)) for obstacle in obstacles]
-    x = np.linspace(aisData.lon, endLon, 100)
-    y = y(x) 
-    plt.plot(x, y, '-r')
-    ax = plt.gca()
-    for obstacle in obstacles:
-        ax.add_patch(plt.Circle((obstacle.x, obstacle.y), radius=obstacle.radius))
-    ax.add_patch(plt.Circle((obstacles[start].x, obstacles[start].y), radius=obstacles[start].radius)).set_color('green')
-    plt.show()
-    return obstacles
+
+# Example code of how this class works.
+if __name__ == '__main__':
+    print(latlonToXY(latlon(49.264766, -123.220042), latlon(49.263022, -123.023447)))
+    d = geopy.distance.VincentyDistance(kilometers = 1)
+    destination = d.destination(point=(49.264766, -123.220042), bearing=0)
+    print("Start: {} Destination: {}".format((49.264766, -123.220042), (destination.latitude, destination.longitude)))
+    print(great_circle(destination, (49.264766, -123.220042)))
