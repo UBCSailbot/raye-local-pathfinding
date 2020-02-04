@@ -76,6 +76,7 @@ RUN apt-get update && \
     # Install pypy2:
     wget -q -O- https://bitbucket.org/pypy/pypy/downloads/pypy2-v6.0.0-linux64.tar.bz2 |tar jxf - && \
     pip2 install pygccxml pyplusplus
+    pip2 install geopy
 
 COPY . /ompl
 
