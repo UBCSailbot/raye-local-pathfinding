@@ -62,7 +62,9 @@ def createLocalPathSS(state):
     except:
         print("Solution did not work")
         print("solutions[0] = {}".format(solutions[0]))
-    solution.getSolutionPath().interpolate(10)
+    lengthKm = solution.getSolutionPath().length()
+    desiredWaypointDistance = 50
+    solution.getSolutionPath().interpolate(int(lengthKm / desiredWaypointDistance))
 
     # Plot in km units, with (0,0) being the start
     plot_path(solution.getSolutionPath().printAsMatrix(), dimensions, obstacles)
@@ -98,9 +100,11 @@ def badPath(state, localPathSS, referenceLatlon, desiredHeading):
     return False
 
 def globalWaypointReached(position, globalWaypoint):
-    radius = 20  # km
+    radius = 200  # km
     sailbot = (position.lat, position.lon)
     waypt = (globalWaypoint.lat, globalWaypoint.lon)
+    dist = distance(sailbot, waypt).kilometers
+    print("Distance to globalWaypoint is {}".format(dist))
     return distance(sailbot, waypt).kilometers < radius
 
 def localWaypointReached(position, localPath, localPathIndex):

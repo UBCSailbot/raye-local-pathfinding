@@ -41,7 +41,7 @@ class MOCK_ControllerAndSailbot:
 
 if __name__ == '__main__':
     MOCK_ctrl_sailbot = MOCK_ControllerAndSailbot(48.5, -124.8)
-    r = rospy.Rate(1 / MOCK_ctrl_sailbot.publish_period) #hz
+    r = rospy.Rate(float(1) / MOCK_ctrl_sailbot.publish_period) #hz
 
     while not rospy.is_shutdown():
         MOCK_ctrl_sailbot.move()
