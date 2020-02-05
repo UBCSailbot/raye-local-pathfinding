@@ -9,7 +9,6 @@ import math
 from geopy.distance import great_circle
 from local_pathfinding.msg import latlon, AIS_ship
 import numpy as np
-import matplotlib.pyplot as plt
 
 def createLocalPathSS(state):
     ou.setLogLevel(ou.LOG_WARN)
