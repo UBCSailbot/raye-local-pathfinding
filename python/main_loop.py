@@ -21,13 +21,16 @@ if __name__ == '__main__':
     nextGlobalWaypointPublisher = rospy.Publisher('MOCK_next_global_waypoint', msg.latlon)
     publishRate = rospy.Rate(1) # Hz
 
+    # Wait until first global path is received
+    while not sailbot.newGlobalPathReceived:
+        time.sleep(1)
+
     # Create first path and track time of updates
     state = sailbot.getCurrentState()
     localPathSS, referenceLatlon = createLocalPathSS(state)
     localPath = getLocalPath(localPathSS, referenceLatlon)
     localPathIndex = 1  # First waypoint is the start point, so second waypoint is the next local waypoint
     localWaypoint = getLocalWaypointLatLon(localPath, localPathIndex)
-
     lastTimePathCreated = time.time()
 
     while not rospy.is_shutdown():
@@ -35,18 +38,21 @@ if __name__ == '__main__':
         print("localPathIndex: {}".format(localPathIndex))
         state = sailbot.getCurrentState()
 
-        # Generate new local path if needed.
+        # Generate new local path if needed
         isBad = badPath(state, localPathSS, referenceLatlon, desiredHeadingMsg.heading)
         isTimeLimitExceeded = timeLimitExceeded(lastTimePathCreated)
         isGlobalWaypointReached = globalWaypointReached(state.position, state.globalWaypoint)
         newGlobalPathReceived = sailbot.newGlobalPathReceived
         localPathIndexOutOfBounds = localPathIndex >= len(localPath)
         if isBad or isTimeLimitExceeded or isGlobalWaypointReached or newGlobalPathReceived or localPathIndexOutOfBounds:
-            rospy.loginfo("Updating localPath")
-            rospy.loginfo("isBad? {}. isTimeLimitExceeded? {}. isGlobalWaypointReached? {}. newGlobalPathReceived? {}. localPathIndexOutOfBounds? {}.".format(isBad, isTimeLimitExceeded, isGlobalWaypointReached, newGlobalPathReceived, localPathIndexOutOfBounds))
-            sailbot.newGlobalPathReceived = False
+            # Log reason for local path update
+            rospy.loginfo("Updating Local Path. Reason: isBad? {}. isTimeLimitExceeded? {}. isGlobalWaypointReached? {}. newGlobalPathReceived? {}. localPathIndexOutOfBounds? {}.".format(isBad, isTimeLimitExceeded, isGlobalWaypointReached, newGlobalPathReceived, localPathIndexOutOfBounds))
 
-            # If globalWaypoint met, increment the index
+            # Reset saiblot newGlobalPathReceived boolean
+            if newGlobalPathReceived:
+                sailbot.newGlobalPathReceived = False
+
+            # If globalWaypoint reached, increment the index
             if isGlobalWaypointReached:
                 rospy.loginfo("Global waypoint reached")
                 sailbot.globalPathIndex += 1
