@@ -30,10 +30,9 @@ class Sailbot:
     def getCurrentState(self):
         if self.globalPathIndex >= len(self.globalPath):
             rospy.loginfo("Global path index is out of range: index = {} len(globalPath) = {}".format(self.globalPathIndex, self.globalPath))
-            rospy.loginfo("Setting globalWaypoint to be the boat's position: {}".format(self.position))
-            return BoatState(self.position, self.position, self.windDirection, self.windSpeed, self.AISData, self.heading, self.speed)
-        else:
-            return BoatState(self.globalPath[self.globalPathIndex], self.position, self.windDirection, self.windSpeed, self.AISData, self.heading, self.speed)
+            rospy.loginfo("Setting localWaypoint to be the last element of the localPath")
+            self.globalPathIndex = len(self.globalPath) - 1
+        return BoatState(self.globalPath[self.globalPathIndex], self.position, self.windDirection, self.windSpeed, self.AISData, self.heading, self.speed)
 
     def positionCallback(self, data):
         self.position.lat = data.lat
@@ -57,22 +56,22 @@ class Sailbot:
 
         # Update globalPath if current path is None
         if self.globalPath is None:
-            rospy.loginfo("New global path received.")
-            self.newGlobalPathReceived = True
-            self.globalPath = data.path
-            self.globalPathIndex = 1
+            updateGlobalPath(data)
             return
 
         # Update globalPath if current path different from new path
         oldFirstPoint = (self.globalPath[0].lat, self.globalPath[0].lon)
         newFirstPoint = (data.path[0].lat, data.path[0].lon)
         if distance(oldFirstPoint, newFirstPoint).kilometers > 1:
-            rospy.loginfo("New global path received.")
-            self.newGlobalPathReceived = True
-            self.globalPath = data.path
-            self.globalPathIndex = 1
+            updateGlobalPath(data)
         else:
             rospy.loginfo("New global path is the same as the current path.")
+
+    def updateGlobalPath(self, data):
+        rospy.loginfo("New global path received.")
+        self.newGlobalPathReceived = True
+        self.globalPath = data.path
+        self.globalPathIndex = 1
 
     def __init__(self):
         self.position = latlon(0, 0) 

@@ -21,15 +21,15 @@ class MOCK_ControllerAndSailbot:
     def move(self):
         # TODO: Change this so that the boat
         # moves at a reasonable speed
-        travel_distance_per_period = 5  # km
-        distance = geopy.distance.distance(kilometers = travel_distance_per_period)
+        distance_per_period = 5  # km
+        distance = geopy.distance.distance(kilometers = distance_per_period)
 
         # Heading units: 0 degrees => EAST. 90 degrees => NORTH.
         # Bearing units: 0 degrees => NORTH. 90 degrees => EAST.
         destination = distance.destination(point=(self.lat, self.lon), bearing=-self.heading + 90)
 
         # TODO: translate to m/s
-        self.speed = travel_distance_per_period / self.publish_period
+        self.speed = distance_per_period / self.publish_period
 
         self.lon = destination.longitude
         self.lat = destination.latitude
