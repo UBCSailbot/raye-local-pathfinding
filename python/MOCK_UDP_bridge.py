@@ -56,19 +56,26 @@ class MOCK_UDPBridge:
         sock.sendto(str(nmea_msg), (UDP_IP, UDP_PORT))
     
     def globalPathCallback(self, data):
+        '''
+        Send the first 50 global waypoints to OpenCPN
+        '''
+        msg = "$SAILBOT" + "G" + "50;"
         i = 0
         for wp in data.path:
-            if (i % 25 == 0):
-                nmea_msg = nmea.WPL('GP', 'WPL', (str(100*wp.lat), 'N', str(100*wp.lon), 'E', 'G' + str(i)))
-                sock.sendto(str(nmea_msg), (UDP_IP, UDP_PORT))
+            msg += str(round(wp.lat, 4)) + "," + str(round(wp.lon, 4)) + ";"
             i += 1
+            if i == 50:
+                break
+        msg += "\n"
+        sock.sendto(str(msg), (UDP_IP, UDP_PORT))
 
     def localPathCallback(self, data):
+        msg = "$SAILBOT" + "L" + str(len(data.path)) + ";"
         i = 0
         for wp in data.path:
-            nmea_msg = nmea.WPL('GP', 'WPL', (str(100*wp.lat), 'N', str(100*wp.lon), 'E', 'G' + str(i)))
-            sock.sendto(str(nmea_msg), (UDP_IP, UDP_PORT))
-            i += 1
+            msg += str(round(wp.lat, 4)) + "," + str(round(wp.lon, 4)) + ";"
+        msg += "\n"
+        sock.sendto(str(msg), (UDP_IP, UDP_PORT))
 
 
 
