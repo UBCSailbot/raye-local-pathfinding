@@ -8,7 +8,7 @@ from cli import parse_obstacle
 import math 
 from geopy.distance import distance
 import geopy.distance
-from local_pathfinding.msg import latlon
+from local_pathfinding.msg import latlon, AIS_ship
 
 
 def latlonToXY(latlon, relativeLatlon):
@@ -34,7 +34,7 @@ def XYToLatlon(xy, relativeLatlon):
 def createLocalPathSS(state):
     ou.setLogLevel(ou.LOG_WARN)
 
-    # Get setup parameters from state
+    # Get setup parameters from state for ompl plan()
     # Convert all latlons to NE in km wrt boat position
     start = [0, 0]
     goal = latlonToXY(state.globalWaypoint, state.position)
@@ -43,51 +43,50 @@ def createLocalPathSS(state):
     ships = [latlonToXY(latlon(ship.lat, ship.lon), state.position) for ship in state.AISData.ships]
     obstacles = [parse_obstacle("{},{},{}".format(ship[0], ship[1], 1)) for ship in ships]
     windDirection = state.windDirection
-    runtime = 1
+    runtime = 5
 
     # Run the planner multiple times and find the best one
-    numRuns = 2
+    numRuns = 5
     solutions = []
-    print("start: {} {}".format(start[0], start[1]))
-    print("goal: {} {}".format(goal[0], goal[1]))
-    print("dimensions: {} {} {} {}".format(dimensions[0], dimensions[1], dimensions[2], dimensions[3]))
-    for o in obstacles:
-        print("{}, {}, {}".format(o.x, o.y, o.radius))
-
     for i in range(numRuns):
         solutions.append(plan(runtime, "RRTStar", 'WeightedLengthAndClearanceCombo', windDirection, dimensions, start, goal, obstacles))
 
+    # Find best solution, but catch exception when solution doesn't work
+    # TODO: Figure out more about why solutions fail to implement better exception handling
     try:
         solution = min(solutions, key=lambda x: x.getSolutionPath().cost(x.getOptimizationObjective()).value())
     except:
         print("Solution did not work")
         print("solutions[0] = {}".format(solutions[0]))
+
+    # Set the average distance between waypoints
     lengthKm = solution.getSolutionPath().length()
-    desiredWaypointDistance = 50
-    solution.getSolutionPath().interpolate(int(lengthKm / desiredWaypointDistance))
+    desiredWaypointDistanceKm = 50
+    numberOfWaypoints = int(lengthKm / desiredWaypointDistanceKm)
+    solution.getSolutionPath().interpolate(numberOfWaypoints)
 
     # Plot in km units, with (0,0) being the start
     # plot_path(solution.getSolutionPath().printAsMatrix(), dimensions, obstacles)
 
     # Plot in latlon units
-    localPath = getLocalPath(solution, state.position)
-    obstacles = [parse_obstacle("{},{},{}".format(ship.lon, ship.lat, 0.001)) for ship in state.AISData.ships]
+    # localPath = getLocalPath(solution, state.position)
+    # obstacles = [parse_obstacle("{},{},{}".format(ship.lon, ship.lat, 0.001)) for ship in state.AISData.ships]
     # plot_path_2(localPath, obstacles)
 
     return solution, state.position
 
-def getLocalPath(localPathSS, position):
+def getLocalPath(localPathSS, referenceLatlon):
+    # Convert localPathSS solution path (in km WRT reference) into list of latlons
     localPath = []
     for state in localPathSS.getSolutionPath().getStates():
         xy = (state.getX(), state.getY())
-        localPath.append(XYToLatlon(xy, position))
-
+        localPath.append(XYToLatlon(xy, referenceLatlon))
     return localPath
 
 def badPath(state, localPathSS, referenceLatlon, desiredHeading):
     # If sailing upwind or downwind, isBad
     if math.fabs(state.windDirection - desiredHeading) < math.radians(30) or math.fabs(state.windDirection - desiredHeading - math.radians(180)) < math.radians(30):
-        rospy.loginfo_throttle(1, "Sailing upwind/downwind. Wind direction: {}. Desired Heading: {}".format(state.windDirection, desiredHeading))  # Prints every x seconds
+        rospy.loginfo("Sailing upwind/downwind. Wind direction: {}. Desired Heading: {}".format(state.windDirection, desiredHeading))
         return True
 
     # Check if path will hit objects
@@ -216,7 +215,7 @@ def extendObstacles(aisData, timeToLoc):
     plt.show()
     return obstacles
 
-# Example code of how this class works.
+# Example code of how to use some of these methods.
 if __name__ == '__main__':
     print("********************* Testing latlonToXY and XYToLatlon methods *********************")
     start = (49.263022, -123.023447)
