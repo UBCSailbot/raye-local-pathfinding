@@ -2,7 +2,7 @@
 import rospy
 from std_msgs.msg import Float64
 from local_pathfinding.msg import AIS_msg, GPS, path, latlon, wind
-from geopy.distance import great_circle
+from geopy.distance import distance
 
 class BoatState:
     def __init__(self, globalWaypoint, position, windDirection, windSpeed, AISData, heading, speed):
@@ -58,6 +58,7 @@ class Sailbot:
         # Update globalPath if current path is None
         if self.globalPath is None:
             rospy.loginfo("New global path received.")
+            self.newGlobalPathReceived = True
             self.globalPath = data.path
             self.globalPathIndex = 1
             return
@@ -65,13 +66,13 @@ class Sailbot:
         # Update globalPath if current path different from new path
         oldFirstPoint = (self.globalPath[0].lat, self.globalPath[0].lon)
         newFirstPoint = (data.path[0].lat, data.path[0].lon)
-        if great_circle(oldFirstPoint, newFirstPoint) > 0.001:
+        if distance(oldFirstPoint, newFirstPoint).kilometers > 1:
             rospy.loginfo("New global path received.")
+            self.newGlobalPathReceived = True
             self.globalPath = data.path
             self.globalPathIndex = 1
         else:
             rospy.loginfo("New global path is the same as the current path.")
-
 
     def __init__(self):
         self.position = latlon(0, 0) 
@@ -82,6 +83,7 @@ class Sailbot:
         self.speed = 0
         self.globalPath = path([self.position, latlon(1, 1)]).path
         self.globalPathIndex = 1  # First waypoint is the start point, so second waypoint is the next global waypoint
+        self.newGlobalPathReceived = False
 
         rospy.init_node('local_pathfinding', anonymous=True)
         rospy.Subscriber("MOCK_GPS", GPS, self.positionCallback)

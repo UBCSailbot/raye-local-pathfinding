@@ -2,18 +2,18 @@
 from ompl import util as ou
 import rospy
 import time
-from plotting import plot_path
+from plotting import plot_path, plot_path_2
 from updated_geometric_planner import plan, Obstacle, hasNoCollisions
 from cli import parse_obstacle
 import math 
-from geopy.distance import great_circle
+from geopy.distance import distance
 import geopy.distance
 from local_pathfinding.msg import latlon
 
 
 def latlonToXY(latlon, relativeLatlon):
-    x = great_circle((relativeLatlon.lat, relativeLatlon.lon), (relativeLatlon.lat, latlon.lon)).kilometers
-    y = great_circle((relativeLatlon.lat, relativeLatlon.lon), (latlon.lat, relativeLatlon.lon)).kilometers
+    x = distance((relativeLatlon.lat, relativeLatlon.lon), (relativeLatlon.lat, latlon.lon)).kilometers
+    y = distance((relativeLatlon.lat, relativeLatlon.lon), (latlon.lat, relativeLatlon.lon)).kilometers
     if relativeLatlon.lon > latlon.lon:
         x = -x
     if relativeLatlon.lat > latlon.lat:
@@ -21,16 +21,21 @@ def latlonToXY(latlon, relativeLatlon):
     return [x,y]
 
 def XYToLatlon(xy, relativeLatlon):
-    x_distance = geopy.distance.VincentyDistance(kilometers = xy[0])
-    y_distance = geopy.distance.VincentyDistance(kilometers = xy[1])
-    destination = x_distance.destination(point=(relativeLatlon.lat, relativeLatlon.lon), bearing=0)
-    destination = y_distance.destination(point=(destination.latitude, destination.longitude), bearing=0)
+    NORTH = 0
+    EAST = 90
+    SOUTH = 180
+    WEST = 270
+    x_distance = geopy.distance.distance(kilometers = xy[0])
+    y_distance = geopy.distance.distance(kilometers = xy[1])
+    destination = x_distance.destination(point=(relativeLatlon.lat, relativeLatlon.lon), bearing=EAST)
+    destination = y_distance.destination(point=(destination.latitude, destination.longitude), bearing=NORTH)
     return latlon(destination.latitude, destination.longitude)
 
 def createLocalPathSS(state):
     ou.setLogLevel(ou.LOG_WARN)
 
     # Get setup parameters from state
+    # Convert all latlons to NE in km wrt boat position
     start = [0, 0]
     goal = latlonToXY(state.globalWaypoint, state.position)
     extra = 10   # Extra length to show more in the plot
@@ -52,11 +57,20 @@ def createLocalPathSS(state):
     for i in range(numRuns):
         solutions.append(plan(runtime, "RRTStar", 'WeightedLengthAndClearanceCombo', windDirection, dimensions, start, goal, obstacles))
 
-    solution = min(solutions, key=lambda x: x.getSolutionPath().cost(x.getOptimizationObjective()).value())
+    try:
+        solution = min(solutions, key=lambda x: x.getSolutionPath().cost(x.getOptimizationObjective()).value())
+    except:
+        print("Solution did not work")
+        print("solutions[0] = {}".format(solutions[0]))
     solution.getSolutionPath().interpolate(10)
 
-    # Plot
+    # Plot in km units, with (0,0) being the start
     plot_path(solution.getSolutionPath().printAsMatrix(), dimensions, obstacles)
+
+    # Plot in latlon units
+    localPath = getLocalPath(solution, state.position)
+    obstacles = [parse_obstacle("{},{},{}".format(ship.lon, ship.lat, 0.001)) for ship in state.AISData.ships]
+    plot_path_2(localPath, obstacles)
 
     return solution, state.position
 
@@ -80,16 +94,14 @@ def badPath(state, localPathSS, referenceLatlon, desiredHeading):
     if not hasNoCollisions(localPathSS, obstacles):
         rospy.loginfo("Going to hit obstacle.")
         return True
-    else:
-        rospy.loginfo("Not going to hit obstacle.")
 
     return False
 
 def globalWaypointReached(position, globalWaypoint):
-    radius = 2
+    radius = 20  # km
     sailbot = (position.lat, position.lon)
     waypt = (globalWaypoint.lat, globalWaypoint.lon)
-    return great_circle(sailbot, waypt) < radius
+    return distance(sailbot, waypt).kilometers < radius
 
 def localWaypointReached(position, localPath, localPathIndex):
     previousWaypoint = latlon(float(localPath[localPathIndex - 1].lat), float(localPath[localPathIndex - 1].lon))
@@ -137,7 +149,7 @@ def localWaypointReached(position, localPath, localPathIndex):
     return False
 
 def timeLimitExceeded(lastTimePathCreated):
-    secondsLimit = 5
+    secondsLimit = 500
     return time.time() - lastTimePathCreated > secondsLimit
 
 def getLocalWaypointLatLon(localPath, localPathIndex):
@@ -151,7 +163,8 @@ def getLocalWaypointLatLon(localPath, localPathIndex):
     if localPathIndex >= len(localPath):
         rospy.loginfo("Local path index is out of range: index = {} len(localPath) = {}".format(localPathIndex, len(localPath)))
         rospy.loginfo("Setting localWaypoint to be the last element of the localPath")
-        return localPath[len(localPath) - 1]
+        localPathIndex = len(localPath) - 1
+        return localPath[localPathIndex]
 
     # If index in range, return the correct waypoint
     else:
@@ -160,20 +173,27 @@ def getLocalWaypointLatLon(localPath, localPathIndex):
 # this will give initial bearing on a great-circle path
 #if we keep local waypoints close enough to each other it approx the final bearing
 def getDesiredHeading(position, localWaypoint):
-    term1 = math.sin(localWaypoint.lon - position.lon) * math.cos(localWaypoint.lat)
-    term2 = math.cos(position.lat) * math.sin(localWaypoint.lat) - math.sin(position.lat) * math.cos(localWaypoint.lat)*math.cos(localWaypoint.lon - position.lon)
-    bearing = math.degrees(math.atan2(term1, term2))
-    
-    #this changes the bearing into a heading assuming 0 degrees pointing east for heading measurements
-    heading = bearing - 90
-    if (heading < 0):
-        heading += 360
-    return heading
+    xy = latlonToXY(localWaypoint, position)
+    return math.degrees(math.atan2(xy[1], xy[0]))
 
 # Example code of how this class works.
 if __name__ == '__main__':
-    print(latlonToXY(latlon(49.264766, -123.220042), latlon(49.263022, -123.023447)))
-    d = geopy.distance.VincentyDistance(kilometers = 1)
-    destination = d.destination(point=(49.264766, -123.220042), bearing=0)
-    print("Start: {} Destination: {}".format((49.264766, -123.220042), (destination.latitude, destination.longitude)))
-    print(great_circle(destination, (49.264766, -123.220042)))
+    print("********************* Testing latlonToXY and XYToLatlon methods *********************")
+    start = (49.263022, -123.023447)
+    end = (47.7984, -125.3319)
+    startLatlon = latlon(start[0], start[1])
+    endLatlon = latlon(end[0], end[1])
+    print("Start: {} End: {}".format(start, end))
+    startEndDistance = distance((endLatlon.lat, endLatlon.lon), (startLatlon.lat, startLatlon.lon))
+    print("Distance between start and end {}".format(startEndDistance))
+    print("")
+    xy = latlonToXY(endLatlon, startLatlon)
+    print("XY between start and end is {}".format(xy))
+    calculatedEndLatlon = XYToLatlon(xy, latlon(start[0], start[1]))
+    print("End which is {} from {} is: \n({}, {}) Expected: ({}, {})".format(xy, start, calculatedEndLatlon.lat, calculatedEndLatlon.lon, endLatlon.lat, endLatlon.lon))
+    endCalculatedEndDistance = distance((endLatlon.lat, endLatlon.lon), (calculatedEndLatlon.lat, calculatedEndLatlon.lon))
+    print("Distance between end and calculatedEnd {}".format(endCalculatedEndDistance))
+    print("***********************")
+    print("Percent error: (distance(end, calculatedEnd) / distance(end, start)) = {}%".format(endCalculatedEndDistance/startEndDistance * 100))
+
+

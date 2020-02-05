@@ -21,13 +21,10 @@ if __name__ == '__main__':
     nextGlobalWaypointPublisher = rospy.Publisher('MOCK_next_global_waypoint', msg.latlon)
     publishRate = rospy.Rate(1) # Hz
 
-    # Create ros publisher for the local path, only for testing
-    localPathPublisher = rospy.Publisher('MOCK_local_path', msg.path)
-
     # Create first path and track time of updates
     state = sailbot.getCurrentState()
     localPathSS, referenceLatlon = createLocalPathSS(state)
-    localPath = getLocalPath(localPathSS, state.position)
+    localPath = getLocalPath(localPathSS, referenceLatlon)
     localPathIndex = 1  # First waypoint is the start point, so second waypoint is the next local waypoint
     localWaypoint = getLocalWaypointLatLon(localPath, localPathIndex)
 
@@ -42,9 +39,12 @@ if __name__ == '__main__':
         isBad = badPath(state, localPathSS, referenceLatlon, desiredHeadingMsg.heading)
         isTimeLimitExceeded = timeLimitExceeded(lastTimePathCreated)
         isGlobalWaypointReached = globalWaypointReached(state.position, state.globalWaypoint)
-        if isBad or isTimeLimitExceeded or isGlobalWaypointReached:
+        newGlobalPathReceived = sailbot.newGlobalPathReceived
+        localPathIndexOutOfBounds = localPathIndex >= len(localPath)
+        if isBad or isTimeLimitExceeded or isGlobalWaypointReached or newGlobalPathReceived or localPathIndexOutOfBounds:
             rospy.loginfo("Updating localPath")
-            rospy.loginfo("isBad? {}. isTimeLimitExceeded? {}. isGlobalWaypointReached? {}.".format(isBad, isTimeLimitExceeded, isGlobalWaypointReached))
+            rospy.loginfo("isBad? {}. isTimeLimitExceeded? {}. isGlobalWaypointReached? {}. newGlobalPathReceived? {}. localPathIndexOutOfBounds? {}.".format(isBad, isTimeLimitExceeded, isGlobalWaypointReached, newGlobalPathReceived, localPathIndexOutOfBounds))
+            sailbot.newGlobalPathReceived = False
 
             # If globalWaypoint met, increment the index
             if isGlobalWaypointReached:
@@ -52,8 +52,9 @@ if __name__ == '__main__':
                 sailbot.globalPathIndex += 1
 
             # Update local path
+            state = sailbot.getCurrentState()
             localPathSS, referenceLatlon = createLocalPathSS(state)
-            localPath = getLocalPath(localPathSS, state.position)
+            localPath = getLocalPath(localPathSS, referenceLatlon)
             localPathIndex = 1  # First waypoint is the start point, so second waypoint is the next local waypoint
             localWaypoint = getLocalWaypointLatLon(localPath, localPathIndex)
             lastTimePathCreated = time.time()
@@ -66,7 +67,7 @@ if __name__ == '__main__':
 
         # Publish desiredHeading
         desiredHeadingMsg.heading = getDesiredHeading(state.position, localWaypoint)
-        rospy.loginfo_throttle(1, "desiredHeadingMsg: {}".format(desiredHeadingMsg.heading))  # Prints every x seconds
+        rospy.loginfo_throttle(10, "desiredHeadingMsg: {}".format(desiredHeadingMsg.heading))  # Prints every x seconds
         desiredHeadingPublisher.publish(desiredHeadingMsg)
         publishRate.sleep()
 
@@ -75,4 +76,4 @@ if __name__ == '__main__':
 
         # Publish nextLocalWaypoint and nextGlobalWaypoint
         nextLocalWaypointPublisher.publish(localWaypoint)
-        nextGlobalWaypointPublisher.publish(sailbot.getCurrentState().globalWaypoint)
+        nextGlobalWaypointPublisher.publish(state.globalWaypoint)
