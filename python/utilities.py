@@ -46,9 +46,11 @@ def createLocalPathSS(state):
     runtime = 5
 
     # Run the planner multiple times and find the best one
-    numRuns = 5
+    numRuns = 1
+    rospy.loginfo("Running createLocalPathSS. runTime: {}. numRuns: {}. Total time: {} seconds".format(runtime, numRuns, runtime*numRuns))
     solutions = []
     for i in range(numRuns):
+        rospy.loginfo("Starting run {}".format(i))
         solutions.append(plan(runtime, "RRTStar", 'WeightedLengthAndClearanceCombo', windDirection, dimensions, start, goal, obstacles))
 
     # Find best solution, but catch exception when solution doesn't work
@@ -86,14 +88,14 @@ def getLocalPath(localPathSS, referenceLatlon):
 def badPath(state, localPathSS, referenceLatlon, desiredHeading):
     # If sailing upwind or downwind, isBad
     if math.fabs(state.windDirection - desiredHeading) < math.radians(30) or math.fabs(state.windDirection - desiredHeading - math.radians(180)) < math.radians(30):
-        rospy.loginfo("Sailing upwind/downwind. Wind direction: {}. Desired Heading: {}".format(state.windDirection, desiredHeading))
+        rospy.logwarn("Sailing upwind/downwind. Wind direction: {}. Desired Heading: {}".format(state.windDirection, desiredHeading))
         return True
 
     # Check if path will hit objects
     ships = [latlonToXY(latlon(ship.lat, ship.lon), referenceLatlon) for ship in state.AISData.ships]
     obstacles = [parse_obstacle("{},{},{}".format(ship[0], ship[1], 1)) for ship in ships]
     if not hasNoCollisions(localPathSS, obstacles):
-        rospy.loginfo("Going to hit obstacle.")
+        rospy.logwarn("Going to hit obstacle.")
         return True
 
     return False
@@ -158,14 +160,14 @@ def timeLimitExceeded(lastTimePathCreated):
 def getLocalWaypointLatLon(localPath, localPathIndex):
     # If local path is empty, return (0, 0)
     if len(localPath) == 0:
-        rospy.loginfo("Local path is empty.")
-        rospy.loginfo("Setting localWaypoint to be (0, 0).")
+        rospy.logwarn("Local path is empty.")
+        rospy.logwarn("Setting localWaypoint to be (0, 0).")
         return latlon(0, 0)
 
     # If index out of range, return last waypoint in path
     if localPathIndex >= len(localPath):
-        rospy.loginfo("Local path index is out of range: index = {} len(localPath) = {}".format(localPathIndex, len(localPath)))
-        rospy.loginfo("Setting localWaypoint to be the last element of the localPath")
+        rospy.logwarn("Local path index is out of range: index = {} len(localPath) = {}".format(localPathIndex, len(localPath)))
+        rospy.logwarn("Setting localWaypoint to be the last element of the localPath")
         localPathIndex = len(localPath) - 1
         return localPath[localPathIndex]
 

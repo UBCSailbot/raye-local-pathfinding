@@ -29,8 +29,8 @@ class BoatState:
 class Sailbot:
     def getCurrentState(self):
         if self.globalPathIndex >= len(self.globalPath):
-            rospy.loginfo("Global path index is out of range: index = {} len(globalPath) = {}".format(self.globalPathIndex, self.globalPath))
-            rospy.loginfo("Setting localWaypoint to be the last element of the localPath")
+            rospy.logwarn("Global path index is out of range: index = {} len(globalPath) = {}".format(self.globalPathIndex, self.globalPath))
+            rospy.logwarn("Setting localWaypoint to be the last element of the localPath")
             self.globalPathIndex = len(self.globalPath) - 1
         return BoatState(self.globalPath[self.globalPathIndex], self.position, self.windDirection, self.windSpeed, self.AISData, self.heading, self.speed)
 
@@ -51,21 +51,22 @@ class Sailbot:
         # Check that new path is valid
         isValidNewPath = (not data.path is None and len(data.path) >= 2)
         if not isValidNewPath:
-            rospy.loginfo("Invalid global path received.")
+            rospy.logwarn("Invalid global path received.")
             return
 
         # Update globalPath if current path is None
         if self.globalPath is None:
-            updateGlobalPath(data)
+            self.updateGlobalPath(data)
             return
 
         # Update globalPath if current path different from new path
         oldFirstPoint = (self.globalPath[0].lat, self.globalPath[0].lon)
         newFirstPoint = (data.path[0].lat, data.path[0].lon)
         if distance(oldFirstPoint, newFirstPoint).kilometers > 1:
-            updateGlobalPath(data)
+            self.updateGlobalPath(data)
         else:
-            rospy.loginfo("New global path is the same as the current path.")
+            rospy.logwarn_once("New global path is the same as the current path. This warning will only show once")
+            # rospy.logwarn("New global path is the same as the current path.")
 
     def updateGlobalPath(self, data):
         rospy.loginfo("New global path received.")

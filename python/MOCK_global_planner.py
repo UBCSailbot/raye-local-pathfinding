@@ -39,7 +39,7 @@ def MOCK_global():
 
     rospy.init_node('MOCK_global_planner', anonymous=True)
     pub = rospy.Publisher("MOCK_global_path", msg.path)
-    publish_period = 60 # Seconds. TODO: set this rate
+    publish_period = 10 # Seconds. TODO: set this rate
     r = rospy.Rate(float(1) / publish_period)
 
     while not rospy.is_shutdown():
