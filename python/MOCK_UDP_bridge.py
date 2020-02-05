@@ -40,7 +40,7 @@ class MOCK_UDPBridge:
     def gpsCallback(self, data):
         # TODO: fix heading
         rospy.loginfo(data)
-        nmea_msg = nmea.RMC('GP', 'RMC', ('000000', 'A', str(data.lat*100)[0:7], 'N', str(abs(data.lon)*100)[0:7], 'W', '2.0', '0.0', '250120', '000.0', 'W'))
+        nmea_msg = nmea.RMC('GP', 'RMC', ('000000', 'A', str(data.lat*100)[0:7], 'N', str(abs(data.lon)*100)[0:7], 'W', '2.0', str(-math.degrees(data.heading) + 90), '250120', '000.0', 'W'))
         sock.sendto(str(nmea_msg), (UDP_IP, UDP_PORT))
 
     def aisCallback(self, data):
