@@ -19,11 +19,8 @@ def createLocalPathSS(state):
     goal = [state.globalWaypoint.lon, state.globalWaypoint.lat]
     extra = 10   # Extra length to show more in the plot
     dimensions = [min(start[0], goal[0]) - extra, min(start[1], goal[1]) - extra, max(start[0], goal[0]) + extra, max(start[1], goal[1]) + extra]
-#    obstacles = [parse_obstacle("{},{},{}".format(ship.lon, ship.lat, 0.01)) for ship in state.AISData.ships]
-    obstacles = []
-    for ship in state.AISData.ships:
-        extended = extendObstacles(ship, 2)
-        obstacles.extend(extended)
+    obstacles = extendObstaclesArray(state.AISData.ships)
+    
     windDirection = state.windDirection
     runtime = 1
 
@@ -152,39 +149,38 @@ def getDesiredHeading(position, localWaypoint):
         heading += 360
     return heading
     
-def extendObstacles(aisData, timeToLoc):
-#modify to take in array of ships and execute below for all ships in array
+
+def extendObstaclesArray(aisArray):
+#assuming speed in km/h
     obstacles = []
-    isHeadingWest = aisData.heading < 270 and aisData.heading > 90
-    radius = 0.2
-    spacing = 0.1
-    slope = math.tan(math.radians(aisData.heading))
-    print slope
-    if aisData.lon > 0:
-        b = aisData.lat + slope * -math.fabs(aisData.lon) #check math
-    else:
-        b = aisData.lat + slope * math.fabs(aisData.lon)
-    print b
-    xDistTravelled =  math.fabs(aisData.speed * timeToLoc * math.cos(math.radians(aisData.heading)))
-    y = lambda x: slope * x + b 
-    if isHeadingWest:
-        endLon = aisData.lon - xDistTravelled
-        xRange = np.arange(endLon, aisData.lon, spacing)
-        start = len(xRange) - 1
-    else:
-        endLon = aisData.lon + xDistTravelled
-        xRange = np.arange(aisData.lon, endLon, spacing)
-        start = 0
-    for x in xRange:
-        obstacles.append(Obstacle(x, y(x), radius))
-#    x = np.linspace(aisData.lon, endLon, 100)
-#   y = y(x) 
-#    plt.plot(x, y, '-r')
-#    ax = plt.gca()
-#    for obstacle in obstacles:
-#        ax.add_patch(plt.Circle((obstacle.x, obstacle.y), radius=obstacle.radius))
-#    ax.add_patch(plt.Circle((obstacles[start].x, obstacles[start].y), radius=obstacles[start].radius)).set_color('green')
-##    plt.show()
-    return obstacles
-aisData = AIS_ship(1000, 1, 1, 45, 1)
-extendObstacles(aisData, 5)
+    timeToLoc = 10  # change this value when deciding how much to extend obstacles
+    radius = 0.2    # also change this to account for the width of the obstacle 
+    toKMscale= 1.0 / 110   #approximate scaling factor of latlon to km
+    spacing = 0.05 # can be changed to change width between obstacles
+
+    for aisData in aisArray:
+        if aisData.heading == 90 or aisData.heading == 270:
+            endLat = aisData.lat + aisData.speed * toKMscale * timeToLoc
+            yRange = np.arange(aisData.lat, endLat, spacing)
+            for y in yRange:
+                obstacles.append(Obstacle(aisData.lon, y, radius))
+        else:
+            
+            isHeadingWest = aisData.heading < 270 and aisData.heading > 90
+            slope = math.tan(math.radians(aisData.heading))
+
+            if aisData.lon > 0:
+                b = aisData.lat + slope * -math.fabs(aisData.lon)
+            else:
+                b = aisData.lat + slope * math.fabs(aisData.lon)
+            xDistTravelled =  math.fabs(aisData.speed * toKMscale * timeToLoc * math.cos(math.radians(aisData.heading)))
+            y = lambda x: slope * x + b 
+            if isHeadingWest:
+                endLon = aisData.lon - xDistTravelled
+                xRange = np.arange(endLon, aisData.lon, spacing)
+            else:
+                endLon = aisData.lon + xDistTravelled
+                xRange = np.arange(aisData.lon, endLon, spacing)
+            for x in xRange:
+                obstacles.append(Obstacle(x, y(x), radius))
+    return obstacles            
