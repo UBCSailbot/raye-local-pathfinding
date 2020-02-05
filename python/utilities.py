@@ -67,12 +67,12 @@ def createLocalPathSS(state):
     solution.getSolutionPath().interpolate(int(lengthKm / desiredWaypointDistance))
 
     # Plot in km units, with (0,0) being the start
-    plot_path(solution.getSolutionPath().printAsMatrix(), dimensions, obstacles)
+    # plot_path(solution.getSolutionPath().printAsMatrix(), dimensions, obstacles)
 
     # Plot in latlon units
     localPath = getLocalPath(solution, state.position)
     obstacles = [parse_obstacle("{},{},{}".format(ship.lon, ship.lat, 0.001)) for ship in state.AISData.ships]
-    plot_path_2(localPath, obstacles)
+    # plot_path_2(localPath, obstacles)
 
     return solution, state.position
 
