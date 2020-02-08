@@ -12,23 +12,23 @@ from local_pathfinding.msg import latlon, AIS_ship
 import numpy as np
 
 
-def latlonToXY(latlon, relativeLatlon):
-    x = distance((relativeLatlon.lat, relativeLatlon.lon), (relativeLatlon.lat, latlon.lon)).kilometers
-    y = distance((relativeLatlon.lat, relativeLatlon.lon), (latlon.lat, relativeLatlon.lon)).kilometers
-    if relativeLatlon.lon > latlon.lon:
+def latlonToXY(latlon, referenceLatlon):
+    x = distance((referenceLatlon.lat, referenceLatlon.lon), (referenceLatlon.lat, latlon.lon)).kilometers
+    y = distance((referenceLatlon.lat, referenceLatlon.lon), (latlon.lat, referenceLatlon.lon)).kilometers
+    if referenceLatlon.lon > latlon.lon:
         x = -x
-    if relativeLatlon.lat > latlon.lat:
+    if referenceLatlon.lat > latlon.lat:
         y = -y
     return [x,y]
 
-def XYToLatlon(xy, relativeLatlon):
+def XYToLatlon(xy, referenceLatlon):
     NORTH = 0
     EAST = 90
     SOUTH = 180
     WEST = 270
     x_distance = geopy.distance.distance(kilometers = xy[0])
     y_distance = geopy.distance.distance(kilometers = xy[1])
-    destination = x_distance.destination(point=(relativeLatlon.lat, relativeLatlon.lon), bearing=EAST)
+    destination = x_distance.destination(point=(referenceLatlon.lat, referenceLatlon.lon), bearing=EAST)
     destination = y_distance.destination(point=(destination.latitude, destination.longitude), bearing=NORTH)
     return latlon(destination.latitude, destination.longitude)
 
