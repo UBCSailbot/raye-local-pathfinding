@@ -34,6 +34,7 @@ install_python_binding_dependencies()
     # Already installed in Dockerfile properly
     # install additional python dependencies via pip
     pip${PYTHONV} install -vU pygccxml pyplusplus
+    pip${PYTHONV} install -vU geopy
     # install castxml
     if [[ $ubuntu_version < 1610 ]]; then
         wget -O - https://data.kitware.com/api/v1/file/57b5dea08d777f10f2696379/download | tar zxf - -C ${HOME}
