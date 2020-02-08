@@ -11,6 +11,20 @@ import geopy.distance
 from local_pathfinding.msg import latlon, AIS_ship
 import numpy as np
 
+# Constants
+GLOBAL_WAYPOINT_REACHED_RADIUS_KM = 200
+PATH_UPDATE_TIME_LIMIT_SECONDS = 500
+
+# Constants for bearing and heading
+BEARING_NORTH = 0
+BEARING_EAST = 90
+BEARING_SOUTH = 180
+BEARING_WEST = 270
+
+HEADING_EAST = 0
+HEADING_NORTH = 90
+HEADING_WEST = 180
+HEADING_SOUTH = 270
 
 def latlonToXY(latlon, referenceLatlon):
     x = distance((referenceLatlon.lat, referenceLatlon.lon), (referenceLatlon.lat, latlon.lon)).kilometers
@@ -22,14 +36,10 @@ def latlonToXY(latlon, referenceLatlon):
     return [x,y]
 
 def XYToLatlon(xy, referenceLatlon):
-    NORTH = 0
-    EAST = 90
-    SOUTH = 180
-    WEST = 270
     x_distance = geopy.distance.distance(kilometers = xy[0])
     y_distance = geopy.distance.distance(kilometers = xy[1])
-    destination = x_distance.destination(point=(referenceLatlon.lat, referenceLatlon.lon), bearing=EAST)
-    destination = y_distance.destination(point=(destination.latitude, destination.longitude), bearing=NORTH)
+    destination = x_distance.destination(point=(referenceLatlon.lat, referenceLatlon.lon), bearing=BEARING_EAST)
+    destination = y_distance.destination(point=(destination.latitude, destination.longitude), bearing=BEARING_NORTH)
     return latlon(destination.latitude, destination.longitude)
 
 def createLocalPathSS(state):
@@ -104,12 +114,11 @@ def badPath(state, localPathSS, referenceLatlon, desiredHeading):
     return False
 
 def globalWaypointReached(position, globalWaypoint):
-    radius = 200  # km
     sailbot = (position.lat, position.lon)
     waypt = (globalWaypoint.lat, globalWaypoint.lon)
     dist = distance(sailbot, waypt).kilometers
     print("Distance to globalWaypoint is {}".format(dist))
-    return distance(sailbot, waypt).kilometers < radius
+    return distance(sailbot, waypt).kilometers < GLOBAL_WAYPOINT_REACHED_RADIUS_KM
 
 def localWaypointReached(position, localPath, localPathIndex):
     previousWaypoint = latlon(float(localPath[localPathIndex - 1].lat), float(localPath[localPathIndex - 1].lon))
@@ -157,8 +166,7 @@ def localWaypointReached(position, localPath, localPathIndex):
     return False
 
 def timeLimitExceeded(lastTimePathCreated):
-    secondsLimit = 500
-    return time.time() - lastTimePathCreated > secondsLimit
+    return time.time() - lastTimePathCreated > PATH_UPDATE_TIME_LIMIT_SECONDS 
 
 def getLocalWaypointLatLon(localPath, localPathIndex):
     # If local path is empty, return (0, 0)
@@ -182,7 +190,6 @@ def getDesiredHeading(position, localWaypoint):
     xy = latlonToXY(localWaypoint, position)
     return math.degrees(math.atan2(xy[1], xy[0]))
 
-    
 
 def extendObstaclesArray(aisArray):
 #assuming speed in km/h
