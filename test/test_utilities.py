@@ -54,8 +54,7 @@ class TestUtilities(unittest.TestCase):
         position = latlon(50, -120)
 
         # Setup destination
-        positionToLocalWaypointDistance = distance(kilometers=1)
-        destination = positionToLocalWaypointDistance.destination(point=(position.lat, position.lon), bearing=northBearing)
+        destination = distance(kilometers=1).destination(point=(position.lat, position.lon), bearing=northBearing)
         localWaypoint = latlon(destination.latitude, destination.longitude)
 
         # Test desiredHeading
@@ -68,13 +67,36 @@ class TestUtilities(unittest.TestCase):
         position = latlon(50, -120)
 
         # Setup destination
-        positionToLocalWaypointDistance = distance(kilometers=1)
-        destination = positionToLocalWaypointDistance.destination(point=(position.lat, position.lon), bearing=eastBearing)
+        destination = distance(kilometers=1).destination(point=(position.lat, position.lon), bearing=eastBearing)
         localWaypoint = latlon(destination.latitude, destination.longitude)
 
         # Test desiredHeading
         desiredHeading = getDesiredHeading(position=position, localWaypoint=localWaypoint)
         self.assertAlmostEqual(desiredHeading, -eastBearing+90, places=1)
+
+    def test_globalWaypointReached(self):
+        position = latlon(35, -150)
+
+        # Far away globalWaypoint unreached
+        unreached = distance(kilometers=500).destination(point=(position.lat, position.lon), bearing=90)
+        unreachedGlobalWaypoint = latlon(unreached.latitude, unreached.longitude)
+        self.assertFalse(globalWaypointReached(position, unreachedGlobalWaypoint))
+
+        # Far away globalWaypoint reached
+        reached = distance(kilometers=50).destination(point=(position.lat, position.lon), bearing=90)
+        reachedGlobalWaypoint = latlon(reached.latitude, reached.longitude)
+        self.assertTrue(globalWaypointReached(position, reachedGlobalWaypoint))
+
+# def globalWaypointReached(position, globalWaypoint):
+#     def createMockState(self):
+#         return msg.AIS_ship(
+#                     self.id,
+#                     self.lat,
+#                     self.lon,
+#                     self.heading,
+#                     self.speed)
+# 
+#         return BoatState(globalWaypoint=latlon(40, -124), position=latlon(41, -123.5), windDirection=45, windSpeed=10, AISData=, heading=0, speed=0)
 
 
 if __name__ == '__main__':
