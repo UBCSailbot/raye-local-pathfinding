@@ -13,11 +13,10 @@ def create_path(init, goal):
     init_wp.lon = init[1]
     path.append(init_wp)
 
-    dist = int(math.sqrt((init[0] - goal[0])**2 + (init[1] - goal[1])**2))
-
     # Just do some linear interpolation
-    for i in range(1, 10*dist):
-        coeff = float(i)/(10*dist)
+    num_global_waypoints = 25
+    for i in range(1, num_global_waypoints):
+        coeff = float(i)/(num_global_waypoints)
         lat = (1 - coeff)*init[0] + coeff*goal[0]
         lon = (1 - coeff)*init[1] + coeff*goal[1]
         print(lat, lon)
@@ -40,7 +39,8 @@ def MOCK_global():
 
     rospy.init_node('MOCK_global_planner', anonymous=True)
     pub = rospy.Publisher("MOCK_global_path", msg.path)
-    r = rospy.Rate(1.0) # TODO: set this rate
+    publish_period = 10 # Seconds. TODO: set this rate
+    r = rospy.Rate(float(1) / publish_period)
 
     while not rospy.is_shutdown():
         pub.publish(msg.path(path))
