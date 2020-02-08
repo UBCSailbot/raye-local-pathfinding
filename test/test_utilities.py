@@ -87,16 +87,25 @@ class TestUtilities(unittest.TestCase):
         reachedGlobalWaypoint = latlon(reached.latitude, reached.longitude)
         self.assertTrue(globalWaypointReached(position, reachedGlobalWaypoint))
 
-# def globalWaypointReached(position, globalWaypoint):
-#     def createMockState(self):
-#         return msg.AIS_ship(
-#                     self.id,
-#                     self.lat,
-#                     self.lon,
-#                     self.heading,
-#                     self.speed)
-# 
-#         return BoatState(globalWaypoint=latlon(40, -124), position=latlon(41, -123.5), windDirection=45, windSpeed=10, AISData=, heading=0, speed=0)
+    def test_getLocalWaypointLatlon(self):
+        # Empty localPath should give back default (0,0) latlon
+        emptyLocalPathLatlon = getLocalWaypointLatLon(localPath=[], localPathIndex=1)
+        self.assertAlmostEqual(emptyLocalPathLatlon.lat, 0, places=1)
+        self.assertAlmostEqual(emptyLocalPathLatlon.lon, 0, places=1)
+
+        localPath = [latlon(48, -124), latlon(38, -134), latlon(28, -144), latlon(22, -150)]
+
+        # Test index out of bounds. Should give back last latlon in path
+        invalidIndex = len(localPath)
+        indexOutOfBoundsLatlon = getLocalWaypointLatLon(localPath=localPath, localPathIndex=invalidIndex)
+        self.assertAlmostEqual(indexOutOfBoundsLatlon.lat, localPath[len(localPath)-1].lat, places=1)
+        self.assertAlmostEqual(indexOutOfBoundsLatlon.lon, localPath[len(localPath)-1].lon, places=1)
+
+        # Test index in bounds. Should give back correct latlon
+        validIndex = len(localPath) // 2
+        indexInBoundsLatlon = getLocalWaypointLatLon(localPath=localPath, localPathIndex=validIndex)
+        self.assertAlmostEqual(indexInBoundsLatlon.lat, localPath[validIndex].lat, places=1)
+        self.assertAlmostEqual(indexInBoundsLatlon.lon, localPath[validIndex].lon, places=1)
 
 
 if __name__ == '__main__':
