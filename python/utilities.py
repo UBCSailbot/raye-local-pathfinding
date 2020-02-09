@@ -68,7 +68,7 @@ def createLocalPathSS(state):
     solution.getSolutionPath().interpolate(numberOfWaypoints)
 
     # Plot in km units, with (0,0) being the start
-    plot_path(solution.getSolutionPath().printAsMatrix(), dimensions, obstacles)
+    #plot_path(solution.getSolutionPath().printAsMatrix(), dimensions, obstacles)
 
     # Plot in latlon units
     # localPath = getLocalPath(solution, state.position)
@@ -92,8 +92,7 @@ def badPath(state, localPathSS, referenceLatlon, desiredHeading):
         return True
 
     # Check if path will hit objects
-    ships = [latlonToXY(latlon(ship.lat, ship.lon), referenceLatlon) for ship in state.AISData.ships]
-    obstacles = [parse_obstacle("{},{},{}".format(ship[0], ship[1], 1)) for ship in ships]
+    obstacles = extendObstaclesArray(state.AISData.ships, state.position)
     if not hasNoCollisions(localPathSS, obstacles):
         rospy.logwarn("Going to hit obstacle.")
         return True
@@ -191,8 +190,12 @@ def extendObstaclesArray(aisArray, referenceLatLon):
     for aisData in aisArray:
         aisX, aisY = latlonToXY(latlon(aisData.lat, aisData.lon), referenceLatLon)
         if aisData.heading == 90 or aisData.heading == 270:
-            endY = aisY + aisData.speed * timeToLoc
-            yRange = np.arange(aisY, endY, spacing)
+            if aisData.heading == 90:
+                endY = aisY + aisData.speed * timeToLoc
+                yRange = np.arange(aisY, endY, spacing)
+            if aisData.heading == 270:
+                endY = aisY - aisData.speed * timeToLoc
+                yRange = np.arange(endY, aisY, spacing)
             for y in yRange:
                 obstacles.append(Obstacle(aisX, y, radius))
         else:

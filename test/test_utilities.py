@@ -130,6 +130,7 @@ class TestUtilities(unittest.TestCase):
         shipLatlon = XYToLatlon((1, 1), currentLatlon)
         ships = [AIS_ship(1000, shipLatlon.lat, shipLatlon.lon, 225, sqrt(2))]
         obstacles = extendObstaclesArray(ships, currentLatlon)
+# Uncomment below to see obstacles extended on a plot
 #        ax = plt.gca()
 #        for obstacle in obstacles:
 #            ax.add_patch(plt.Circle((obstacle.x, obstacle.y), radius=obstacle.radius))
@@ -145,7 +146,8 @@ class TestUtilities(unittest.TestCase):
         ship1 = AIS_ship(1000, shipLatlon.lat, shipLatlon.lon, 270, 4)
         ship2 = AIS_ship(1001, shipLatlon2.lat, shipLatlon2.lon, 45, 10)
         obstacles = extendObstaclesArray([ship1, ship2], currentLatlon)
-        ax = plt.gca()
+# Uncomment below to see obstacles extended on a plot
+#        ax = plt.gca()
 #        for obstacle in obstacles:
 #            ax.add_patch(plt.Circle((obstacle.x, obstacle.y), radius=obstacle.radius))
 #        plt.show()
