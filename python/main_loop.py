@@ -35,8 +35,8 @@ if __name__ == '__main__':
     lastTimePathCreated = time.time()
 
     while not rospy.is_shutdown():
-        print("sailbot.globalPathIndex: {}".format(sailbot.globalPathIndex))
-        print("localPathIndex: {}".format(localPathIndex))
+        rospy.loginfo("sailbot.globalPathIndex: {}".format(sailbot.globalPathIndex))
+        rospy.loginfo("localPathIndex: {}".format(localPathIndex))
         state = sailbot.getCurrentState()
 
         # Generate new local path if needed

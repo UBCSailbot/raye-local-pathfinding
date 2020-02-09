@@ -77,14 +77,6 @@ def createLocalPathSS(state):
     numberOfWaypoints = int(lengthKm / desiredWaypointDistanceKm)
     solution.getSolutionPath().interpolate(numberOfWaypoints)
 
-    # Plot in km units, with (0,0) being the start
-    # plot_path(solution.getSolutionPath().printAsMatrix(), dimensions, obstacles)
-
-    # Plot in latlon units
-    # localPath = getLocalPath(solution, state.position)
-    # obstacles = [parse_obstacle("{},{},{}".format(ship.lon, ship.lat, 0.001)) for ship in state.AISData.ships]
-    # plot_path_2(localPath, obstacles)
-
     return solution, state.position
 
 def getLocalPath(localPathSS, referenceLatlon):
@@ -113,7 +105,7 @@ def globalWaypointReached(position, globalWaypoint):
     sailbot = (position.lat, position.lon)
     waypt = (globalWaypoint.lat, globalWaypoint.lon)
     dist = distance(sailbot, waypt).kilometers
-    print("Distance to globalWaypoint is {}".format(dist))
+    rospy.loginfo("Distance to globalWaypoint is {}".format(dist))
     return distance(sailbot, waypt).kilometers < GLOBAL_WAYPOINT_REACHED_RADIUS_KM
 
 def localWaypointReached(position, localPath, localPathIndex):
