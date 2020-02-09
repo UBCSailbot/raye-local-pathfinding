@@ -55,19 +55,31 @@ if __name__ == '__main__':
         xNLim = min([localPathXY[0][0], nextGlobalWaypointXY[0]]) - extra
         yPLim = max([localPathXY[0][1], nextGlobalWaypointXY[1]]) + extra
         yNLim = min([localPathXY[0][1], nextGlobalWaypointXY[1]]) - extra
+        xWidth = xPLim - xNLim
+        yWidth = yPLim - yNLim
+        print("xWidth = {}/ yWidth = {}".format(xWidth, yWidth))
+        if xWidth > yWidth:
+            yPLim = xWidth/yWidth * yPLim
+            yNLim = xWidth/yWidth * yNLim
+        else:
+            xPLim = yWidth/xWidth * xPLim
+            xNLim = yWidth/xWidth * xNLim
+        xWidth = xPLim - xNLim
+        yWidth = yPLim - yNLim
+        print("After xWidth = {}/ yWidth = {}".format(xWidth, yWidth))
 
         plt.xlim([xNLim, xPLim])
         plt.ylim([yNLim, yPLim])
-
-        # Plot sailbot, next local waypoint, next global waypoint
-        plt.plot(positionXY[0], positionXY[1], marker='o', color='b')
-        plt.plot(nextGlobalWaypointXY[0], nextGlobalWaypointXY[1], marker='*', color='y', markersize=20)
-        plt.plot(nextLocalWaypointXY[0], nextLocalWaypointXY[1], marker='X', color='g', markersize=20)
 
         # Plot local path
         localPathX = [xy[0] for xy in localPathXY]
         localPathY = [xy[1] for xy in localPathXY]
         plt.plot(localPathX, localPathY, marker='.', color='g', markersize=10, linewidth=2)
+
+        # Plot sailbot, next local waypoint, next global waypoint
+        plt.plot(nextGlobalWaypointXY[0], nextGlobalWaypointXY[1], marker='*', color='y', markersize=20)
+        plt.plot(nextLocalWaypointXY[0], nextLocalWaypointXY[1], marker='X', color='g', markersize=20)
+        plt.plot(positionXY[0], positionXY[1], marker=(3,0,state.heading - 90), color='b', markersize=20)
 
         # Plot AIS
         ax = plt.gca()
