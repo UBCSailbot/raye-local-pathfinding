@@ -96,7 +96,7 @@ if __name__ == '__main__':
     arrowCenter = (xNLim + 1.5*arrowLength, yPLim - 1.5*arrowLength)
     windSpeedText = axes.text(arrowCenter[0], arrowCenter[1] + 1.1*arrowLength, "Wind Speed: {}".format(state.windSpeed), ha='center')
     arrowStart = (arrowCenter[0] - 0.5*arrowLength*math.cos(state.windDirection), arrowCenter[1] - 0.5*arrowLength*math.sin(state.windDirection))
-    windDirection = patches.FancyArrow(arrowStart[0], arrowStart[1], arrowLength*math.cos(state.windDirection), arrowLength*math.sin(state.windDirection), width=10)
+    windDirection = patches.FancyArrow(arrowStart[0], arrowStart[1], arrowLength*math.cos(state.windDirection), arrowLength*math.sin(state.windDirection), width=arrowLength / 4)
     axes.add_patch(windDirection)
 
     while not rospy.is_shutdown():
@@ -137,7 +137,7 @@ if __name__ == '__main__':
         windSpeedText.set_position((arrowCenter[0], arrowCenter[1] + 1.1*arrowLength))
         windSpeedText.set_text("Wind Speed: {}".format(state.windSpeed))
         arrowStart = (arrowCenter[0] - 0.5*arrowLength*math.cos(state.windDirection), arrowCenter[1] - 0.5*arrowLength*math.sin(state.windDirection))
-        windDirection = patches.FancyArrow(arrowStart[0], arrowStart[1], arrowLength*math.cos(state.windDirection), arrowLength*math.sin(state.windDirection), width=10)
+        windDirection = patches.FancyArrow(arrowStart[0], arrowStart[1], arrowLength*math.cos(state.windDirection), arrowLength*math.sin(state.windDirection), width=arrowLength/4)
         axes.add_patch(windDirection)
 
         # Draw then sleep
