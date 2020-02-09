@@ -21,10 +21,10 @@ if __name__ == '__main__':
     publishRate = rospy.Rate(1) # Hz
 
     # Wait until first global path is received
-    rospy.loginfo("Waiting for sailbot to receive newGlobalPath")
     while not sailbot.newGlobalPathReceived:
-        rospy.loginfo("Still waiting...")
+        rospy.loginfo("Waiting for sailbot to receive first newGlobalPath")
         time.sleep(1)
+    rospy.loginfo("newGlobalPath received. Starting main loop")
 
     # Create first path and track time of updates
     state = sailbot.getCurrentState()
