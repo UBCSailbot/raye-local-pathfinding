@@ -74,9 +74,12 @@ if __name__ == '__main__':
         for ship in shipsXY:
             ax.add_patch(plt.Circle((ship[0], ship[1]), radius=100))
 
-        # Show wind
-        length = min(xPLim - xNLim, yPLim - yNLim) / 4
-        windDirection = plt.arrow(localPathXY[0][0], localPathXY[0][1], length*math.cos(state.windDirection), length*math.sin(state.windDirection), head_width=10, head_length=10, fc='k', ec='k')
+        # Show wind direction arrow and wind speed text
+        arrowLength = min(xPLim - xNLim, yPLim - yNLim) / 8
+        arrowCenter = (xNLim + 1.5*arrowLength, yPLim - 1.5*arrowLength)
+        arrowStart = (arrowCenter[0] - 0.5*arrowLength*math.cos(state.windDirection), arrowCenter[1] - 0.5*arrowLength*math.sin(state.windDirection))
+        plt.annotate("Wind Speed: {}".format(state.windSpeed), (arrowCenter[0], arrowCenter[1] + 1.1*arrowLength), ha='center')
+        windDirection = plt.arrow(arrowStart[0], arrowStart[1], arrowLength*math.cos(state.windDirection), arrowLength*math.sin(state.windDirection), head_width=10, head_length=10, fc='k', ec='k')
         ax.add_patch(windDirection)
 
         plt.draw()
