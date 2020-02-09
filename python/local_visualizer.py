@@ -78,7 +78,8 @@ if __name__ == '__main__':
         arrowLength = min(xPLim - xNLim, yPLim - yNLim) / 8
         arrowCenter = (xNLim + 1.5*arrowLength, yPLim - 1.5*arrowLength)
         arrowStart = (arrowCenter[0] - 0.5*arrowLength*math.cos(state.windDirection), arrowCenter[1] - 0.5*arrowLength*math.sin(state.windDirection))
-        plt.annotate("Wind Speed: {}".format(state.windSpeed), (arrowCenter[0], arrowCenter[1] + 1.1*arrowLength), ha='center')
+        # windSpeedAnnotation = plt.annotate("Wind Speed: {}".format(state.windSpeed), (arrowCenter[0], arrowCenter[1] + 1.1*arrowLength), ha='center')
+        windSpeedText = plt.text(arrowCenter[0], arrowCenter[1] + 1.1*arrowLength, "Wind Speed: {}".format(state.windSpeed), ha='center')
         windDirection = plt.arrow(arrowStart[0], arrowStart[1], arrowLength*math.cos(state.windDirection), arrowLength*math.sin(state.windDirection), head_width=10, head_length=10, fc='k', ec='k')
         ax.add_patch(windDirection)
 
@@ -87,4 +88,4 @@ if __name__ == '__main__':
 
         # Sleep then clear plot
         r.sleep()
-        plt.cla()
+        plt.clf()
