@@ -5,7 +5,7 @@ import math
 from local_pathfinding.msg import wind
 
 def talker():
-    pub = rospy.Publisher('MOCK_wind', wind)
+    pub = rospy.Publisher('MOCK_wind', wind, queue_size=4)
     rospy.init_node('MOCK_wind_talker', anonymous=True)
     r = rospy.Rate(1) #0.1 HZ
     msg = wind()

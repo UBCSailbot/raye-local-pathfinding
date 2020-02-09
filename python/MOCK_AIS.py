@@ -39,7 +39,7 @@ class MOCK_AISEnvironment:
             self.ships.append(Ship(i, lat, lon))
 
         rospy.init_node('MOCK_AIS', anonymous=True)
-        self.publisher = rospy.Publisher("MOCK_AIS", msg.AIS_msg)
+        self.publisher = rospy.Publisher("MOCK_AIS", msg.AIS_msg, queue_size=4)
 
     def move_ships(self):
         for i in range(10):
