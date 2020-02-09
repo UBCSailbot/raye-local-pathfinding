@@ -70,7 +70,6 @@ if __name__ == '__main__':
     localPathXY = [latlonToXY(localWaypoint, nextGlobalWaypoint) for localWaypoint in localPath]
     localPathX = [xy[0] for xy in localPathXY]
     localPathY = [xy[1] for xy in localPathXY]
-    shipsXY = [latlonToXY(latlon(ship.lat, ship.lon), nextGlobalWaypoint) for ship in state.AISData.ships]
 
     # Create plot with waypoints and boat
     axes = plt.gca()
@@ -87,17 +86,10 @@ if __name__ == '__main__':
     axes.set_xlabel('X distance to next global waypoint (km)')
     axes.set_ylabel('Y distance to next global waypoint (km)')
 
-    # Show boats
-    for ship in shipsXY:
-        axes.add_patch(plt.Circle((ship[0], ship[1]), radius=100))                                                               # Multiple circles
-
-    # Show wind direction arrow and wind speed text
+    # Show wind speed text
     arrowLength = min(xPLim - xNLim, yPLim - yNLim) / 8
     arrowCenter = (xNLim + 1.5*arrowLength, yPLim - 1.5*arrowLength)
     windSpeedText = axes.text(arrowCenter[0], arrowCenter[1] + 1.1*arrowLength, "Wind Speed: {}".format(state.windSpeed), ha='center')
-    arrowStart = (arrowCenter[0] - 0.5*arrowLength*math.cos(state.windDirection), arrowCenter[1] - 0.5*arrowLength*math.sin(state.windDirection))
-    windDirection = patches.FancyArrow(arrowStart[0], arrowStart[1], arrowLength*math.cos(state.windDirection), arrowLength*math.sin(state.windDirection), width=arrowLength / 4)
-    axes.add_patch(windDirection)
 
     while not rospy.is_shutdown():
         state = sailbot.getCurrentState()
@@ -109,7 +101,7 @@ if __name__ == '__main__':
         localPathXY = [latlonToXY(localWaypoint, nextGlobalWaypoint) for localWaypoint in localPath]
         localPathX = [xy[0] for xy in localPathXY]
         localPathY = [xy[1] for xy in localPathXY]
-        shipsXY = [latlonToXY(latlon(ship.lat, ship.lon), nextGlobalWaypoint) for ship in state.AISData.ships]
+        shipsXY = extendObstaclesArray(state.AISData.ships, nextGlobalWaypoint)
 
         # Update plots
         localPathPlot.set_xdata(localPathX)
@@ -122,20 +114,16 @@ if __name__ == '__main__':
         positionPlot.set_ydata(positionXY[1])
         positionPlot.set_marker((3, 0, state.heading-90))  # Creates a triangle with correct 'heading'
 
-        # Removes all ships and wind arrow
-        for p in axes.patches:
-            p.remove()
-
-        # Add boats
-        for ship in shipsXY:
-            axes.add_patch(plt.Circle((ship[0], ship[1]), radius=100))
-
-        # Show wind direction arrow and wind speed text
+        # Update wind speed text
         xPLim, xNLim, yPLim, yNLim = getXYLimits(localPathXY[0], nextGlobalWaypointXY)
         arrowLength = min(xPLim - xNLim, yPLim - yNLim) / 8
         arrowCenter = (xNLim + 1.5*arrowLength, yPLim - 1.5*arrowLength)
         windSpeedText.set_position((arrowCenter[0], arrowCenter[1] + 1.1*arrowLength))
         windSpeedText.set_text("Wind Speed: {}".format(state.windSpeed))
+
+        # Add boats and wind speed arrow
+        for ship in shipsXY:
+            axes.add_patch(plt.Circle((ship.x, ship.y), radius=ship.radius))
         arrowStart = (arrowCenter[0] - 0.5*arrowLength*math.cos(state.windDirection), arrowCenter[1] - 0.5*arrowLength*math.sin(state.windDirection))
         windDirection = patches.FancyArrow(arrowStart[0], arrowStart[1], arrowLength*math.cos(state.windDirection), arrowLength*math.sin(state.windDirection), width=arrowLength/4)
         axes.add_patch(windDirection)
@@ -144,3 +132,7 @@ if __name__ == '__main__':
         plt.draw()
         plt.pause(0.001)
         r.sleep()
+        # Removes all ships and wind arrow
+        for p in axes.patches:
+            p.remove()
+
