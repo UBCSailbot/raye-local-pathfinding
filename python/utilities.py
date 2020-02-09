@@ -51,10 +51,7 @@ def createLocalPathSS(state):
     goal = latlonToXY(state.globalWaypoint, state.position)
     extra = 10   # Extra length to show more in the plot
     dimensions = [min(start[0], goal[0]) - extra, min(start[1], goal[1]) - extra, max(start[0], goal[0]) + extra, max(start[1], goal[1]) + extra]
-    obstacles = extendObstaclesArray(state.AISData.ships)
-    
-    # ships = [latlonToXY(latlon(ship.lat, ship.lon), state.position) for ship in state.AISData.ships]
-    # obstacles = [parse_obstacle("{},{},{}".format(ship[0], ship[1], 1)) for ship in ships]
+    obstacles = extendObstaclesArray(state.AISData.ships, state.position)
     windDirection = state.windDirection
     runtime = 5
 
@@ -105,8 +102,7 @@ def badPath(state, localPathSS, referenceLatlon, desiredHeading):
         return True
 
     # Check if path will hit objects
-    ships = [latlonToXY(latlon(ship.lat, ship.lon), referenceLatlon) for ship in state.AISData.ships]
-    obstacles = [parse_obstacle("{},{},{}".format(ship[0], ship[1], 1)) for ship in ships]
+    obstacles = extendObstaclesArray(state.AISData.ships, state.position)
     if not hasNoCollisions(localPathSS, obstacles):
         rospy.logwarn("Going to hit obstacle.")
         return True
@@ -190,58 +186,41 @@ def getDesiredHeading(position, localWaypoint):
     xy = latlonToXY(localWaypoint, position)
     return math.degrees(math.atan2(xy[1], xy[0]))
 
-
-def extendObstaclesArray(aisArray):
+def extendObstaclesArray(aisArray, referenceLatLon):
 #assuming speed in km/h
     obstacles = []
-    timeToLoc = 10  # change this value when deciding how much to extend obstacles
+    timeToLoc = 1  # (hours assuming km/h) change this value when deciding how much to extend obstacles
     radius = 0.2    # also change this to account for the width of the obstacle 
-    toKMscale= 1.0 / 110   #approximate scaling factor of latlon to km
-    spacing = 0.05 # can be changed to change width between obstacles
+    spacing = 0.2 # can be changed to change width between obstacles
 
     for aisData in aisArray:
+        aisX, aisY = latlonToXY(latlon(aisData.lat, aisData.lon), referenceLatLon)
         if aisData.heading == 90 or aisData.heading == 270:
-            endLat = aisData.lat + aisData.speed * toKMscale * timeToLoc
-            yRange = np.arange(aisData.lat, endLat, spacing)
+            if aisData.heading == 90:
+                endY = aisY + aisData.speed * timeToLoc
+                yRange = np.arange(aisY, endY, spacing)
+            if aisData.heading == 270:
+                endY = aisY - aisData.speed * timeToLoc
+                yRange = np.arange(endY, aisY, spacing)
             for y in yRange:
-                obstacles.append(Obstacle(aisData.lon, y, radius))
+                obstacles.append(Obstacle(aisX, y, radius))
         else:
-            
             isHeadingWest = aisData.heading < 270 and aisData.heading > 90
             slope = math.tan(math.radians(aisData.heading))
+            dx = spacing / math.sqrt(1 + slope**2)
 
-            if aisData.lon > 0:
-                b = aisData.lat + slope * -math.fabs(aisData.lon)
+            if aisX > 0:
+                b = aisY + slope * -math.fabs(aisX)
             else:
-                b = aisData.lat + slope * math.fabs(aisData.lon)
-            xDistTravelled =  math.fabs(aisData.speed * toKMscale * timeToLoc * math.cos(math.radians(aisData.heading)))
+                b = aisY + slope * math.fabs(aisX)
+            xDistTravelled =  math.fabs(aisData.speed * timeToLoc * math.cos(math.radians(aisData.heading)))
             y = lambda x: slope * x + b 
             if isHeadingWest:
-                endLon = aisData.lon - xDistTravelled
-                xRange = np.arange(endLon, aisData.lon, spacing)
+                endX = aisX - xDistTravelled
+                xRange = np.arange(endX, aisX, dx)
             else:
-                endLon = aisData.lon + xDistTravelled
-                xRange = np.arange(aisData.lon, endLon, spacing)
+                endX = aisX + xDistTravelled
+                xRange = np.arange(aisX, endX, dx)
             for x in xRange:
                 obstacles.append(Obstacle(x, y(x), radius))
-    return obstacles            
-
-    # Example code of how to use some of these methods.
-if __name__ == '__main__':
-    print("********************* Testing latlonToXY and XYToLatlon methods *********************")
-    start = (49.263022, -123.023447)
-    end = (47.7984, -125.3319)
-    startLatlon = latlon(start[0], start[1])
-    endLatlon = latlon(end[0], end[1])
-    print("Start: {} End: {}".format(start, end))
-    startEndDistance = distance((endLatlon.lat, endLatlon.lon), (startLatlon.lat, startLatlon.lon))
-    print("Distance between start and end {}".format(startEndDistance))
-    print("")
-    xy = latlonToXY(endLatlon, startLatlon)
-    print("XY between start and end is {}".format(xy))
-    calculatedEndLatlon = XYToLatlon(xy, latlon(start[0], start[1]))
-    print("End which is {} from {} is: \n({}, {}) Expected: ({}, {})".format(xy, start, calculatedEndLatlon.lat, calculatedEndLatlon.lon, endLatlon.lat, endLatlon.lon))
-    endCalculatedEndDistance = distance((endLatlon.lat, endLatlon.lon), (calculatedEndLatlon.lat, calculatedEndLatlon.lon))
-    print("Distance between end and calculatedEnd {}".format(endCalculatedEndDistance))
-    print("***********************")
-    print("Percent error: (distance(end, calculatedEnd) / distance(end, start)) = {}%".format(endCalculatedEndDistance/startEndDistance * 100))
+    return obstacles
