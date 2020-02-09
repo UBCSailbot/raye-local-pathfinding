@@ -67,11 +67,17 @@ if __name__ == '__main__':
         # Plot local path
         localPathX = [xy[0] for xy in localPathXY]
         localPathY = [xy[1] for xy in localPathXY]
-        plt.plot(localPathX, localPathY, marker='.', color='g', markersize=10)
+        plt.plot(localPathX, localPathY, marker='.', color='g', markersize=10, linewidth=2)
 
         # Plot AIS
-        # for ship in shipsXY:
-            # plt.add_patch(plt.Circle((ship[0], ship[1]), radius=1))
+        ax = plt.gca()
+        for ship in shipsXY:
+            ax.add_patch(plt.Circle((ship[0], ship[1]), radius=100))
+
+        # Show wind
+        length = min(xPLim - xNLim, yPLim - yNLim) / 4
+        windDirection = plt.arrow(localPathXY[0][0], localPathXY[0][1], length*math.cos(state.windDirection), length*math.sin(state.windDirection), head_width=10, head_length=10, fc='k', ec='k')
+        ax.add_patch(windDirection)
 
         plt.draw()
         plt.pause(0.001)
