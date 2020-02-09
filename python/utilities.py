@@ -190,7 +190,6 @@ def getDesiredHeading(position, localWaypoint):
     xy = latlonToXY(localWaypoint, position)
     return math.degrees(math.atan2(xy[1], xy[0]))
 
-
 def extendObstaclesArray(aisArray):
 #assuming speed in km/h
     obstacles = []
@@ -225,23 +224,3 @@ def extendObstaclesArray(aisArray):
             for x in xRange:
                 obstacles.append(Obstacle(x, y(x), radius))
     return obstacles            
-
-    # Example code of how to use some of these methods.
-if __name__ == '__main__':
-    print("********************* Testing latlonToXY and XYToLatlon methods *********************")
-    start = (49.263022, -123.023447)
-    end = (47.7984, -125.3319)
-    startLatlon = latlon(start[0], start[1])
-    endLatlon = latlon(end[0], end[1])
-    print("Start: {} End: {}".format(start, end))
-    startEndDistance = distance((endLatlon.lat, endLatlon.lon), (startLatlon.lat, startLatlon.lon))
-    print("Distance between start and end {}".format(startEndDistance))
-    print("")
-    xy = latlonToXY(endLatlon, startLatlon)
-    print("XY between start and end is {}".format(xy))
-    calculatedEndLatlon = XYToLatlon(xy, latlon(start[0], start[1]))
-    print("End which is {} from {} is: \n({}, {}) Expected: ({}, {})".format(xy, start, calculatedEndLatlon.lat, calculatedEndLatlon.lon, endLatlon.lat, endLatlon.lon))
-    endCalculatedEndDistance = distance((endLatlon.lat, endLatlon.lon), (calculatedEndLatlon.lat, calculatedEndLatlon.lon))
-    print("Distance between end and calculatedEnd {}".format(endCalculatedEndDistance))
-    print("***********************")
-    print("Percent error: (distance(end, calculatedEnd) / distance(end, start)) = {}%".format(endCalculatedEndDistance/startEndDistance * 100))
