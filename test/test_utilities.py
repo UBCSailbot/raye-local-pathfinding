@@ -154,6 +154,8 @@ class TestUtilities(unittest.TestCase):
         self.assertFalse(self.isValid(3, 3, obstacles))
         self.assertFalse(self.isValid(0, -1, obstacles))
         self.assertTrue(self.isValid(0, 4, obstacles))
+        self.assertFalse(self.isValid(0, -1.19, obstacles))
+        self.assertTrue(self.isValid(0, -1.3, obstacles))
 
 if __name__ == '__main__':
     rostest.rosrun('local_pathfinding', 'test_utilities', TestUtilities)
