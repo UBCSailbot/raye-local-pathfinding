@@ -49,42 +49,40 @@ class TestUtilities(unittest.TestCase):
         # Bearing is defined differently. 0 degrees is North. 90 degrees is East. 180 degrees is South.
         # Heading = -Bearing + 90
 
-        # Setup latlon and bearing
-        northBearing = 0
+        # Setup latlon
         position = latlon(50, -120)
 
         # Setup destination
-        destination = distance(kilometers=1).destination(point=(position.lat, position.lon), bearing=northBearing)
+        destination = distance(kilometers=1).destination(point=(position.lat, position.lon), bearing=BEARING_NORTH)
         localWaypoint = latlon(destination.latitude, destination.longitude)
 
         # Test desiredHeading
         desiredHeading = getDesiredHeading(position=position, localWaypoint=localWaypoint)
-        self.assertAlmostEqual(desiredHeading, -northBearing+90, places=1)
+        self.assertAlmostEqual(desiredHeading, HEADING_NORTH, places=1)
 
     def test_getDesiredHeading_east(self):
-        # Setup latlon and bearing
-        eastBearing = 90
+        # Setup latlon
         position = latlon(50, -120)
 
         # Setup destination
-        destination = distance(kilometers=1).destination(point=(position.lat, position.lon), bearing=eastBearing)
+        destination = distance(kilometers=1).destination(point=(position.lat, position.lon), bearing=BEARING_EAST)
         localWaypoint = latlon(destination.latitude, destination.longitude)
 
         # Test desiredHeading
         desiredHeading = getDesiredHeading(position=position, localWaypoint=localWaypoint)
-        self.assertAlmostEqual(desiredHeading, -eastBearing+90, places=1)
+        self.assertAlmostEqual(desiredHeading, HEADING_EAST, places=1)
 
     def test_globalWaypointReached(self):
         position = latlon(35, -150)
 
         # Far away globalWaypoint unreached
-        unreached = distance(kilometers=500).destination(point=(position.lat, position.lon), bearing=90)
-        unreachedGlobalWaypoint = latlon(unreached.latitude, unreached.longitude)
+        unreachedPosition = distance(kilometers=2*GLOBAL_WAYPOINT_REACHED_RADIUS_KM).destination(point=(position.lat, position.lon), bearing=BEARING_EAST)
+        unreachedGlobalWaypoint = latlon(unreachedPosition.latitude, unreachedPosition.longitude)
         self.assertFalse(globalWaypointReached(position, unreachedGlobalWaypoint))
 
         # Far away globalWaypoint reached
-        reached = distance(kilometers=50).destination(point=(position.lat, position.lon), bearing=90)
-        reachedGlobalWaypoint = latlon(reached.latitude, reached.longitude)
+        reachedPosition = distance(kilometers=GLOBAL_WAYPOINT_REACHED_RADIUS_KM/2).destination(point=(position.lat, position.lon), bearing=BEARING_EAST)
+        reachedGlobalWaypoint = latlon(reachedPosition.latitude, reachedPosition.longitude)
         self.assertTrue(globalWaypointReached(position, reachedGlobalWaypoint))
 
     def test_getLocalWaypointLatlon(self):
