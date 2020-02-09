@@ -50,7 +50,7 @@ def getXYLimits(xy0, xy1):
 
 if __name__ == '__main__':
     # Setup ros subscribers
-    sailbot = Sailbot(nodeName='local_visualizer')
+    sailbot = Sailbot(nodeName='local_path_visualizer')
     rospy.Subscriber("MOCK_local_path", path, localPathCallback)
     rospy.Subscriber("MOCK_next_local_waypoint", latlon, nextLocalWaypointCallback)
     rospy.Subscriber("MOCK_next_global_waypoint", latlon, nextGlobalWaypointCallback)
