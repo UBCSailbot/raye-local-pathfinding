@@ -1,15 +1,15 @@
-#!/usr/bin/env python
-import rospy
+#!/usr/bin/env python import rospy
 import math
 import local_pathfinding.msg as msg
 from local_pathfinding.msg import AIS_msg, GPS, path, latlon, wind
 from utilities import *
 from Sailbot import *
 from matplotlib import pyplot as plt
+import time
 
-localPath = []
-nextLocalWaypoint = latlon(0, 0)
-nextGlobalWaypoint = latlon(0, 0)
+localPath = None
+nextLocalWaypoint = None
+nextGlobalWaypoint = None
 
 def localPathCallback(data):
     global localPath
@@ -26,59 +26,48 @@ def nextGlobalWaypointCallback(data):
 if __name__ == '__main__':
     # Setup ros subscribers
     sailbot = Sailbot(nodeName='local_visualizer')
-
     rospy.Subscriber("MOCK_local_path", path, localPathCallback)
     rospy.Subscriber("MOCK_next_local_waypoint", latlon, nextLocalWaypointCallback)
     rospy.Subscriber("MOCK_next_global_waypoint", latlon, nextGlobalWaypointCallback)
-
     r = rospy.Rate(1) #hz
 
     # Setup plotting
-    xPLim = 10
-    xNLim = -10
-    yPLim = 10
-    yNLim = -10
-    plt.axis([xNLim, xPLim, yNLim, xPLim])
     plt.ion()
     plt.show()
 
+    # Wait for first messages
+    while localPath is None or nextLocalWaypoint is None or nextGlobalWaypoint is None:
+        rospy.loginfo("Waiting to receive first ROS messages")
+        time.sleep(1)
+
     while not rospy.is_shutdown():
-        rospy.loginfo("nextLocalWaypoint at beginning: {}".format(nextLocalWaypoint))
-        rospy.loginfo("nextGlobalWaypoint at beginning: {}".format(nextGlobalWaypoint))
         state = sailbot.getCurrentState()
-        positionXY = [0, 0]
-        nextGlobalWaypointXY = latlonToXY(nextGlobalWaypoint, state.position)
-        nextLocalWaypointXY = latlonToXY(nextLocalWaypoint, state.position)
-        rospy.loginfo("nextLocalWaypointXY at beginning: {}".format(nextLocalWaypointXY))
-        rospy.loginfo("nextGlobalWaypointXY at beginning: {}".format(nextGlobalWaypointXY))
-        localPathXY = [latlonToXY(localWaypoint, state.position) for localWaypoint in localPath]
-        shipsXY = [latlonToXY(latlon(ship.lat, ship.lon), state.position) for ship in state.AISData.ships]
+
+        positionXY = latlonToXY(state.position, nextGlobalWaypoint)
+        nextGlobalWaypointXY = latlonToXY(nextGlobalWaypoint, nextGlobalWaypoint)
+        nextLocalWaypointXY = latlonToXY(nextLocalWaypoint, nextGlobalWaypoint)
+        localPathXY = [latlonToXY(localWaypoint, nextGlobalWaypoint) for localWaypoint in localPath]
+        shipsXY = [latlonToXY(latlon(ship.lat, ship.lon), nextGlobalWaypoint) for ship in state.AISData.ships]
 
         # Keep same axis xy limits unless change is needed
-        newXPLim = max([positionXY[0], nextGlobalWaypointXY[0]])
-        newXNLim = min([positionXY[0], nextGlobalWaypointXY[0]])
-        newYPLim = max([positionXY[1], nextGlobalWaypointXY[1]])
-        newYNLim = min([positionXY[1], nextGlobalWaypointXY[1]])
-        extra = 1000
-        if newXPLim > xPLim or newXNLim < xNLim or newYPLim > yPLim or newYNLim < yNLim:
-            xPLim = newXPLim
-            xNLim = newXNLim
-            yPLim = newYPLim
-            yNLim = newYNLim
+        extra = 100
+        xPLim = max([localPathXY[0][0], nextGlobalWaypointXY[0]]) + extra
+        xNLim = min([localPathXY[0][0], nextGlobalWaypointXY[0]]) - extra
+        yPLim = max([localPathXY[0][1], nextGlobalWaypointXY[1]]) + extra
+        yNLim = min([localPathXY[0][1], nextGlobalWaypointXY[1]]) - extra
 
-        plt.xlim([xNLim-extra, xPLim+extra])
-        plt.ylim([yNLim-extra, yPLim+extra])
+        plt.xlim([xNLim, xPLim])
+        plt.ylim([yNLim, yPLim])
 
         # Plot sailbot, next local waypoint, next global waypoint
-        rospy.loginfo("PostionXY = {}. nextGlobalWaypointXY = {}. nextLocalWaypointXY = {}".format(positionXY, nextGlobalWaypointXY, nextLocalWaypointXY))
         plt.plot(positionXY[0], positionXY[1], marker='o', color='b')
-        plt.plot(nextGlobalWaypointXY[0], nextGlobalWaypointXY[1], marker='*', color='y')
-        plt.plot(nextLocalWaypointXY[0], nextLocalWaypointXY[1], marker='*', color='g')
+        plt.plot(nextGlobalWaypointXY[0], nextGlobalWaypointXY[1], marker='*', color='y', markersize=20)
+        plt.plot(nextLocalWaypointXY[0], nextLocalWaypointXY[1], marker='X', color='g', markersize=20)
 
         # Plot local path
         localPathX = [xy[0] for xy in localPathXY]
         localPathY = [xy[1] for xy in localPathXY]
-        plt.plot(localPathX, localPathY, marker='*', color='g')
+        plt.plot(localPathX, localPathY, marker='.', color='g', markersize=10)
 
         # Plot AIS
         # for ship in shipsXY:
