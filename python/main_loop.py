@@ -2,14 +2,13 @@
 
 import rospy
 import local_pathfinding.msg as msg
-import Sailbot
 from Sailbot import *
 from utilities import *
 import time
 
 if __name__ == '__main__':
     # Create sailbot ROS object that subscribes to relevant topics
-    sailbot = Sailbot()
+    sailbot = Sailbot(nodeName='local_pathfinding')
 
     # Create ros publisher for the desired heading for the controller
     desiredHeadingPublisher = rospy.Publisher('MOCK_desired_heading', msg.desired_heading, queue_size=4)
