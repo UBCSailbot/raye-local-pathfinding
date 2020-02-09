@@ -15,7 +15,7 @@ class MOCK_ControllerAndSailbot:
         self.publish_period = 1 # Seconds
 
         rospy.init_node('Sailbot_Listener', anonymous=True)
-        self.publisher = rospy.Publisher("MOCK_GPS", msg.GPS)
+        self.publisher = rospy.Publisher("MOCK_GPS", msg.GPS, queue_size=4)
         rospy.Subscriber("MOCK_desired_heading", msg.desired_heading, self.desiredHeadingCallback)
 
     def move(self):
