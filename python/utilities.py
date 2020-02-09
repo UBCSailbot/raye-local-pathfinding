@@ -112,16 +112,17 @@ def globalWaypointReached(position, globalWaypoint):
     return distance(sailbot, waypt).kilometers < radius
 
 def localWaypointReached(position, localPath, localPathIndex):
-    previousWaypoint = latlon(float(localPath[localPathIndex - 1].lat), float(localPath[localPathIndex - 1].lon))
-    localWaypoint = latlon(float(localPath[localPathIndex].lat), float(localPath[localPathIndex].lon))
-    isStartNorth = localWaypoint.lat < previousWaypoint.lat 
-    isStartEast = localWaypoint.lon < previousWaypoint.lon
-    tangentSlope = (localWaypoint.lat - previousWaypoint.lat) / (localWaypoint.lon - previousWaypoint.lon)
+    positionX, positionY = latlonToXY(position)
+    previousWaypointX, previousWaypointY = latlonToXY(latlon(float(localPath[localPathIndex - 1].lat), float(localPath[localPathIndex - 1].lon)))
+    localWaypointX, localWaypointY = latlonToXY(latlon(float(localPath[localPathIndex].lat), float(localPath[localPathIndex].lon)))
+    isStartNorth = localWaypointY < previousWaypointY 
+    isStartEast = localWaypointX < previousWaypointX
+    tangentSlope = (localWaypointY - previousWaypointY) / (localWaypointX - previousWaypointX)
     normalSlope = -1/tangentSlope
-    startX = previousWaypoint.lon - localWaypoint.lon
-    startY = previousWaypoint.lat - localWaypoint.lat 
-    boatX = position.lon - localWaypoint.lon 
-    boatY = position.lat - localWaypoint.lat
+    startX = previousWaypointX - localWaypointX
+    startY = previousWaypointY - localWaypointY 
+    boatX = positionX - localWaypointX 
+    boatY = positionY - localWaypointY
     '''
     plt.xlim(-200, 200)
     plt.ylim(-200, 200)
