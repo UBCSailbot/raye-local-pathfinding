@@ -146,9 +146,9 @@ class TestUtilities(unittest.TestCase):
         ship2 = AIS_ship(1001, shipLatlon2.lat, shipLatlon2.lon, 45, 10)
         obstacles = extendObstaclesArray([ship1, ship2], currentLatlon)
         ax = plt.gca()
-        for obstacle in obstacles:
-            ax.add_patch(plt.Circle((obstacle.x, obstacle.y), radius=obstacle.radius))
-        plt.show()
+#        for obstacle in obstacles:
+#            ax.add_patch(plt.Circle((obstacle.x, obstacle.y), radius=obstacle.radius))
+#        plt.show()
         self.assertFalse(self.isValid(0, 0, obstacles))
         self.assertFalse(self.isValid(1, 1, obstacles))
         self.assertFalse(self.isValid(3, 3, obstacles))
