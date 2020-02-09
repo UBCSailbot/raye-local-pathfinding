@@ -1,4 +1,5 @@
-#!/usr/bin/env python import rospy
+#!/usr/bin/env python
+import rospy
 import math
 import local_pathfinding.msg as msg
 from local_pathfinding.msg import AIS_msg, GPS, path, latlon, wind
