@@ -73,24 +73,27 @@ if __name__ == '__main__':
     localPathY = [xy[1] for xy in localPathXY]
 
     # Create plot with waypoints and boat
+    xPLim, xNLim, yPLim, yNLim = getXYLimits(localPathXY[0], nextGlobalWaypointXY)
+    markersize = (xPLim - xNLim) / 15
     axes = plt.gca()
-    localPathPlot, = axes.plot(localPathX, localPathY, marker='.', color='g', markersize=10, linewidth=2)                        # Small green dots
-    nextGlobalWaypointPlot, = axes.plot(nextGlobalWaypointXY[0], nextGlobalWaypointXY[1], marker='*', color='y', markersize=20)  # Yellow start
-    nextLocalWaypointPlot, = axes.plot(nextLocalWaypointXY[0], nextLocalWaypointXY[1], marker='X', color='g', markersize=20)     # Green X
-    positionPlot, = axes.plot(positionXY[0], positionXY[1], marker=(3,0,state.heading - 90), color='r', markersize=20)           # Blue arrow with correct heading
+    localPathPlot, = axes.plot(localPathX, localPathY, marker='.', color='g', markersize=markersize / 2, linewidth=2)                    # Small green dots
+    nextGlobalWaypointPlot, = axes.plot(nextGlobalWaypointXY[0], nextGlobalWaypointXY[1], marker='*', color='y', markersize=markersize)  # Yellow start
+    nextLocalWaypointPlot, = axes.plot(nextLocalWaypointXY[0], nextLocalWaypointXY[1], marker='X', color='g', markersize=markersize)     # Green X
+    positionPlot, = axes.plot(positionXY[0], positionXY[1], marker=(3,0,state.heading - 90), color='r', markersize=markersize)           # Blue triangle with correct heading
 
     # Setup plot xy limits and labels
-    xPLim, xNLim, yPLim, yNLim = getXYLimits(localPathXY[0], nextGlobalWaypointXY)
     axes.set_xlim(xNLim, xPLim)
     axes.set_ylim(yNLim, yPLim)
     plt.grid(True)
     axes.set_xlabel('X distance to next global waypoint (km)')
     axes.set_ylabel('Y distance to next global waypoint (km)')
 
-    # Show wind speed text
-    arrowLength = min(xPLim - xNLim, yPLim - yNLim) / 8
+    # Show wind speed text and position text
+    arrowLength = min(xPLim - xNLim, yPLim - yNLim) / 15
     arrowCenter = (xNLim + 1.5*arrowLength, yPLim - 1.5*arrowLength)
-    windSpeedText = axes.text(arrowCenter[0], arrowCenter[1] + 1.1*arrowLength, "Wind Speed: {}".format(state.windSpeed), ha='center')
+    windSpeedText = axes.text(arrowCenter[0], arrowCenter[1] + 1.5*arrowLength, "Wind Speed: {}".format(state.windSpeed), ha='center')
+    positionLatlonText = axes.text(positionXY[0], positionXY[1] + 0.5*arrowLength, "(Lat: {}, Lon: {})".format(round(state.position.lat, 2), round(state.position.lon, 2)), ha='center')
+    nextGlobalWaypointLatlonText = axes.text(nextGlobalWaypointXY[0], nextGlobalWaypointXY[1] + 0.5*arrowLength, "(Lat: {}, Lon: {})".format(round(nextGlobalWaypoint.lat, 2), round(nextGlobalWaypoint.lon, 2)), ha='center')
 
     while not rospy.is_shutdown():
         state = sailbot.getCurrentState()
@@ -117,10 +120,14 @@ if __name__ == '__main__':
 
         # Update wind speed text
         xPLim, xNLim, yPLim, yNLim = getXYLimits(localPathXY[0], nextGlobalWaypointXY)
-        arrowLength = min(xPLim - xNLim, yPLim - yNLim) / 8
+        arrowLength = min(xPLim - xNLim, yPLim - yNLim) / 15
         arrowCenter = (xNLim + 1.5*arrowLength, yPLim - 1.5*arrowLength)
-        windSpeedText.set_position((arrowCenter[0], arrowCenter[1] + 1.1*arrowLength))
+        windSpeedText.set_position((arrowCenter[0], arrowCenter[1] + 1.5*arrowLength))
         windSpeedText.set_text("Wind Speed: {}".format(state.windSpeed))
+        positionLatlonText.set_position((positionXY[0], positionXY[1] + 0.5*arrowLength))
+        positionLatlonText.set_text("(Lat: {}, Lon: {})".format(round(state.position.lat, 2), round(state.position.lon, 2)))
+        nextGlobalWaypointLatlonText.set_position((nextGlobalWaypointXY[0], nextGlobalWaypointXY[1] + 0.5*arrowLength))
+        nextGlobalWaypointLatlonText.set_text("(Lat: {}, Lon: {})".format(round(nextGlobalWaypoint.lat, 2), round(nextGlobalWaypoint.lon, 2)))
 
         # Add boats and wind speed arrow
         for ship in shipsXY:
