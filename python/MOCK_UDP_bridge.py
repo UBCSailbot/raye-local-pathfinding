@@ -38,9 +38,10 @@ class MOCK_UDPBridge:
         rospy.Subscriber("MOCK_local_path", msg.path, self.localPathCallback)
 
     def gpsCallback(self, data):
-        # TODO: fix heading
         rospy.loginfo(data)
-        nmea_msg = nmea.RMC('GP', 'RMC', ('000000', 'A', str(data.lat*100)[0:7], 'N', str(abs(data.lon)*100)[0:7], 'W', '2.0', str(-math.degrees(data.heading) + 90), '250120', '000.0', 'W'))
+	lat = str(int(data.lat)*100 + 60*(data.lat - int(data.lat)))
+        lon = str(abs(int(data.lon)*100 + 60*(data.lon - int(data.lon)))) # only works on the western hemisphere!
+        nmea_msg = nmea.RMC('GP', 'RMC', ('000000', 'A', str(lat), 'N', str(lon), 'W', '2.0', str(-data.heading + 90), '250120', '000.0', 'W'))
         sock.sendto(str(nmea_msg), (UDP_IP, UDP_PORT))
 
     def aisCallback(self, data):
