@@ -67,7 +67,7 @@ if __name__ == '__main__':
             lastTimePathCreated = time.time()
 
         # If localWaypoint met, increment the index
-        elif localWaypointReached(state.position, localPath, localPathIndex):
+        elif localWaypointReached(state.position, localPath, localPathIndex, referenceLatlon):
             rospy.loginfo("Local waypoint reached")
             localPathIndex += 1
             localWaypoint = getLocalWaypointLatLon(localPath, localPathIndex)
