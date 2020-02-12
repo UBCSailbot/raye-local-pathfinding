@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import rospy
-from std_msgs.msg import Float64
 from local_pathfinding.msg import AIS_msg, GPS, path, latlon, wind
 from geopy.distance import distance
 
@@ -30,7 +29,7 @@ class Sailbot:
     def getCurrentState(self):
         if self.globalPathIndex >= len(self.globalPath):
             rospy.logwarn("Global path index is out of range: index = {} len(globalPath) = {}".format(self.globalPathIndex, self.globalPath))
-            rospy.logwarn("Setting localWaypoint to be the last element of the localPath")
+            rospy.logwarn("Setting globalWaypoint to be the last element of the globalPath")
             self.globalPathIndex = len(self.globalPath) - 1
         return BoatState(self.globalPath[self.globalPathIndex], self.position, self.windDirection, self.windSpeed, self.AISData, self.heading, self.speed)
 
@@ -74,7 +73,7 @@ class Sailbot:
         self.globalPath = data.path
         self.globalPathIndex = 1
 
-    def __init__(self):
+    def __init__(self, nodeName):
         self.position = latlon(0, 0) 
         self.windDirection = 0
         self.windSpeed = 0
@@ -85,7 +84,7 @@ class Sailbot:
         self.globalPathIndex = 1  # First waypoint is the start point, so second waypoint is the next global waypoint
         self.newGlobalPathReceived = False
 
-        rospy.init_node('local_pathfinding', anonymous=True)
+        rospy.init_node(nodeName, anonymous=True)
         rospy.Subscriber("MOCK_GPS", GPS, self.positionCallback)
         rospy.Subscriber("MOCK_wind", wind, self.windCallback)
         rospy.Subscriber("MOCK_AIS", AIS_msg, self.AISDataCallback)
@@ -94,7 +93,7 @@ class Sailbot:
 
 # Example code of how this class works.
 if __name__ == '__main__':
-    sailbot = Sailbot()
+    sailbot = Sailbot(nodeName='test_sailbot')
     r = rospy.Rate(1) #hz
 
     while not rospy.is_shutdown():

@@ -173,6 +173,7 @@ install(PROGRAMS
   python/MOCK_wind_sensor.py
   python/MOCK_AIS.py
   python/MOCK_UDP_bridge.py
+  python/local_path_visualizer.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
