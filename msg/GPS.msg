@@ -1,4 +1,3 @@
-float64 lat
-float64 lon
-float64 heading
-float64 speed
+latlon latlon
+float64 heading_degrees
+float64 speed_kmph

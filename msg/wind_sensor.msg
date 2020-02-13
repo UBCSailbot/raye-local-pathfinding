@@ -1,0 +1,2 @@
+float64 relative_direction_degrees
+float64 relative_speed_kmph
