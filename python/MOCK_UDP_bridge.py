@@ -31,11 +31,11 @@ UDP_PORT = 65500
 class MOCK_UDPBridge: 
     def __init__(self):
         rospy.init_node('UDPBridge', anonymous=True)
-        rospy.Subscriber("MOCK_GPS", msg.GPS, self.gpsCallback)
-        rospy.Subscriber("MOCK_AIS", msg.AIS_msg, self.aisCallback)
-        rospy.Subscriber("MOCK_wind", msg.wind, self.windCallback)
-        rospy.Subscriber("MOCK_global_path", msg.path, self.globalPathCallback)
-        rospy.Subscriber("MOCK_local_path", msg.path, self.localPathCallback)
+        rospy.Subscriber("GPS", msg.GPS, self.gpsCallback)
+        rospy.Subscriber("AIS", msg.AIS_msg, self.aisCallback)
+        rospy.Subscriber("wind_sensor", msg.wind_sensor, self.windCallback)
+        rospy.Subscriber("global_path", msg.path, self.globalPathCallback)
+        rospy.Subscriber("local_path", msg.path, self.localPathCallback)
 
     def gpsCallback(self, data):
         rospy.loginfo(data)

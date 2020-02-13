@@ -11,13 +11,13 @@ if __name__ == '__main__':
     sailbot = Sailbot(nodeName='local_pathfinding')
 
     # Create ros publisher for the desired heading for the controller
-    desiredHeadingPublisher = rospy.Publisher('MOCK_desired_heading', msg.desired_heading, queue_size=4)
+    desiredHeadingPublisher = rospy.Publisher('desired_heading', msg.desired_heading, queue_size=4)
     desiredHeadingMsg = msg.desired_heading()
 
     # Create other publishers
-    localPathPublisher = rospy.Publisher('MOCK_local_path', msg.path, queue_size=4)
-    nextLocalWaypointPublisher = rospy.Publisher('MOCK_next_local_waypoint', msg.latlon, queue_size=4)
-    nextGlobalWaypointPublisher = rospy.Publisher('MOCK_next_global_waypoint', msg.latlon, queue_size=4)
+    localPathPublisher = rospy.Publisher('local_path', msg.path, queue_size=4)
+    nextLocalWaypointPublisher = rospy.Publisher('next_local_waypoint', msg.latlon, queue_size=4)
+    nextGlobalWaypointPublisher = rospy.Publisher('next_global_waypoint', msg.latlon, queue_size=4)
     publishRate = rospy.Rate(1) # Hz
 
     # Wait until first global path is received

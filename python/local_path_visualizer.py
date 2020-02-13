@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 import rospy
 import math
-import local_pathfinding.msg as msg
-from local_pathfinding.msg import AIS_msg, GPS, path, latlon, wind
+from local_pathfinding.msg import AIS_msg, GPS, path, latlon, wind_sensor
 from utilities import *
 from Sailbot import *
 from matplotlib import pyplot as plt
@@ -15,7 +14,7 @@ nextGlobalWaypoint = None
 
 def localPathCallback(data):
     global localPath
-    localPath = data.path
+    localPath = data.waypoints
 
 def nextLocalWaypointCallback(data):
     global nextLocalWaypoint
@@ -52,9 +51,9 @@ def getXYLimits(xy0, xy1):
 if __name__ == '__main__':
     # Setup ros subscribers
     sailbot = Sailbot(nodeName='local_path_visualizer')
-    rospy.Subscriber("MOCK_local_path", path, localPathCallback)
-    rospy.Subscriber("MOCK_next_local_waypoint", latlon, nextLocalWaypointCallback)
-    rospy.Subscriber("MOCK_next_global_waypoint", latlon, nextGlobalWaypointCallback)
+    rospy.Subscriber("local_path", path, localPathCallback)
+    rospy.Subscriber("next_local_waypoint", latlon, nextLocalWaypointCallback)
+    rospy.Subscriber("next_global_waypoint", latlon, nextGlobalWaypointCallback)
     r = rospy.Rate(1) #hz
 
     # Wait for first messages
@@ -79,7 +78,7 @@ if __name__ == '__main__':
     localPathPlot, = axes.plot(localPathX, localPathY, marker='.', color='g', markersize=markersize / 2, linewidth=2)                    # Small green dots
     nextGlobalWaypointPlot, = axes.plot(nextGlobalWaypointXY[0], nextGlobalWaypointXY[1], marker='*', color='y', markersize=markersize)  # Yellow start
     nextLocalWaypointPlot, = axes.plot(nextLocalWaypointXY[0], nextLocalWaypointXY[1], marker='X', color='g', markersize=markersize)     # Green X
-    positionPlot, = axes.plot(positionXY[0], positionXY[1], marker=(3,0,state.heading - 90), color='r', markersize=markersize)           # Blue triangle with correct heading
+    positionPlot, = axes.plot(positionXY[0], positionXY[1], marker=(3,0,state.headingDegrees - 90), color='r', markersize=markersize)           # Blue triangle with correct heading
 
     # Setup plot xy limits and labels
     axes.set_xlim(xNLim, xPLim)
@@ -106,7 +105,6 @@ if __name__ == '__main__':
         localPathX = [xy[0] for xy in localPathXY]
         localPathY = [xy[1] for xy in localPathXY]
         shipsXY = extendObstaclesArray(state.AISData.ships, nextGlobalWaypoint)
-
         # Update plots
         localPathPlot.set_xdata(localPathX)
         localPathPlot.set_ydata(localPathY)
@@ -116,7 +114,7 @@ if __name__ == '__main__':
         nextLocalWaypointPlot.set_ydata(nextLocalWaypointXY[1])
         positionPlot.set_xdata(positionXY[0])
         positionPlot.set_ydata(positionXY[1])
-        positionPlot.set_marker((3, 0, state.heading-90))  # Creates a triangle with correct 'heading'
+        positionPlot.set_marker((3, 0, state.headingDegrees-90))  # Creates a triangle with correct 'heading'
 
         # Update wind speed text
         xPLim, xNLim, yPLim, yNLim = getXYLimits(localPathXY[0], nextGlobalWaypointXY)

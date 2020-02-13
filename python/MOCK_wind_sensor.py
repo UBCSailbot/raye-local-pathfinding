@@ -2,10 +2,10 @@
 import rospy
 import math
 
-from local_pathfinding.msg import wind
+from local_pathfinding.msg import wind_sensor
 
 def talker():
-    pub = rospy.Publisher('MOCK_wind', wind, queue_size=4)
+    pub = rospy.Publisher('wind_sensor', wind_sensor, queue_size=4)
     rospy.init_node('MOCK_wind_talker', anonymous=True)
     r = rospy.Rate(1) #0.1 HZ
     msg = wind()

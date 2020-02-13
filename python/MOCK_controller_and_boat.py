@@ -14,9 +14,9 @@ class MOCK_ControllerAndSailbot:
         self.speed = 0
         self.publish_period = 1 # Seconds
 
-        rospy.init_node('Sailbot_Listener', anonymous=True)
-        self.publisher = rospy.Publisher("MOCK_GPS", msg.GPS, queue_size=4)
-        rospy.Subscriber("MOCK_desired_heading", msg.desired_heading, self.desiredHeadingCallback)
+        rospy.init_node('MOCK_Sailbot_Listener', anonymous=True)
+        self.publisher = rospy.Publisher("GPS", msg.GPS, queue_size=4)
+        rospy.Subscriber("desired_heading", msg.heading, self.desiredHeadingCallback)
 
     def move(self):
         # TODO: Change this so that the boat

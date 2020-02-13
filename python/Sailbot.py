@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import rospy
-from local_pathfinding.msg import AIS_msg, GPS, path, latlon, wind
+from local_pathfinding.msg import AIS_msg, GPS, path, latlon, wind_sensor
 from geopy.distance import distance
 
 class BoatState:
@@ -85,10 +85,10 @@ class Sailbot:
         self.newGlobalPathReceived = False
 
         rospy.init_node(nodeName, anonymous=True)
-        rospy.Subscriber("MOCK_GPS", GPS, self.positionCallback)
-        rospy.Subscriber("MOCK_wind", wind, self.windCallback)
-        rospy.Subscriber("MOCK_AIS", AIS_msg, self.AISDataCallback)
-        rospy.Subscriber("MOCK_global_path", path, self.globalPathCallback)
+        rospy.Subscriber("GPS", GPS, self.positionCallback)
+        rospy.Subscriber("wind_sensor", wind_sensor, self.windCallback)
+        rospy.Subscriber("AIS", AIS_msg, self.AISDataCallback)
+        rospy.Subscriber("global_path", path, self.globalPathCallback)
 
 
 # Example code of how this class works.
