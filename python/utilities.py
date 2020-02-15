@@ -226,23 +226,3 @@ def extendObstaclesArray(aisArray, referenceLatLon):
             for x in xRange:
                 obstacles.append(Obstacle(x, y(x), radius))
     return obstacles
-
-if __name__ == "__main__":
-#    refLatlon = latlon(0, 0)
-#    boatPos = XYToLatlon((0, 1.1), refLatlon)
-#    startWaypoint = XYToLatlon((0, 0), refLatlon)
-#    localWaypoint = XYToLatlon((0, 1), refLatlon)
-#    path = [startWaypoint, localWaypoint]
-#    index = 1
-#    print(localWaypointReached(boatPos, path, index, refLatlon))
-     refLatlon = latlon(0, 0)
-     start = XYToLatlon((2, 1), refLatlon)
-     waypoint = XYToLatlon((1, 1), refLatlon)
-     path = [start, waypoint]
-     index = 1
-     sailbotPos = XYToLatlon((2, 1.1), refLatlon)
-     sailbotPos1 = XYToLatlon((2, 0.9), refLatlon)
-     print localWaypointReached(sailbotPos, path, index, refLatlon)
-     print localWaypointReached(sailbotPos1, path, index, refLatlon)
-
-
