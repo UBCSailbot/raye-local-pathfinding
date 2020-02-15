@@ -50,13 +50,13 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate messages in the 'msg' folder
 add_message_files(
   FILES
-  AIS_msg.msg
-  AIS_ship.msg
+  AISMsg.msg
+  AISShip.msg
   GPS.msg
   heading.msg
   latlon.msg
   path.msg
-  wind_sensor.msg
+  windSensor.msg
 )
 
 ## Generate services in the 'srv' folder
