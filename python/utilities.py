@@ -10,6 +10,7 @@ from geopy.distance import distance
 import geopy.distance
 from local_pathfinding.msg import latlon, AIS_ship
 import numpy as np
+import matplotlib.pyplot as plt
 
 # Constants
 GLOBAL_WAYPOINT_REACHED_RADIUS_KM = 200
@@ -108,47 +109,56 @@ def globalWaypointReached(position, globalWaypoint):
     rospy.loginfo("Distance to globalWaypoint is {}".format(dist))
     return distance(sailbot, waypt).kilometers < GLOBAL_WAYPOINT_REACHED_RADIUS_KM
 
-def localWaypointReached(position, localPath, localPathIndex):
-    previousWaypoint = latlon(float(localPath[localPathIndex - 1].lat), float(localPath[localPathIndex - 1].lon))
-    localWaypoint = latlon(float(localPath[localPathIndex].lat), float(localPath[localPathIndex].lon))
-    isStartNorth = localWaypoint.lat < previousWaypoint.lat 
-    isStartEast = localWaypoint.lon < previousWaypoint.lon
-    tangentSlope = (localWaypoint.lat - previousWaypoint.lat) / (localWaypoint.lon - previousWaypoint.lon)
+def localWaypointReached(position, localPath, localPathIndex, refLatlon):
+    positionX, positionY = latlonToXY(position, refLatlon)
+    previousWaypoint = localPath[localPathIndex - 1]
+    localWaypoint = localPath[localPathIndex]
+    previousWaypointX, previousWaypointY = latlonToXY(latlon(previousWaypoint.lat, previousWaypoint.lon), refLatlon)
+    localWaypointX, localWaypointY = latlonToXY(latlon(localWaypoint.lat, localWaypoint.lon), refLatlon)
+    isStartNorth = localWaypointY < previousWaypointY 
+    isStartEast = localWaypointX < previousWaypointX
+
+    if localWaypointX == previousWaypointX:
+        if isStartNorth:
+            return positionY <= localWaypointY
+        else:
+            return positionY >= localWaypointY
+    if localWaypointY == previousWaypointY:
+        if isStartEast:
+            return positionX <= localWaypointX
+        else:
+            return positionX >= localWaypointX
+            
+    tangentSlope = (localWaypointY - previousWaypointY) / (localWaypointX - previousWaypointX)
     normalSlope = -1/tangentSlope
-    startX = previousWaypoint.lon - localWaypoint.lon
-    startY = previousWaypoint.lat - localWaypoint.lat 
-    boatX = position.lon - localWaypoint.lon 
-    boatY = position.lat - localWaypoint.lat
-    '''
-    plt.xlim(-200, 200)
-    plt.ylim(-200, 200)
-    plt.plot([0], [0], marker = 'o', markersize=10, color="red")
-    plt.plot([startX], [startY], marker="o", markersize=10, color="green")
-    plt.plot([boatX], [boatY], marker = "o", markersize=10, color = "black")
-    xvalues = [0, startX] 
-    yvalues = [0, startY]
-    plt.plot(xvalues, yvalues, "-g")
-    x = np.linspace(-200, 200, 100)
-    y = normalSlope * x
-    plt.plot(x, y, '-r')
-    y = tangentSlope * x
-    plt.plot(x, y, '-b')
-    plt.show()
-    '''
     
-    y = lambda x: normalSlope * x
-    x = lambda y: y / float(normalSlope)
+    if localWaypointX > 0:
+        b = localWaypointY + normalSlope * -math.fabs(localWaypointX)
+    else:
+        b = localWaypointY + normalSlope * math.fabs(localWaypointX)
+    y = lambda x: normalSlope * x + b
+    x = lambda y: (y - b) / normalSlope 
+
+#    plt.xlim(-20, 20)
+#    plt.ylim(-20, 20)
+#    plt.plot([0], [0], marker = 'o', markersize=10, color="black")
+#    plt.plot([positionX], [positionY], marker = 'o', markersize=10, color="blue")
+#    plt.plot([previousWaypointX], [previousWaypointY], marker = 'o', markersize=10, color="green")
+#    plt.plot([localWaypointX], [localWaypointY], marker="o", markersize=10, color="red")
+#    x_plot = np.linspace(-200, 200, 100)
+#    plt.plot(x_plot, y(x_plot), '-r')
+#    plt.show()
     
     if isStartNorth: 
-        if boatY < y(boatX):
+        if positionY < y(positionX):
             return True
-    elif boatY > y(boatX):
+    elif positionY > y(positionX):
         return True
 
     if isStartEast: 
-        if boatX < x(boatY):
+        if positionX < x(positionY):
             return True
-    elif boatX > x(boatY):
+    elif positionX > x(positionY):
         return True
 
     return False
