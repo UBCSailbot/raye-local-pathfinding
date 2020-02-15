@@ -10,25 +10,26 @@ class Ship:
         self.id = id
         self.lat = sailbot_lat + random.gauss(0, 0.2)
         self.lon = sailbot_lon + random.gauss(0, 0.2)
-        self.heading = math.radians(random.randint(0, 360))
-        self.speed = random.randint(0, 15)
+        self.headingDegrees = random.randint(0, 360)
+        self.speedKmph = random.randint(0, 15)
 
     def move(self):
+        # TODO: Update speed calculation latlon <=> kmph
         speed_coeff = 0.001
         
-        dx = math.cos(self.heading)*self.speed*speed_coeff
-        dy = math.sin(self.heading)*self.speed*speed_coeff
+        dx = math.cos(self.headingDegrees)*self.speedKmph*speed_coeff
+        dy = math.sin(self.headingDegrees)*self.speedKmph*speed_coeff
 
         self.lon = self.lon + dx
         self.lat = self.lat + dy
 
     def make_ros_message(self):
-        return msg.AIS_ship(
+        return msg.AISShip(
                     self.id,
                     self.lat,
                     self.lon,
-                    self.heading,
-                    self.speed)
+                    self.headingDegrees,
+                    self.speedKmph)
 
 
 class MOCK_AISEnvironment: 
@@ -39,7 +40,7 @@ class MOCK_AISEnvironment:
             self.ships.append(Ship(i, lat, lon))
 
         rospy.init_node('MOCK_AIS', anonymous=True)
-        self.publisher = rospy.Publisher("AIS", msg.AIS_msg, queue_size=4)
+        self.publisher = rospy.Publisher("AIS", msg.AISMsg, queue_size=4)
 
     def move_ships(self):
         for i in range(10):
@@ -49,7 +50,7 @@ class MOCK_AISEnvironment:
         ship_list = []
         for i in range(10):
             ship_list.append(self.ships[i].make_ros_message())
-        return msg.AIS_msg(ship_list)
+        return msg.AISMsg(ship_list)
 
 if __name__ == '__main__':
     ais_env = MOCK_AISEnvironment(48.5, -124.8)

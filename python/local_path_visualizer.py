@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import rospy
 import math
-from local_pathfinding.msg import AIS_msg, GPS, path, latlon, wind_sensor
+from local_pathfinding.msg import AISMsg, GPS, path, latlon, windSensor
 from utilities import *
 from Sailbot import *
 from matplotlib import pyplot as plt
@@ -50,10 +50,10 @@ def getXYLimits(xy0, xy1):
 
 if __name__ == '__main__':
     # Setup ros subscribers
-    sailbot = Sailbot(nodeName='local_path_visualizer')
-    rospy.Subscriber("local_path", path, localPathCallback)
-    rospy.Subscriber("next_local_waypoint", latlon, nextLocalWaypointCallback)
-    rospy.Subscriber("next_global_waypoint", latlon, nextGlobalWaypointCallback)
+    sailbot = Sailbot(nodeName='localPathVisualizer')
+    rospy.Subscriber("localPath", path, localPathCallback)
+    rospy.Subscriber("nextLocalWaypoint", latlon, nextLocalWaypointCallback)
+    rospy.Subscriber("nextGlobalWaypoint", latlon, nextGlobalWaypointCallback)
     r = rospy.Rate(1) #hz
 
     # Wait for first messages
@@ -90,7 +90,8 @@ if __name__ == '__main__':
     # Show wind speed text and position text
     arrowLength = min(xPLim - xNLim, yPLim - yNLim) / 15
     arrowCenter = (xNLim + 1.5*arrowLength, yPLim - 1.5*arrowLength)
-    windSpeedText = axes.text(arrowCenter[0], arrowCenter[1] + 1.5*arrowLength, "Wind Speed: {}".format(state.windSpeed), ha='center')
+    globalWindSpeedKmph, globalWindDirectionDegrees = measuredWindToGlobalWind(state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
+    windSpeedText = axes.text(arrowCenter[0], arrowCenter[1] + 1.5*arrowLength, "Global Wind Speed Kmph: {}".format(globalWindSpeedKmph), ha='center')
     positionLatlonText = axes.text(positionXY[0], positionXY[1] + 0.5*arrowLength, "(Lat: {}, Lon: {})".format(round(state.position.lat, 2), round(state.position.lon, 2)), ha='center')
     nextGlobalWaypointLatlonText = axes.text(nextGlobalWaypointXY[0], nextGlobalWaypointXY[1] + 0.5*arrowLength, "(Lat: {}, Lon: {})".format(round(nextGlobalWaypoint.lat, 2), round(nextGlobalWaypoint.lon, 2)), ha='center')
 
@@ -120,8 +121,9 @@ if __name__ == '__main__':
         xPLim, xNLim, yPLim, yNLim = getXYLimits(localPathXY[0], nextGlobalWaypointXY)
         arrowLength = min(xPLim - xNLim, yPLim - yNLim) / 15
         arrowCenter = (xNLim + 1.5*arrowLength, yPLim - 1.5*arrowLength)
+        globalWindSpeedKmph, globalWindDirectionDegrees = measuredWindToGlobalWind(state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
         windSpeedText.set_position((arrowCenter[0], arrowCenter[1] + 1.5*arrowLength))
-        windSpeedText.set_text("Wind Speed: {}".format(state.windSpeed))
+        windSpeedText.set_text("Wind Speed Kmph: {}".format(globalWindSpeedKmph))
         positionLatlonText.set_position((positionXY[0], positionXY[1] + 0.5*arrowLength))
         positionLatlonText.set_text("(Lat: {}, Lon: {})".format(round(state.position.lat, 2), round(state.position.lon, 2)))
         nextGlobalWaypointLatlonText.set_position((nextGlobalWaypointXY[0], nextGlobalWaypointXY[1] + 0.5*arrowLength))
@@ -130,8 +132,8 @@ if __name__ == '__main__':
         # Add boats and wind speed arrow
         for ship in shipsXY:
             axes.add_patch(plt.Circle((ship.x, ship.y), radius=ship.radius))
-        arrowStart = (arrowCenter[0] - 0.5*arrowLength*math.cos(state.windDirection), arrowCenter[1] - 0.5*arrowLength*math.sin(state.windDirection))
-        windDirection = patches.FancyArrow(arrowStart[0], arrowStart[1], arrowLength*math.cos(state.windDirection), arrowLength*math.sin(state.windDirection), width=arrowLength/4)
+        arrowStart = (arrowCenter[0] - 0.5*arrowLength*math.cos(globalWindDirectionDegrees), arrowCenter[1] - 0.5*arrowLength*math.sin(globalWindDirectionDegrees))
+        windDirection = patches.FancyArrow(arrowStart[0], arrowStart[1], arrowLength*math.cos(globalWindDirectionDegrees), arrowLength*math.sin(globalWindDirectionDegrees), width=arrowLength/4)
         axes.add_patch(windDirection)
 
         # Draw then sleep
@@ -141,4 +143,3 @@ if __name__ == '__main__':
         # Removes all ships and wind arrow
         for p in axes.patches:
             p.remove()
-
