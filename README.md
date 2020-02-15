@@ -30,7 +30,11 @@ The easiest way to run the local pathfinding system with ROS is to use multiple 
 
 * In a new terminal, run `rosrun local_pathfinding local_path_visualizer.py` to run the local path visualizer. This uses Matplotlib to visualize the system. The coordinates are in km with respect to the next global waypoint.
 
+![alt text](images/local_path_visualizer.png?raw=true "Local Path Visualizer")
+
 * You can also open OpenCPN to visualize the path finding progression over the entire map.
+
+![alt text](images/opencpn_visualizer.png?raw=true "OpenCPN Visualizer")
 
 ## Installation
 
