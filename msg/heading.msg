@@ -1,1 +1,1 @@
-float64 heading_degrees
+float64 headingDegrees

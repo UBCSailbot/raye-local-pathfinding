@@ -1,0 +1,2 @@
+float64 relativeDirectionDegrees
+float64 relativeSpeedKmph
