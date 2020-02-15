@@ -21,6 +21,8 @@
     <arg name="ocean_current_speed" default="0.0" />
     <arg name="ocean_current_direction" default="0.0" />
     <arg name="enable_los" default="false" />
+    <arg name="use_real_ships" default="false" />
+    <arg name="AIS_token" default="" />
     <param name="enable_los" type="bool" value="$(arg enable_los)" />
     <include file="$(find local_pathfinding)/launch/launch_all_mocks.launch">
       <arg name="initial_speedup" value="$(arg initial_speedup)"/>
@@ -37,6 +39,8 @@
       <arg name="smooth_changes" value="$(arg smooth_changes)" />
       <arg name="ocean_current_speed" default="$(arg ocean_current_speed)" />
       <arg name="ocean_current_direction" default="$(arg ocean_current_direction)" />
+      <arg name="use_real_ships" default="$(arg use_real_ships)" />
+      <arg name="AIS_token" default="$(arg AIS_token)" />
     </include>
 
     <node pkg="local_pathfinding" type="main_loop.py" name="main_loop" output="$(arg main_loop_output)"/>
