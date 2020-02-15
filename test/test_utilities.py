@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(testdir, srcdir)))
 
 import unittest
 import rostest
-from local_pathfinding.msg import latlon, AIS_ship
+from local_pathfinding.msg import latlon, AISShip
 from utilities import *
 from geopy.distance import distance
 from math import sqrt
@@ -117,7 +117,7 @@ class TestUtilities(unittest.TestCase):
     def test_extendObstaclesArray(self):
         currentLatlon = latlon(0, 0)
         shipLatlon = XYToLatlon((1, 0), currentLatlon)
-        ships = [AIS_ship(1000, shipLatlon.lat, shipLatlon.lon, 180, 1)]
+        ships = [AISShip(1000, shipLatlon.lat, shipLatlon.lon, 180, 1)]
         obstacles = extendObstaclesArray(ships, currentLatlon)
         self.assertFalse(self.isValid(0, 0, obstacles))
         self.assertFalse(self.isValid(1, 0, obstacles))
@@ -126,7 +126,7 @@ class TestUtilities(unittest.TestCase):
     def test_extendObstaclesArray2(self):
         currentLatlon = latlon(0, 0)
         shipLatlon = XYToLatlon((1, 1), currentLatlon)
-        ships = [AIS_ship(1000, shipLatlon.lat, shipLatlon.lon, 225, sqrt(2))]
+        ships = [AISShip(1000, shipLatlon.lat, shipLatlon.lon, 225, sqrt(2))]
         obstacles = extendObstaclesArray(ships, currentLatlon)
 # Uncomment below to see obstacles extended on a plot
 #        ax = plt.gca()
@@ -141,8 +141,8 @@ class TestUtilities(unittest.TestCase):
         currentLatlon = latlon(0, 0)
         shipLatlon = XYToLatlon((0, 3), currentLatlon)
         shipLatlon2 = XYToLatlon((-1, -1), currentLatlon)
-        ship1 = AIS_ship(1000, shipLatlon.lat, shipLatlon.lon, 270, 4)
-        ship2 = AIS_ship(1001, shipLatlon2.lat, shipLatlon2.lon, 45, 10)
+        ship1 = AISShip(1000, shipLatlon.lat, shipLatlon.lon, 270, 4)
+        ship2 = AISShip(1001, shipLatlon2.lat, shipLatlon2.lon, 45, 10)
         obstacles = extendObstaclesArray([ship1, ship2], currentLatlon)
 # Uncomment below to see obstacles extended on a plot
 #        ax = plt.gca()
