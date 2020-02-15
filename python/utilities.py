@@ -8,7 +8,7 @@ from cli import parse_obstacle
 import math 
 from geopy.distance import distance
 import geopy.distance
-from local_pathfinding.msg import latlon, AIS_ship
+from local_pathfinding.msg import latlon, AISShip
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -53,7 +53,8 @@ def createLocalPathSS(state):
     extra = 10   # Extra length to show more in the plot
     dimensions = [min(start[0], goal[0]) - extra, min(start[1], goal[1]) - extra, max(start[0], goal[0]) + extra, max(start[1], goal[1]) + extra]
     obstacles = extendObstaclesArray(state.AISData.ships, state.position)
-    windDirection = state.windDirection
+    measuredWindDirectionDegrees = state.measuredWindDirectionDegrees
+    # TODO: FIX MEASURED TO GLOBAL WIND
     runtime = 5
 
     # Run the planner multiple times and find the best one
@@ -62,7 +63,7 @@ def createLocalPathSS(state):
     solutions = []
     for i in range(numRuns):
         rospy.loginfo("Starting run {}".format(i))
-        solutions.append(plan(runtime, "RRTStar", 'WeightedLengthAndClearanceCombo', windDirection, dimensions, start, goal, obstacles))
+        solutions.append(plan(runtime, "RRTStar", 'WeightedLengthAndClearanceCombo', measuredWindDirectionDegrees, dimensions, start, goal, obstacles))
 
     # Find best solution, but catch exception when solution doesn't work
     # TODO: Figure out more about why solutions fail to implement better exception handling
@@ -88,10 +89,11 @@ def getLocalPath(localPathSS, referenceLatlon):
         localPath.append(XYToLatlon(xy, referenceLatlon))
     return localPath
 
-def badPath(state, localPathSS, referenceLatlon, desiredHeading):
+def badPath(state, localPathSS, referenceLatlon, desiredHeadingMsg):
     # If sailing upwind or downwind, isBad
-    if math.fabs(state.windDirection - desiredHeading) < math.radians(30) or math.fabs(state.windDirection - desiredHeading - math.radians(180)) < math.radians(30):
-        rospy.logwarn("Sailing upwind/downwind. Wind direction: {}. Desired Heading: {}".format(state.windDirection, desiredHeading))
+    # TODO: FIX MEASURED TO GLOBAL WIND
+    if math.fabs(state.measuredWindDirectionDegrees - desiredHeadingMsg.headingDegrees) < math.radians(30) or math.fabs(state.measuredWindDirectionDegrees - desiredHeadingMsg.headingDegrees - math.radians(180)) < math.radians(30):
+        rospy.logwarn("Sailing upwind/downwind. Wind direction: {}. Desired Heading: {}".format(state.measuredWindDirectionDegrees, desiredHeading.headingDegrees))
         return True
 
     # Check if path will hit objects
@@ -164,7 +166,7 @@ def localWaypointReached(position, localPath, localPathIndex, refLatlon):
     return False
 
 def timeLimitExceeded(lastTimePathCreated):
-    return time.time() - lastTimePathCreated > PATH_UPDATE_TIME_LIMIT_SECONDS 
+    return time.time() - lastTimePathCreated > PATH_UPDATE_TIME_LIMIT_SECONDS
 
 def getLocalWaypointLatLon(localPath, localPathIndex):
     # If local path is empty, return (0, 0)
@@ -197,25 +199,25 @@ def extendObstaclesArray(aisArray, referenceLatLon):
 
     for aisData in aisArray:
         aisX, aisY = latlonToXY(latlon(aisData.lat, aisData.lon), referenceLatLon)
-        if aisData.heading == 90 or aisData.heading == 270:
-            if aisData.heading == 90:
-                endY = aisY + aisData.speed * timeToLoc
+        if aisData.headingDegrees == 90 or aisData.headingDegrees == 270:
+            if aisData.headingDegrees == 90:
+                endY = aisY + aisData.speedKmph * timeToLoc
                 yRange = np.arange(aisY, endY, spacing)
-            if aisData.heading == 270:
-                endY = aisY - aisData.speed * timeToLoc
+            if aisData.headingDegrees == 270:
+                endY = aisY - aisData.speedKmph * timeToLoc
                 yRange = np.arange(endY, aisY, spacing)
             for y in yRange:
                 obstacles.append(Obstacle(aisX, y, radius))
         else:
-            isHeadingWest = aisData.heading < 270 and aisData.heading > 90
-            slope = math.tan(math.radians(aisData.heading))
+            isHeadingWest = aisData.headingDegrees < 270 and aisData.headingDegrees > 90
+            slope = math.tan(math.radians(aisData.headingDegrees))
             dx = spacing / math.sqrt(1 + slope**2)
 
             if aisX > 0:
                 b = aisY + slope * -math.fabs(aisX)
             else:
                 b = aisY + slope * math.fabs(aisX)
-            xDistTravelled =  math.fabs(aisData.speed * timeToLoc * math.cos(math.radians(aisData.heading)))
+            xDistTravelled =  math.fabs(aisData.speedKmph * timeToLoc * math.cos(math.radians(aisData.headingDegrees)))
             y = lambda x: slope * x + b 
             if isHeadingWest:
                 endX = aisX - xDistTravelled
@@ -226,3 +228,7 @@ def extendObstaclesArray(aisArray, referenceLatLon):
             for x in xRange:
                 obstacles.append(Obstacle(x, y(x), radius))
     return obstacles
+
+def measuredWindToGlobalWind(measuredWindSpeed, measuredWindDirectionDegrees, boatSpeed, boatDirectionDegrees):
+    # TODO: Figure out how this works
+    return measuredWindSpeed, measuredWindDirectionDegrees

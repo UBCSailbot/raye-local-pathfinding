@@ -31,29 +31,30 @@ UDP_PORT = 65500
 class MOCK_UDPBridge: 
     def __init__(self):
         rospy.init_node('UDPBridge', anonymous=True)
-        rospy.Subscriber("MOCK_GPS", msg.GPS, self.gpsCallback)
-        rospy.Subscriber("MOCK_AIS", msg.AIS_msg, self.aisCallback)
-        rospy.Subscriber("MOCK_wind", msg.wind, self.windCallback)
-        rospy.Subscriber("MOCK_global_path", msg.path, self.globalPathCallback)
-        rospy.Subscriber("MOCK_local_path", msg.path, self.localPathCallback)
+        rospy.Subscriber("GPS", msg.GPS, self.gpsCallback)
+        rospy.Subscriber("AIS", msg.AISMsg, self.aisCallback)
+        rospy.Subscriber("windSensor", msg.windSensor, self.windCallback)
+        rospy.Subscriber("globalPath", msg.path, self.globalPathCallback)
+        rospy.Subscriber("localPath", msg.path, self.localPathCallback)
 
     def gpsCallback(self, data):
         rospy.loginfo(data)
 	lat = str(int(data.lat)*100 + 60*(data.lat - int(data.lat)))
         lon = str(abs(int(data.lon)*100 + 60*(data.lon - int(data.lon)))) # only works on the western hemisphere!
-        nmea_msg = nmea.RMC('GP', 'RMC', ('000000', 'A', str(lat), 'N', str(lon), 'W', '2.0', str(-data.heading + 90), '250120', '000.0', 'W'))
+        nmea_msg = nmea.RMC('GP', 'RMC', ('000000', 'A', str(lat), 'N', str(lon), 'W', '2.0', str(-data.headingDegrees + 90), '250120', '000.0', 'W'))
         sock.sendto(str(nmea_msg), (UDP_IP, UDP_PORT))
 
     def aisCallback(self, data):
 	# TODO: fix heading
         rospy.loginfo(data)
         for ship in data.ships:
-            aisreport = ais.AISPositionReportMessage(mmsi=ship.ID, lon=int(ship.lon*600000), lat=int(ship.lat*600000), heading=int(-math.degrees(ship.heading) + 90) % 360)
+            aisreport = ais.AISPositionReportMessage(mmsi=ship.ID, lon=int(ship.lon*600000), lat=int(ship.lat*600000), heading=int(-math.degrees(ship.headingDegrees) + 90) % 360)
             aismsg = ais.AIS(aisreport)
             sock.sendto(aismsg.build_payload(), (UDP_IP, UDP_PORT))
 
     def windCallback(self, data):
-        nmea_msg = nmea.MWV('--', 'MWV', (str(math.degrees(data.direction)), 'T', str(data.speed), 'M', 'A'))
+        # TODO: Fix the wind to show global wind
+        nmea_msg = nmea.MWV('--', 'MWV', (str(math.degrees(data.measuredDirectionDegrees)), 'T', str(data.measuredSpeedKmph), 'M', 'A'))
         sock.sendto(str(nmea_msg), (UDP_IP, UDP_PORT))
     
     def globalPathCallback(self, data):
@@ -62,7 +63,7 @@ class MOCK_UDPBridge:
         '''
         msg = "$SAILBOT" + "G" + "50;"
         i = 0
-        for wp in data.path:
+        for wp in data.waypoints:
             msg += str(round(wp.lat, 4)) + "," + str(round(wp.lon, 4)) + ";"
             i += 1
             if i == 50:
@@ -71,9 +72,9 @@ class MOCK_UDPBridge:
         sock.sendto(str(msg), (UDP_IP, UDP_PORT))
 
     def localPathCallback(self, data):
-        msg = "$SAILBOT" + "L" + str(len(data.path)) + ";"
+        msg = "$SAILBOT" + "L" + str(len(data.waypoints)) + ";"
         i = 0
-        for wp in data.path:
+        for wp in data.waypoints:
             msg += str(round(wp.lat, 4)) + "," + str(round(wp.lon, 4)) + ";"
         msg += "\n"
         sock.sendto(str(msg), (UDP_IP, UDP_PORT))

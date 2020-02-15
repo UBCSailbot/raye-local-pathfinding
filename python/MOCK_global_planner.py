@@ -38,7 +38,7 @@ def MOCK_global():
     path = create_path(init, goal)
 
     rospy.init_node('MOCK_global_planner', anonymous=True)
-    pub = rospy.Publisher("MOCK_global_path", msg.path, queue_size=4)
+    pub = rospy.Publisher("globalPath", msg.path, queue_size=4)
     publish_period = 10 # Seconds. TODO: set this rate
     r = rospy.Rate(float(1) / publish_period)
 
