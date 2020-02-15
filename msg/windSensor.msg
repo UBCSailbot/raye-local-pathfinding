@@ -1,2 +1,2 @@
-float64 relativeDirectionDegrees
-float64 relativeSpeedKmph
+float64 measuredDirectionDegrees
+float64 measuredSpeedKmph
