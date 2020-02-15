@@ -48,7 +48,7 @@ class MOCK_UDPBridge:
 	# TODO: fix heading
         rospy.loginfo(data)
         for ship in data.ships:
-            aisreport = ais.AISPositionReportMessage(mmsi=ship.ID, lon=int(ship.lon*600000), lat=int(ship.lat*600000), heading=int(-math.degrees(ship.heading) + 90) % 360)
+            aisreport = ais.AISPositionReportMessage(mmsi=ship.ID, lon=int(ship.lon*600000), lat=int(ship.lat*600000), heading=int(ship.heading) % 360)
             aismsg = ais.AIS(aisreport)
             sock.sendto(aismsg.build_payload(), (UDP_IP, UDP_PORT))
 
@@ -58,9 +58,9 @@ class MOCK_UDPBridge:
     
     def globalPathCallback(self, data):
         '''
-        Send the first 50 global waypoints to OpenCPN
+        Send the first 50(?) global waypoints to OpenCPN
         '''
-        msg = "$SAILBOT" + "G" + "50;"
+        msg = "$SAILBOT" + "G" + ('50' if len(data.path) > 50 else str(len(data.path))) + ";"
         i = 0
         for wp in data.path:
             msg += str(round(wp.lat, 4)) + "," + str(round(wp.lon, 4)) + ";"
@@ -68,6 +68,7 @@ class MOCK_UDPBridge:
             if i == 50:
                 break
         msg += "\n"
+        rospy.loginfo(str(msg))
         sock.sendto(str(msg), (UDP_IP, UDP_PORT))
 
     def localPathCallback(self, data):

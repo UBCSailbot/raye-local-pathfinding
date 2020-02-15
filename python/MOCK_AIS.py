@@ -2,6 +2,9 @@
 import rospy
 import math
 import random
+import urllib2
+import json
+import time
 
 import local_pathfinding.msg as msg
 
@@ -30,11 +33,21 @@ class Ship:
                     self.heading,
                     self.speed)
 
+class RealShip(Ship):
+    def __init__(self, MMSI, lat, lon, heading, speed):
+        self.id = MMSI
+        self.lat = lat
+        self.lon = lon
+        self.heading = heading
+        self.speed = speed
+
 
 class MOCK_AISEnvironment: 
     # Just a class to keep track of the ships surrounding the sailbot
     def __init__(self, lat, lon):
+        self.last_real_ship_pull = time.time() # The timestamp for the last time we downloaded new ship positions
         self.ships = []
+        self.get_real_ships()
         for i in range(10):
             self.ships.append(Ship(i, lat, lon))
 
@@ -47,15 +60,51 @@ class MOCK_AISEnvironment:
 
     def make_ros_message(self):
         ship_list = []
+        '''
+        # Mocked ships
         for i in range(10):
             ship_list.append(self.ships[i].make_ros_message())
+        '''
+        # Real ships
+        for ship in self.real_ships:
+            ship_list.append(ship.make_ros_message())
+       
         return msg.AIS_msg(ship_list)
+
+    def get_real_ships(self):
+        api_key = "06052ff87ac6fbab9fbd99bce5c80c2ef85642e4"
+        url = "https://services.marinetraffic.com/api/exportvessels/v:8/" + api_key + "/timespan:10/protocol:json"
+        request = urllib2.Request(url)
+        # Set the user agent to something so our request is accepted
+        request.add_header("User-Agent", "Mozilla/5.0 (Windows NT 6.0; WOW64; rv:24.0) Gecko/20100101 Firefox/24.0")
+        #request.add_header("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:72.0) Gecko/20100101 Firefox/72.0")
+        #request.add_header("User-Agent", "Mozilla/5.0 (Linux; Android 7.0; SM-G892A Build/NRD90M; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/60.0.3112.107 Mobile Safari/537.36")
+        print("Querying the server")
+        data = urllib2.urlopen(request)
+        data = data.read()
+        if data.startswith('{\n"errors"'):
+            print("Queried the server too often, waiting for 2 minutes")
+            print(data)
+            return
+        ships = json.loads(data)
+        self.real_ships = []
+        for real_ship in ships:
+            new_ship = RealShip(int(real_ship[0]), float(real_ship[3]), float(real_ship[4]), float(real_ship[6]), float(real_ship[5]) * 0.1)
+            self.real_ships.append(new_ship)
+
 
 if __name__ == '__main__':
     ais_env = MOCK_AISEnvironment(48.5, -124.8)
     r = rospy.Rate(1) #hz
 
     while not rospy.is_shutdown():
+        timestamp = time.time()
+        # If it's been more than two minutes since last time we downloaded real ship
+        # positions, do it again
+        if timestamp - ais_env.last_real_ship_pull > 120:
+            ais_env.last_real_ship_pull = timestamp
+            ais_env.get_real_ships()
+
         ais_env.move_ships()
         data = ais_env.make_ros_message()
         ais_env.publisher.publish(data)
