@@ -59,11 +59,16 @@ class Sailbot:
             return
 
         # Update globalPath if current path different from new path
-        oldFirstPoint = (self.globalPath[0].lat, self.globalPath[0].lon)
-        newFirstPoint = (data.waypoints[0].lat, data.waypoints[0].lon)
-        if distance(oldFirstPoint, newFirstPoint).kilometers > 1:
+        if not len(self.globalPath) == len(data.waypoints):
             self.updateGlobalPath(data)
         else:
+            # Path is different if there exists a point with distance >1km away from curent point
+            for i in range(len(self.globalPath)):
+                oldFirstPoint = (self.globalPath[i].lat, self.globalPath[i].lon)
+                newFirstPoint = (data.waypoints[i].lat, data.waypoints[i].lon)
+                if distance(oldFirstPoint, newFirstPoint).kilometers > 1:
+                    self.updateGlobalPath(data)
+                    return
             rospy.logwarn_once("New global path is the same as the current path. This warning will only show once")
             # rospy.logwarn("New global path is the same as the current path.")
 

@@ -87,24 +87,26 @@ class TestSailbot(unittest.TestCase):
         globalPathPublisher.publish(globalPathMsg)
         rospy.sleep(0.1)
 
-        # Check that currentState has been updated # Global waypoint should be the second element of the waypoints list
+        # Check that sailbot received the new path
+        self.assertEqual(len(self.sailbot.globalPath), numWaypoints)
+
+        # Check that currentState has been updated next global waypoint should be the second element of the waypoints list
         state = self.sailbot.getCurrentState()
         self.assertAlmostEqual(state.globalWaypoint.lat, waypoints[1].lat, places=3)
         self.assertAlmostEqual(state.globalWaypoint.lon, waypoints[1].lon, places=3)
 
-# NOT WORKING FOR SOME REASON
-#         # Check that globalIndex increment works
-#         self.sailbot.globalPathIndex = 4
-#         state = self.sailbot.getCurrentState()
-#         self.assertAlmostEqual(state.globalWaypoint.lat, waypoints[self.sailbot.globalPathIndex].lat, places=3)
-#         self.assertAlmostEqual(state.globalWaypoint.lon, waypoints[self.sailbot.globalPathIndex].lon, places=3)
-# 
-#         # Check that receiving the same path doesn't update the index to 1
-#         globalPathPublisher.publish(globalPathMsg)
-#         rospy.sleep(0.1)
-#         state = self.sailbot.getCurrentState()
-#         self.assertAlmostEqual(state.globalWaypoint.lat, waypoints[4].lat, places=3)
-#         self.assertAlmostEqual(state.globalWaypoint.lon, waypoints[4].lon, places=3)
+        # Check that globalIndex increment works
+        self.sailbot.globalPathIndex += 1
+        state = self.sailbot.getCurrentState()
+        self.assertAlmostEqual(state.globalWaypoint.lat, waypoints[2].lat, places=3)
+        self.assertAlmostEqual(state.globalWaypoint.lon, waypoints[2].lon, places=3)
+
+        # Check that receiving the same path doesn't update the index to 1
+        globalPathPublisher.publish(globalPathMsg)
+        rospy.sleep(0.1)
+        state = self.sailbot.getCurrentState()
+        self.assertAlmostEqual(state.globalWaypoint.lat, waypoints[2].lat, places=3)
+        self.assertAlmostEqual(state.globalWaypoint.lon, waypoints[2].lon, places=3)
 
         # Check that receiving a new path does update the index to 1
         waypoints = [latlon(i + 1, i + 1) for i in range(numWaypoints)]
