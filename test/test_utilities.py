@@ -191,5 +191,10 @@ class TestUtilities(unittest.TestCase):
         self.assertFalse(localWaypointReached(sailbotPos, path, index, refLatlon))
         self.assertTrue(localWaypointReached(sailbotPos1, path, index, refLatlon))
 
+    def test_headingToBearingDegrees(self):
+        self.assertAlmostEqual(BEARING_NORTH % 360, headingToBearingDegrees(HEADING_NORTH) % 360, places=3)
+        self.assertAlmostEqual(BEARING_SOUTH % 360, headingToBearingDegrees(HEADING_SOUTH) % 360, places=3)
+        self.assertAlmostEqual(BEARING_EAST % 360, headingToBearingDegrees(HEADING_EAST) % 360, places=3)
+
 if __name__ == '__main__':
     rostest.rosrun('local_pathfinding', 'test_utilities', TestUtilities)
