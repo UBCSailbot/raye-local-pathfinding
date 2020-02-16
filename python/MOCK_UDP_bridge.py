@@ -49,7 +49,7 @@ class MOCK_UDPBridge:
 	# TODO: fix heading
         rospy.loginfo(data)
         for ship in data.ships:
-            aisreport = ais.AISPositionReportMessage(mmsi=ship.ID, lon=int(ship.lon*600000), lat=int(ship.lat*600000), heading=int(weadingToBearingDegrees(ship.headingDegrees)) % 360)
+            aisreport = ais.AISPositionReportMessage(mmsi=ship.ID, lon=int(ship.lon*600000), lat=int(ship.lat*600000), heading=int(headingToBearingDegrees(ship.headingDegrees)) % 360)
             aismsg = ais.AIS(aisreport)
             sock.sendto(aismsg.build_payload(), (UDP_IP, UDP_PORT))
 
