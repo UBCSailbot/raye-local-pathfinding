@@ -117,7 +117,7 @@ class TestSailbot(unittest.TestCase):
         self.assertAlmostEqual(state.globalWaypoint.lat, waypoints[1].lat, places=3)
         self.assertAlmostEqual(state.globalWaypoint.lon, waypoints[1].lon, places=3)
 
-        # Check that globalIndex increment out of range is ok
+        # Check that globalIndex increment out of range returns last waypoint
         self.sailbot.globalPathIndex = numWaypoints + 1
         state = self.sailbot.getCurrentState()
         self.assertAlmostEqual(state.globalWaypoint.lat, waypoints[numWaypoints - 1].lat, places=3)
