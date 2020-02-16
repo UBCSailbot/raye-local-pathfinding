@@ -6,6 +6,7 @@ import random
 import socket
 
 import local_pathfinding.msg as msg
+from utilities import headingToBearingDegrees
 
 try:
     import aislib as ais
@@ -41,14 +42,14 @@ class MOCK_UDPBridge:
         rospy.loginfo(data)
 	lat = str(int(data.lat)*100 + 60*(data.lat - int(data.lat)))
         lon = str(abs(int(data.lon)*100 + 60*(data.lon - int(data.lon)))) # only works on the western hemisphere!
-        nmea_msg = nmea.RMC('GP', 'RMC', ('000000', 'A', str(lat), 'N', str(lon), 'W', '2.0', str(-data.headingDegrees + 90), '250120', '000.0', 'W'))
+        nmea_msg = nmea.RMC('GP', 'RMC', ('000000', 'A', str(lat), 'N', str(lon), 'W', '2.0', str(headingToBearingDegrees(data.headingDegrees)), '250120', '000.0', 'W'))
         sock.sendto(str(nmea_msg), (UDP_IP, UDP_PORT))
 
     def aisCallback(self, data):
 	# TODO: fix heading
         rospy.loginfo(data)
         for ship in data.ships:
-            aisreport = ais.AISPositionReportMessage(mmsi=ship.ID, lon=int(ship.lon*600000), lat=int(ship.lat*600000), heading=int(-math.degrees(ship.headingDegrees) + 90) % 360)
+            aisreport = ais.AISPositionReportMessage(mmsi=ship.ID, lon=int(ship.lon*600000), lat=int(ship.lat*600000), heading=int(weadingToBearingDegrees(ship.headingDegrees)) % 360)
             aismsg = ais.AIS(aisreport)
             sock.sendto(aismsg.build_payload(), (UDP_IP, UDP_PORT))
 

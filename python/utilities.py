@@ -229,6 +229,27 @@ def extendObstaclesArray(aisArray, referenceLatLon):
                 obstacles.append(Obstacle(x, y(x), radius))
     return obstacles
 
-def measuredWindToGlobalWind(measuredWindSpeed, measuredWindDirectionDegrees, boatSpeed, boatDirectionDegrees):
-    # TODO: Figure out how this works
-    return measuredWindSpeed, measuredWindDirectionDegrees
+def measuredWindToGlobalWind(measuredWindSpeed, measuredWindDirectionDegrees, boatSpeed, headingDegrees):
+    # Calculate wind speed in boat frame. X is right. Y is forward.
+    measuredWindSpeedXBoatFrame = measuredWindSpeed * math.cos(math.radians(measuredWindDirectionDegrees))
+    measuredWindSpeedYBoatFrame = measuredWindSpeed * math.sin(math.radians(measuredWindDirectionDegrees))
+
+    # Assume boat is moving entirely in heading direction, so all boat speed is in boat frame Y direction
+    trueWindSpeedXBoatFrame = measuredWindSpeedXBoatFrame
+    trueWindSpeedYBoatFrame = measuredWindSpeedYBoatFrame + boatSpeed
+
+    # Calculate wind speed in global frame. X is EAST. Y is NORTH.
+    trueWindSpeedXGlobalFrame = trueWindSpeedXBoatFrame * math.sin(math.radians(headingDegrees)) + trueWindSpeedYBoatFrame * math.cos(math.radians(headingDegrees))
+    trueWindSpeedYGlobalFrame = trueWindSpeedYBoatFrame * math.sin(math.radians(headingDegrees)) - trueWindSpeedXBoatFrame * math.cos(math.radians(headingDegrees))
+
+    # Calculate global wind speed and direction
+    globalWindSpeed = (trueWindSpeedXGlobalFrame**2 + trueWindSpeedYGlobalFrame**2)**0.5
+    globalWindDirectionDegrees = math.atan2(trueWindSpeedYGlobalFrame, trueWindSpeedXGlobalFrame)
+
+    return globalWindSpeed, globalWindDirectionDegrees
+
+def headingToBearingDegrees(headingDegrees):
+    # Heading is defined using cartesian coordinates. 0 degrees is East. 90 degrees in North. 270 degrees is South.
+    # Bearing is defined differently. 0 degrees is North. 90 degrees is East. 180 degrees is South.
+    # Heading = -Bearing + 90
+    return -headingDegrees + 90

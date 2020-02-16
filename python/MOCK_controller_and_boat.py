@@ -5,6 +5,7 @@ import random
 
 import local_pathfinding.msg as msg
 import geopy.distance
+from utilities import headingToBearingDegrees
 
 class MOCK_ControllerAndSailbot: 
     def __init__(self, lat, lon):
@@ -26,7 +27,7 @@ class MOCK_ControllerAndSailbot:
 
         # Heading units: 0 degrees => EAST. 90 degrees => NORTH.
         # Bearing units: 0 degrees => NORTH. 90 degrees => EAST.
-        destination = distance.destination(point=(self.lat, self.lon), bearing=-self.headingDegrees + 90)
+        destination = distance.destination(point=(self.lat, self.lon), bearing=headingToBearingDegrees(self.headingDegrees))
 
         # TODO: translate to m/s
         self.speedKmph = kmTraveledPerPeriod / (self.publishPeriodSeconds / 3600)
