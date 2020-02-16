@@ -27,6 +27,12 @@ HEADING_NORTH = 90
 HEADING_WEST = 180
 HEADING_SOUTH = 270
 
+# Constants for boat frame angles
+BOAT_RIGHT = 0
+BOAT_FORWARD = 90
+BOAT_LEFT = 180
+BOAT_BACKWARD = 270
+
 def latlonToXY(latlon, referenceLatlon):
     x = distance((referenceLatlon.lat, referenceLatlon.lon), (referenceLatlon.lat, latlon.lon)).kilometers
     y = distance((referenceLatlon.lat, referenceLatlon.lon), (latlon.lat, referenceLatlon.lon)).kilometers
@@ -244,7 +250,7 @@ def measuredWindToGlobalWind(measuredWindSpeed, measuredWindDirectionDegrees, bo
 
     # Calculate global wind speed and direction
     globalWindSpeed = (trueWindSpeedXGlobalFrame**2 + trueWindSpeedYGlobalFrame**2)**0.5
-    globalWindDirectionDegrees = math.atan2(trueWindSpeedYGlobalFrame, trueWindSpeedXGlobalFrame)
+    globalWindDirectionDegrees = math.degrees(math.atan2(trueWindSpeedYGlobalFrame, trueWindSpeedXGlobalFrame))
 
     return globalWindSpeed, globalWindDirectionDegrees
 

@@ -198,17 +198,18 @@ class TestUtilities(unittest.TestCase):
 
     def test_measuredWindToGlobalWind_basic(self):
         # (Boat moving + no measured wind) => (global wind velocity == boat velocity)
-        globalWindSpeedKmph, globalWindDirectionDegrees = measuredWindToGlobalWind(measuredWindSpeed=0, measuredWindDirectionDegrees=0, boatSpeed=1, headingDegrees=90)
+        globalWindSpeedKmph, globalWindDirectionDegrees = measuredWindToGlobalWind(measuredWindSpeed=0, measuredWindDirectionDegrees=BOAT_RIGHT, boatSpeed=1, headingDegrees=90)
         self.assertAlmostEqual(1, globalWindSpeedKmph, places=3)
         self.assertAlmostEqual(90, globalWindDirectionDegrees, places=3)
 
         # (Boat not moving + measured wind) => (global wind speed == measured wind speed && global wind dir == measured wind dir - 90 b/c 0 measured dir = right of boat which is -90 in global)
-        globalWindSpeedKmph, globalWindDirectionDegrees = measuredWindToGlobalWind(measuredWindSpeed=1.2, measuredWindDirectionDegrees=-60, boatSpeed=0, headingDegrees=0)
+        direction = (2*BOAT_FORWARD + 1*BOAT_RIGHT)  # 60 degrees
+        globalWindSpeedKmph, globalWindDirectionDegrees = measuredWindToGlobalWind(measuredWindSpeed=1.2, measuredWindDirectionDegrees=direction, boatSpeed=0, headingDegrees=0)
         self.assertAlmostEqual(1.2, globalWindSpeedKmph, places=3)
-        self.assertAlmostEqual(-60-90, globalWindDirectionDegrees, places=3)
+        self.assertAlmostEqual(direction-90, globalWindDirectionDegrees, places=3)
 
         # (Boat and measured wind along the same axis) => (global wind == boat + measured wind speed)
-        globalWindSpeedKmph, globalWindDirectionDegrees = measuredWindToGlobalWind(measuredWindSpeed=1, measuredWindDirectionDegrees=90, boatSpeed=1, headingDegrees=90)
+        globalWindSpeedKmph, globalWindDirectionDegrees = measuredWindToGlobalWind(measuredWindSpeed=1, measuredWindDirectionDegrees=BOAT_FORWARD, boatSpeed=1, headingDegrees=90)
         self.assertAlmostEqual(2, globalWindSpeedKmph, places=3)
         self.assertAlmostEqual(90, globalWindDirectionDegrees, places=3)
 
