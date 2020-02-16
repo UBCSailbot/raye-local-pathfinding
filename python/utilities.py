@@ -59,8 +59,7 @@ def createLocalPathSS(state):
     extra = 10   # Extra length to show more in the plot
     dimensions = [min(start[0], goal[0]) - extra, min(start[1], goal[1]) - extra, max(start[0], goal[0]) + extra, max(start[1], goal[1]) + extra]
     obstacles = extendObstaclesArray(state.AISData.ships, state.position)
-    measuredWindDirectionDegrees = state.measuredWindDirectionDegrees
-    # TODO: FIX MEASURED TO GLOBAL WIND
+    globalWindSpeedKmph, globalWindDirectionDegrees = measuredWindToGlobalWind(state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
     runtime = 5
 
     # Run the planner multiple times and find the best one
@@ -69,7 +68,8 @@ def createLocalPathSS(state):
     solutions = []
     for i in range(numRuns):
         rospy.loginfo("Starting run {}".format(i))
-        solutions.append(plan(runtime, "RRTStar", 'WeightedLengthAndClearanceCombo', measuredWindDirectionDegrees, dimensions, start, goal, obstacles))
+        # TODO: Incorporate globalWindSpeed into pathfinding?
+        solutions.append(plan(runtime, "RRTStar", 'WeightedLengthAndClearanceCombo', globalWindDirectionDegrees, dimensions, start, goal, obstacles))
 
     # Find best solution, but catch exception when solution doesn't work
     # TODO: Figure out more about why solutions fail to implement better exception handling
@@ -97,9 +97,9 @@ def getLocalPath(localPathSS, referenceLatlon):
 
 def badPath(state, localPathSS, referenceLatlon, desiredHeadingMsg):
     # If sailing upwind or downwind, isBad
-    # TODO: FIX MEASURED TO GLOBAL WIND
-    if math.fabs(state.measuredWindDirectionDegrees - desiredHeadingMsg.headingDegrees) < math.radians(30) or math.fabs(state.measuredWindDirectionDegrees - desiredHeadingMsg.headingDegrees - math.radians(180)) < math.radians(30):
-        rospy.logwarn("Sailing upwind/downwind. Wind direction: {}. Desired Heading: {}".format(state.measuredWindDirectionDegrees, desiredHeading.headingDegrees))
+    globalWindSpeedKmph, globalWindDirectionDegrees = measuredWindToGlobalWind(state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
+    if math.fabs(globalWindDirectionDegrees - desiredHeadingMsg.headingDegrees) < 30 or math.fabs(globalWindDirectionDegrees- desiredHeadingMsg.headingDegrees - math.radians(180)) < 30:
+        rospy.logwarn("Sailing upwind/downwind. Global Wind direction: {}. Desired Heading: {}".format(globalWindDirectionDegrees, desiredHeading.headingDegrees))
         return True
 
     # Check if path will hit objects
