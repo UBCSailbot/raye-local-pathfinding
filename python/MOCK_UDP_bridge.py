@@ -6,7 +6,7 @@ import random
 import socket
 
 import local_pathfinding.msg as msg
-from utilities import headingToBearingDegrees
+from utilities import headingToBearingDegrees, measuredWindToGlobalWind
 
 try:
     import aislib as ais
