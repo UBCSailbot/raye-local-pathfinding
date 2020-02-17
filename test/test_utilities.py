@@ -202,11 +202,11 @@ class TestUtilities(unittest.TestCase):
         self.assertAlmostEqual(1, globalWindSpeedKmph, places=3)
         self.assertAlmostEqual(90, globalWindDirectionDegrees, places=3)
 
-        # (Boat not moving + measured wind) => (global wind speed == measured wind speed && global wind dir == measured wind dir - 90 b/c 0 measured dir = right of boat which is -90 in global)
-        direction = (2*BOAT_FORWARD + 1*BOAT_RIGHT)  # 60 degrees
-        globalWindSpeedKmph, globalWindDirectionDegrees = measuredWindToGlobalWind(measuredWindSpeed=1.2, measuredWindDirectionDegrees=direction, boatSpeed=0, headingDegrees=0)
+        # (Boat not moving + measured wind) => (global wind speed == measured wind speed) + (global wind dir == measured wind dir - 90) b/c 0 measured direction = right of boat which is -90 in global)
+        measuredDirection = (2*BOAT_FORWARD + 1*BOAT_RIGHT)  # 60 degrees
+        globalWindSpeedKmph, globalWindDirectionDegrees = measuredWindToGlobalWind(measuredWindSpeed=1.2, measuredWindDirectionDegrees=measuredDirection, boatSpeed=0, headingDegrees=0)
         self.assertAlmostEqual(1.2, globalWindSpeedKmph, places=3)
-        self.assertAlmostEqual(direction-90, globalWindDirectionDegrees, places=3)
+        self.assertAlmostEqual(measuredDirection-90, globalWindDirectionDegrees, places=3)
 
         # (Boat and measured wind along the same axis) => (global wind == boat + measured wind speed)
         globalWindSpeedKmph, globalWindDirectionDegrees = measuredWindToGlobalWind(measuredWindSpeed=1, measuredWindDirectionDegrees=BOAT_FORWARD, boatSpeed=1, headingDegrees=90)
@@ -222,6 +222,47 @@ class TestUtilities(unittest.TestCase):
         globalWindSpeedKmph, globalWindDirectionDegrees = measuredWindToGlobalWind(measuredWindSpeedKmph, measuredWindDirectionDegrees, boatSpeedKmph, headingDegrees)
         self.assertAlmostEqual(4.7726691528, globalWindSpeedKmph, places=3)
         self.assertAlmostEqual(-4.373700424, globalWindDirectionDegrees, places=3)
+
+    def test_globalWindToMeasuredWind_basic(self):
+        # (Boat moving + no global wind) => (measured wind velocity == -boat velocity)
+        measuredWindSpeedKmph, measuredWindDirectionDegrees = globalWindToMeasuredWind(globalWindSpeed=0, globalWindDirectionDegrees=HEADING_EAST, boatSpeed=2, headingDegrees=HEADING_EAST)
+        self.assertAlmostEqual(2, measuredWindSpeedKmph, places=3)
+        self.assertAlmostEqual((90+180) % 360, measuredWindDirectionDegrees % 360, places=3)
+
+        # (Boat not moving + global wind) => (measured wind speed == global wind speed) + (measured wind dir == global wind dir + 90) b/c 0 degrees global is 90 degrees for measured wind, since boat is pointing EAST)
+        globalDirection = (2*HEADING_NORTH + 1*HEADING_EAST)  # 60 degrees
+        measuredWindSpeedKmph, measuredWindDirectionDegrees = globalWindToMeasuredWind(globalWindSpeed=10, globalWindDirectionDegrees=globalDirection, boatSpeed=0, headingDegrees=HEADING_EAST)
+        self.assertAlmostEqual(10, measuredWindSpeedKmph, places=3)
+        self.assertAlmostEqual((globalDirection+90) % 360, measuredWindDirectionDegrees % 360, places=3)
+
+        # (Boat and measured wind along the same axis, with boat speed > global wind speed) => (measured wind == global wind - boat speed) + (measured wind dir along boat forward)
+        measuredWindSpeedKmph, measuredWindDirectionDegrees = globalWindToMeasuredWind(globalWindSpeed=10, globalWindDirectionDegrees=HEADING_SOUTH, boatSpeed=3, headingDegrees=HEADING_SOUTH)
+        self.assertAlmostEqual(10 - 3, measuredWindSpeedKmph, places=3)
+        self.assertAlmostEqual(BOAT_FORWARD, measuredWindDirectionDegrees % 360, places=3)
+
+    def test_globalWindToMeasuredWind_advanced(self):
+        # Setup test parameters
+        headingDegrees = 120
+        boatSpeedKmph = 14
+        globalWindDirectionDegrees = 12
+        globalWindSpeedKmph = 11
+        measuredWindSpeedKmph, measuredWindDirectionDegrees = globalWindToMeasuredWind(globalWindSpeedKmph, globalWindDirectionDegrees, boatSpeedKmph, headingDegrees)
+
+        self.assertAlmostEqual(20.30214851358062, measuredWindSpeedKmph, places=3)
+        self.assertAlmostEqual(-58.98273894650611, measuredWindDirectionDegrees, places=3)
+
+    def test_globalWindToMeasuredWind_and_measuredWindToGlobalWind(self):
+        # Setup test parameters
+        headingDegrees = 150
+        boatSpeedKmph = 14
+        globalWindDirectionDegrees = 78
+        globalWindSpeedKmph = 13
+        measuredWindSpeedKmph, measuredWindDirectionDegrees = globalWindToMeasuredWind(globalWindSpeedKmph, globalWindDirectionDegrees, boatSpeedKmph, headingDegrees)
+        calculatedGlobalWindSpeedKmph, calculatedGlobalWindDirectionDegrees = measuredWindToGlobalWind(measuredWindSpeedKmph, measuredWindDirectionDegrees, boatSpeedKmph, headingDegrees)
+
+        # Test that we get back the same global wind as we started with
+        self.assertAlmostEqual(calculatedGlobalWindSpeedKmph, globalWindSpeedKmph, places=3)
+        self.assertAlmostEqual(calculatedGlobalWindDirectionDegrees, globalWindDirectionDegrees, places=3)
 
 if __name__ == '__main__':
     rostest.rosrun('local_pathfinding', 'test_utilities', TestUtilities)
