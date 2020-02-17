@@ -254,6 +254,20 @@ def measuredWindToGlobalWind(measuredWindSpeed, measuredWindDirectionDegrees, bo
 
     return globalWindSpeed, globalWindDirectionDegrees
 
+def globalWindToMeasuredWind(globalWindSpeed, globalWindDirectionDegrees, boatSpeed, headingDegrees):
+    # Calculate the measuredWindSpeed in the global frame
+    measuredWindSpeedXGlobalFrame = globalWindSpeed * math.cos(math.radians(globalWindDirectionDegrees)) - boatSpeed * math.cos(math.radians(headingDegrees))
+    measuredWindSpeedYGlobalFrame = globalWindSpeed * math.sin(math.radians(globalWindDirectionDegrees)) - boatSpeed * math.sin(math.radians(headingDegrees))
+
+    # Calculated the measuredWindSpeed in the boat frame
+    measuredWindSpeedXBoatFrame = measuredWindSpeedXGlobalFrame * math.sin(math.radians(headingDegrees)) - measuredWindSpeedYGlobalFrame * math.cos(math.radians(headingDegrees))
+    measuredWindSpeedYBoatFrame = measuredWindSpeedXGlobalFrame * math.cos(math.radians(headingDegrees)) + measuredWindSpeedYGlobalFrame * math.sin(math.radians(headingDegrees))
+
+    measuredWindDirectionDegrees = math.degrees(math.atan2(measuredWindSpeedYBoatFrame, measuredWindSpeedXBoatFrame))
+    measuredWindSpeed = (measuredWindSpeedYBoatFrame**2 + measuredWindSpeedXBoatFrame**2)**0.5
+
+    return measuredWindSpeed, measuredWindDirectionDegrees
+
 def headingToBearingDegrees(headingDegrees):
     # Heading is defined using cartesian coordinates. 0 degrees is East. 90 degrees in North. 270 degrees is South.
     # Bearing is defined differently. 0 degrees is North. 90 degrees is East. 180 degrees is South.

@@ -3,6 +3,7 @@ import rospy
 import math
 
 from local_pathfinding.msg import windSensor, GPS
+from utilities import globalWindToMeasuredWind
 
 # Global variables for tracking boat speed
 boatHeadingDegrees = 0
@@ -26,14 +27,9 @@ def talker():
         # Set windSensor message such that the global wind is 10km/h in 90 degrees direction
         globalWindSpeedKmph = 10
         globalWindDirectionDegrees = 90
-
-        measuredWindXGlobalFrame = globalWindSpeedKmph * math.cos(math.radians(globalWindDirectionDegrees)) - boatSpeedKmph * math.cos(math.radians(boatHeadingDegrees))
-        measuredWindYGlobalFrame = globalWindSpeedKmph * math.sin(math.radians(globalWindDirectionDegrees)) - boatSpeedKmph * math.sin(math.radians(boatHeadingDegrees))
-        measuredWindXBoatFrame = measuredWindXGlobalFrame * math.sin(math.radians(boatHeadingDegrees)) - measuredWindYGlobalFrame * math.cos(math.radians(boatHeadingDegrees))
-        measuredWindYBoatFrame = measuredWindXGlobalFrame * math.cos(math.radians(boatHeadingDegrees)) + measuredWindYGlobalFrame * math.sin(math.radians(boatHeadingDegrees))
-
-        msg.measuredDirectionDegrees = math.degrees(math.atan2(measuredWindYBoatFrame, measuredWindXBoatFrame))
-        msg.measuredSpeedKmph = (measuredWindYBoatFrame**2 + measuredWindXBoatFrame**2)**0.5
+        measuredWindSpeedKmph, measuredWindDirectionDegrees = globalWindToMeasuredWind(globalWindSpeedKmph, globalWindDirectionDegrees, boatSpeedKmph, boatHeadingDegrees)
+        msg.measuredDirectionDegrees = measuredWindDirectionDegrees
+        msg.measuredSpeedKmph = measuredWindSpeedKmph
         rospy.loginfo(msg)
         pub.publish(msg)
         r.sleep()
