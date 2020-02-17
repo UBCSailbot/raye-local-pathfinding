@@ -21,8 +21,8 @@ class MOCK_ControllerAndSailbot:
 
     def move(self):
         kmTraveledPerPeriod = self.speedKmph * self.publishPeriodSeconds / 3600.0
-        distance = geopy.distance.distance(kilometers = kmTraveledPerPeriod)
-        destination = distance.destination(point=(self.lat, self.lon), bearing=headingToBearingDegrees(self.headingDegrees))
+        distanceTraveled = geopy.distance.distance(kilometers = kmTraveledPerPeriod)
+        destination = distanceTraveled.destination(point=(self.lat, self.lon), bearing=headingToBearingDegrees(self.headingDegrees))
 
         self.lon = destination.longitude
         self.lat = destination.latitude

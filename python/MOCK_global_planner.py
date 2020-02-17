@@ -14,6 +14,7 @@ def create_path(init, goal):
     path.append(init_wp)
 
     # Just do some linear interpolation
+    # TODO: Update this to proper number of waypoints or proper distance between waypoints
     num_global_waypoints = 25
     for i in range(1, num_global_waypoints):
         coeff = float(i)/(num_global_waypoints)
