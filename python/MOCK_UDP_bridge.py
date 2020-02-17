@@ -61,7 +61,7 @@ class MOCK_UDPBridge:
         '''
         Send the first 50(?) global waypoints to OpenCPN
         '''
-        msg = "$SAILBOT" + "G" + ('50' if len(data.path) > 50 else str(len(data.path))) + ";"
+        msg = "$SAILBOT" + "G" + ('50' if len(data.waypoints) > 50 else str(len(data.waypoints))) + ";"
         i = 0
         for wp in data.waypoints:
             msg += str(round(wp.lat, 4)) + "," + str(round(wp.lon, 4)) + ";"
