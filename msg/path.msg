@@ -1,1 +1,1 @@
-latlon[] path
+latlon[] waypoints

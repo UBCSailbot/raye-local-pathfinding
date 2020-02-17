@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(testdir, srcdir)))
 
 import unittest
 import rostest
-from local_pathfinding.msg import latlon, AIS_ship
+from local_pathfinding.msg import latlon, AISShip
 from utilities import *
 from geopy.distance import distance
 from math import sqrt
@@ -117,7 +117,7 @@ class TestUtilities(unittest.TestCase):
     def test_extendObstaclesArray(self):
         currentLatlon = latlon(0, 0)
         shipLatlon = XYToLatlon((1, 0), currentLatlon)
-        ships = [AIS_ship(1000, shipLatlon.lat, shipLatlon.lon, 180, 1)]
+        ships = [AISShip(1000, shipLatlon.lat, shipLatlon.lon, 180, 1)]
         obstacles = extendObstaclesArray(ships, currentLatlon)
         self.assertFalse(self.isValid(0, 0, obstacles))
         self.assertFalse(self.isValid(1, 0, obstacles))
@@ -126,7 +126,7 @@ class TestUtilities(unittest.TestCase):
     def test_extendObstaclesArray2(self):
         currentLatlon = latlon(0, 0)
         shipLatlon = XYToLatlon((1, 1), currentLatlon)
-        ships = [AIS_ship(1000, shipLatlon.lat, shipLatlon.lon, 225, sqrt(2))]
+        ships = [AISShip(1000, shipLatlon.lat, shipLatlon.lon, 225, sqrt(2))]
         obstacles = extendObstaclesArray(ships, currentLatlon)
 # Uncomment below to see obstacles extended on a plot
 #        ax = plt.gca()
@@ -141,8 +141,8 @@ class TestUtilities(unittest.TestCase):
         currentLatlon = latlon(0, 0)
         shipLatlon = XYToLatlon((0, 3), currentLatlon)
         shipLatlon2 = XYToLatlon((-1, -1), currentLatlon)
-        ship1 = AIS_ship(1000, shipLatlon.lat, shipLatlon.lon, 270, 4)
-        ship2 = AIS_ship(1001, shipLatlon2.lat, shipLatlon2.lon, 45, 10)
+        ship1 = AISShip(1000, shipLatlon.lat, shipLatlon.lon, 270, 4)
+        ship2 = AISShip(1001, shipLatlon2.lat, shipLatlon2.lon, 45, 10)
         obstacles = extendObstaclesArray([ship1, ship2], currentLatlon)
 # Uncomment below to see obstacles extended on a plot
 #        ax = plt.gca()
@@ -156,6 +156,40 @@ class TestUtilities(unittest.TestCase):
         self.assertTrue(self.isValid(0, 4, obstacles))
         self.assertFalse(self.isValid(0, -1.19, obstacles))
         self.assertTrue(self.isValid(0, -1.3, obstacles))
+
+    def test_localWaypointReached(self):
+        refLatlon = latlon(0, 0)
+        start = XYToLatlon((0, 0), refLatlon)
+        waypoint = XYToLatlon((1, 1), refLatlon)
+        path = [start, waypoint]
+        index = 1
+        sailbotPos = XYToLatlon((2, 2), refLatlon)
+        sailbotPos1 = XYToLatlon((1, 0.5), refLatlon)
+        self.assertTrue(localWaypointReached(sailbotPos, path, index, refLatlon))
+        self.assertFalse(localWaypointReached(sailbotPos1, path, index, refLatlon))
+    
+    #testing cases where start and LWP have same lat or same lon
+    def test_localWaypointReached_sameLat(self):
+        refLatlon = latlon(0, 0)
+        start = XYToLatlon((1, 1), refLatlon)
+        waypoint = XYToLatlon((1, 2), refLatlon)
+        path = [start, waypoint]
+        index = 1
+        sailbotPos = XYToLatlon((100, 2.1), refLatlon)
+        sailbotPos1 = XYToLatlon((-100, 1.9), refLatlon)
+        self.assertTrue(localWaypointReached(sailbotPos, path, index, refLatlon))
+        self.assertFalse(localWaypointReached(sailbotPos1, path, index, refLatlon))
+       
+    def test_localWaypointReached_sameLon(self):
+        refLatlon = latlon(0, 0)
+        start = XYToLatlon((2, 1), refLatlon)
+        waypoint = XYToLatlon((1, 1), refLatlon)
+        path = [start, waypoint]
+        index = 1
+        sailbotPos = XYToLatlon((1.1, 100), refLatlon)
+        sailbotPos1 = XYToLatlon((0.9, -100), refLatlon)
+        self.assertFalse(localWaypointReached(sailbotPos, path, index, refLatlon))
+        self.assertTrue(localWaypointReached(sailbotPos1, path, index, refLatlon))
 
 if __name__ == '__main__':
     rostest.rosrun('local_pathfinding', 'test_utilities', TestUtilities)

@@ -11,13 +11,13 @@ if __name__ == '__main__':
     sailbot = Sailbot(nodeName='local_pathfinding')
 
     # Create ros publisher for the desired heading for the controller
-    desiredHeadingPublisher = rospy.Publisher('MOCK_desired_heading', msg.desired_heading, queue_size=4)
-    desiredHeadingMsg = msg.desired_heading()
+    desiredHeadingPublisher = rospy.Publisher('desiredHeading', msg.heading, queue_size=4)
+    desiredHeadingMsg = msg.heading()
 
     # Create other publishers
-    localPathPublisher = rospy.Publisher('MOCK_local_path', msg.path, queue_size=4)
-    nextLocalWaypointPublisher = rospy.Publisher('MOCK_next_local_waypoint', msg.latlon, queue_size=4)
-    nextGlobalWaypointPublisher = rospy.Publisher('MOCK_next_global_waypoint', msg.latlon, queue_size=4)
+    localPathPublisher = rospy.Publisher('localPath', msg.path, queue_size=4)
+    nextLocalWaypointPublisher = rospy.Publisher('nextLocalWaypoint', msg.latlon, queue_size=4)
+    nextGlobalWaypointPublisher = rospy.Publisher('nextGlobalWaypoint', msg.latlon, queue_size=4)
     publishRate = rospy.Rate(1) # Hz
 
     # Wait until first global path is received
@@ -40,7 +40,7 @@ if __name__ == '__main__':
         state = sailbot.getCurrentState()
 
         # Generate new local path if needed
-        isBad = badPath(state, localPathSS, referenceLatlon, desiredHeadingMsg.heading)
+        isBad = badPath(state, localPathSS, referenceLatlon, desiredHeadingMsg)
         isTimeLimitExceeded = timeLimitExceeded(lastTimePathCreated)
         isGlobalWaypointReached = globalWaypointReached(state.position, state.globalWaypoint)
         newGlobalPathReceived = sailbot.newGlobalPathReceived
@@ -67,14 +67,14 @@ if __name__ == '__main__':
             lastTimePathCreated = time.time()
 
         # If localWaypoint met, increment the index
-        elif localWaypointReached(state.position, localPath, localPathIndex):
+        elif localWaypointReached(state.position, localPath, localPathIndex, referenceLatlon):
             rospy.loginfo("Local waypoint reached")
             localPathIndex += 1
             localWaypoint = getLocalWaypointLatLon(localPath, localPathIndex)
 
         # Publish desiredHeading
-        desiredHeadingMsg.heading = getDesiredHeading(state.position, localWaypoint)
-        rospy.loginfo_throttle(10, "desiredHeadingMsg: {}".format(desiredHeadingMsg.heading))  # Prints every x seconds
+        desiredHeadingMsg.headingDegrees = getDesiredHeading(state.position, localWaypoint)
+        rospy.loginfo_throttle(10, "desiredHeadingMsg: {}".format(desiredHeadingMsg.headingDegrees))  # Prints every x seconds
         desiredHeadingPublisher.publish(desiredHeadingMsg)
         publishRate.sleep()
 

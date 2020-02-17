@@ -8,8 +8,9 @@ from cli import parse_obstacle
 import math 
 from geopy.distance import distance
 import geopy.distance
-from local_pathfinding.msg import latlon, AIS_ship
+from local_pathfinding.msg import latlon, AISShip
 import numpy as np
+import matplotlib.pyplot as plt
 
 # Constants
 GLOBAL_WAYPOINT_REACHED_RADIUS_KM = 200
@@ -52,7 +53,8 @@ def createLocalPathSS(state):
     extra = 10   # Extra length to show more in the plot
     dimensions = [min(start[0], goal[0]) - extra, min(start[1], goal[1]) - extra, max(start[0], goal[0]) + extra, max(start[1], goal[1]) + extra]
     obstacles = extendObstaclesArray(state.AISData.ships, state.position)
-    windDirection = state.windDirection
+    measuredWindDirectionDegrees = state.measuredWindDirectionDegrees
+    # TODO: FIX MEASURED TO GLOBAL WIND
     runtime = 5
 
     # Run the planner multiple times and find the best one
@@ -61,7 +63,7 @@ def createLocalPathSS(state):
     solutions = []
     for i in range(numRuns):
         rospy.loginfo("Starting run {}".format(i))
-        solutions.append(plan(runtime, "RRTStar", 'WeightedLengthAndClearanceCombo', windDirection, dimensions, start, goal, obstacles))
+        solutions.append(plan(runtime, "RRTStar", 'WeightedLengthAndClearanceCombo', measuredWindDirectionDegrees, dimensions, start, goal, obstacles))
 
     # Find best solution, but catch exception when solution doesn't work
     # TODO: Figure out more about why solutions fail to implement better exception handling
@@ -87,10 +89,11 @@ def getLocalPath(localPathSS, referenceLatlon):
         localPath.append(XYToLatlon(xy, referenceLatlon))
     return localPath
 
-def badPath(state, localPathSS, referenceLatlon, desiredHeading):
+def badPath(state, localPathSS, referenceLatlon, desiredHeadingMsg):
     # If sailing upwind or downwind, isBad
-    if math.fabs(state.windDirection - desiredHeading) < math.radians(30) or math.fabs(state.windDirection - desiredHeading - math.radians(180)) < math.radians(30):
-        rospy.logwarn("Sailing upwind/downwind. Wind direction: {}. Desired Heading: {}".format(state.windDirection, desiredHeading))
+    # TODO: FIX MEASURED TO GLOBAL WIND
+    if math.fabs(state.measuredWindDirectionDegrees - desiredHeadingMsg.headingDegrees) < math.radians(30) or math.fabs(state.measuredWindDirectionDegrees - desiredHeadingMsg.headingDegrees - math.radians(180)) < math.radians(30):
+        rospy.logwarn("Sailing upwind/downwind. Wind direction: {}. Desired Heading: {}".format(state.measuredWindDirectionDegrees, desiredHeading.headingDegrees))
         return True
 
     # Check if path will hit objects
@@ -108,53 +111,62 @@ def globalWaypointReached(position, globalWaypoint):
     rospy.loginfo("Distance to globalWaypoint is {}".format(dist))
     return distance(sailbot, waypt).kilometers < GLOBAL_WAYPOINT_REACHED_RADIUS_KM
 
-def localWaypointReached(position, localPath, localPathIndex):
-    previousWaypoint = latlon(float(localPath[localPathIndex - 1].lat), float(localPath[localPathIndex - 1].lon))
-    localWaypoint = latlon(float(localPath[localPathIndex].lat), float(localPath[localPathIndex].lon))
-    isStartNorth = localWaypoint.lat < previousWaypoint.lat 
-    isStartEast = localWaypoint.lon < previousWaypoint.lon
-    tangentSlope = (localWaypoint.lat - previousWaypoint.lat) / (localWaypoint.lon - previousWaypoint.lon)
+def localWaypointReached(position, localPath, localPathIndex, refLatlon):
+    positionX, positionY = latlonToXY(position, refLatlon)
+    previousWaypoint = localPath[localPathIndex - 1]
+    localWaypoint = localPath[localPathIndex]
+    previousWaypointX, previousWaypointY = latlonToXY(latlon(previousWaypoint.lat, previousWaypoint.lon), refLatlon)
+    localWaypointX, localWaypointY = latlonToXY(latlon(localWaypoint.lat, localWaypoint.lon), refLatlon)
+    isStartNorth = localWaypointY < previousWaypointY 
+    isStartEast = localWaypointX < previousWaypointX
+
+    if localWaypointX == previousWaypointX:
+        if isStartNorth:
+            return positionY <= localWaypointY
+        else:
+            return positionY >= localWaypointY
+    if localWaypointY == previousWaypointY:
+        if isStartEast:
+            return positionX <= localWaypointX
+        else:
+            return positionX >= localWaypointX
+            
+    tangentSlope = (localWaypointY - previousWaypointY) / (localWaypointX - previousWaypointX)
     normalSlope = -1/tangentSlope
-    startX = previousWaypoint.lon - localWaypoint.lon
-    startY = previousWaypoint.lat - localWaypoint.lat 
-    boatX = position.lon - localWaypoint.lon 
-    boatY = position.lat - localWaypoint.lat
-    '''
-    plt.xlim(-200, 200)
-    plt.ylim(-200, 200)
-    plt.plot([0], [0], marker = 'o', markersize=10, color="red")
-    plt.plot([startX], [startY], marker="o", markersize=10, color="green")
-    plt.plot([boatX], [boatY], marker = "o", markersize=10, color = "black")
-    xvalues = [0, startX] 
-    yvalues = [0, startY]
-    plt.plot(xvalues, yvalues, "-g")
-    x = np.linspace(-200, 200, 100)
-    y = normalSlope * x
-    plt.plot(x, y, '-r')
-    y = tangentSlope * x
-    plt.plot(x, y, '-b')
-    plt.show()
-    '''
     
-    y = lambda x: normalSlope * x
-    x = lambda y: y / float(normalSlope)
+    if localWaypointX > 0:
+        b = localWaypointY + normalSlope * -math.fabs(localWaypointX)
+    else:
+        b = localWaypointY + normalSlope * math.fabs(localWaypointX)
+    y = lambda x: normalSlope * x + b
+    x = lambda y: (y - b) / normalSlope 
+
+#    plt.xlim(-20, 20)
+#    plt.ylim(-20, 20)
+#    plt.plot([0], [0], marker = 'o', markersize=10, color="black")
+#    plt.plot([positionX], [positionY], marker = 'o', markersize=10, color="blue")
+#    plt.plot([previousWaypointX], [previousWaypointY], marker = 'o', markersize=10, color="green")
+#    plt.plot([localWaypointX], [localWaypointY], marker="o", markersize=10, color="red")
+#    x_plot = np.linspace(-200, 200, 100)
+#    plt.plot(x_plot, y(x_plot), '-r')
+#    plt.show()
     
     if isStartNorth: 
-        if boatY < y(boatX):
+        if positionY < y(positionX):
             return True
-    elif boatY > y(boatX):
+    elif positionY > y(positionX):
         return True
 
     if isStartEast: 
-        if boatX < x(boatY):
+        if positionX < x(positionY):
             return True
-    elif boatX > x(boatY):
+    elif positionX > x(positionY):
         return True
 
     return False
 
 def timeLimitExceeded(lastTimePathCreated):
-    return time.time() - lastTimePathCreated > PATH_UPDATE_TIME_LIMIT_SECONDS 
+    return time.time() - lastTimePathCreated > PATH_UPDATE_TIME_LIMIT_SECONDS
 
 def getLocalWaypointLatLon(localPath, localPathIndex):
     # If local path is empty, return (0, 0)
@@ -187,25 +199,25 @@ def extendObstaclesArray(aisArray, referenceLatLon):
 
     for aisData in aisArray:
         aisX, aisY = latlonToXY(latlon(aisData.lat, aisData.lon), referenceLatLon)
-        if aisData.heading == 90 or aisData.heading == 270:
-            if aisData.heading == 90:
-                endY = aisY + aisData.speed * timeToLoc
+        if aisData.headingDegrees == 90 or aisData.headingDegrees == 270:
+            if aisData.headingDegrees == 90:
+                endY = aisY + aisData.speedKmph * timeToLoc
                 yRange = np.arange(aisY, endY, spacing)
-            if aisData.heading == 270:
-                endY = aisY - aisData.speed * timeToLoc
+            if aisData.headingDegrees == 270:
+                endY = aisY - aisData.speedKmph * timeToLoc
                 yRange = np.arange(endY, aisY, spacing)
             for y in yRange:
                 obstacles.append(Obstacle(aisX, y, radius))
         else:
-            isHeadingWest = aisData.heading < 270 and aisData.heading > 90
-            slope = math.tan(math.radians(aisData.heading))
+            isHeadingWest = aisData.headingDegrees < 270 and aisData.headingDegrees > 90
+            slope = math.tan(math.radians(aisData.headingDegrees))
             dx = spacing / math.sqrt(1 + slope**2)
 
             if aisX > 0:
                 b = aisY + slope * -math.fabs(aisX)
             else:
                 b = aisY + slope * math.fabs(aisX)
-            xDistTravelled =  math.fabs(aisData.speed * timeToLoc * math.cos(math.radians(aisData.heading)))
+            xDistTravelled =  math.fabs(aisData.speedKmph * timeToLoc * math.cos(math.radians(aisData.headingDegrees)))
             y = lambda x: slope * x + b 
             if isHeadingWest:
                 endX = aisX - xDistTravelled
@@ -216,3 +228,7 @@ def extendObstaclesArray(aisArray, referenceLatLon):
             for x in xRange:
                 obstacles.append(Obstacle(x, y(x), radius))
     return obstacles
+
+def measuredWindToGlobalWind(measuredWindSpeed, measuredWindDirectionDegrees, boatSpeed, boatDirectionDegrees):
+    # TODO: Figure out how this works
+    return measuredWindSpeed, measuredWindDirectionDegrees

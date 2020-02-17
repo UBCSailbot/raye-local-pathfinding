@@ -8,7 +8,6 @@ Inputs:
 - Heading
 - GPS location (with speed)
 - Output from global path planner
-- ~~Heel angle~~
 
 Outputs:
 - Desired heading (for the MPC controller)
@@ -17,9 +16,25 @@ Outputs:
 
 Be sure to run the installation instructions below before running.
 
-To test the OMPL code through a simple command line interface, run `python2 python/cli.py`.
+### Test OMPL pathfinding 
 
-To run the local pathfinding system with ROS, run `source ~/catkin_ws/devel/setup.bash` and then `roslaunch local_pathfinding launch_all_mocks.launch` to setup the mock nodes. In a new terminal, run `source ~/catkin_ws/devel/setup.bash` and then `rosrun local_pathfinding main_loop.py`. You can also open OpenCPN and follow the instructions in the OpenCPN file to visualize the path finding progression.
+To test the OMPL pathfinding code through a simple command line interface, run `python2 python/cli.py`.
+
+### Running Local Pathfinding Main Loop + Mock Inputs + Visualizer 
+
+The easiest way to run the local pathfinding system with ROS is to use multiple terminals. For each terminal, you will need to run `source ~/catkin_ws/devel/setup.bash` before running other commands.
+
+* In a new terminal, run `roslaunch local_pathfinding launch_all_mocks.launch` to setup the mock nodes.
+
+* In a new terminal, run `rosrun local_pathfinding main_loop.py` to run the main loop.
+
+* In a new terminal, run `rosrun local_pathfinding local_path_visualizer.py` to run the local path visualizer. This uses Matplotlib to visualize the system. The coordinates are in km with respect to the next global waypoint.
+
+![alt text](images/local_path_visualizer.png?raw=true "Local Path Visualizer")
+
+* You can also open OpenCPN to visualize the path finding progression over the entire map.
+
+![alt text](images/opencpn_visualizer.png?raw=true "OpenCPN Visualizer")
 
 ## Installation
 

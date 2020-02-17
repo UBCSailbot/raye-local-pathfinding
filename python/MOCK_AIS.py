@@ -13,33 +13,34 @@ class Ship:
         self.id = id
         self.lat = sailbot_lat + random.gauss(0, 0.2)
         self.lon = sailbot_lon + random.gauss(0, 0.2)
-        self.heading = math.radians(random.randint(0, 360))
-        self.speed = random.randint(0, 15)
+        self.headingDegrees = random.randint(0, 360)
+        self.speedKmph = random.randint(0, 15)
 
     def move(self):
+        # TODO: Update speed calculation latlon <=> kmph
         speed_coeff = 0.001
         
-        dx = math.cos(self.heading)*self.speed*speed_coeff
-        dy = math.sin(self.heading)*self.speed*speed_coeff
+        dx = math.cos(self.headingDegrees)*self.speedKmph*speed_coeff
+        dy = math.sin(self.headingDegrees)*self.speedKmph*speed_coeff
 
         self.lon = self.lon + dx
         self.lat = self.lat + dy
 
     def make_ros_message(self):
-        return msg.AIS_ship(
+        return msg.AISShip(
                     self.id,
                     self.lat,
                     self.lon,
-                    self.heading,
-                    self.speed)
+                    self.headingDegrees,
+                    self.speedKmph)
 
 class RealShip(Ship):
     def __init__(self, MMSI, lat, lon, heading, speed):
         self.id = MMSI
         self.lat = lat
         self.lon = lon
-        self.heading = heading
-        self.speed = speed
+        self.headingDegrees = heading
+        self.speedKmph = speed
 
 
 class MOCK_AISEnvironment: 
@@ -52,7 +53,7 @@ class MOCK_AISEnvironment:
             self.ships.append(Ship(i, lat, lon))
 
         rospy.init_node('MOCK_AIS', anonymous=True)
-        self.publisher = rospy.Publisher("MOCK_AIS", msg.AIS_msg, queue_size=4)
+        self.publisher = rospy.Publisher("AIS", msg.AISMsg, queue_size=4)
 
     def move_ships(self):
         for i in range(10):
@@ -69,7 +70,7 @@ class MOCK_AISEnvironment:
         for ship in self.real_ships:
             ship_list.append(ship.make_ros_message())
        
-        return msg.AIS_msg(ship_list)
+        return msg.AISMsg(ship_list)
 
     def get_real_ships(self):
         api_key = "06052ff87ac6fbab9fbd99bce5c80c2ef85642e4"
