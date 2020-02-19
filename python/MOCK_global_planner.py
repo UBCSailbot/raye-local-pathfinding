@@ -3,6 +3,16 @@ import rospy
 import math
 
 import local_pathfinding.msg as msg
+from geopy.distance import distance
+
+# Global variables for tracking boat position
+boatLat = 48.5  # Assume start at Port Renfrew (ish)
+boatLon = -124.0
+def gpsCallback(data):
+    global boatLat
+    global boatLon
+    boatLat = data.lat
+    boatLon = data.lon
 
 def create_path(init, goal):
     path = []
@@ -14,7 +24,10 @@ def create_path(init, goal):
     path.append(init_wp)
 
     # Just do some linear interpolation
-    num_global_waypoints = 25
+    avg_waypoint_distance_km = 30  # TODO: Set this to match global pathfinding
+    total_distance_km = distance(init, goal).kilometers
+    num_global_waypoints = int(round(total_distance_km / avg_waypoint_distance_km))
+
     for i in range(1, num_global_waypoints):
         coeff = float(i)/(num_global_waypoints)
         lat = (1 - coeff)*init[0] + coeff*goal[0]
@@ -33,16 +46,30 @@ def create_path(init, goal):
     return path
 
 def MOCK_global():
-    init = [48.5, -124.0] # Port Renfrew (ish)
+    global boatLat
+    global boatLon
+    init = [boatLat, boatLon]
     goal = [20.0, -156.0] # Maui (ish)
     path = create_path(init, goal)
 
     rospy.init_node('MOCK_global_planner', anonymous=True)
     pub = rospy.Publisher("globalPath", msg.path, queue_size=4)
-    publish_period = 10 # Seconds. TODO: set this rate
-    r = rospy.Rate(float(1) / publish_period)
+    publish_period_seconds = 10 # Seconds. TODO: set this rate
+    r = rospy.Rate(float(1) / publish_period_seconds)  # Hz
 
+    # Subscribe to GPS to publish new global paths based on boat position
+    rospy.Subscriber("GPS", msg.GPS, gpsCallback)
+
+    republish_counter = 0
     while not rospy.is_shutdown():
+        # Send updated global path every X periods
+        if republish_counter >= 100:
+            republish_counter = 0
+            init = [boatLat, boatLon]
+            path = create_path(init, goal)
+        else:
+            republish_counter += 1
+
         pub.publish(msg.path(path))
         r.sleep()
 
