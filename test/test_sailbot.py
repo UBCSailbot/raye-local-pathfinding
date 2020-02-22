@@ -31,7 +31,9 @@ class TestSailbot(unittest.TestCase):
 
         # Publish GPS message
         gpsPublisher = rospy.Publisher("GPS", msg.GPS, queue_size=4)
-        rospy.sleep(0.1)  # Need sleeps before and after publishes for pub/sub setup
+        # Wait for connection to be made between subscriber and publisher
+        while gpsPublisher.get_num_connections() == 0:
+            rospy.sleep(0.001)
         gpsPublisher.publish(gpsMsg)
         rospy.sleep(0.1)
 
@@ -50,7 +52,9 @@ class TestSailbot(unittest.TestCase):
 
         # Publish windsensor message
         windSensorPublisher = rospy.Publisher("windSensor", msg.windSensor, queue_size=4)
-        rospy.sleep(0.1)  # Need sleeps before and after publishes for pub/sub setup
+        # Wait for connection to be made between subscriber and publisher
+        while windSensorPublisher.get_num_connections() == 0:
+            rospy.sleep(0.001)
         windSensorPublisher.publish(windSensorMsg)
         rospy.sleep(0.1)
 
@@ -67,7 +71,9 @@ class TestSailbot(unittest.TestCase):
 
         # Publish AIS message
         AISPublisher = rospy.Publisher("AIS", msg.AISMsg, queue_size=4)
-        rospy.sleep(0.1)  # Need sleeps before and after publishes for pub/sub setup
+        # Wait for connection to be made between subscriber and publisher
+        while AISPublisher.get_num_connections() == 0:
+            rospy.sleep(0.001)
         AISPublisher.publish(AISMsg)
         rospy.sleep(0.1)
 
@@ -83,7 +89,9 @@ class TestSailbot(unittest.TestCase):
 
         # Publish globalPath message
         globalPathPublisher = rospy.Publisher("globalPath", msg.path, queue_size=4)
-        rospy.sleep(0.1)  # Need sleeps before and after publishes for pub/sub setup
+        # Wait for connection to be made between subscriber and publisher
+        while globalPathPublisher.get_num_connections() == 0:
+            rospy.sleep(0.001)
         globalPathPublisher.publish(globalPathMsg)
         rospy.sleep(0.1)
 
