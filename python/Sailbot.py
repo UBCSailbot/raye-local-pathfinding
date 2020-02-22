@@ -53,19 +53,29 @@ class Sailbot:
             rospy.logwarn("Invalid global path received.")
             return
 
-        # Update globalPath if current path is None
-        if self.globalPath is None:
-            self.updateGlobalPath(data)
-            return
-
-        # Update globalPath if current path different from new path
-        oldFirstPoint = (self.globalPath[0].lat, self.globalPath[0].lon)
-        newFirstPoint = (data.waypoints[0].lat, data.waypoints[0].lon)
-        if distance(oldFirstPoint, newFirstPoint).kilometers > 1:
+        # Update if current path is different from new path
+        if self.isNewPath(self.globalPath, data.waypoints):
             self.updateGlobalPath(data)
         else:
             rospy.logwarn_once("New global path is the same as the current path. This warning will only show once")
             # rospy.logwarn("New global path is the same as the current path.")
+
+
+    def isNewPath(self, oldPath, newPath):
+        # Check if they are obviously different
+        if oldPath is None or not len(oldPath) == len(newPath):
+            return True
+
+        # Path is different if there exists a point with distance >1km away from current point
+        MAX_DISTANCE_BETWEEN_SAME_POINTS_KM = 1
+        for i in range(len(oldPath)):
+            oldFirstPoint = (oldPath[i].lat, oldPath[i].lon)
+            newFirstPoint = (newPath[i].lat, newPath[i].lon)
+            if distance(oldFirstPoint, newFirstPoint).kilometers > MAX_DISTANCE_BETWEEN_SAME_POINTS_KM:
+                return True
+
+        return False
+
 
     def updateGlobalPath(self, data):
         rospy.loginfo("New global path received.")
