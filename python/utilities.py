@@ -13,6 +13,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Constants
+AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM = 3
 GLOBAL_WAYPOINT_REACHED_RADIUS_KM = 5
 PATH_UPDATE_TIME_LIMIT_SECONDS = 5000
 
@@ -80,10 +81,9 @@ def createLocalPathSS(state):
         print("solutions[0] = {}".format(solutions[0]))
 
     # Set the average distance between waypoints
-    lengthKm = solution.getSolutionPath().length()
-    desiredWaypointDistanceKm = 50
-    numberOfWaypoints = int(lengthKm / desiredWaypointDistanceKm)
-    solution.getSolutionPath().interpolate(numberOfWaypoints)
+    localPathLengthKm = solution.getSolutionPath().length()
+    numberOfLocalWaypoints = int(localPathLengthKm / AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM)
+    solution.getSolutionPath().interpolate(numberOfLocalWaypoints)
 
     return solution, state.position
 
