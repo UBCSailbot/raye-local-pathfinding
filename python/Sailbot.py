@@ -54,7 +54,7 @@ class Sailbot:
             return
 
         # Update if current path is different from new path
-        if self.isNewPath(self.globalpath, data.waypoints):
+        if self.isNewPath(self.globalPath, data.waypoints):
             self.updateGlobalPath(data)
         else:
             rospy.logwarn_once("New global path is the same as the current path. This warning will only show once")
