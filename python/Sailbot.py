@@ -67,10 +67,11 @@ class Sailbot:
             return True
 
         # Path is different if there exists a point with distance >1km away from current point
+        MAX_DISTANCE_BETWEEN_SAME_POINTS_KM = 1
         for i in range(len(oldPath)):
             oldFirstPoint = (oldPath[i].lat, oldPath[i].lon)
             newFirstPoint = (newPath[i].lat, newPath[i].lon)
-            if distance(oldFirstPoint, newFirstPoint).kilometers > 1:
+            if distance(oldFirstPoint, newFirstPoint).kilometers > MAX_DISTANCE_BETWEEN_SAME_POINTS_KM:
                 return True
 
         return False
