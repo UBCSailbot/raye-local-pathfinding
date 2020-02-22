@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import sys
 import rospy
 import math
 from local_pathfinding.msg import AISMsg, GPS, path, latlon, windSensor
@@ -58,8 +59,13 @@ if __name__ == '__main__':
 
     # Wait for first messages
     while localPath is None or nextLocalWaypoint is None or nextGlobalWaypoint is None:
-        rospy.loginfo("Waiting to receive first ROS messages")
-        time.sleep(1)
+        # Exit if shutdown
+        if rospy.is_shutdown():
+            rospy.loginfo("rospy.is_shutdown() is True. Exiting")
+            sys.exit()
+        else:
+            rospy.loginfo("Waiting to receive first ROS messages")
+            time.sleep(1)
     rospy.loginfo("ROS message received. Starting visualization")
 
     # Convert values from latlon to XY, relative to the nextGlobalWaypoint

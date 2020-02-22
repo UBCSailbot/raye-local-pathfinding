@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import sys
 import rospy
 import local_pathfinding.msg as msg
 from Sailbot import *
@@ -22,8 +23,13 @@ if __name__ == '__main__':
 
     # Wait until first global path is received
     while not sailbot.newGlobalPathReceived:
-        rospy.loginfo("Waiting for sailbot to receive first newGlobalPath")
-        time.sleep(1)
+        # Exit if shutdown
+        if rospy.is_shutdown():
+            rospy.loginfo("rospy.is_shutdown() is True. Exiting")
+            sys.exit()
+        else:
+            rospy.loginfo("Waiting for sailbot to receive first newGlobalPath")
+            time.sleep(1)
     rospy.loginfo("newGlobalPath received. Starting main loop")
 
     # Create first path and track time of updates
