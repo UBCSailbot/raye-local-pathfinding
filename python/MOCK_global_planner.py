@@ -5,6 +5,11 @@ import math
 import local_pathfinding.msg as msg
 from geopy.distance import distance
 
+# Constants for this class
+PUBLISH_PERIOD_SECONDS = 10.0
+NUM_PUBLISH_PERIODS_PER_UPDATE = 100
+AVG_WAYPOINT_DISTANCE_KM = 30  # TODO: Set this to match global pathfinding
+
 # Global variables for tracking boat position
 boatLat = 48.5  # Assume start at Port Renfrew (ish)
 boatLon = -124.0
@@ -24,9 +29,8 @@ def create_path(init, goal):
     path.append(init_wp)
 
     # Just do some linear interpolation
-    avg_waypoint_distance_km = 30  # TODO: Set this to match global pathfinding
     total_distance_km = distance(init, goal).kilometers
-    num_global_waypoints = int(round(total_distance_km / avg_waypoint_distance_km))
+    num_global_waypoints = int(round(total_distance_km / AVG_WAYPOINT_DISTANCE_KM))
 
     for i in range(1, num_global_waypoints):
         coeff = float(i)/(num_global_waypoints)
@@ -54,8 +58,7 @@ def MOCK_global():
 
     rospy.init_node('MOCK_global_planner', anonymous=True)
     pub = rospy.Publisher("globalPath", msg.path, queue_size=4)
-    publish_period_seconds = 10 # Seconds. TODO: set this rate
-    r = rospy.Rate(float(1) / publish_period_seconds)  # Hz
+    r = rospy.Rate(float(1) / PUBLISH_PERIOD_SECONDS)  # Hz
 
     # Subscribe to GPS to publish new global paths based on boat position
     rospy.Subscriber("GPS", msg.GPS, gpsCallback)
@@ -63,7 +66,7 @@ def MOCK_global():
     republish_counter = 0
     while not rospy.is_shutdown():
         # Send updated global path every X periods
-        if republish_counter >= 100:
+        if republish_counter >= NUM_PUBLISH_PERIODS_PER_UPDATE:
             republish_counter = 0
             init = [boatLat, boatLon]
             path = create_path(init, goal)
