@@ -79,7 +79,7 @@ if __name__ == '__main__':
 
     # Create plot with waypoints and boat
     xPLim, xNLim, yPLim, yNLim = getXYLimits(localPathXY[0], nextGlobalWaypointXY)
-    markersize = (xPLim - xNLim) / 15
+    markersize = min(xPLim - xNLim, yPLim - yNLim) / 5
     axes = plt.gca()
     localPathPlot, = axes.plot(localPathX, localPathY, marker='.', color='g', markersize=markersize / 2, linewidth=2)                    # Small green dots
     nextGlobalWaypointPlot, = axes.plot(nextGlobalWaypointXY[0], nextGlobalWaypointXY[1], marker='*', color='y', markersize=markersize)  # Yellow start
