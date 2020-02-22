@@ -2,26 +2,30 @@
 import rospy
 import math
 import random
+from geopy.distance import distance
+from utilities import headingToBearingDegrees
 
 import local_pathfinding.msg as msg
 
 class Ship:
-    def __init__(self, id, sailbot_lat, sailbot_lon):
+    def __init__(self, id, sailbot_lat, sailbot_lon, publishPeriodSeconds):
         self.id = id
-        self.lat = sailbot_lat + random.gauss(0, 0.2)
-        self.lon = sailbot_lon + random.gauss(0, 0.2)
         self.headingDegrees = random.randint(0, 360)
         self.speedKmph = random.randint(0, 15)
 
-    def move(self):
-        # TODO: Update speed calculation latlon <=> kmph
-        speed_coeff = 0.001
-        
-        dx = math.cos(self.headingDegrees)*self.speedKmph*speed_coeff
-        dy = math.sin(self.headingDegrees)*self.speedKmph*speed_coeff
+        # Set boat position to be within 25 km radius from the given latlon
+        boatLatlon = distance(kilometers=random.randint(0, 25)).destination(point=(sailbot_lat, sailbot_lon), bearing=random.randint(0, 360))
+        self.lat = boatLatlon.latitude
+        self.lon = boatLatlon.longitude
 
-        self.lon = self.lon + dx
-        self.lat = self.lat + dy
+        self.publishPeriodSeconds = publishPeriodSeconds
+
+    def move(self):
+        distanceTraveled = distance(kilometers=self.speedKmph * self.publishPeriodSeconds / 3600)
+        boatLatlon = distanceTraveled.destination(point=(self.lat, self.lon), bearing=headingToBearingDegrees(self.headingDegrees))
+
+        self.lon = boatLatlon.longitude
+        self.lat = boatLatlon.latitude
 
     def make_ros_message(self):
         return msg.AISShip(
@@ -35,9 +39,10 @@ class Ship:
 class MOCK_AISEnvironment: 
     # Just a class to keep track of the ships surrounding the sailbot
     def __init__(self, lat, lon):
+        self.publishPeriodSeconds = 1.0
         self.ships = []
         for i in range(10):
-            self.ships.append(Ship(i, lat, lon))
+            self.ships.append(Ship(i, lat, lon, self.publishPeriodSeconds))
 
         rospy.init_node('MOCK_AIS', anonymous=True)
         self.publisher = rospy.Publisher("AIS", msg.AISMsg, queue_size=4)
@@ -53,8 +58,9 @@ class MOCK_AISEnvironment:
         return msg.AISMsg(ship_list)
 
 if __name__ == '__main__':
+    # Create boats near Port Renfrew: 48.5, -124.8
     ais_env = MOCK_AISEnvironment(48.5, -124.8)
-    r = rospy.Rate(1) #hz
+    r = rospy.Rate(1.0 / ais_env.publishPeriodSeconds) #hz
 
     while not rospy.is_shutdown():
         ais_env.move_ships()

@@ -78,7 +78,7 @@ if __name__ == '__main__':
     localPathPlot, = axes.plot(localPathX, localPathY, marker='.', color='g', markersize=markersize / 2, linewidth=2)                    # Small green dots
     nextGlobalWaypointPlot, = axes.plot(nextGlobalWaypointXY[0], nextGlobalWaypointXY[1], marker='*', color='y', markersize=markersize)  # Yellow start
     nextLocalWaypointPlot, = axes.plot(nextLocalWaypointXY[0], nextLocalWaypointXY[1], marker='X', color='g', markersize=markersize)     # Green X
-    positionPlot, = axes.plot(positionXY[0], positionXY[1], marker=(3,0,state.headingDegrees - 90), color='r', markersize=markersize)           # Blue triangle with correct heading
+    positionPlot, = axes.plot(positionXY[0], positionXY[1], marker=(3,0,state.headingDegrees - 90), color='r', markersize=markersize)           # Blue triangle with correct heading. The (-90) is because the triangle default heading 0 points North, but this heading has 0 be East.
 
     # Setup plot xy limits and labels
     axes.set_xlim(xNLim, xPLim)
@@ -132,8 +132,8 @@ if __name__ == '__main__':
         # Add boats and wind speed arrow
         for ship in shipsXY:
             axes.add_patch(plt.Circle((ship.x, ship.y), radius=ship.radius))
-        arrowStart = (arrowCenter[0] - 0.5*arrowLength*math.cos(globalWindDirectionDegrees), arrowCenter[1] - 0.5*arrowLength*math.sin(globalWindDirectionDegrees))
-        windDirection = patches.FancyArrow(arrowStart[0], arrowStart[1], arrowLength*math.cos(globalWindDirectionDegrees), arrowLength*math.sin(globalWindDirectionDegrees), width=arrowLength/4)
+        arrowStart = (arrowCenter[0] - 0.5*arrowLength*math.cos(math.radians(globalWindDirectionDegrees)), arrowCenter[1] - 0.5*arrowLength*math.sin(math.radians(globalWindDirectionDegrees)))
+        windDirection = patches.FancyArrow(arrowStart[0], arrowStart[1], arrowLength*math.cos(math.radians(globalWindDirectionDegrees)), arrowLength*math.sin(math.radians(globalWindDirectionDegrees)), width=arrowLength/4)
         axes.add_patch(windDirection)
 
         # Draw then sleep

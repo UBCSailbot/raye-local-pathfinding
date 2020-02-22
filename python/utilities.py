@@ -27,6 +27,12 @@ HEADING_NORTH = 90
 HEADING_WEST = 180
 HEADING_SOUTH = 270
 
+# Constants for boat frame angles
+BOAT_RIGHT = 0
+BOAT_FORWARD = 90
+BOAT_LEFT = 180
+BOAT_BACKWARD = 270
+
 def latlonToXY(latlon, referenceLatlon):
     x = distance((referenceLatlon.lat, referenceLatlon.lon), (referenceLatlon.lat, latlon.lon)).kilometers
     y = distance((referenceLatlon.lat, referenceLatlon.lon), (latlon.lat, referenceLatlon.lon)).kilometers
@@ -53,8 +59,7 @@ def createLocalPathSS(state):
     extra = 10   # Extra length to show more in the plot
     dimensions = [min(start[0], goal[0]) - extra, min(start[1], goal[1]) - extra, max(start[0], goal[0]) + extra, max(start[1], goal[1]) + extra]
     obstacles = extendObstaclesArray(state.AISData.ships, state.position)
-    measuredWindDirectionDegrees = state.measuredWindDirectionDegrees
-    # TODO: FIX MEASURED TO GLOBAL WIND
+    globalWindSpeedKmph, globalWindDirectionDegrees = measuredWindToGlobalWind(state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
     runtime = 5
 
     # Run the planner multiple times and find the best one
@@ -63,7 +68,8 @@ def createLocalPathSS(state):
     solutions = []
     for i in range(numRuns):
         rospy.loginfo("Starting run {}".format(i))
-        solutions.append(plan(runtime, "RRTStar", 'WeightedLengthAndClearanceCombo', measuredWindDirectionDegrees, dimensions, start, goal, obstacles))
+        # TODO: Incorporate globalWindSpeed into pathfinding?
+        solutions.append(plan(runtime, "RRTStar", 'WeightedLengthAndClearanceCombo', globalWindDirectionDegrees, dimensions, start, goal, obstacles))
 
     # Find best solution, but catch exception when solution doesn't work
     # TODO: Figure out more about why solutions fail to implement better exception handling
@@ -91,9 +97,9 @@ def getLocalPath(localPathSS, referenceLatlon):
 
 def badPath(state, localPathSS, referenceLatlon, desiredHeadingMsg):
     # If sailing upwind or downwind, isBad
-    # TODO: FIX MEASURED TO GLOBAL WIND
-    if math.fabs(state.measuredWindDirectionDegrees - desiredHeadingMsg.headingDegrees) < math.radians(30) or math.fabs(state.measuredWindDirectionDegrees - desiredHeadingMsg.headingDegrees - math.radians(180)) < math.radians(30):
-        rospy.logwarn("Sailing upwind/downwind. Wind direction: {}. Desired Heading: {}".format(state.measuredWindDirectionDegrees, desiredHeading.headingDegrees))
+    globalWindSpeedKmph, globalWindDirectionDegrees = measuredWindToGlobalWind(state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
+    if math.fabs(globalWindDirectionDegrees - desiredHeadingMsg.headingDegrees) < 30 or math.fabs(globalWindDirectionDegrees- desiredHeadingMsg.headingDegrees - math.radians(180)) < 30:
+        rospy.logwarn("Sailing upwind/downwind. Global Wind direction: {}. Desired Heading: {}".format(globalWindDirectionDegrees, desiredHeading.headingDegrees))
         return True
 
     # Check if path will hit objects
@@ -229,6 +235,41 @@ def extendObstaclesArray(aisArray, referenceLatLon):
                 obstacles.append(Obstacle(x, y(x), radius))
     return obstacles
 
-def measuredWindToGlobalWind(measuredWindSpeed, measuredWindDirectionDegrees, boatSpeed, boatDirectionDegrees):
-    # TODO: Figure out how this works
+def measuredWindToGlobalWind(measuredWindSpeed, measuredWindDirectionDegrees, boatSpeed, headingDegrees):
+    # Calculate wind speed in boat frame. X is right. Y is forward.
+    measuredWindSpeedXBoatFrame = measuredWindSpeed * math.cos(math.radians(measuredWindDirectionDegrees))
+    measuredWindSpeedYBoatFrame = measuredWindSpeed * math.sin(math.radians(measuredWindDirectionDegrees))
+
+    # Assume boat is moving entirely in heading direction, so all boat speed is in boat frame Y direction
+    trueWindSpeedXBoatFrame = measuredWindSpeedXBoatFrame
+    trueWindSpeedYBoatFrame = measuredWindSpeedYBoatFrame + boatSpeed
+
+    # Calculate wind speed in global frame. X is EAST. Y is NORTH.
+    trueWindSpeedXGlobalFrame = trueWindSpeedXBoatFrame * math.sin(math.radians(headingDegrees)) + trueWindSpeedYBoatFrame * math.cos(math.radians(headingDegrees))
+    trueWindSpeedYGlobalFrame = trueWindSpeedYBoatFrame * math.sin(math.radians(headingDegrees)) - trueWindSpeedXBoatFrame * math.cos(math.radians(headingDegrees))
+
+    # Calculate global wind speed and direction
+    globalWindSpeed = (trueWindSpeedXGlobalFrame**2 + trueWindSpeedYGlobalFrame**2)**0.5
+    globalWindDirectionDegrees = math.degrees(math.atan2(trueWindSpeedYGlobalFrame, trueWindSpeedXGlobalFrame))
+
+    return globalWindSpeed, globalWindDirectionDegrees
+
+def globalWindToMeasuredWind(globalWindSpeed, globalWindDirectionDegrees, boatSpeed, headingDegrees):
+    # Calculate the measuredWindSpeed in the global frame
+    measuredWindSpeedXGlobalFrame = globalWindSpeed * math.cos(math.radians(globalWindDirectionDegrees)) - boatSpeed * math.cos(math.radians(headingDegrees))
+    measuredWindSpeedYGlobalFrame = globalWindSpeed * math.sin(math.radians(globalWindDirectionDegrees)) - boatSpeed * math.sin(math.radians(headingDegrees))
+
+    # Calculated the measuredWindSpeed in the boat frame
+    measuredWindSpeedXBoatFrame = measuredWindSpeedXGlobalFrame * math.sin(math.radians(headingDegrees)) - measuredWindSpeedYGlobalFrame * math.cos(math.radians(headingDegrees))
+    measuredWindSpeedYBoatFrame = measuredWindSpeedXGlobalFrame * math.cos(math.radians(headingDegrees)) + measuredWindSpeedYGlobalFrame * math.sin(math.radians(headingDegrees))
+
+    measuredWindDirectionDegrees = math.degrees(math.atan2(measuredWindSpeedYBoatFrame, measuredWindSpeedXBoatFrame))
+    measuredWindSpeed = (measuredWindSpeedYBoatFrame**2 + measuredWindSpeedXBoatFrame**2)**0.5
+
     return measuredWindSpeed, measuredWindDirectionDegrees
+
+def headingToBearingDegrees(headingDegrees):
+    # Heading is defined using cartesian coordinates. 0 degrees is East. 90 degrees in North. 270 degrees is South.
+    # Bearing is defined differently. 0 degrees is North. 90 degrees is East. 180 degrees is South.
+    # Heading = -Bearing + 90
+    return -headingDegrees + 90

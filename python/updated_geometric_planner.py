@@ -50,7 +50,7 @@ def hasNoCollisions(localPathSS, obstacles):
     return checkMotion
 
 
-def plan(run_time, planner_type, objective_type, wind_direction, dimensions, start_pos, goal_pos, obstacles):
+def plan(run_time, planner_type, objective_type, wind_direction_degrees, dimensions, start_pos, goal_pos, obstacles):
     # Construct the robot state space in which we're planning
     space = ob.SE2StateSpace()
 
@@ -91,7 +91,7 @@ def plan(run_time, planner_type, objective_type, wind_direction, dimensions, sta
     objective = ph.allocate_objective(si, objective_type)
     for i in range(objective.getObjectiveCount()):
         if type(objective.getObjective(i)) is ph.WindObjective:
-            objective.getObjective(i).windDirection = wind_direction
+            objective.getObjective(i).windDirectionDegrees = wind_direction_degrees
     ss.setOptimizationObjective(objective)
 
     # Construct the optimal planner (helper function is simply a switch statement)

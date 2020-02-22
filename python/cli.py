@@ -31,7 +31,7 @@ if __name__ == "__main__":
     parser.add_argument('-i', '--info', type=int, default=2, choices=[0, 1, 2],
                         help='(Optional) Set the OMPL log level. 0 for WARN, 1 for INFO, 2 for DEBUG.' \
                              ' Defaults to WARN.')
-    parser.add_argument('-w', '--windDirection', type=lambda x: math.radians(int(x)), default=math.radians(-135),
+    parser.add_argument('-w', '--windDirection', type=lambda x: int(x), default=-135,
                         help='(Optional) Wind direction in degrees')
 
     parser.add_argument('-d', '--dimensions', nargs=4, type=int, default=[0, 0, 10, 10],

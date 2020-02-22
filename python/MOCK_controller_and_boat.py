@@ -5,13 +5,14 @@ import random
 
 import local_pathfinding.msg as msg
 import geopy.distance
+from utilities import headingToBearingDegrees
 
 class MOCK_ControllerAndSailbot: 
     def __init__(self, lat, lon):
         self.lat = lat
         self.lon = lon
         self.headingDegrees = 180
-        self.speedKmph = 0
+        self.speedKmph = 14.4  # Boat should move at about 4m/s = 14.4 km/h
         self.publishPeriodSeconds = 1.0
 
         rospy.init_node('MOCK_Sailbot_Listener', anonymous=True)
@@ -19,17 +20,9 @@ class MOCK_ControllerAndSailbot:
         rospy.Subscriber("desiredHeading", msg.heading, self.desiredHeadingCallback)
 
     def move(self):
-        # TODO: Change this so that the boat
-        # moves at a reasonable speed
-        kmTraveledPerPeriod = 5
-        distance = geopy.distance.distance(kilometers = kmTraveledPerPeriod)
-
-        # Heading units: 0 degrees => EAST. 90 degrees => NORTH.
-        # Bearing units: 0 degrees => NORTH. 90 degrees => EAST.
-        destination = distance.destination(point=(self.lat, self.lon), bearing=-self.headingDegrees + 90)
-
-        # TODO: translate to m/s
-        self.speedKmph = kmTraveledPerPeriod / (self.publishPeriodSeconds / 3600)
+        kmTraveledPerPeriod = self.speedKmph * self.publishPeriodSeconds / 3600.0
+        distanceTraveled = geopy.distance.distance(kilometers = kmTraveledPerPeriod)
+        destination = distanceTraveled.destination(point=(self.lat, self.lon), bearing=headingToBearingDegrees(self.headingDegrees))
 
         self.lon = destination.longitude
         self.lat = destination.latitude
@@ -37,7 +30,7 @@ class MOCK_ControllerAndSailbot:
 
     def desiredHeadingCallback(self, data):
         rospy.loginfo(data)
-        self.headingDegrees = data.headingDegrees + random.gauss(0, 0.1)
+        self.headingDegrees = data.headingDegrees + random.gauss(0, 1)
 
 if __name__ == '__main__':
     MOCK_ctrl_sailbot = MOCK_ControllerAndSailbot(48.5, -124.8)

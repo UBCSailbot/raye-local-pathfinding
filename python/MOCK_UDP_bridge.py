@@ -6,6 +6,7 @@ import random
 import socket
 
 import local_pathfinding.msg as msg
+from utilities import headingToBearingDegrees, measuredWindToGlobalWind
 
 try:
     import aislib as ais
@@ -36,26 +37,28 @@ class MOCK_UDPBridge:
         rospy.Subscriber("windSensor", msg.windSensor, self.windCallback)
         rospy.Subscriber("globalPath", msg.path, self.globalPathCallback)
         rospy.Subscriber("localPath", msg.path, self.localPathCallback)
+        self.gps = None
 
     def gpsCallback(self, data):
         rospy.loginfo(data)
+        self.gps = data
 	lat = str(int(data.lat)*100 + 60*(data.lat - int(data.lat)))
         lon = str(abs(int(data.lon)*100 + 60*(data.lon - int(data.lon)))) # only works on the western hemisphere!
-        nmea_msg = nmea.RMC('GP', 'RMC', ('000000', 'A', str(lat), 'N', str(lon), 'W', '2.0', str(-data.headingDegrees + 90), '250120', '000.0', 'W'))
+        nmea_msg = nmea.RMC('GP', 'RMC', ('000000', 'A', str(lat), 'N', str(lon), 'W', '2.0', str(headingToBearingDegrees(data.headingDegrees)), '250120', '000.0', 'W'))
         sock.sendto(str(nmea_msg), (UDP_IP, UDP_PORT))
 
     def aisCallback(self, data):
-	# TODO: fix heading
         rospy.loginfo(data)
         for ship in data.ships:
-            aisreport = ais.AISPositionReportMessage(mmsi=ship.ID, lon=int(ship.lon*600000), lat=int(ship.lat*600000), heading=int(-math.degrees(ship.headingDegrees) + 90) % 360)
+            aisreport = ais.AISPositionReportMessage(mmsi=ship.ID, lon=int(ship.lon*600000), lat=int(ship.lat*600000), heading=int(headingToBearingDegrees(ship.headingDegrees)) % 360)
             aismsg = ais.AIS(aisreport)
             sock.sendto(aismsg.build_payload(), (UDP_IP, UDP_PORT))
 
     def windCallback(self, data):
-        # TODO: Fix the wind to show global wind
-        nmea_msg = nmea.MWV('--', 'MWV', (str(math.degrees(data.measuredDirectionDegrees)), 'T', str(data.measuredSpeedKmph), 'M', 'A'))
-        sock.sendto(str(nmea_msg), (UDP_IP, UDP_PORT))
+        if not self.gps is None:
+            globalWindSpeedKmph, globalWindDirectionDegrees = measuredWindToGlobalWind(data.measuredSpeedKmph, data.measuredDirectionDegrees, self.gps.speedKmph, self.gps.headingDegrees)
+            nmea_msg = nmea.MWV('--', 'MWV', (str(globalWindDirectionDegrees), 'T', str(globalWindSpeedKmph), 'M', 'A'))
+            sock.sendto(str(nmea_msg), (UDP_IP, UDP_PORT))
     
     def globalPathCallback(self, data):
         '''
