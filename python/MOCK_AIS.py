@@ -13,8 +13,8 @@ class Ship:
         self.headingDegrees = random.randint(0, 360)
         self.speedKmph = random.randint(0, 15)
 
-        # Set boat position to be within 25 km radius from the given latlon
-        boatLatlon = distance(kilometers=random.randint(0, 25)).destination(point=(sailbot_lat, sailbot_lon), bearing=random.randint(0, 360))
+        # Set AIS boat position to be in about 50km radius around sailbot
+        boatLatlon = distance(kilometers=abs(random.gauss(50, 20))).destination(point=(sailbot_lat, sailbot_lon), bearing=random.randint(0, 360))
         self.lat = boatLatlon.latitude
         self.lon = boatLatlon.longitude
 
