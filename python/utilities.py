@@ -13,8 +13,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Constants
-GLOBAL_WAYPOINT_REACHED_RADIUS_KM = 200
-PATH_UPDATE_TIME_LIMIT_SECONDS = 500
+GLOBAL_WAYPOINT_REACHED_RADIUS_KM = 5
+PATH_UPDATE_TIME_LIMIT_SECONDS = 5000
 
 # Constants for bearing and heading
 BEARING_NORTH = 0
