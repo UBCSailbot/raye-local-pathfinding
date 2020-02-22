@@ -36,6 +36,10 @@ The easiest way to run the local pathfinding system with ROS is to use multiple 
 
 ![alt text](images/opencpn_visualizer.png?raw=true "OpenCPN Visualizer")
 
+### Running tests
+
+To run the tests, navigate to the `catkin_ws` and run `catkin_make run_tests`.
+
 ## Installation
 
 The installation process consists of installing OMPL with Python bindings, setting up your ROS workspace, and setting up OpenCPN for visualization.
