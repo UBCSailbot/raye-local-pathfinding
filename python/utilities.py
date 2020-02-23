@@ -54,12 +54,13 @@ def createLocalPathSS(state):
     ou.setLogLevel(ou.LOG_WARN)
 
     # Get setup parameters from state for ompl plan()
-    # Convert all latlons to NE in km wrt boat position
-    start = [0, 0]
-    goal = latlonToXY(state.globalWaypoint, state.position)
-    extra = 10   # Extra length to show more in the plot
-    dimensions = [min(start[0], goal[0]) - extra, min(start[1], goal[1]) - extra, max(start[0], goal[0]) + extra, max(start[1], goal[1]) + extra]
-    obstacles = extendObstaclesArray(state.AISData.ships, state.position)
+    # Convert all latlons to NE in km wrt referenceLatlon
+    referenceLatlon = state.position
+    start = latlonToXY(state.position, referenceLatlon)
+    goal = latlonToXY(state.globalWaypoint, referenceLatlon)
+    extraKm = 10   # Extra length to show more in the plot
+    dimensions = [min(start[0], goal[0]) - extraKm, min(start[1], goal[1]) - extraKm, max(start[0], goal[0]) + extraKm, max(start[1], goal[1]) + extraKm]
+    obstacles = extendObstaclesArray(state.AISData.ships, referenceLatlon)
     globalWindSpeedKmph, globalWindDirectionDegrees = measuredWindToGlobalWind(state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
     runtime = 5
 
@@ -85,7 +86,7 @@ def createLocalPathSS(state):
     numberOfLocalWaypoints = int(localPathLengthKm / AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM)
     solution.getSolutionPath().interpolate(numberOfLocalWaypoints)
 
-    return solution, state.position
+    return solution, referenceLatlon
 
 def getLocalPath(localPathSS, referenceLatlon):
     # Convert localPathSS solution path (in km WRT reference) into list of latlons
@@ -103,7 +104,7 @@ def badPath(state, localPathSS, referenceLatlon, desiredHeadingMsg):
         return True
 
     # Check if path will hit objects
-    obstacles = extendObstaclesArray(state.AISData.ships, state.position)
+    obstacles = extendObstaclesArray(state.AISData.ships, referenceLatlon)
     if not hasNoCollisions(localPathSS, obstacles):
         rospy.logwarn("Going to hit obstacle.")
         return True

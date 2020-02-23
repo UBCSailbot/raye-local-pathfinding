@@ -68,12 +68,13 @@ if __name__ == '__main__':
             time.sleep(1)
     rospy.loginfo("ROS message received. Starting visualization")
 
-    # Convert values from latlon to XY, relative to the nextGlobalWaypoint
+    # Convert values from latlon to XY, relative to the referenceLatlon
     state = sailbot.getCurrentState()
-    positionXY = latlonToXY(state.position, nextGlobalWaypoint)
-    nextGlobalWaypointXY = latlonToXY(nextGlobalWaypoint, nextGlobalWaypoint)
-    nextLocalWaypointXY = latlonToXY(nextLocalWaypoint, nextGlobalWaypoint)
-    localPathXY = [latlonToXY(localWaypoint, nextGlobalWaypoint) for localWaypoint in localPath]
+    referenceLatlon = nextGlobalWaypoint
+    positionXY = latlonToXY(state.position, referenceLatlon)
+    nextGlobalWaypointXY = latlonToXY(nextGlobalWaypoint, referenceLatlon)
+    nextLocalWaypointXY = latlonToXY(nextLocalWaypoint, referenceLatlon)
+    localPathXY = [latlonToXY(localWaypoint, referenceLatlon) for localWaypoint in localPath]
     localPathX = [xy[0] for xy in localPathXY]
     localPathY = [xy[1] for xy in localPathXY]
 
@@ -103,15 +104,16 @@ if __name__ == '__main__':
 
     while not rospy.is_shutdown():
         state = sailbot.getCurrentState()
+        referenceLatlon = nextGlobalWaypoint
 
-        # Convert values from latlon to XY, relative to the nextGlobalWaypoint
-        positionXY = latlonToXY(state.position, nextGlobalWaypoint)
-        nextGlobalWaypointXY = latlonToXY(nextGlobalWaypoint, nextGlobalWaypoint)
-        nextLocalWaypointXY = latlonToXY(nextLocalWaypoint, nextGlobalWaypoint)
-        localPathXY = [latlonToXY(localWaypoint, nextGlobalWaypoint) for localWaypoint in localPath]
+        # Convert values from latlon to XY, relative to the referenceLatlon
+        positionXY = latlonToXY(state.position, referenceLatlon)
+        nextGlobalWaypointXY = latlonToXY(nextGlobalWaypoint, referenceLatlon)
+        nextLocalWaypointXY = latlonToXY(nextLocalWaypoint, referenceLatlon)
+        localPathXY = [latlonToXY(localWaypoint, referenceLatlon) for localWaypoint in localPath]
         localPathX = [xy[0] for xy in localPathXY]
         localPathY = [xy[1] for xy in localPathXY]
-        shipsXY = extendObstaclesArray(state.AISData.ships, nextGlobalWaypoint)
+        shipsXY = extendObstaclesArray(state.AISData.ships, referenceLatlon)
         # Update plots
         localPathPlot.set_xdata(localPathX)
         localPathPlot.set_ydata(localPathY)

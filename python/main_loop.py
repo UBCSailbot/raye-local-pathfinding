@@ -39,6 +39,7 @@ if __name__ == '__main__':
     localPathIndex = 1  # First waypoint is the start point, so second waypoint is the next local waypoint
     localWaypoint = getLocalWaypointLatLon(localPath, localPathIndex)
     lastTimePathCreated = time.time()
+    sailbot.newGlobalPathReceived = False
 
     while not rospy.is_shutdown():
         rospy.loginfo("sailbot.globalPathIndex: {}".format(sailbot.globalPathIndex))
