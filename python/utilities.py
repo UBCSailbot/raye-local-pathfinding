@@ -50,6 +50,13 @@ def XYToLatlon(xy, referenceLatlon):
     destination = y_distance.destination(point=(destination.latitude, destination.longitude), bearing=BEARING_NORTH)
     return latlon(destination.latitude, destination.longitude)
 
+def isValid(state, obstacles):
+    x, y = state
+    for obstacle in obstacles:
+        if math.sqrt(pow(x - obstacle.x, 2) + pow(y - obstacle.y, 2)) - obstacle.radius <= 0:
+            return False
+    return True
+
 def createLocalPathSS(state):
     ou.setLogLevel(ou.LOG_WARN)
 
@@ -58,37 +65,49 @@ def createLocalPathSS(state):
     referenceLatlon = state.position
     start = latlonToXY(state.position, referenceLatlon)
     goal = latlonToXY(state.globalWaypoint, referenceLatlon)
-    extraKm = 10   # Extra length to show more in the plot
+    extraKm = 10   # Extra length to allow wider solution space
     dimensions = [min(start[0], goal[0]) - extraKm, min(start[1], goal[1]) - extraKm, max(start[0], goal[0]) + extraKm, max(start[1], goal[1]) + extraKm]
     obstacles = extendObstaclesArray(state.AISData.ships, referenceLatlon)
     globalWindSpeedKmph, globalWindDirectionDegrees = measuredWindToGlobalWind(state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
-    runtime = 5
+
+    # If start or goal is invalid, shrink objects and re-run
+    # TODO: Figure out if there is a better method to handle this case
+    while not isValid(start, obstacles) or not isValid(goal, obstacles):
+        rospy.logerr("start or goal state is not valid")
+        shrinkFactor = 2
+        rospy.logerr("Shrinking obstacles by a factor of {}".format(shrinkFactor))
+        for obstacle in obstacles:
+            obstacle.radius /= shrinkFactor
 
     # Run the planner multiple times and find the best one
+    runtimeSeconds = 5
     numRuns = 3
-    rospy.loginfo("Running createLocalPathSS. runTime: {}. numRuns: {}. Total time: {} seconds".format(runtime, numRuns, runtime*numRuns))
+    rospy.loginfo("Running createLocalPathSS. runtimeSeconds: {}. numRuns: {}. Total time: {} seconds".format(runtimeSeconds, numRuns, runtimeSeconds*numRuns))
     solutions = []
     for i in range(numRuns):
         # TODO: Incorporate globalWindSpeed into pathfinding?
         rospy.loginfo("Starting path-planning run number: {}".format(i))
-        solution = plan(runtime, "RRTStar", 'WeightedLengthAndClearanceCombo', globalWindDirectionDegrees, dimensions, start, goal, obstacles)
+        solution = plan(runtimeSeconds, "RRTStar", 'WeightedLengthAndClearanceCombo', globalWindDirectionDegrees, dimensions, start, goal, obstacles)
         if solution.haveExactSolutionPath():
             solutions.append(solution)
         else:
             rospy.logwarn("Solution number {} does not have exact solution path".format(i))
 
-    # Check if no solutions found
-    if len(solutions) == 0:
-        # TODO: Figure out what to do if no solution is found. Eg. try again with high runtime
-        rospy.logerr("No solutions found")
-        raise Exception("No solutions found")
+    # If no solutions found, re-run with larger runtime
+    # TODO: Figure out if there is a better method to handle this case
+    while len(solutions) == 0:
+        rospy.logerr("No solutions found in {} seconds runtime".format(runtimeSeconds))
+        # If solution can't be found for large runtime, then exit
+        if runtimeSeconds >= 1000:
+            rospy.logerr("No possible solution can be found. Exiting")
+            raise Exception("No possible solution can be found. Exiting")
+        runtimeSeconds *= 10
+        rospy.logerr("Attempting to rerun with longer runtime: {} seconds".format(runtimeSeconds))
+        solution = plan(runtimeSeconds, "RRTStar", 'WeightedLengthAndClearanceCombo', globalWindDirectionDegrees, dimensions, start, goal, obstacles)
+        if solution.haveExactSolutionPath():
+            solutions.append(solution)
 
-    # Find best solution, but catch exception when solution doesn't work
-    # TODO: Figure out more about why solutions fail to implement better exception handling
-    try:
-        solution = min(solutions, key=lambda x: x.getSolutionPath().cost(x.getOptimizationObjective()).value())
-    except:
-        print("Solution failed!")
+    solution = min(solutions, key=lambda x: x.getSolutionPath().cost(x.getOptimizationObjective()).value())
 
     # Set the average distance between waypoints
     localPathLengthKm = solution.getSolutionPath().length()
