@@ -65,21 +65,30 @@ def createLocalPathSS(state):
     runtime = 5
 
     # Run the planner multiple times and find the best one
-    numRuns = 1
+    numRuns = 3
     rospy.loginfo("Running createLocalPathSS. runTime: {}. numRuns: {}. Total time: {} seconds".format(runtime, numRuns, runtime*numRuns))
     solutions = []
     for i in range(numRuns):
-        rospy.loginfo("Starting run {}".format(i))
         # TODO: Incorporate globalWindSpeed into pathfinding?
-        solutions.append(plan(runtime, "RRTStar", 'WeightedLengthAndClearanceCombo', globalWindDirectionDegrees, dimensions, start, goal, obstacles))
+        rospy.loginfo("Starting path-planning run number: {}".format(i))
+        solution = plan(runtime, "RRTStar", 'WeightedLengthAndClearanceCombo', globalWindDirectionDegrees, dimensions, start, goal, obstacles)
+        if solution.haveExactSolutionPath():
+            solutions.append(solution)
+        else:
+            rospy.logwarn("Solution number {} does not have exact solution path".format(i))
+
+    # Check if no solutions found
+    if len(solutions) == 0:
+        # TODO: Figure out what to do if no solution is found. Eg. try again with high runtime
+        rospy.logerr("No solutions found")
+        raise Exception("No solutions found")
 
     # Find best solution, but catch exception when solution doesn't work
     # TODO: Figure out more about why solutions fail to implement better exception handling
     try:
         solution = min(solutions, key=lambda x: x.getSolutionPath().cost(x.getOptimizationObjective()).value())
     except:
-        print("Solution did not work")
-        print("solutions[0] = {}".format(solutions[0]))
+        print("Solution failed!")
 
     # Set the average distance between waypoints
     localPathLengthKm = solution.getSolutionPath().length()
