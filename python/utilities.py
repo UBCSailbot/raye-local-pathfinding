@@ -12,6 +12,10 @@ from local_pathfinding.msg import latlon, AISShip
 import numpy as np
 import matplotlib.pyplot as plt
 
+# Location constants
+PORT_RENFREW_LATLON = latlon(48.5, -124.8)
+MAUI_LATLON = latlon(20.0, -156.0)
+
 # Constants
 AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM = 3
 GLOBAL_WAYPOINT_REACHED_RADIUS_KM = 5

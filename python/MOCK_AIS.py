@@ -3,7 +3,7 @@ import rospy
 import math
 import random
 from geopy.distance import distance
-from utilities import headingToBearingDegrees
+from utilities import headingToBearingDegrees, PORT_RENFREW_LATLON
 
 import local_pathfinding.msg as msg
 
@@ -58,8 +58,7 @@ class MOCK_AISEnvironment:
         return msg.AISMsg(ship_list)
 
 if __name__ == '__main__':
-    # Create boats near Port Renfrew: 48.5, -124.8
-    ais_env = MOCK_AISEnvironment(48.5, -124.8)
+    ais_env = MOCK_AISEnvironment(PORT_RENFREW_LATLON.lat, PORT_RENFREW_LATLON.lon)
     r = rospy.Rate(1.0 / ais_env.publishPeriodSeconds) #hz
 
     while not rospy.is_shutdown():

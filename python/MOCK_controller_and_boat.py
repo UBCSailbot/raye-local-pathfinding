@@ -5,7 +5,7 @@ import random
 
 import local_pathfinding.msg as msg
 import geopy.distance
-from utilities import headingToBearingDegrees
+from utilities import headingToBearingDegrees, PORT_RENFREW_LATLON
 
 class MOCK_ControllerAndSailbot: 
     def __init__(self, lat, lon):
@@ -33,7 +33,7 @@ class MOCK_ControllerAndSailbot:
         self.headingDegrees = data.headingDegrees + random.gauss(0, 1)
 
 if __name__ == '__main__':
-    MOCK_ctrl_sailbot = MOCK_ControllerAndSailbot(48.5, -124.8)
+    MOCK_ctrl_sailbot = MOCK_ControllerAndSailbot(PORT_RENFREW_LATLON.lat, PORT_RENFREW_LATLON.lon)
     r = rospy.Rate(float(1) / MOCK_ctrl_sailbot.publishPeriodSeconds)
 
     while not rospy.is_shutdown():
