@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import rospy
 import math
+from utilities import PORT_RENFREW_LATLON, MAUI_LATLON
 
 import local_pathfinding.msg as msg
 from geopy.distance import distance
@@ -11,8 +12,8 @@ NUM_PUBLISH_PERIODS_PER_UPDATE = 100
 AVG_WAYPOINT_DISTANCE_KM = 30  # TODO: Set this to match global pathfinding
 
 # Global variables for tracking boat position
-boatLat = 48.5  # Assume start at Port Renfrew (ish)
-boatLon = -124.0
+boatLat = PORT_RENFREW_LATLON.lat
+boatLon = PORT_RENFREW_LATLON.lon
 def gpsCallback(data):
     global boatLat
     global boatLon
@@ -53,7 +54,7 @@ def MOCK_global():
     global boatLat
     global boatLon
     init = [boatLat, boatLon]
-    goal = [20.0, -156.0] # Maui (ish)
+    goal = [MAUI_LATLON.lat, MAUI_LATLON.lon]
     path = create_path(init, goal)
 
     rospy.init_node('MOCK_global_planner', anonymous=True)
