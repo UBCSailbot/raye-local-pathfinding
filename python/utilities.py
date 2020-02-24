@@ -147,7 +147,7 @@ def createLocalPathSS(state):
             solutions.append(solution)
         # If exact solution can't be found for large runtime, then just use the inexact solution
         elif runtimeSeconds >= 100:
-            rospy.logerr("No exact solution can be found. Exiting")
+            rospy.logerr("No exact solution can be found. Using inexact solution.")
             solutions.append(solution)
 
     solution = min(solutions, key=lambda x: x.getSolutionPath().cost(x.getOptimizationObjective()).value())
