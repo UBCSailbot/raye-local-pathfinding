@@ -8,8 +8,9 @@ sys.path.insert(0, os.path.abspath(os.path.join(testdir, srcdir)))
 
 import unittest
 import rostest
-from local_pathfinding.msg import latlon, AISShip
+from local_pathfinding.msg import latlon, AISShip, AISMsg
 from utilities import *
+from Sailbot import BoatState
 from geopy.distance import distance
 from math import sqrt
 import matplotlib.pyplot as plt
@@ -260,6 +261,28 @@ class TestUtilities(unittest.TestCase):
         # Test that we get back the same global wind as we started with
         self.assertAlmostEqual(calculatedGlobalWindSpeedKmph, globalWindSpeedKmph, places=3)
         self.assertAlmostEqual(calculatedGlobalWindDirectionDegrees, globalWindDirectionDegrees, places=3)
+
+    def test_obstacleOnPath(self):
+        # Create simple path
+        measuredWindSpeedKmph, measuredWindDirectionDegrees = globalWindToMeasuredWind(globalWindSpeed=10, globalWindDirectionDegrees=90, boatSpeed=0, headingDegrees=0)
+        state = BoatState(globalWaypoint=latlon(1,1), position=latlon(0,0), measuredWindDirectionDegrees=measuredWindDirectionDegrees, measuredWindSpeedKmph=measuredWindSpeedKmph, AISData=AISMsg(), headingDegrees=0, speedKmph=0)
+        localPathSS, referenceLatlon = createLocalPathSS(state)
+
+        # Sanity check with no obstacles
+        self.assertFalse(obstacleOnPath(state, localPathSS, referenceLatlon))
+
+        # Put obstacle on path
+        waypoint0 = localPathSS.getSolutionPath().getState(0)
+        waypoint1 = localPathSS.getSolutionPath().getState(1)
+        between = [waypoint0.getX() + (waypoint1.getX() - waypoint0.getX()) / 2, waypoint0.getY() + (waypoint1.getY() - waypoint0.getY()) / 2]
+        shipLatlon = XYToLatlon(between, referenceLatlon)
+        state.AISData = AISMsg([AISShip(0, shipLatlon.lat, shipLatlon.lon, 0, 1000)])
+
+        # Sanity check has obstacle on path
+        waypoint0Latlon = XYToLatlon([waypoint0.getX(), waypoint0.getY()], referenceLatlon)
+        waypoint1Latlon = XYToLatlon([waypoint1.getX(), waypoint1.getY()], referenceLatlon)
+        self.assertTrue(obstacleOnPath(state, localPathSS, referenceLatlon), msg='{}, {}, {}'.format(waypoint0Latlon, waypoint1Latlon, shipLatlon))
+
 
 if __name__ == '__main__':
     rostest.rosrun('local_pathfinding', 'test_utilities', TestUtilities)

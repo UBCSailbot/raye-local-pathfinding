@@ -7,6 +7,8 @@ from ompl import control as oc
 from math import sqrt
 
 import planner_helpers as ph
+import matplotlib.pyplot as plt
+from matplotlib import patches
 
 class Obstacle:
     def __init__(self, x, y, radius):
@@ -46,8 +48,49 @@ def hasNoCollisions(localPathSS, obstacles):
     validity_checker = ph.ValidityChecker(localPathSS.getSpaceInformation(), obstacles)
     localPathSS.setStateValidityChecker(validity_checker)
 
+    print("StateValidityCheckingResolution = {}".format(localPathSS.getSpaceInformation().getStateValidityCheckingResolution()))
+    print("StateValidityCheckerObstaclesLength = {}".format(len(localPathSS.getStateValidityChecker().obstacles)))
+    localPathSS.setup()
+    print("SETUP")
+    print("StateValidityCheckingResolution = {}".format(localPathSS.getSpaceInformation().getStateValidityCheckingResolution()))
+    print("StateValidityCheckerObstaclesLength = {}".format(len(localPathSS.getStateValidityChecker().obstacles)))
     checkMotion = localPathSS.getSpaceInformation().checkMotion(localPathSS.getSolutionPath().getStates(), len(localPathSS.getSolutionPath().getStates()))
-    return checkMotion
+    print("Check motion is: {}".format(checkMotion))
+    # motionValidator = localPathSS.getSpaceInformation().getMotionValidator()
+    newCheckMotion = True
+    stateSpace = localPathSS.getStateSpace()
+    for stateIndex in range(len(localPathSS.getSolutionPath().getStates())):
+        if stateIndex > 0:
+            prevState = localPathSS.getSolutionPath().getState(stateIndex - 1)
+            nextState = localPathSS.getSolutionPath().getState(stateIndex)
+            
+            # Check in between these points
+            middleState = localPathSS.getSpaceInformation().allocState()
+            resolution = localPathSS.getSpaceInformation().getStateValidityCheckingResolution()
+            numPoints = 1 / resolution
+            print("numPoints = {}".format(numPoints))
+            for i in range(int(numPoints + 1)):
+                fraction = i * resolution
+                stateSpace.interpolate(prevState, nextState, fraction, middleState)
+                newCheckMotion = newCheckMotion and localPathSS.getSpaceInformation().isValid(middleState)
+                print(newCheckMotion)
+
+
+    ax = plt.gca()
+    for obstacle in obstacles:
+        print("Obstacle {}, {}, {}".format(obstacle.x, obstacle.y, obstacle.radius))
+        c = plt.Circle((obstacle.x, obstacle.y), radius=obstacle.radius)
+        c.set_color('r')
+        ax.add_patch(c)
+    for s in localPathSS.getSolutionPath().getStates():
+        print("State {}, {}".format(s.getX(), s.getY()))
+        c = plt.Circle((s.getX(), s.getY()), radius=0.1)
+        c.set_color('g')
+        ax.add_patch(c)
+
+    plt.show()
+    # return checkMotion
+    return newCheckMotion
 
 
 def plan(run_time, planner_type, objective_type, wind_direction_degrees, dimensions, start_pos, goal_pos, obstacles):
