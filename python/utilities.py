@@ -112,7 +112,7 @@ def createLocalPathSS(state):
     # TODO: Figure out if there is a better method to handle this case
     while not isValid(start, obstacles) or not isValid(goal, obstacles):
         rospy.logerr("start or goal state is not valid")
-        shrinkFactor = 2
+        shrinkFactor = 2.0
         rospy.logerr("Shrinking obstacles by a factor of {}".format(shrinkFactor))
         for obstacle in obstacles:
             obstacle.radius /= shrinkFactor
@@ -138,7 +138,7 @@ def createLocalPathSS(state):
     # TODO: Figure out if there is a better method to handle this case
     while len(solutions) == 0:
         rospy.logerr("No solutions found in {} seconds runtime".format(runtimeSeconds))
-        runtimeSeconds *= 5
+        runtimeSeconds *= 5.0
         rospy.logerr("Attempting to rerun with longer runtime: {} seconds".format(runtimeSeconds))
         solution = plan(runtimeSeconds, "RRTStar", 'WeightedLengthAndClearanceCombo', globalWindDirectionDegrees, dimensions, start, goal, obstacles)
 
