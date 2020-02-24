@@ -40,20 +40,21 @@ class MOCK_AISEnvironment:
     # Just a class to keep track of the ships surrounding the sailbot
     def __init__(self, lat, lon):
         self.publishPeriodSeconds = 1.0
+        self.numShips = 10
         self.ships = []
-        for i in range(10):
+        for i in range(self.numShips):
             self.ships.append(Ship(i, lat, lon, self.publishPeriodSeconds))
 
         rospy.init_node('MOCK_AIS', anonymous=True)
         self.publisher = rospy.Publisher("AIS", msg.AISMsg, queue_size=4)
 
     def move_ships(self):
-        for i in range(10):
+        for i in range(self.numShips):
             self.ships[i].move()
 
     def make_ros_message(self):
         ship_list = []
-        for i in range(10):
+        for i in range(self.numShips):
             ship_list.append(self.ships[i].make_ros_message())
         return msg.AISMsg(ship_list)
 
