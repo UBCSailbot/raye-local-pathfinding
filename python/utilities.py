@@ -8,10 +8,15 @@ from cli import parse_obstacle
 import math 
 from geopy.distance import distance
 import geopy.distance
-from local_pathfinding.msg import latlon, AISShip
+from local_pathfinding.msg import latlon, AISShip, AISMsg
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import patches
+from Sailbot import BoatState
+
+# Upwind downwind constants
+UPWIND_MAX_ANGLE_DEGREES = 30
+DOWNWIND_MAX_ANGLE_DEGREES = 30
 
 # Location constants
 PORT_RENFREW_LATLON = latlon(48.5, -124.8)
@@ -118,12 +123,12 @@ def createLocalPathSS(state):
             obstacle.radius /= shrinkFactor
 
     # Run the planner multiple times and find the best one
-    runtimeSeconds = 5
+    runtimeSeconds = 1
     numRuns = 3
     rospy.loginfo("Running createLocalPathSS. runtimeSeconds: {}. numRuns: {}. Total time: {} seconds".format(runtimeSeconds, numRuns, runtimeSeconds*numRuns))
 
     # Create non-blocking plot showing the setup of the pathfinding problem. Useful to understand if the pathfinding problem is invalid or impossible
-    plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, obstacles, state.headingDegrees)
+    # plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, obstacles, state.headingDegrees)
     solutions = []
     for i in range(numRuns):
         # TODO: Incorporate globalWindSpeed into pathfinding?
@@ -167,15 +172,33 @@ def getLocalPath(localPathSS, referenceLatlon):
         localPath.append(XYToLatlon(xy, referenceLatlon))
     return localPath
 
-def badPath(state, localPathSS, referenceLatlon, desiredHeadingMsg):
-    # If sailing upwind or downwind, isBad
+def sailingUpwindOrDownwind(state, desiredHeadingMsg):
     globalWindSpeedKmph, globalWindDirectionDegrees = measuredWindToGlobalWind(state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
-    if math.fabs(globalWindDirectionDegrees - desiredHeadingMsg.headingDegrees) < 30 or math.fabs(globalWindDirectionDegrees- desiredHeadingMsg.headingDegrees - math.radians(180)) < 30:
-        rospy.logwarn("Sailing upwind/downwind. Global Wind direction: {}. Desired Heading: {}".format(globalWindDirectionDegrees, desiredHeading.headingDegrees))
+
+    # Ensure that directions are in the same convention (-pi, pi]
+    globalWindDirectionDegrees = math.degrees(math.acos(math.cos(math.radians(globalWindDirectionDegrees))))
+    desiredHeadingDegrees = math.degrees(math.acos(math.cos(math.radians(desiredHeadingMsg.headingDegrees))))
+
+    # TODO: Fix so that discontinuities are not an issue. Eg. pi and -pi should be 0 angle difference, but this would get 2pi. Also fix in ompl
+    if math.fabs(globalWindDirectionDegrees - desiredHeadingDegrees) < DOWNWIND_MAX_ANGLE_DEGREES:
+        rospy.logwarn("Sailing downwind. Global Wind direction: {}. Desired Heading: {}".format(globalWindDirectionDegrees, desiredHeadingDegrees))
         return True
 
+    elif math.fabs(globalWindDirectionDegrees - desiredHeadingDegrees - math.radians(180)) < UPWIND_MAX_ANGLE_DEGREES:
+        rospy.logwarn("Sailing upwind. Global Wind direction: {}. Desired Heading: {}".format(globalWindDirectionDegrees, desiredHeadingDegrees))
+        return True
+
+    return False
+
+def obstacleOnPath(state, localPathSS, referenceLatlon):
     # Check if path will hit objects
     obstacles = extendObstaclesArray(state.AISData.ships, state.position, state.speedKmph, referenceLatlon)
+    print("Obstacles")
+    for o in obstacles:
+        print("{}, {}, {}".format(o.x, o.y, o.radius))
+    print("States")
+    for s in localPathSS.getSolutionPath().getStates():
+        print("{}, {}".format(s.getX(), s.getY()))
     if not hasNoCollisions(localPathSS, obstacles):
         rospy.logwarn("Going to hit obstacle.")
         return True
@@ -277,7 +300,11 @@ def extendObstaclesArray(aisArray, sailbotPosition, sailbotSpeedKmph, referenceL
     for aisData in aisArray:
         aisX, aisY = latlonToXY(latlon(aisData.lat, aisData.lon), referenceLatLon)
         distanceToBoatKm = distance((aisData.lat, aisData.lon), (sailbotPosition.lat, sailbotPosition.lon)).kilometers
-        timeToLocHours = distanceToBoatKm / sailbotSpeedKmph
+        MAX_TIME_TO_LOC_HOURS = 10
+        if sailbotSpeedKmph == 0 or distanceToBoatKm / sailbotSpeedKmph > MAX_TIME_TO_LOC_HOURS:
+            timeToLocHours = MAX_TIME_TO_LOC_HOURS
+        else:
+            timeToLocHours = distanceToBoatKm / sailbotSpeedKmph
         if aisData.headingDegrees == 90 or aisData.headingDegrees == 270:
             if aisData.headingDegrees == 90:
                 endY = aisY + aisData.speedKmph * timeToLocHours
@@ -350,3 +377,31 @@ def headingToBearingDegrees(headingDegrees):
     # Bearing is defined differently. 0 degrees is North. 90 degrees is East. 180 degrees is South.
     # Heading = -Bearing + 90
     return -headingDegrees + 90
+
+if __name__ == '__main__':
+    # Create simple path
+    print("Creating path")
+    measuredWindSpeedKmph, measuredWindDirectionDegrees = globalWindToMeasuredWind(globalWindSpeed=10, globalWindDirectionDegrees=90, boatSpeed=0, headingDegrees=0)
+    state = BoatState(globalWaypoint=latlon(1,1), position=latlon(0,0), measuredWindDirectionDegrees=measuredWindDirectionDegrees, measuredWindSpeedKmph=measuredWindSpeedKmph, AISData=AISMsg(), headingDegrees=0, speedKmph=0)
+    localPathSS, referenceLatlon = createLocalPathSS(state)
+    print("Path made")
+
+    # Sanity check with no obstacles
+    print("Sanity check obstacles on path? {}".format(obstacleOnPath(state, localPathSS, referenceLatlon)))
+
+    # Put obstacle on path
+    waypoint0 = localPathSS.getSolutionPath().getState(0)
+    waypoint1 = localPathSS.getSolutionPath().getState(1)
+    # between = [waypoint0.getX() + (waypoint1.getX() - waypoint0.getX()) / 2, waypoint0.getY() + (waypoint1.getY() - waypoint0.getY()) / 2]
+    fraction = 1.0/5.0
+    between = [1 + waypoint0.getX() + (waypoint1.getX() - waypoint0.getX()) * fraction, waypoint0.getY() + (waypoint1.getY() - waypoint0.getY()) * fraction]
+    dist = ((between[0] - waypoint1.getX())**2 + (between[1] - waypoint1.getY())**2)**0.5
+    print("Distance from between to waypoint1 in km is {}".format(dist))
+    # between = [waypoint1.getX(), waypoint1.getY()]
+    shipLatlon = XYToLatlon(between, referenceLatlon)
+    state.AISData = AISMsg([AISShip(0, shipLatlon.lat, shipLatlon.lon, 0, 10)])
+
+    # Sanity check has obstacle on path
+    waypoint0Latlon = XYToLatlon([waypoint0.getX(), waypoint0.getY()], referenceLatlon)
+    waypoint1Latlon = XYToLatlon([waypoint1.getX(), waypoint1.getY()], referenceLatlon)
+    print(obstacleOnPath(state, localPathSS, referenceLatlon))
