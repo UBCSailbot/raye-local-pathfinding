@@ -293,18 +293,22 @@ def extendObstaclesArray(aisArray, sailbotPosition, sailbotSpeedKmph, referenceL
 
     for aisData in aisArray:
         aisX, aisY = latlonToXY(latlon(aisData.lat, aisData.lon), referenceLatLon)
+
+        # Calculate length to extend boat
+        MAX_TIME_TO_LOC_HOURS = 10  # Do not extend objects more than 10 hours distance
         distanceToBoatKm = distance((aisData.lat, aisData.lon), (sailbotPosition.lat, sailbotPosition.lon)).kilometers
-        MAX_TIME_TO_LOC_HOURS = 10
         if sailbotSpeedKmph == 0 or distanceToBoatKm / sailbotSpeedKmph > MAX_TIME_TO_LOC_HOURS:
             timeToLocHours = MAX_TIME_TO_LOC_HOURS
         else:
             timeToLocHours = distanceToBoatKm / sailbotSpeedKmph
+        extendBoatLengthKm = aisData.speedKmph * timeToLocHours
+
         if aisData.headingDegrees == 90 or aisData.headingDegrees == 270:
             if aisData.headingDegrees == 90:
-                endY = aisY + aisData.speedKmph * timeToLocHours
+                endY = aisY + extendBoatLengthKm
                 yRange = np.arange(aisY, endY, spacingKm)
             if aisData.headingDegrees == 270:
-                endY = aisY - aisData.speedKmph * timeToLocHours
+                endY = aisY - extendBoatLengthKm
                 yRange = np.arange(endY, aisY, spacingKm)
             for y in yRange:
                 # Multiplier to increase size of circles showing where the boat will be in the future in range [1, 2]
@@ -319,7 +323,7 @@ def extendObstaclesArray(aisArray, sailbotPosition, sailbotSpeedKmph, referenceL
                 b = aisY + slope * -math.fabs(aisX)
             else:
                 b = aisY + slope * math.fabs(aisX)
-            xDistTravelled =  math.fabs(aisData.speedKmph * timeToLocHours * math.cos(math.radians(aisData.headingDegrees)))
+            xDistTravelled =  math.fabs(extendBoatLengthKm * math.cos(math.radians(aisData.headingDegrees)))
             y = lambda x: slope * x + b 
             if isHeadingWest:
                 endX = aisX - xDistTravelled
@@ -371,63 +375,3 @@ def headingToBearingDegrees(headingDegrees):
     # Bearing is defined differently. 0 degrees is North. 90 degrees is East. 180 degrees is South.
     # Heading = -Bearing + 90
     return -headingDegrees + 90
-
-if __name__ == '__main__':
-    # Create simple path
-    print("Creating path")
-    measuredWindSpeedKmph, measuredWindDirectionDegrees = globalWindToMeasuredWind(globalWindSpeed=10, globalWindDirectionDegrees=90, boatSpeed=0, headingDegrees=0)
-    state = BoatState(globalWaypoint=latlon(1,1), position=latlon(0,0), measuredWindDirectionDegrees=measuredWindDirectionDegrees, measuredWindSpeedKmph=measuredWindSpeedKmph, AISData=AISMsg(), headingDegrees=0, speedKmph=0)
-    localPathSS, referenceLatlon = createLocalPathSS(state)
-    print("Path made")
-
-    # Sanity check with no obstacles
-    print("Has obstacle on path? {}. Expected False".format(obstacleOnPath(state, 1, localPathSS, referenceLatlon)))
-
-    # Put obstacle on path
-    waypoint1 = localPathSS.getSolutionPath().getState(1)
-    waypoint2 = localPathSS.getSolutionPath().getState(2)
-    fraction = 1.0/5.0
-    between = [waypoint1.getX() + (waypoint2.getX() - waypoint1.getX()) * fraction, waypoint1.getY() + (waypoint2.getY() - waypoint1.getY()) * fraction]
-    print("Placing object {} between waypoint1 and waypoint2".format(fraction))
-    shipLatlon = XYToLatlon(between, referenceLatlon)
-    state.AISData = AISMsg([AISShip(0, shipLatlon.lat, shipLatlon.lon, 0, 10)])
-
-    # Sanity check has obstacle on path. Check changing index
-    print("Checking if obstacle still on path with index 1")
-    print("Has obstacle on path? {}. Expected True".format(obstacleOnPath(state, 1, localPathSS, referenceLatlon)))
-
-    print("Checking if obstacle still on path with index 2. As still interpolate from same start pos")
-    print("Has obstacle on path? {}. Expected True".format(obstacleOnPath(state, 2, localPathSS, referenceLatlon)))
-
-    # Move obstacle
-    print("Moving obstacle rightwards to be off path")
-    state.AISData.ships[0].lon += 1
-    print("Has obstacle on path? {}. Expected False".format(obstacleOnPath(state, 0, localPathSS, referenceLatlon)))
-
-    # Sanity check
-    state.AISData.ships[0].lon -= 1
-    print("Move it back")
-    print("Checking if obstacle still on path with index 1")
-    print("Has obstacle on path? {}. Expected True".format(obstacleOnPath(state, 1, localPathSS, referenceLatlon)))
-
-    print("Move obstacle to be off the path")
-    shipLatlon = XYToLatlon([between[0] + 1, between[1]], referenceLatlon)
-    state.AISData = AISMsg([AISShip(0, shipLatlon.lat, shipLatlon.lon, 0, 10)])
-    print("Checking if obstacle still on path with index 1")
-    print("Has obstacle on path? {}. Expected False".format(obstacleOnPath(state, 1, localPathSS, referenceLatlon)))
-
-    # Move boat position so obstacle not on path, but blocking path from boat to path
-    waypoint1Latlon = XYToLatlon([waypoint1.getX(), waypoint1.getY()], referenceLatlon)
-    waypoint2Latlon = XYToLatlon([waypoint2.getX(), waypoint2.getY()], referenceLatlon)
-    state.position = latlon(waypoint1Latlon.lat, waypoint2Latlon.lon)
-    print("Move boat so the obstacle is still in the way")
-    print("Has obstacle on path? {}. Expected True".format(obstacleOnPath(state, 2, localPathSS, referenceLatlon)))
-
-    state.position = latlon(waypoint2Latlon.lat, waypoint1Latlon.lon)
-    print("Move boat so the obstacle is not still in the way")
-    print("Has obstacle on path? {}. Expected False".format(obstacleOnPath(state, 2, localPathSS, referenceLatlon)))
-
-    state.position = latlon(waypoint2Latlon.lat, waypoint2Latlon.lon)
-    print("Move boat so it is past the obstacle")
-    print("Has obstacle on path? {}. Expected False".format(obstacleOnPath(state, 3, localPathSS, referenceLatlon)))
-
