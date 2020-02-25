@@ -100,7 +100,7 @@ def plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, 
     plt.pause(0.001)
 
 
-def createLocalPathSS(state, runtimeSeconds=3, numRuns=3):
+def createLocalPathSS(state, runtimeSeconds=3, numRuns=3, plot=False):
     ou.setLogLevel(ou.LOG_WARN)
 
     # Get setup parameters from state for ompl plan()
@@ -126,7 +126,9 @@ def createLocalPathSS(state, runtimeSeconds=3, numRuns=3):
     rospy.loginfo("Running createLocalPathSS. runtimeSeconds: {}. numRuns: {}. Total time: {} seconds".format(runtimeSeconds, numRuns, runtimeSeconds*numRuns))
 
     # Create non-blocking plot showing the setup of the pathfinding problem. Useful to understand if the pathfinding problem is invalid or impossible
-    # plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, obstacles, state.headingDegrees)
+    if plot:
+        plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, obstacles, state.headingDegrees)
+
     solutions = []
     for i in range(numRuns):
         # TODO: Incorporate globalWindSpeed into pathfinding?

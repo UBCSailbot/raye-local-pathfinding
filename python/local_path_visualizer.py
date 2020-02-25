@@ -94,6 +94,7 @@ if __name__ == '__main__':
     axes.set_xlabel('X distance to next global waypoint (km)')
     axes.set_ylabel('Y distance to next global waypoint (km)')
     axes.set_title('Local Path Visualizer')
+    axes.set_aspect(aspect=1)
 
     # Show wind speed text and position text
     arrowLength = min(xPLim - xNLim, yPLim - yNLim) / 15

@@ -263,6 +263,7 @@ class TestUtilities(unittest.TestCase):
         self.assertAlmostEqual(calculatedGlobalWindDirectionDegrees, globalWindDirectionDegrees, places=3)
 
     def test_obstacleOnPath(self):
+        '''To visualize the obstacleOnPath check, go to updated_geometric_planner.py and uncomment the plotting in hasObstacleOnPath()'''
         # Create simple path
         measuredWindSpeedKmph, measuredWindDirectionDegrees = globalWindToMeasuredWind(globalWindSpeed=10, globalWindDirectionDegrees=90, boatSpeed=0, headingDegrees=0)
         state = BoatState(globalWaypoint=latlon(1,1), position=latlon(0,0), measuredWindDirectionDegrees=measuredWindDirectionDegrees, measuredWindSpeedKmph=measuredWindSpeedKmph, AISData=AISMsg(), headingDegrees=0, speedKmph=0)
