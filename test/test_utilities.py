@@ -266,23 +266,44 @@ class TestUtilities(unittest.TestCase):
         # Create simple path
         measuredWindSpeedKmph, measuredWindDirectionDegrees = globalWindToMeasuredWind(globalWindSpeed=10, globalWindDirectionDegrees=90, boatSpeed=0, headingDegrees=0)
         state = BoatState(globalWaypoint=latlon(1,1), position=latlon(0,0), measuredWindDirectionDegrees=measuredWindDirectionDegrees, measuredWindSpeedKmph=measuredWindSpeedKmph, AISData=AISMsg(), headingDegrees=0, speedKmph=0)
-        localPathSS, referenceLatlon = createLocalPathSS(state)
+        localPathSS, referenceLatlon = createLocalPathSS(state, runtimeSeconds=3, numRuns=1)
 
-        # Sanity check with no obstacles
-        self.assertFalse(obstacleOnPath(state, localPathSS, referenceLatlon))
+        # No obstacles at all
+        self.assertFalse(obstacleOnPath(state=state, nextLocalWaypointIndex=1, localPathSS=localPathSS, referenceLatlon=referenceLatlon))
 
-        # Put obstacle on path
-        waypoint0 = localPathSS.getSolutionPath().getState(0)
+        # Put obstacle on path between waypoints 1 and 2, going east quickly
         waypoint1 = localPathSS.getSolutionPath().getState(1)
-        between = [waypoint0.getX() + (waypoint1.getX() - waypoint0.getX()) / 2, waypoint0.getY() + (waypoint1.getY() - waypoint0.getY()) / 2]
-        shipLatlon = XYToLatlon(between, referenceLatlon)
-        state.AISData = AISMsg([AISShip(0, shipLatlon.lat, shipLatlon.lon, 0, 1000)])
+        waypoint2 = localPathSS.getSolutionPath().getState(2)
+        shipXY = [waypoint1.getX() + (waypoint2.getX() - waypoint1.getX()) / 2, waypoint1.getY() + (waypoint2.getY() - waypoint1.getY()) / 2]
+        between1and2Latlon = XYToLatlon(shipXY, referenceLatlon)
+        state.AISData = AISMsg([AISShip(ID=0, lat=between1and2Latlon.lat, lon=between1and2Latlon.lon, headingDegrees=HEADING_EAST, speedKmph=30)])
 
-        # Sanity check has obstacle on path
-        waypoint0Latlon = XYToLatlon([waypoint0.getX(), waypoint0.getY()], referenceLatlon)
+        # Obstacle on path
+        self.assertTrue(obstacleOnPath(state=state, nextLocalWaypointIndex=1, localPathSS=localPathSS, referenceLatlon=referenceLatlon))
+
+        # Move boat position, but still have obstacle on path
+        state.position = latlon(-1, -1)
+        self.assertTrue(obstacleOnPath(state=state, nextLocalWaypointIndex=1, localPathSS=localPathSS, referenceLatlon=referenceLatlon))
+
+        # Move obstacle to be off the path
+        between1and2shiftedRightLatlon = XYToLatlon([shipXY[0] + 0.5, shipXY[1]], referenceLatlon)
+        state.AISData = AISMsg([AISShip(ID=0, lat=between1and2shiftedRightLatlon.lat, lon=between1and2shiftedRightLatlon.lon, headingDegrees=HEADING_EAST, speedKmph=30)])
+        self.assertFalse(obstacleOnPath(state=state, nextLocalWaypointIndex=1, localPathSS=localPathSS, referenceLatlon=referenceLatlon))
+
+        # Move boat position AND increment nextLocalWaypointIndex so it is aiming for waypoint2, so that new "path" has an obstacle on it
         waypoint1Latlon = XYToLatlon([waypoint1.getX(), waypoint1.getY()], referenceLatlon)
-        self.assertTrue(obstacleOnPath(state, localPathSS, referenceLatlon), msg='{}, {}, {}'.format(waypoint0Latlon, waypoint1Latlon, shipLatlon))
+        waypoint2Latlon = XYToLatlon([waypoint2.getX(), waypoint2.getY()], referenceLatlon)
+        state.position = latlon(waypoint1Latlon.lat, waypoint2Latlon.lon)
+        self.assertTrue(obstacleOnPath(state=state, nextLocalWaypointIndex=2, localPathSS=localPathSS, referenceLatlon=referenceLatlon))
 
+        # Move boat position AND increment nextLocalWaypointIndex so it is aiming for waypoint2, so that new "path" doesn't have an obstacle on it
+        state.position = latlon(waypoint2Latlon.lat, waypoint1Latlon.lon)
+        self.assertFalse(obstacleOnPath(state=state, nextLocalWaypointIndex=2, localPathSS=localPathSS, referenceLatlon=referenceLatlon))
+
+        # Move obstacle to be between waypoint1 and waypoint2, but then have the boat already on waypoint2 goint to waypoint3, so no obstacle on it
+        state.position = latlon(waypoint2Latlon.lat, waypoint2Latlon.lon)
+        state.AISData = AISMsg([AISShip(ID=0, lat=between1and2Latlon.lat, lon=between1and2Latlon.lon, headingDegrees=HEADING_EAST, speedKmph=30)])
+        self.assertFalse(obstacleOnPath(state=state, nextLocalWaypointIndex=3, localPathSS=localPathSS, referenceLatlon=referenceLatlon))
 
 if __name__ == '__main__':
     rostest.rosrun('local_pathfinding', 'test_utilities', TestUtilities)
