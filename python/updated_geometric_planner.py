@@ -78,7 +78,7 @@ def hasObstacleOnPath(positionXY, nextLocalWaypointIndex, localPathSS, obstacles
         nextState = relevantStates[stateIndex]
         interpolatedState = spaceInformation.allocState()
 
-        # Setup resolution
+        # Setup checking resolution
         resolution = spaceInformation.getStateValidityCheckingResolution()
         numPoints = int(1 / resolution)
 
