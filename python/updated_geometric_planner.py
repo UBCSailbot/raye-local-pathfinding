@@ -43,55 +43,76 @@ def allocatePlanner(si, plannerType):
         ou.OMPL_ERROR("Planner-type is not implemented in allocation function.")
 
 
-def hasNoCollisions(localPathSS, obstacles):
-    # Set the object used to check which states in the space are valid
+def hasObstacleOnPath(positionXY, localPathIndex, localPathSS, obstacles):
+    # Set the objects used to check which states in the space are valid
     validity_checker = ph.ValidityChecker(localPathSS.getSpaceInformation(), obstacles)
     localPathSS.setStateValidityChecker(validity_checker)
 
-    print("StateValidityCheckingResolution = {}".format(localPathSS.getSpaceInformation().getStateValidityCheckingResolution()))
-    print("StateValidityCheckerObstaclesLength = {}".format(len(localPathSS.getStateValidityChecker().obstacles)))
+    # Setup for obstacle-on-path checking
     localPathSS.setup()
-    print("SETUP")
-    print("StateValidityCheckingResolution = {}".format(localPathSS.getSpaceInformation().getStateValidityCheckingResolution()))
-    print("StateValidityCheckerObstaclesLength = {}".format(len(localPathSS.getStateValidityChecker().obstacles)))
-    checkMotion = localPathSS.getSpaceInformation().checkMotion(localPathSS.getSolutionPath().getStates(), len(localPathSS.getSolutionPath().getStates()))
-    print("Check motion is: {}".format(checkMotion))
-    # motionValidator = localPathSS.getSpaceInformation().getMotionValidator()
-    newCheckMotion = True
+    hasAnyObstaclesOnPath = False
     stateSpace = localPathSS.getStateSpace()
-    for stateIndex in range(len(localPathSS.getSolutionPath().getStates())):
-        if stateIndex > 0:
-            prevState = localPathSS.getSolutionPath().getState(stateIndex - 1)
-            nextState = localPathSS.getSolutionPath().getState(stateIndex)
-            
-            # Check in between these points
-            middleState = localPathSS.getSpaceInformation().allocState()
-            resolution = localPathSS.getSpaceInformation().getStateValidityCheckingResolution()
-            numPoints = 1 / resolution
-            print("numPoints = {}".format(numPoints))
-            for i in range(int(numPoints + 1)):
-                fraction = i * resolution
-                stateSpace.interpolate(prevState, nextState, fraction, middleState)
-                newCheckMotion = newCheckMotion and localPathSS.getSpaceInformation().isValid(middleState)
-                print(newCheckMotion)
+    solutionPath = localPathSS.getSolutionPath()
+    spaceInformation = localPathSS.getSpaceInformation()
 
+    # Handle strange cases with less than 2 states
+    if len(solutionPath.getStates()) <= 1:
+        print("WARNING: len(solutionPath.getStates()) = {}. Expected >1.".format(len(solutionPath.getStates())))
+        if len(solutionPath.getStates()) == 0:
+            return False
+        else:
+            hasObstacle = (not spaceInformation.isValid(solutionPath.getState(0)))
+            return hasObstacle
+
+    # Get the relevant states (ignore past states and use current position as first state)
+    relevantStates = []
+    firstState = spaceInformation.allocState()
+    firstState.setXY(positionXY[0], positionXY[1])
+    relevantStates.append(firstState)
+    for stateIndex in range(localPathIndex, len(solutionPath.getStates())):
+        relevantStates.append(solutionPath.getState(stateIndex))
+
+    # Interpolate between states and check for validity
+    for stateIndex in range(len(relevantStates)):
+        # Check in between these points
+        prevState = relevantStates[stateIndex - 1]
+        nextState = relevantStates[stateIndex]
+        interpolatedState = spaceInformation.allocState()
+
+        # Setup resolution
+        resolution = spaceInformation.getStateValidityCheckingResolution()
+        numPoints = int(1 / resolution)
+
+        # Loop so that each fraction is in [0, 1], with bounds inclusive so interpolation checks both the first and last point
+        for i in range(numPoints + 1):
+            fraction = i * resolution
+            stateSpace.interpolate(prevState, nextState, fraction, interpolatedState)
+            hasObstacle = (not spaceInformation.isValid(interpolatedState))
+            hasAnyObstaclesOnPath = hasAnyObstaclesOnPath or hasObstacle
 
     ax = plt.gca()
     for obstacle in obstacles:
-        print("Obstacle {}, {}, {}".format(obstacle.x, obstacle.y, obstacle.radius))
+        # print("Obstacle {}, {}, {}".format(obstacle.x, obstacle.y, obstacle.radius))
         c = plt.Circle((obstacle.x, obstacle.y), radius=obstacle.radius)
         c.set_color('r')
         ax.add_patch(c)
     for s in localPathSS.getSolutionPath().getStates():
-        print("State {}, {}".format(s.getX(), s.getY()))
-        c = plt.Circle((s.getX(), s.getY()), radius=0.1)
+        # print("SolutionPath State {}, {}".format(s.getX(), s.getY()))
+        c = plt.Circle((s.getX(), s.getY()), radius=0.2)
         c.set_color('g')
         ax.add_patch(c)
+    for s in relevantStates:
+        # print("Relevant State {}, {}".format(s.getX(), s.getY()))
+        c = plt.Circle((s.getX(), s.getY()), radius=0.1)
+        c.set_color('b')
+        ax.add_patch(c)
 
+    c = plt.Circle((positionXY[0], positionXY[1]), radius=0.05)
+    c.set_color('m')
+    ax.add_patch(c)
     plt.show()
-    # return checkMotion
-    return newCheckMotion
-
+    plt.cla()
+    return hasAnyObstaclesOnPath
 
 def plan(run_time, planner_type, objective_type, wind_direction_degrees, dimensions, start_pos, goal_pos, obstacles):
     # Construct the robot state space in which we're planning
