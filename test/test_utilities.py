@@ -301,7 +301,7 @@ class TestUtilities(unittest.TestCase):
         state.position = latlon(waypoint2Latlon.lat, waypoint1Latlon.lon)
         self.assertFalse(obstacleOnPath(state=state, nextLocalWaypointIndex=2, localPathSS=localPathSS, referenceLatlon=referenceLatlon))
 
-        # Move obstacle to be between waypoint1 and waypoint2, but then have the boat already on waypoint2 goint to waypoint3, so no obstacle on it
+        # Move obstacle to be between waypoint1 and waypoint2, but then have the boat already on waypoint2 going to waypoint3, so no obstacle on it
         state.position = latlon(waypoint2Latlon.lat, waypoint2Latlon.lon)
         state.AISData = AISMsg([AISShip(ID=0, lat=between1and2Latlon.lat, lon=between1and2Latlon.lon, headingDegrees=HEADING_EAST, speedKmph=30)])
         self.assertFalse(obstacleOnPath(state=state, nextLocalWaypointIndex=3, localPathSS=localPathSS, referenceLatlon=referenceLatlon))
