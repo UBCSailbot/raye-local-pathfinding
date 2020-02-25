@@ -22,13 +22,12 @@ class TestUtilities(unittest.TestCase):
         endLatlon = latlon(47.7984, -125.3319)
 
         # Test latlonToXY
-        xy = latlonToXY(latlon=endLatlon, referenceLatlon=startLatlon)
-        x, y = xy
+        x, y = latlonToXY(latlon=endLatlon, referenceLatlon=startLatlon)
         self.assertAlmostEqual(x, -168.0158959716741, places=2)  # endLatlon is about 168.0158959716741km west of startLatlon
         self.assertAlmostEqual(y, -162.8668880228988, places=2)  # endLatLon is about 162.8668880228988km south of startLatlon
 
         # Test XYToLatlon
-        calculatedEndLatlon = XYToLatlon(xy=xy, referenceLatlon=startLatlon)
+        calculatedEndLatlon = XYToLatlon(xy=[x, y], referenceLatlon=startLatlon)
         self.assertAlmostEqual(calculatedEndLatlon.lat, endLatlon.lat, places=1)  # calculatedEndLatlon should be same as endLatlon
         self.assertAlmostEqual(calculatedEndLatlon.lon, endLatlon.lon, places=1)
 
@@ -37,30 +36,25 @@ class TestUtilities(unittest.TestCase):
         testLatlon = latlon(50, -120)
 
         # Test latlonToXY
-        xy = latlonToXY(latlon=testLatlon, referenceLatlon=testLatlon)
-        x, y = xy
+        x, y = latlonToXY(latlon=testLatlon, referenceLatlon=testLatlon)
         self.assertAlmostEqual(x, 0, places=2)  # xy=(0,0) at reference point
         self.assertAlmostEqual(y, 0, places=2)
 
         # Test XYToLatlon
-        calculatedLatlon = XYToLatlon(xy=xy, referenceLatlon=testLatlon)
+        calculatedLatlon = XYToLatlon(xy=[x, y], referenceLatlon=testLatlon)
         self.assertAlmostEqual(calculatedLatlon.lat, testLatlon.lat, places=1)  # calculatedLatlon should be same as testLatlon
         self.assertAlmostEqual(calculatedLatlon.lon, testLatlon.lon, places=1)
 
     def test_getDesiredHeading_north(self):
-        # Heading is defined using cartesian coordinates. 0 degrees is East. 90 degrees in North. 270 degrees is South.
-        # Bearing is defined differently. 0 degrees is North. 90 degrees is East. 180 degrees is South.
-        # Heading = -Bearing + 90
-
         # Setup latlon
         position = latlon(50, -120)
 
         # Setup destination
-        destination = distance(kilometers=1).destination(point=(position.lat, position.lon), bearing=BEARING_NORTH)
-        localWaypoint = latlon(destination.latitude, destination.longitude)
+        northDestination = distance(kilometers=1).destination(point=(position.lat, position.lon), bearing=BEARING_NORTH)
+        northDestination = latlon(northDestination.latitude, northDestination.longitude)
 
         # Test desiredHeading
-        desiredHeading = getDesiredHeading(position=position, localWaypoint=localWaypoint)
+        desiredHeading = getDesiredHeading(position=position, localWaypoint=northDestination)
         self.assertAlmostEqual(desiredHeading, HEADING_NORTH, places=1)
 
     def test_getDesiredHeading_east(self):
@@ -68,14 +62,15 @@ class TestUtilities(unittest.TestCase):
         position = latlon(50, -120)
 
         # Setup destination
-        destination = distance(kilometers=1).destination(point=(position.lat, position.lon), bearing=BEARING_EAST)
-        localWaypoint = latlon(destination.latitude, destination.longitude)
+        eastDestination = distance(kilometers=1).destination(point=(position.lat, position.lon), bearing=BEARING_EAST)
+        eastDestination = latlon(eastDestination.latitude, eastDestination.longitude)
 
         # Test desiredHeading
-        desiredHeading = getDesiredHeading(position=position, localWaypoint=localWaypoint)
+        desiredHeading = getDesiredHeading(position=position, localWaypoint=eastDestination)
         self.assertAlmostEqual(desiredHeading, HEADING_EAST, places=1)
 
     def test_globalWaypointReached(self):
+        # Setup latlon
         position = latlon(35, -150)
 
         # Far away globalWaypoint unreached
@@ -94,6 +89,7 @@ class TestUtilities(unittest.TestCase):
         self.assertAlmostEqual(emptyLocalPathLatlon.lat, 0, places=1)
         self.assertAlmostEqual(emptyLocalPathLatlon.lon, 0, places=1)
 
+        # Create test localPath
         localPath = [latlon(48, -124), latlon(38, -134), latlon(28, -144), latlon(22, -150)]
 
         # Test index out of bounds. Should give back last latlon in path
@@ -109,87 +105,111 @@ class TestUtilities(unittest.TestCase):
         self.assertAlmostEqual(indexInBoundsLatlon.lon, localPath[validIndex].lon, places=1)
 
     def test_extendObstaclesArray(self):
+        # Setup starting at (0,0) with obstacle at (1,0) heading west
         currentLatlon = latlon(0, 0)
-        shipLatlon = XYToLatlon((1, 0), currentLatlon)
-        ships = [AISShip(1000, shipLatlon.lat, shipLatlon.lon, 180, 1)]
-        obstacles = extendObstaclesArray(ships, currentLatlon, 1, currentLatlon)
-        self.assertFalse(isValid([0, 0], obstacles))
-        self.assertFalse(isValid([1, 0], obstacles))
-        self.assertTrue(isValid([2, 0], obstacles))
+        referenceLatlon = currentLatlon
+        shipLatlon = XYToLatlon(xy=(1, 0), referenceLatlon=referenceLatlon)
+        ships = [AISShip(ID=1000, lat=shipLatlon.lat, lon=shipLatlon.lon, headingDegrees=HEADING_WEST, speedKmph=1)]
+        obstacles = extendObstaclesArray(aisArray=ships, sailbotPosition=currentLatlon, sailbotSpeedKmph=1, referenceLatlon=referenceLatlon)
+
+        self.assertFalse(isValid(xy=[0, 0], obstacles=obstacles))
+        self.assertFalse(isValid(xy=[1, 0], obstacles=obstacles))
+        self.assertTrue(isValid(xy=[2, 0], obstacles=obstacles))
 
     def test_extendObstaclesArray2(self):
+        # Setup starting at (0,0) with obstacle at (1,1) heading south-west
         currentLatlon = latlon(0, 0)
-        shipLatlon = XYToLatlon((1, 1), currentLatlon)
-        ships = [AISShip(1000, shipLatlon.lat, shipLatlon.lon, 225, sqrt(2))]
-        obstacles = extendObstaclesArray(ships, currentLatlon, 1, currentLatlon)
+        referenceLatlon = currentLatlon
+        shipLatlon = XYToLatlon(xy=(1, 1), referenceLatlon=referenceLatlon)
+        ships = [AISShip(ID=1000, lat=shipLatlon.lat, lon=shipLatlon.lon, headingDegrees=225, speedKmph=sqrt(2))]
+        obstacles = extendObstaclesArray(aisArray=ships, sailbotPosition=currentLatlon, sailbotSpeedKmph=1, referenceLatlon=referenceLatlon)
 # Uncomment below to see obstacles extended on a plot
 #        ax = plt.gca()
 #        for obstacle in obstacles:
 #            ax.add_patch(plt.Circle((obstacle.x, obstacle.y), radius=obstacle.radius))
 #        plt.show()
-        self.assertFalse(isValid([1, 1], obstacles))
-        self.assertFalse(isValid([0, 0], obstacles))
-        self.assertTrue(isValid([-1, -1], obstacles))
+        self.assertFalse(isValid(xy=[1, 1], obstacles=obstacles))
+        self.assertFalse(isValid(xy=[0, 0], obstacles=obstacles))
+        self.assertTrue(isValid(xy=[-1, -1], obstacles=obstacles))
 
     def test_extendObstaclesArray3(self):
+        # Setup starting at (0,0) with obstacles at (0,3) and (-1,-1)
         currentLatlon = latlon(0, 0)
-        shipLatlon = XYToLatlon((0, 3), currentLatlon)
-        shipLatlon2 = XYToLatlon((-1, -1), currentLatlon)
-        ship1 = AISShip(1000, shipLatlon.lat, shipLatlon.lon, 270, 1.5)
-        ship2 = AISShip(1001, shipLatlon2.lat, shipLatlon2.lon, 45, 10)
-        obstacles = extendObstaclesArray([ship1, ship2], currentLatlon, 1, currentLatlon)
+        referenceLatlon = currentLatlon
+        shipLatlon = XYToLatlon(xy=(0, 3), referenceLatlon=referenceLatlon)
+        shipLatlon2 = XYToLatlon(xy=(-1, -1), referenceLatlon=referenceLatlon)
+        ship1 = AISShip(ID=1000, lat=shipLatlon.lat, lon=shipLatlon.lon, headingDegrees=270, speedKmph=1.5)
+        ship2 = AISShip(ID=1001, lat=shipLatlon2.lat, lon=shipLatlon2.lon, headingDegrees=45, speedKmph=10)
+        obstacles = extendObstaclesArray(aisArray=[ship1, ship2], sailbotPosition=currentLatlon, sailbotSpeedKmph=1, referenceLatlon=referenceLatlon)
 # Uncomment below to see obstacles extended on a plot
 #        ax = plt.gca()
 #        for obstacle in obstacles:
 #            ax.add_patch(plt.Circle((obstacle.x, obstacle.y), radius=obstacle.radius))
 #        plt.show()
-        self.assertFalse(isValid([0, 0], obstacles))
-        self.assertFalse(isValid([1, 1], obstacles))
-        self.assertFalse(isValid([3, 3], obstacles))
-        self.assertFalse(isValid([0, -1], obstacles))
-        self.assertTrue(isValid([0, 4], obstacles))
-        self.assertFalse(isValid([0, -1.19], obstacles))
-        self.assertTrue(isValid([0, -2.3], obstacles))
+        self.assertFalse(isValid(xy=[0, 0], obstacles=obstacles))
+        self.assertFalse(isValid(xy=[1, 1], obstacles=obstacles))
+        self.assertFalse(isValid(xy=[3, 3], obstacles=obstacles))
+        self.assertFalse(isValid(xy=[0, -1], obstacles=obstacles))
+        self.assertTrue(isValid(xy=[0, 4], obstacles=obstacles))
+        self.assertFalse(isValid(xy=[0, -1.19], obstacles=obstacles))
+        self.assertTrue(isValid(xy=[0, -2.3], obstacles=obstacles))
 
     def test_localWaypointReached(self):
+        # Setup path from (0,0) to (1,1)
         refLatlon = latlon(0, 0)
-        start = XYToLatlon((0, 0), refLatlon)
-        waypoint = XYToLatlon((1, 1), refLatlon)
+        start = XYToLatlon(xy=(0, 0), referenceLatlon=refLatlon)
+        waypoint = XYToLatlon(xy=(1, 1), referenceLatlon=refLatlon)
         path = [start, waypoint]
         index = 1
-        sailbotPos = XYToLatlon((2, 2), refLatlon)
-        sailbotPos1 = XYToLatlon((1, 0.5), refLatlon)
-        self.assertTrue(localWaypointReached(sailbotPos, path, index, refLatlon))
-        self.assertFalse(localWaypointReached(sailbotPos1, path, index, refLatlon))
+
+        # Test reachedPos
+        reachedPos = XYToLatlon(xy=(2, 2), referenceLatlon=refLatlon)
+        self.assertTrue(localWaypointReached(position=reachedPos, localPath=path, localPathIndex=index, refLatlon=refLatlon))
+
+        # Test notReachedPos
+        notReachedPos = XYToLatlon(xy=(1, 0.5), referenceLatlon=refLatlon)
+        self.assertFalse(localWaypointReached(position=notReachedPos, localPath=path, localPathIndex=index, refLatlon=refLatlon))
     
     #testing cases where start and LWP have same lat or same lon
     def test_localWaypointReached_sameLat(self):
+        # Setup path from (1,1) to (1,2)
         refLatlon = latlon(0, 0)
-        start = XYToLatlon((1, 1), refLatlon)
-        waypoint = XYToLatlon((1, 2), refLatlon)
+        start = XYToLatlon(xy=(1, 1), referenceLatlon=refLatlon)
+        waypoint = XYToLatlon(xy=(1, 2), referenceLatlon=refLatlon)
         path = [start, waypoint]
         index = 1
-        sailbotPos = XYToLatlon((100, 2.1), refLatlon)
-        sailbotPos1 = XYToLatlon((-100, 1.9), refLatlon)
-        self.assertTrue(localWaypointReached(sailbotPos, path, index, refLatlon))
-        self.assertFalse(localWaypointReached(sailbotPos1, path, index, refLatlon))
-       
+
+        # Test reachedPos
+        reachedPos = XYToLatlon(xy=(100, 2.1), referenceLatlon=refLatlon)
+        self.assertTrue(localWaypointReached(position=reachedPos, localPath=path, localPathIndex=index, refLatlon=refLatlon))
+
+        # Test notReachedPos
+        notReachedPos = XYToLatlon(xy=(-100, 1.9), referenceLatlon=refLatlon)
+        self.assertFalse(localWaypointReached(position=notReachedPos, localPath=path, localPathIndex=index, refLatlon=refLatlon))
+
     def test_localWaypointReached_sameLon(self):
+        # Setup path from (2,1) to (1,1)
         refLatlon = latlon(0, 0)
-        start = XYToLatlon((2, 1), refLatlon)
-        waypoint = XYToLatlon((1, 1), refLatlon)
+        start = XYToLatlon(xy=(2, 1), referenceLatlon=refLatlon)
+        waypoint = XYToLatlon(xy=(1, 1), referenceLatlon=refLatlon)
         path = [start, waypoint]
         index = 1
-        sailbotPos = XYToLatlon((1.1, 100), refLatlon)
-        sailbotPos1 = XYToLatlon((0.9, -100), refLatlon)
-        self.assertFalse(localWaypointReached(sailbotPos, path, index, refLatlon))
-        self.assertTrue(localWaypointReached(sailbotPos1, path, index, refLatlon))
+
+        # Test reachedPos
+        reachedPos = XYToLatlon(xy=(0.9, -100), referenceLatlon=refLatlon)
+        self.assertTrue(localWaypointReached(position=reachedPos, localPath=path, localPathIndex=index, refLatlon=refLatlon))
+
+        # Test notReachedPos
+        notReachedPos = XYToLatlon(xy=(1.1, 100), referenceLatlon=refLatlon)
+        self.assertFalse(localWaypointReached(position=notReachedPos, localPath=path, localPathIndex=index, refLatlon=refLatlon))
 
     def test_headingToBearingDegrees(self):
+        # Basic tests
         self.assertAlmostEqual(BEARING_NORTH % 360, headingToBearingDegrees(HEADING_NORTH) % 360, places=3)
         self.assertAlmostEqual(BEARING_SOUTH % 360, headingToBearingDegrees(HEADING_SOUTH) % 360, places=3)
         self.assertAlmostEqual(BEARING_EAST % 360, headingToBearingDegrees(HEADING_EAST) % 360, places=3)
 
+        # Advanced test
         bearingDirection = (2*BEARING_SOUTH + 1*BEARING_WEST) / 3
         headingDirection = (2*HEADING_SOUTH + 1*HEADING_WEST) / 3
         self.assertAlmostEqual(bearingDirection % 360, headingToBearingDegrees(headingDirection) % 360, places=3)

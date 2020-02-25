@@ -44,6 +44,10 @@ BOAT_FORWARD = 90
 BOAT_LEFT = 180
 BOAT_BACKWARD = 270
 
+# Constants for modeling AIS boats
+AIS_BOAT_RADIUS_KM = 0.2
+AIS_BOAT_CIRCLE_SPACING_KM = AIS_BOAT_RADIUS_KM * 1.5  # Distance between circles that make up an AIS boat
+
 def latlonToXY(latlon, referenceLatlon):
     x = distance((referenceLatlon.lat, referenceLatlon.lon), (referenceLatlon.lat, latlon.lon)).kilometers
     y = distance((referenceLatlon.lat, referenceLatlon.lon), (latlon.lat, referenceLatlon.lon)).kilometers
@@ -60,8 +64,8 @@ def XYToLatlon(xy, referenceLatlon):
     destination = y_distance.destination(point=(destination.latitude, destination.longitude), bearing=BEARING_NORTH)
     return latlon(destination.latitude, destination.longitude)
 
-def isValid(state, obstacles):
-    x, y = state
+def isValid(xy, obstacles):
+    x, y = xy
     for obstacle in obstacles:
         if math.sqrt(pow(x - obstacle.x, 2) + pow(y - obstacle.y, 2)) - obstacle.radius <= 0:
             return False
@@ -285,14 +289,10 @@ def getDesiredHeading(position, localWaypoint):
     xy = latlonToXY(localWaypoint, position)
     return math.degrees(math.atan2(xy[1], xy[0]))
 
-def extendObstaclesArray(aisArray, sailbotPosition, sailbotSpeedKmph, referenceLatLon):
-#assuming speed in km/h
+def extendObstaclesArray(aisArray, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
     obstacles = []
-    radiusKm = 0.2  # Change this to change the width of obstacles
-    spacingKm = 0.2 # Change this to change the distance between circles that make up a boat
-
     for aisData in aisArray:
-        aisX, aisY = latlonToXY(latlon(aisData.lat, aisData.lon), referenceLatLon)
+        aisX, aisY = latlonToXY(latlon(aisData.lat, aisData.lon), referenceLatlon)
 
         # Calculate length to extend boat
         MAX_TIME_TO_LOC_HOURS = 10  # Do not extend objects more than 10 hours distance
@@ -306,18 +306,18 @@ def extendObstaclesArray(aisArray, sailbotPosition, sailbotSpeedKmph, referenceL
         if aisData.headingDegrees == 90 or aisData.headingDegrees == 270:
             if aisData.headingDegrees == 90:
                 endY = aisY + extendBoatLengthKm
-                yRange = np.arange(aisY, endY, spacingKm)
+                yRange = np.arange(aisY, endY, AIS_BOAT_CIRCLE_SPACING_KM)
             if aisData.headingDegrees == 270:
                 endY = aisY - extendBoatLengthKm
-                yRange = np.arange(endY, aisY, spacingKm)
+                yRange = np.arange(endY, aisY, AIS_BOAT_CIRCLE_SPACING_KM)
             for y in yRange:
                 # Multiplier to increase size of circles showing where the boat will be in the future in range [1, 2]
                 multiplier = 1 + abs(float(y - aisY) / (endY - aisY))
-                obstacles.append(Obstacle(aisX, y, radiusKm * multiplier))
+                obstacles.append(Obstacle(aisX, y, AIS_BOAT_RADIUS_KM * multiplier))
         else:
             isHeadingWest = aisData.headingDegrees < 270 and aisData.headingDegrees > 90
             slope = math.tan(math.radians(aisData.headingDegrees))
-            dx = spacingKm / math.sqrt(1 + slope**2)
+            dx = AIS_BOAT_CIRCLE_SPACING_KM / math.sqrt(1 + slope**2)
 
             if aisX > 0:
                 b = aisY + slope * -math.fabs(aisX)
@@ -334,7 +334,7 @@ def extendObstaclesArray(aisArray, sailbotPosition, sailbotSpeedKmph, referenceL
             for x in xRange:
                 # Multiplier to increase size of circles showing where the boat will be in the future in range [1, 2]
                 multiplier = 1 + abs(float(x - aisX) / (endX - aisX))
-                obstacles.append(Obstacle(x, y(x), radiusKm * multiplier))
+                obstacles.append(Obstacle(x, y(x), AIS_BOAT_RADIUS_KM * multiplier))
     return obstacles
 
 def measuredWindToGlobalWind(measuredWindSpeed, measuredWindDirectionDegrees, boatSpeed, headingDegrees):
