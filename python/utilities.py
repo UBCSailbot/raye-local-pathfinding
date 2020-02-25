@@ -3,7 +3,7 @@ from ompl import util as ou
 import rospy
 import time
 from plotting import plot_path, plot_path_2
-from updated_geometric_planner import plan, Obstacle, hasNoCollisions
+from updated_geometric_planner import plan, Obstacle, hasObstacleOnPath
 from cli import parse_obstacle
 import math 
 from geopy.distance import distance
@@ -190,19 +190,13 @@ def sailingUpwindOrDownwind(state, desiredHeadingMsg):
 
     return False
 
-def obstacleOnPath(state, localPathSS, referenceLatlon):
+def obstacleOnPath(state, localPathIndex, localPathSS, referenceLatlon):
     # Check if path will hit objects
+    positionXY = latlonToXY(state.position, referenceLatlon)
     obstacles = extendObstaclesArray(state.AISData.ships, state.position, state.speedKmph, referenceLatlon)
-    print("Obstacles")
-    for o in obstacles:
-        print("{}, {}, {}".format(o.x, o.y, o.radius))
-    print("States")
-    for s in localPathSS.getSolutionPath().getStates():
-        print("{}, {}".format(s.getX(), s.getY()))
-    if not hasNoCollisions(localPathSS, obstacles):
-        rospy.logwarn("Going to hit obstacle.")
+    if hasObstacleOnPath(positionXY, localPathIndex, localPathSS, obstacles):
+        rospy.logwarn("Obstacle on path!")
         return True
-
     return False
 
 def globalWaypointReached(position, globalWaypoint):
@@ -387,21 +381,53 @@ if __name__ == '__main__':
     print("Path made")
 
     # Sanity check with no obstacles
-    print("Sanity check obstacles on path? {}".format(obstacleOnPath(state, localPathSS, referenceLatlon)))
+    print("Has obstacle on path? {}. Expected False".format(obstacleOnPath(state, 1, localPathSS, referenceLatlon)))
 
     # Put obstacle on path
-    waypoint0 = localPathSS.getSolutionPath().getState(0)
     waypoint1 = localPathSS.getSolutionPath().getState(1)
-    # between = [waypoint0.getX() + (waypoint1.getX() - waypoint0.getX()) / 2, waypoint0.getY() + (waypoint1.getY() - waypoint0.getY()) / 2]
+    waypoint2 = localPathSS.getSolutionPath().getState(2)
     fraction = 1.0/5.0
-    between = [1 + waypoint0.getX() + (waypoint1.getX() - waypoint0.getX()) * fraction, waypoint0.getY() + (waypoint1.getY() - waypoint0.getY()) * fraction]
-    dist = ((between[0] - waypoint1.getX())**2 + (between[1] - waypoint1.getY())**2)**0.5
-    print("Distance from between to waypoint1 in km is {}".format(dist))
-    # between = [waypoint1.getX(), waypoint1.getY()]
+    between = [waypoint1.getX() + (waypoint2.getX() - waypoint1.getX()) * fraction, waypoint1.getY() + (waypoint2.getY() - waypoint1.getY()) * fraction]
+    print("Placing object {} between waypoint1 and waypoint2".format(fraction))
     shipLatlon = XYToLatlon(between, referenceLatlon)
     state.AISData = AISMsg([AISShip(0, shipLatlon.lat, shipLatlon.lon, 0, 10)])
 
-    # Sanity check has obstacle on path
-    waypoint0Latlon = XYToLatlon([waypoint0.getX(), waypoint0.getY()], referenceLatlon)
+    # Sanity check has obstacle on path. Check changing index
+    print("Checking if obstacle still on path with index 1")
+    print("Has obstacle on path? {}. Expected True".format(obstacleOnPath(state, 1, localPathSS, referenceLatlon)))
+
+    print("Checking if obstacle still on path with index 2. As still interpolate from same start pos")
+    print("Has obstacle on path? {}. Expected True".format(obstacleOnPath(state, 2, localPathSS, referenceLatlon)))
+
+    # Move obstacle
+    print("Moving obstacle rightwards to be off path")
+    state.AISData.ships[0].lon += 1
+    print("Has obstacle on path? {}. Expected False".format(obstacleOnPath(state, 0, localPathSS, referenceLatlon)))
+
+    # Sanity check
+    state.AISData.ships[0].lon -= 1
+    print("Move it back")
+    print("Checking if obstacle still on path with index 1")
+    print("Has obstacle on path? {}. Expected True".format(obstacleOnPath(state, 1, localPathSS, referenceLatlon)))
+
+    print("Move obstacle to be off the path")
+    shipLatlon = XYToLatlon([between[0] + 1, between[1]], referenceLatlon)
+    state.AISData = AISMsg([AISShip(0, shipLatlon.lat, shipLatlon.lon, 0, 10)])
+    print("Checking if obstacle still on path with index 1")
+    print("Has obstacle on path? {}. Expected False".format(obstacleOnPath(state, 1, localPathSS, referenceLatlon)))
+
+    # Move boat position so obstacle not on path, but blocking path from boat to path
     waypoint1Latlon = XYToLatlon([waypoint1.getX(), waypoint1.getY()], referenceLatlon)
-    print(obstacleOnPath(state, localPathSS, referenceLatlon))
+    waypoint2Latlon = XYToLatlon([waypoint2.getX(), waypoint2.getY()], referenceLatlon)
+    state.position = latlon(waypoint1Latlon.lat, waypoint2Latlon.lon)
+    print("Move boat so the obstacle is still in the way")
+    print("Has obstacle on path? {}. Expected True".format(obstacleOnPath(state, 2, localPathSS, referenceLatlon)))
+
+    state.position = latlon(waypoint2Latlon.lat, waypoint1Latlon.lon)
+    print("Move boat so the obstacle is not still in the way")
+    print("Has obstacle on path? {}. Expected False".format(obstacleOnPath(state, 2, localPathSS, referenceLatlon)))
+
+    state.position = latlon(waypoint2Latlon.lat, waypoint2Latlon.lon)
+    print("Move boat so it is past the obstacle")
+    print("Has obstacle on path? {}. Expected False".format(obstacleOnPath(state, 3, localPathSS, referenceLatlon)))
+
