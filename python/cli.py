@@ -32,7 +32,7 @@ if __name__ == "__main__":
                         help='(Optional) Set the OMPL log level. 0 for WARN, 1 for INFO, 2 for DEBUG.' \
                              ' Defaults to WARN.')
     parser.add_argument('-w', '--windDirection', type=lambda x: int(x), default=-135,
-                        help='(Optional) Wind direction in degrees')
+                        help='(Optional) Wind direction in degrees (direction the wind is going)')
 
     parser.add_argument('-d', '--dimensions', nargs=4, type=int, default=[0, 0, 10, 10],
                         help='(Optional) dimensions of the space')
