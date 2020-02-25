@@ -43,14 +43,13 @@ def allocatePlanner(si, plannerType):
         ou.OMPL_ERROR("Planner-type is not implemented in allocation function.")
 
 
-def hasObstacleOnPath(positionXY, localPathIndex, localPathSS, obstacles):
+def hasObstacleOnPath(positionXY, nextLocalWaypointIndex, localPathSS, obstacles):
     # Set the objects used to check which states in the space are valid
     validity_checker = ph.ValidityChecker(localPathSS.getSpaceInformation(), obstacles)
     localPathSS.setStateValidityChecker(validity_checker)
 
     # Setup for obstacle-on-path checking
     localPathSS.setup()
-    hasAnyObstaclesOnPath = False
     stateSpace = localPathSS.getStateSpace()
     solutionPath = localPathSS.getSolutionPath()
     spaceInformation = localPathSS.getSpaceInformation()
@@ -69,7 +68,7 @@ def hasObstacleOnPath(positionXY, localPathIndex, localPathSS, obstacles):
     firstState = spaceInformation.allocState()
     firstState.setXY(positionXY[0], positionXY[1])
     relevantStates.append(firstState)
-    for stateIndex in range(localPathIndex, len(solutionPath.getStates())):
+    for stateIndex in range(nextLocalWaypointIndex, len(solutionPath.getStates())):
         relevantStates.append(solutionPath.getState(stateIndex))
 
     # Interpolate between states and check for validity
@@ -88,31 +87,32 @@ def hasObstacleOnPath(positionXY, localPathIndex, localPathSS, obstacles):
             fraction = i * resolution
             stateSpace.interpolate(prevState, nextState, fraction, interpolatedState)
             hasObstacle = (not spaceInformation.isValid(interpolatedState))
-            hasAnyObstaclesOnPath = hasAnyObstaclesOnPath or hasObstacle
+            if hasObstacle:
+                return True
 
-    ax = plt.gca()
-    for obstacle in obstacles:
-        # print("Obstacle {}, {}, {}".format(obstacle.x, obstacle.y, obstacle.radius))
-        c = plt.Circle((obstacle.x, obstacle.y), radius=obstacle.radius)
-        c.set_color('r')
-        ax.add_patch(c)
-    for s in localPathSS.getSolutionPath().getStates():
-        # print("SolutionPath State {}, {}".format(s.getX(), s.getY()))
-        c = plt.Circle((s.getX(), s.getY()), radius=0.2)
-        c.set_color('g')
-        ax.add_patch(c)
-    for s in relevantStates:
-        # print("Relevant State {}, {}".format(s.getX(), s.getY()))
-        c = plt.Circle((s.getX(), s.getY()), radius=0.1)
-        c.set_color('b')
-        ax.add_patch(c)
-
-    c = plt.Circle((positionXY[0], positionXY[1]), radius=0.05)
-    c.set_color('m')
-    ax.add_patch(c)
-    plt.show()
-    plt.cla()
-    return hasAnyObstaclesOnPath
+    return False
+#     ax = plt.gca()
+#     for obstacle in obstacles:
+#         # print("Obstacle {}, {}, {}".format(obstacle.x, obstacle.y, obstacle.radius))
+#         c = plt.Circle((obstacle.x, obstacle.y), radius=obstacle.radius)
+#         c.set_color('r')
+#         ax.add_patch(c)
+#     for s in localPathSS.getSolutionPath().getStates():
+#         # print("SolutionPath State {}, {}".format(s.getX(), s.getY()))
+#         c = plt.Circle((s.getX(), s.getY()), radius=0.2)
+#         c.set_color('g')
+#         ax.add_patch(c)
+#     for s in relevantStates:
+#         # print("Relevant State {}, {}".format(s.getX(), s.getY()))
+#         c = plt.Circle((s.getX(), s.getY()), radius=0.1)
+#         c.set_color('b')
+#         ax.add_patch(c)
+# 
+#     c = plt.Circle((positionXY[0], positionXY[1]), radius=0.05)
+#     c.set_color('m')
+#     ax.add_patch(c)
+#     plt.show()
+#     plt.cla()
 
 def plan(run_time, planner_type, objective_type, wind_direction_degrees, dimensions, start_pos, goal_pos, obstacles):
     # Construct the robot state space in which we're planning
@@ -132,7 +132,7 @@ def plan(run_time, planner_type, objective_type, wind_direction_degrees, dimensi
     # Construct a space information instance for this state space
     si = ss.getSpaceInformation()
     # Set resolution of state validity checking, which is fraction of space's extent (Default is 0.01)
-    # si.setStateValidityCheckingResolution(0.001)
+    si.setStateValidityCheckingResolution(0.05)
 
     # Set the objects used to check which states in the space are valid
     validity_checker = ph.ValidityChecker(si, obstacles)

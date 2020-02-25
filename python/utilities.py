@@ -100,7 +100,7 @@ def plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, 
     plt.pause(0.001)
 
 
-def createLocalPathSS(state):
+def createLocalPathSS(state, runtimeSeconds=3, numRuns=3):
     ou.setLogLevel(ou.LOG_WARN)
 
     # Get setup parameters from state for ompl plan()
@@ -123,8 +123,6 @@ def createLocalPathSS(state):
             obstacle.radius /= shrinkFactor
 
     # Run the planner multiple times and find the best one
-    runtimeSeconds = 1
-    numRuns = 3
     rospy.loginfo("Running createLocalPathSS. runtimeSeconds: {}. numRuns: {}. Total time: {} seconds".format(runtimeSeconds, numRuns, runtimeSeconds*numRuns))
 
     # Create non-blocking plot showing the setup of the pathfinding problem. Useful to understand if the pathfinding problem is invalid or impossible
@@ -190,11 +188,11 @@ def sailingUpwindOrDownwind(state, desiredHeadingMsg):
 
     return False
 
-def obstacleOnPath(state, localPathIndex, localPathSS, referenceLatlon):
+def obstacleOnPath(state, nextLocalWaypointIndex, localPathSS, referenceLatlon):
     # Check if path will hit objects
     positionXY = latlonToXY(state.position, referenceLatlon)
     obstacles = extendObstaclesArray(state.AISData.ships, state.position, state.speedKmph, referenceLatlon)
-    if hasObstacleOnPath(positionXY, localPathIndex, localPathSS, obstacles):
+    if hasObstacleOnPath(positionXY, nextLocalWaypointIndex, localPathSS, obstacles):
         rospy.logwarn("Obstacle on path!")
         return True
     return False
