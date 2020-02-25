@@ -4,6 +4,7 @@ import rospy
 import time
 from plotting import plot_path, plot_path_2
 from updated_geometric_planner import plan, Obstacle, hasObstacleOnPath
+from planner_helpers import isUpwind, isDownwind
 from cli import parse_obstacle
 import math 
 from geopy.distance import distance
@@ -13,10 +14,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import patches
 from Sailbot import BoatState
-
-# Upwind downwind constants
-UPWIND_MAX_ANGLE_DEGREES = 30
-DOWNWIND_MAX_ANGLE_DEGREES = 30
 
 # Location constants
 PORT_RENFREW_LATLON = latlon(48.5, -124.8)
@@ -176,19 +173,14 @@ def getLocalPath(localPathSS, referenceLatlon):
         localPath.append(XYToLatlon(xy, referenceLatlon))
     return localPath
 
-def sailingUpwindOrDownwind(state, desiredHeadingMsg):
+def sailingUpwindOrDownwind(state, desiredHeadingDegrees):
     globalWindSpeedKmph, globalWindDirectionDegrees = measuredWindToGlobalWind(state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
 
-    # Ensure that directions are in the same convention (-pi, pi]
-    globalWindDirectionDegrees = math.degrees(math.acos(math.cos(math.radians(globalWindDirectionDegrees))))
-    desiredHeadingDegrees = math.degrees(math.acos(math.cos(math.radians(desiredHeadingMsg.headingDegrees))))
-
-    # TODO: Fix so that discontinuities are not an issue. Eg. pi and -pi should be 0 angle difference, but this would get 2pi. Also fix in ompl
-    if math.fabs(globalWindDirectionDegrees - desiredHeadingDegrees) < DOWNWIND_MAX_ANGLE_DEGREES:
+    if isDownwind(math.radians(globalWindDirectionDegrees), math.radians(desiredHeadingDegrees)):
         rospy.logwarn("Sailing downwind. Global Wind direction: {}. Desired Heading: {}".format(globalWindDirectionDegrees, desiredHeadingDegrees))
         return True
 
-    elif math.fabs(globalWindDirectionDegrees - desiredHeadingDegrees - math.radians(180)) < UPWIND_MAX_ANGLE_DEGREES:
+    elif isUpwind(math.radians(globalWindDirectionDegrees), math.radians(desiredHeadingDegrees)):
         rospy.logwarn("Sailing upwind. Global Wind direction: {}. Desired Heading: {}".format(globalWindDirectionDegrees, desiredHeadingDegrees))
         return True
 

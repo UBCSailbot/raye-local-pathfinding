@@ -44,10 +44,11 @@ if __name__ == '__main__':
     while not rospy.is_shutdown():
         rospy.loginfo("sailbot.globalPathIndex: {}".format(sailbot.globalPathIndex))
         rospy.loginfo("localPathIndex: {}".format(localPathIndex))
+        rospy.loginfo("desiredHeadingMsg: {}".format(desiredHeadingMsg.headingDegrees))
         state = sailbot.getCurrentState()
 
         # Generate new local path if needed
-        isSailingUpwindOrDownwind = sailingUpwindOrDownwind(state, desiredHeadingMsg)
+        isSailingUpwindOrDownwind = sailingUpwindOrDownwind(state, desiredHeadingMsg.headingDegrees)
         hasObstacleOnPath = obstacleOnPath(state, localPathIndex, localPathSS, referenceLatlon)
         isTimeLimitExceeded = timeLimitExceeded(lastTimePathCreated)
         isGlobalWaypointReached = globalWaypointReached(state.position, state.globalWaypoint)
@@ -82,7 +83,6 @@ if __name__ == '__main__':
 
         # Publish desiredHeading
         desiredHeadingMsg.headingDegrees = getDesiredHeading(state.position, localWaypoint)
-        rospy.loginfo_throttle(10, "desiredHeadingMsg: {}".format(desiredHeadingMsg.headingDegrees))  # Prints every x seconds
         desiredHeadingPublisher.publish(desiredHeadingMsg)
         publishRate.sleep()
 
