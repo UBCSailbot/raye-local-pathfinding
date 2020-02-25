@@ -90,29 +90,32 @@ def hasObstacleOnPath(positionXY, nextLocalWaypointIndex, localPathSS, obstacles
             if hasObstacle:
                 return True
 
+    '''Uncomment to visualize the obstacles, relevant states, and all states
+    ax = plt.gca()
+    for obstacle in obstacles:
+        # print("Obstacle {}, {}, {}".format(obstacle.x, obstacle.y, obstacle.radius))
+        c = plt.Circle((obstacle.x, obstacle.y), radius=obstacle.radius)
+        c.set_color('r')
+        ax.add_patch(c)
+    for s in localPathSS.getSolutionPath().getStates():
+        # print("SolutionPath State {}, {}".format(s.getX(), s.getY()))
+        c = plt.Circle((s.getX(), s.getY()), radius=0.2)
+        c.set_color('g')
+        ax.add_patch(c)
+    for s in relevantStates:
+        # print("Relevant State {}, {}".format(s.getX(), s.getY()))
+        c = plt.Circle((s.getX(), s.getY()), radius=0.1)
+        c.set_color('b')
+        ax.add_patch(c)
+
+    c = plt.Circle((positionXY[0], positionXY[1]), radius=0.05)
+    c.set_color('m')
+    ax.add_patch(c)
+    plt.show()
+    plt.cla()
+    '''
+
     return False
-#     ax = plt.gca()
-#     for obstacle in obstacles:
-#         # print("Obstacle {}, {}, {}".format(obstacle.x, obstacle.y, obstacle.radius))
-#         c = plt.Circle((obstacle.x, obstacle.y), radius=obstacle.radius)
-#         c.set_color('r')
-#         ax.add_patch(c)
-#     for s in localPathSS.getSolutionPath().getStates():
-#         # print("SolutionPath State {}, {}".format(s.getX(), s.getY()))
-#         c = plt.Circle((s.getX(), s.getY()), radius=0.2)
-#         c.set_color('g')
-#         ax.add_patch(c)
-#     for s in relevantStates:
-#         # print("Relevant State {}, {}".format(s.getX(), s.getY()))
-#         c = plt.Circle((s.getX(), s.getY()), radius=0.1)
-#         c.set_color('b')
-#         ax.add_patch(c)
-# 
-#     c = plt.Circle((positionXY[0], positionXY[1]), radius=0.05)
-#     c.set_color('m')
-#     ax.add_patch(c)
-#     plt.show()
-#     plt.cla()
 
 def plan(run_time, planner_type, objective_type, wind_direction_degrees, dimensions, start_pos, goal_pos, obstacles):
     # Construct the robot state space in which we're planning
