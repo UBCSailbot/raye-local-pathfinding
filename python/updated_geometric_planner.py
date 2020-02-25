@@ -72,7 +72,7 @@ def hasObstacleOnPath(positionXY, nextLocalWaypointIndex, localPathSS, obstacles
         relevantStates.append(solutionPath.getState(stateIndex))
 
     # Interpolate between states and check for validity
-    for stateIndex in range(len(relevantStates)):
+    for stateIndex in range(1, len(relevantStates)):
         # Check in between these points
         prevState = relevantStates[stateIndex - 1]
         nextState = relevantStates[stateIndex]
