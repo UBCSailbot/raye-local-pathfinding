@@ -74,6 +74,7 @@ def plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, 
 
     # Create plot with start and goal
     markersize = min(dimensions[2]-dimensions[0], dimensions[3]-dimensions[1]) / 2
+    plt.ion()
     axes = plt.gca()
     goalPlot, = axes.plot(goal[0], goal[1], marker='*', color='y', markersize=markersize)                          # Yellow star
     startPlot, = axes.plot(start[0], start[1], marker=(3,0,headingDegrees - 90), color='r', markersize=markersize) # Red triangle with correct heading. The (-90) is because the triangle default heading 0 points North, but this heading has 0 be East.
@@ -99,7 +100,6 @@ def plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, 
     # Draw plot
     plt.draw()
     plt.pause(0.001)
-
 
 def createLocalPathSS(state, runtimeSeconds=3, numRuns=3, plot=False):
     ou.setLogLevel(ou.LOG_WARN)
