@@ -107,55 +107,48 @@ class TestUtilities(unittest.TestCase):
         self.assertAlmostEqual(indexInBoundsLatlon.lat, localPath[validIndex].lat, places=1)
         self.assertAlmostEqual(indexInBoundsLatlon.lon, localPath[validIndex].lon, places=1)
 
-    #helper method for extendObstaclesArray to check if position is valid        
-    def isValid(self, x, y, obstacles):
-        for obstacle in obstacles:
-            if sqrt(pow(x - obstacle.x, 2) + pow(y - obstacle.y, 2)) - obstacle.radius <= 0:
-                return False
-        return True
-        
     def test_extendObstaclesArray(self):
         currentLatlon = latlon(0, 0)
         shipLatlon = XYToLatlon((1, 0), currentLatlon)
         ships = [AISShip(1000, shipLatlon.lat, shipLatlon.lon, 180, 1)]
-        obstacles = extendObstaclesArray(ships, currentLatlon)
-        self.assertFalse(self.isValid(0, 0, obstacles))
-        self.assertFalse(self.isValid(1, 0, obstacles))
-        self.assertTrue(self.isValid(2, 0, obstacles)) 
+        obstacles = extendObstaclesArray(ships, currentLatlon, 1, currentLatlon)
+        self.assertFalse(isValid([0, 0], obstacles))
+        self.assertFalse(isValid([1, 0], obstacles))
+        self.assertTrue(isValid([2, 0], obstacles))
 
     def test_extendObstaclesArray2(self):
         currentLatlon = latlon(0, 0)
         shipLatlon = XYToLatlon((1, 1), currentLatlon)
         ships = [AISShip(1000, shipLatlon.lat, shipLatlon.lon, 225, sqrt(2))]
-        obstacles = extendObstaclesArray(ships, currentLatlon)
+        obstacles = extendObstaclesArray(ships, currentLatlon, 1, currentLatlon)
 # Uncomment below to see obstacles extended on a plot
 #        ax = plt.gca()
 #        for obstacle in obstacles:
 #            ax.add_patch(plt.Circle((obstacle.x, obstacle.y), radius=obstacle.radius))
 #        plt.show()
-        self.assertFalse(self.isValid(1, 1, obstacles))
-        self.assertFalse(self.isValid(0, 0, obstacles))
-        self.assertTrue(self.isValid(-1, -1, obstacles))
+        self.assertFalse(isValid([1, 1], obstacles))
+        self.assertFalse(isValid([0, 0], obstacles))
+        self.assertTrue(isValid([-1, -1], obstacles))
 
     def test_extendObstaclesArray3(self):
         currentLatlon = latlon(0, 0)
         shipLatlon = XYToLatlon((0, 3), currentLatlon)
         shipLatlon2 = XYToLatlon((-1, -1), currentLatlon)
-        ship1 = AISShip(1000, shipLatlon.lat, shipLatlon.lon, 270, 4)
+        ship1 = AISShip(1000, shipLatlon.lat, shipLatlon.lon, 270, 1.5)
         ship2 = AISShip(1001, shipLatlon2.lat, shipLatlon2.lon, 45, 10)
-        obstacles = extendObstaclesArray([ship1, ship2], currentLatlon)
+        obstacles = extendObstaclesArray([ship1, ship2], currentLatlon, 1, currentLatlon)
 # Uncomment below to see obstacles extended on a plot
 #        ax = plt.gca()
 #        for obstacle in obstacles:
 #            ax.add_patch(plt.Circle((obstacle.x, obstacle.y), radius=obstacle.radius))
 #        plt.show()
-        self.assertFalse(self.isValid(0, 0, obstacles))
-        self.assertFalse(self.isValid(1, 1, obstacles))
-        self.assertFalse(self.isValid(3, 3, obstacles))
-        self.assertFalse(self.isValid(0, -1, obstacles))
-        self.assertTrue(self.isValid(0, 4, obstacles))
-        self.assertFalse(self.isValid(0, -1.19, obstacles))
-        self.assertTrue(self.isValid(0, -1.3, obstacles))
+        self.assertFalse(isValid([0, 0], obstacles))
+        self.assertFalse(isValid([1, 1], obstacles))
+        self.assertFalse(isValid([3, 3], obstacles))
+        self.assertFalse(isValid([0, -1], obstacles))
+        self.assertTrue(isValid([0, 4], obstacles))
+        self.assertFalse(isValid([0, -1.19], obstacles))
+        self.assertTrue(isValid([0, -2.3], obstacles))
 
     def test_localWaypointReached(self):
         refLatlon = latlon(0, 0)

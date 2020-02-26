@@ -83,9 +83,9 @@ if __name__ == '__main__':
     markersize = min(xPLim - xNLim, yPLim - yNLim) / 2
     axes = plt.gca()
     localPathPlot, = axes.plot(localPathX, localPathY, marker='.', color='g', markersize=markersize / 2, linewidth=2)                    # Small green dots
-    nextGlobalWaypointPlot, = axes.plot(nextGlobalWaypointXY[0], nextGlobalWaypointXY[1], marker='*', color='y', markersize=markersize)  # Yellow start
+    nextGlobalWaypointPlot, = axes.plot(nextGlobalWaypointXY[0], nextGlobalWaypointXY[1], marker='*', color='y', markersize=markersize)  # Yellow star
     nextLocalWaypointPlot, = axes.plot(nextLocalWaypointXY[0], nextLocalWaypointXY[1], marker='X', color='g', markersize=markersize)     # Green X
-    positionPlot, = axes.plot(positionXY[0], positionXY[1], marker=(3,0,state.headingDegrees - 90), color='r', markersize=markersize)           # Blue triangle with correct heading. The (-90) is because the triangle default heading 0 points North, but this heading has 0 be East.
+    positionPlot, = axes.plot(positionXY[0], positionXY[1], marker=(3,0,state.headingDegrees - 90), color='r', markersize=markersize)    # Red triangle with correct heading. The (-90) is because the triangle default heading 0 points North, but this heading has 0 be East.
 
     # Setup plot xy limits and labels
     axes.set_xlim(xNLim, xPLim)
@@ -93,6 +93,7 @@ if __name__ == '__main__':
     plt.grid(True)
     axes.set_xlabel('X distance to next global waypoint (km)')
     axes.set_ylabel('Y distance to next global waypoint (km)')
+    axes.set_title('Local Path Visualizer')
 
     # Show wind speed text and position text
     arrowLength = min(xPLim - xNLim, yPLim - yNLim) / 15
@@ -113,7 +114,7 @@ if __name__ == '__main__':
         localPathXY = [latlonToXY(localWaypoint, referenceLatlon) for localWaypoint in localPath]
         localPathX = [xy[0] for xy in localPathXY]
         localPathY = [xy[1] for xy in localPathXY]
-        shipsXY = extendObstaclesArray(state.AISData.ships, referenceLatlon)
+        shipsXY = extendObstaclesArray(state.AISData.ships, state.position, state.speedKmph, referenceLatlon)
         # Update plots
         localPathPlot.set_xdata(localPathX)
         localPathPlot.set_ydata(localPathY)
