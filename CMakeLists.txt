@@ -57,6 +57,7 @@ add_message_files(
   latlon.msg
   path.msg
   windSensor.msg
+  addBoat.msg
 )
 
 ## Generate services in the 'srv' folder

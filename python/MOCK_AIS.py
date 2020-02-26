@@ -4,8 +4,9 @@ import math
 import random
 from geopy.distance import distance
 from utilities import headingToBearingDegrees, PORT_RENFREW_LATLON
+from std_msgs.msg import Int32
 
-import local_pathfinding.msg as msg
+from local_pathfinding.msg import AISShip, AISMsg
 
 class Ship:
     def __init__(self, id, sailbot_lat, sailbot_lon, publishPeriodSeconds):
@@ -28,7 +29,7 @@ class Ship:
         self.lat = boatLatlon.latitude
 
     def make_ros_message(self):
-        return msg.AISShip(
+        return AISShip(
                     self.id,
                     self.lat,
                     self.lon,
@@ -46,17 +47,28 @@ class MOCK_AISEnvironment:
             self.ships.append(Ship(i, lat, lon, self.publishPeriodSeconds))
 
         rospy.init_node('MOCK_AIS', anonymous=True)
-        self.publisher = rospy.Publisher("AIS", msg.AISMsg, queue_size=4)
+        self.publisher = rospy.Publisher("AIS", AISMsg, queue_size=4)
+        rospy.Subscriber('/new_boats', AISShip, self.new_boat_callback)
+        rospy.Subscriber('/delete_boats', Int32, self.remove_boat_callback)
 
     def move_ships(self):
         for i in range(self.numShips):
             self.ships[i].move()
 
     def make_ros_message(self):
+        rospy.loginfo([ship.id for ship in self.ships])
         ship_list = []
         for i in range(self.numShips):
             ship_list.append(self.ships[i].make_ros_message())
-        return msg.AISMsg(ship_list)
+        return AISMsg(ship_list)
+    
+    def new_boat_callback(self, msg):
+        self.ships.append(Ship(msg.ID, msg.lat, msg.lon, self.publishPeriodSeconds))
+        self.numShips += 1
+        
+    def remove_boat_callback(self, msg):
+        self.ships[:] = [ship for ship in self.ships if not ship.id == msg.data] 
+        self.numShips = len(self.ships)
 
 if __name__ == '__main__':
     ais_env = MOCK_AISEnvironment(PORT_RENFREW_LATLON.lat, PORT_RENFREW_LATLON.lon)
