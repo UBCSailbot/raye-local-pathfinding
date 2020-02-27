@@ -8,8 +8,10 @@ sys.path.insert(0, os.path.abspath(os.path.join(testdir, srcdir)))
 
 import unittest
 import rostest
-from local_pathfinding.msg import latlon, AISShip
+from local_pathfinding.msg import latlon, AISShip, AISMsg
+from planner_helpers import UPWIND_MAX_ANGLE_DEGREES, DOWNWIND_MAX_ANGLE_DEGREES
 from utilities import *
+from Sailbot import BoatState
 from geopy.distance import distance
 from math import sqrt
 import matplotlib.pyplot as plt
@@ -21,13 +23,12 @@ class TestUtilities(unittest.TestCase):
         endLatlon = latlon(47.7984, -125.3319)
 
         # Test latlonToXY
-        xy = latlonToXY(latlon=endLatlon, referenceLatlon=startLatlon)
-        x, y = xy
+        x, y = latlonToXY(latlon=endLatlon, referenceLatlon=startLatlon)
         self.assertAlmostEqual(x, -168.0158959716741, places=2)  # endLatlon is about 168.0158959716741km west of startLatlon
         self.assertAlmostEqual(y, -162.8668880228988, places=2)  # endLatLon is about 162.8668880228988km south of startLatlon
 
         # Test XYToLatlon
-        calculatedEndLatlon = XYToLatlon(xy=xy, referenceLatlon=startLatlon)
+        calculatedEndLatlon = XYToLatlon(xy=[x, y], referenceLatlon=startLatlon)
         self.assertAlmostEqual(calculatedEndLatlon.lat, endLatlon.lat, places=1)  # calculatedEndLatlon should be same as endLatlon
         self.assertAlmostEqual(calculatedEndLatlon.lon, endLatlon.lon, places=1)
 
@@ -36,30 +37,25 @@ class TestUtilities(unittest.TestCase):
         testLatlon = latlon(50, -120)
 
         # Test latlonToXY
-        xy = latlonToXY(latlon=testLatlon, referenceLatlon=testLatlon)
-        x, y = xy
+        x, y = latlonToXY(latlon=testLatlon, referenceLatlon=testLatlon)
         self.assertAlmostEqual(x, 0, places=2)  # xy=(0,0) at reference point
         self.assertAlmostEqual(y, 0, places=2)
 
         # Test XYToLatlon
-        calculatedLatlon = XYToLatlon(xy=xy, referenceLatlon=testLatlon)
+        calculatedLatlon = XYToLatlon(xy=[x, y], referenceLatlon=testLatlon)
         self.assertAlmostEqual(calculatedLatlon.lat, testLatlon.lat, places=1)  # calculatedLatlon should be same as testLatlon
         self.assertAlmostEqual(calculatedLatlon.lon, testLatlon.lon, places=1)
 
     def test_getDesiredHeading_north(self):
-        # Heading is defined using cartesian coordinates. 0 degrees is East. 90 degrees in North. 270 degrees is South.
-        # Bearing is defined differently. 0 degrees is North. 90 degrees is East. 180 degrees is South.
-        # Heading = -Bearing + 90
-
         # Setup latlon
         position = latlon(50, -120)
 
         # Setup destination
-        destination = distance(kilometers=1).destination(point=(position.lat, position.lon), bearing=BEARING_NORTH)
-        localWaypoint = latlon(destination.latitude, destination.longitude)
+        northDestination = distance(kilometers=1).destination(point=(position.lat, position.lon), bearing=BEARING_NORTH)
+        northDestination = latlon(northDestination.latitude, northDestination.longitude)
 
         # Test desiredHeading
-        desiredHeading = getDesiredHeading(position=position, localWaypoint=localWaypoint)
+        desiredHeading = getDesiredHeading(position=position, localWaypoint=northDestination)
         self.assertAlmostEqual(desiredHeading, HEADING_NORTH, places=1)
 
     def test_getDesiredHeading_east(self):
@@ -67,14 +63,15 @@ class TestUtilities(unittest.TestCase):
         position = latlon(50, -120)
 
         # Setup destination
-        destination = distance(kilometers=1).destination(point=(position.lat, position.lon), bearing=BEARING_EAST)
-        localWaypoint = latlon(destination.latitude, destination.longitude)
+        eastDestination = distance(kilometers=1).destination(point=(position.lat, position.lon), bearing=BEARING_EAST)
+        eastDestination = latlon(eastDestination.latitude, eastDestination.longitude)
 
         # Test desiredHeading
-        desiredHeading = getDesiredHeading(position=position, localWaypoint=localWaypoint)
+        desiredHeading = getDesiredHeading(position=position, localWaypoint=eastDestination)
         self.assertAlmostEqual(desiredHeading, HEADING_EAST, places=1)
 
     def test_globalWaypointReached(self):
+        # Setup latlon
         position = latlon(35, -150)
 
         # Far away globalWaypoint unreached
@@ -93,6 +90,7 @@ class TestUtilities(unittest.TestCase):
         self.assertAlmostEqual(emptyLocalPathLatlon.lat, 0, places=1)
         self.assertAlmostEqual(emptyLocalPathLatlon.lon, 0, places=1)
 
+        # Create test localPath
         localPath = [latlon(48, -124), latlon(38, -134), latlon(28, -144), latlon(22, -150)]
 
         # Test index out of bounds. Should give back last latlon in path
@@ -108,87 +106,111 @@ class TestUtilities(unittest.TestCase):
         self.assertAlmostEqual(indexInBoundsLatlon.lon, localPath[validIndex].lon, places=1)
 
     def test_extendObstaclesArray(self):
+        # Setup starting at (0,0) with obstacle at (1,0) heading west
         currentLatlon = latlon(0, 0)
-        shipLatlon = XYToLatlon((1, 0), currentLatlon)
-        ships = [AISShip(1000, shipLatlon.lat, shipLatlon.lon, 180, 1)]
-        obstacles = extendObstaclesArray(ships, currentLatlon, 1, currentLatlon)
-        self.assertFalse(isValid([0, 0], obstacles))
-        self.assertFalse(isValid([1, 0], obstacles))
-        self.assertTrue(isValid([2, 0], obstacles))
+        referenceLatlon = currentLatlon
+        shipLatlon = XYToLatlon(xy=(1, 0), referenceLatlon=referenceLatlon)
+        ships = [AISShip(ID=1000, lat=shipLatlon.lat, lon=shipLatlon.lon, headingDegrees=HEADING_WEST, speedKmph=1)]
+        obstacles = extendObstaclesArray(aisArray=ships, sailbotPosition=currentLatlon, sailbotSpeedKmph=1, referenceLatlon=referenceLatlon)
+
+        self.assertFalse(isValid(xy=[0, 0], obstacles=obstacles))
+        self.assertFalse(isValid(xy=[1, 0], obstacles=obstacles))
+        self.assertTrue(isValid(xy=[2, 0], obstacles=obstacles))
 
     def test_extendObstaclesArray2(self):
+        # Setup starting at (0,0) with obstacle at (1,1) heading south-west
         currentLatlon = latlon(0, 0)
-        shipLatlon = XYToLatlon((1, 1), currentLatlon)
-        ships = [AISShip(1000, shipLatlon.lat, shipLatlon.lon, 225, sqrt(2))]
-        obstacles = extendObstaclesArray(ships, currentLatlon, 1, currentLatlon)
+        referenceLatlon = currentLatlon
+        shipLatlon = XYToLatlon(xy=(1, 1), referenceLatlon=referenceLatlon)
+        ships = [AISShip(ID=1000, lat=shipLatlon.lat, lon=shipLatlon.lon, headingDegrees=225, speedKmph=sqrt(2))]
+        obstacles = extendObstaclesArray(aisArray=ships, sailbotPosition=currentLatlon, sailbotSpeedKmph=1, referenceLatlon=referenceLatlon)
 # Uncomment below to see obstacles extended on a plot
 #        ax = plt.gca()
 #        for obstacle in obstacles:
 #            ax.add_patch(plt.Circle((obstacle.x, obstacle.y), radius=obstacle.radius))
 #        plt.show()
-        self.assertFalse(isValid([1, 1], obstacles))
-        self.assertFalse(isValid([0, 0], obstacles))
-        self.assertTrue(isValid([-1, -1], obstacles))
+        self.assertFalse(isValid(xy=[1, 1], obstacles=obstacles))
+        self.assertFalse(isValid(xy=[0, 0], obstacles=obstacles))
+        self.assertTrue(isValid(xy=[-1, -1], obstacles=obstacles))
 
     def test_extendObstaclesArray3(self):
+        # Setup starting at (0,0) with obstacles at (0,3) and (-1,-1)
         currentLatlon = latlon(0, 0)
-        shipLatlon = XYToLatlon((0, 3), currentLatlon)
-        shipLatlon2 = XYToLatlon((-1, -1), currentLatlon)
-        ship1 = AISShip(1000, shipLatlon.lat, shipLatlon.lon, 270, 1.5)
-        ship2 = AISShip(1001, shipLatlon2.lat, shipLatlon2.lon, 45, 10)
-        obstacles = extendObstaclesArray([ship1, ship2], currentLatlon, 1, currentLatlon)
+        referenceLatlon = currentLatlon
+        shipLatlon = XYToLatlon(xy=(0, 3), referenceLatlon=referenceLatlon)
+        shipLatlon2 = XYToLatlon(xy=(-1, -1), referenceLatlon=referenceLatlon)
+        ship1 = AISShip(ID=1000, lat=shipLatlon.lat, lon=shipLatlon.lon, headingDegrees=270, speedKmph=1.5)
+        ship2 = AISShip(ID=1001, lat=shipLatlon2.lat, lon=shipLatlon2.lon, headingDegrees=45, speedKmph=10)
+        obstacles = extendObstaclesArray(aisArray=[ship1, ship2], sailbotPosition=currentLatlon, sailbotSpeedKmph=1, referenceLatlon=referenceLatlon)
 # Uncomment below to see obstacles extended on a plot
 #        ax = plt.gca()
 #        for obstacle in obstacles:
 #            ax.add_patch(plt.Circle((obstacle.x, obstacle.y), radius=obstacle.radius))
 #        plt.show()
-        self.assertFalse(isValid([0, 0], obstacles))
-        self.assertFalse(isValid([1, 1], obstacles))
-        self.assertFalse(isValid([3, 3], obstacles))
-        self.assertFalse(isValid([0, -1], obstacles))
-        self.assertTrue(isValid([0, 4], obstacles))
-        self.assertFalse(isValid([0, -1.19], obstacles))
-        self.assertTrue(isValid([0, -2.3], obstacles))
+        self.assertFalse(isValid(xy=[0, 0], obstacles=obstacles))
+        self.assertFalse(isValid(xy=[1, 1], obstacles=obstacles))
+        self.assertFalse(isValid(xy=[3, 3], obstacles=obstacles))
+        self.assertFalse(isValid(xy=[0, -1], obstacles=obstacles))
+        self.assertTrue(isValid(xy=[0, 4], obstacles=obstacles))
+        self.assertFalse(isValid(xy=[0, -1.19], obstacles=obstacles))
+        self.assertTrue(isValid(xy=[0, -2.3], obstacles=obstacles))
 
     def test_localWaypointReached(self):
+        # Setup path from (0,0) to (1,1)
         refLatlon = latlon(0, 0)
-        start = XYToLatlon((0, 0), refLatlon)
-        waypoint = XYToLatlon((1, 1), refLatlon)
+        start = XYToLatlon(xy=(0, 0), referenceLatlon=refLatlon)
+        waypoint = XYToLatlon(xy=(1, 1), referenceLatlon=refLatlon)
         path = [start, waypoint]
         index = 1
-        sailbotPos = XYToLatlon((2, 2), refLatlon)
-        sailbotPos1 = XYToLatlon((1, 0.5), refLatlon)
-        self.assertTrue(localWaypointReached(sailbotPos, path, index, refLatlon))
-        self.assertFalse(localWaypointReached(sailbotPos1, path, index, refLatlon))
+
+        # Test reachedPos
+        reachedPos = XYToLatlon(xy=(2, 2), referenceLatlon=refLatlon)
+        self.assertTrue(localWaypointReached(position=reachedPos, localPath=path, localPathIndex=index, refLatlon=refLatlon))
+
+        # Test notReachedPos
+        notReachedPos = XYToLatlon(xy=(1, 0.5), referenceLatlon=refLatlon)
+        self.assertFalse(localWaypointReached(position=notReachedPos, localPath=path, localPathIndex=index, refLatlon=refLatlon))
     
     #testing cases where start and LWP have same lat or same lon
     def test_localWaypointReached_sameLat(self):
+        # Setup path from (1,1) to (1,2)
         refLatlon = latlon(0, 0)
-        start = XYToLatlon((1, 1), refLatlon)
-        waypoint = XYToLatlon((1, 2), refLatlon)
+        start = XYToLatlon(xy=(1, 1), referenceLatlon=refLatlon)
+        waypoint = XYToLatlon(xy=(1, 2), referenceLatlon=refLatlon)
         path = [start, waypoint]
         index = 1
-        sailbotPos = XYToLatlon((100, 2.1), refLatlon)
-        sailbotPos1 = XYToLatlon((-100, 1.9), refLatlon)
-        self.assertTrue(localWaypointReached(sailbotPos, path, index, refLatlon))
-        self.assertFalse(localWaypointReached(sailbotPos1, path, index, refLatlon))
-       
+
+        # Test reachedPos
+        reachedPos = XYToLatlon(xy=(100, 2.1), referenceLatlon=refLatlon)
+        self.assertTrue(localWaypointReached(position=reachedPos, localPath=path, localPathIndex=index, refLatlon=refLatlon))
+
+        # Test notReachedPos
+        notReachedPos = XYToLatlon(xy=(-100, 1.9), referenceLatlon=refLatlon)
+        self.assertFalse(localWaypointReached(position=notReachedPos, localPath=path, localPathIndex=index, refLatlon=refLatlon))
+
     def test_localWaypointReached_sameLon(self):
+        # Setup path from (2,1) to (1,1)
         refLatlon = latlon(0, 0)
-        start = XYToLatlon((2, 1), refLatlon)
-        waypoint = XYToLatlon((1, 1), refLatlon)
+        start = XYToLatlon(xy=(2, 1), referenceLatlon=refLatlon)
+        waypoint = XYToLatlon(xy=(1, 1), referenceLatlon=refLatlon)
         path = [start, waypoint]
         index = 1
-        sailbotPos = XYToLatlon((1.1, 100), refLatlon)
-        sailbotPos1 = XYToLatlon((0.9, -100), refLatlon)
-        self.assertFalse(localWaypointReached(sailbotPos, path, index, refLatlon))
-        self.assertTrue(localWaypointReached(sailbotPos1, path, index, refLatlon))
+
+        # Test reachedPos
+        reachedPos = XYToLatlon(xy=(0.9, -100), referenceLatlon=refLatlon)
+        self.assertTrue(localWaypointReached(position=reachedPos, localPath=path, localPathIndex=index, refLatlon=refLatlon))
+
+        # Test notReachedPos
+        notReachedPos = XYToLatlon(xy=(1.1, 100), referenceLatlon=refLatlon)
+        self.assertFalse(localWaypointReached(position=notReachedPos, localPath=path, localPathIndex=index, refLatlon=refLatlon))
 
     def test_headingToBearingDegrees(self):
+        # Basic tests
         self.assertAlmostEqual(BEARING_NORTH % 360, headingToBearingDegrees(HEADING_NORTH) % 360, places=3)
         self.assertAlmostEqual(BEARING_SOUTH % 360, headingToBearingDegrees(HEADING_SOUTH) % 360, places=3)
         self.assertAlmostEqual(BEARING_EAST % 360, headingToBearingDegrees(HEADING_EAST) % 360, places=3)
 
+        # Advanced test
         bearingDirection = (2*BEARING_SOUTH + 1*BEARING_WEST) / 3
         headingDirection = (2*HEADING_SOUTH + 1*HEADING_WEST) / 3
         self.assertAlmostEqual(bearingDirection % 360, headingToBearingDegrees(headingDirection) % 360, places=3)
@@ -260,6 +282,139 @@ class TestUtilities(unittest.TestCase):
         # Test that we get back the same global wind as we started with
         self.assertAlmostEqual(calculatedGlobalWindSpeedKmph, globalWindSpeedKmph, places=3)
         self.assertAlmostEqual(calculatedGlobalWindDirectionDegrees, globalWindDirectionDegrees, places=3)
+
+    def test_createLocalPathSS(self):
+        # Create path that require tacking (wind and nextGlobalWaypoint are 45 degrees)
+        start = latlon(0, 0)
+        goal = latlon(2, 2)
+        measuredWindSpeedKmph, measuredWindDirectionDegrees = globalWindToMeasuredWind(globalWindSpeed=10, globalWindDirectionDegrees=45, boatSpeed=0, headingDegrees=0)
+        state = BoatState(globalWaypoint=goal, position=start, measuredWindDirectionDegrees=measuredWindDirectionDegrees, measuredWindSpeedKmph=measuredWindSpeedKmph, AISData=AISMsg(), headingDegrees=0, speedKmph=0)
+        localPathSS, referenceLatlon = createLocalPathSS(state, runtimeSeconds=1, numRuns=3)
+        solutionPath = localPathSS.getSolutionPath()
+
+        # Check that first and last states match the setup start and goal
+        firstState = solutionPath.getState(0)
+        startState = latlonToXY(latlon=start, referenceLatlon=referenceLatlon)
+        self.assertAlmostEqual(startState[0], firstState.getX(), places=3)
+        self.assertAlmostEqual(startState[1], firstState.getY(), places=3)
+
+        lastState = solutionPath.getState(len(solutionPath.getStates()) - 1)
+        goalState = latlonToXY(latlon=goal, referenceLatlon=referenceLatlon)
+        self.assertAlmostEqual(goalState[0], lastState.getX(), places=3)
+        self.assertAlmostEqual(goalState[1], lastState.getY(), places=3)
+
+        # Check that the distance between waypoints is correct
+        for stateIndex in range(1, len(solutionPath.getStates())):
+            prevState = solutionPath.getState(stateIndex - 1)
+            currState = solutionPath.getState(stateIndex)
+            distance = ((currState.getX() - prevState.getX())**2 + (currState.getY() - prevState.getY())**2)**0.5
+            self.assertTrue(AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM / 2 < distance and distance < 2 * AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM)
+
+    def test_sailingUpwindOrDownwind(self):
+        # Set state with global wind direction nearly same as boat direction (sailing downwind)
+        globalWindDirectionDegrees = 30
+        downwindDesiredHeadingDegrees = globalWindDirectionDegrees + DOWNWIND_MAX_ANGLE_DEGREES / 2
+        measuredWindSpeedKmph, measuredWindDirectionDegrees = globalWindToMeasuredWind(globalWindSpeed=10, globalWindDirectionDegrees=globalWindDirectionDegrees, boatSpeed=1, headingDegrees=120)
+        state = BoatState(globalWaypoint=latlon(1,1), position=latlon(0,0), measuredWindDirectionDegrees=measuredWindDirectionDegrees, measuredWindSpeedKmph=measuredWindSpeedKmph, AISData=AISMsg(), headingDegrees=120, speedKmph=1)
+        self.assertTrue(sailingUpwindOrDownwind(state=state, desiredHeadingDegrees=downwindDesiredHeadingDegrees))
+
+        # Set state so the boat is not going downwind
+        globalWindDirectionDegrees = 10
+        notDownwindDesiredHeadingDegrees = globalWindDirectionDegrees + DOWNWIND_MAX_ANGLE_DEGREES * 2
+        measuredWindSpeedKmph, measuredWindDirectionDegrees = globalWindToMeasuredWind(globalWindSpeed=10, globalWindDirectionDegrees=globalWindDirectionDegrees, boatSpeed=1, headingDegrees=0)
+        state = BoatState(globalWaypoint=latlon(1,1), position=latlon(0,0), measuredWindDirectionDegrees=measuredWindDirectionDegrees, measuredWindSpeedKmph=measuredWindSpeedKmph, AISData=AISMsg(), headingDegrees=0, speedKmph=1)
+        self.assertFalse(sailingUpwindOrDownwind(state=state, desiredHeadingDegrees=notDownwindDesiredHeadingDegrees))
+
+        # Set state with global wind direction nearly 180 degrees from boat direction (sailing upwind)
+        globalWindDirectionDegrees = 279
+        upwindDesiredHeadingDegrees = globalWindDirectionDegrees + 180 + UPWIND_MAX_ANGLE_DEGREES / 2
+        measuredWindSpeedKmph, measuredWindDirectionDegrees = globalWindToMeasuredWind(globalWindSpeed=10, globalWindDirectionDegrees=globalWindDirectionDegrees, boatSpeed=1, headingDegrees=0)
+        state = BoatState(globalWaypoint=latlon(1,1), position=latlon(0,0), measuredWindDirectionDegrees=measuredWindDirectionDegrees, measuredWindSpeedKmph=measuredWindSpeedKmph, AISData=AISMsg(), headingDegrees=0, speedKmph=1)
+        self.assertTrue(sailingUpwindOrDownwind(state=state, desiredHeadingDegrees=upwindDesiredHeadingDegrees))
+
+        # Set state so the boat is not going upwind
+        globalWindDirectionDegrees = 10
+        notUpwindDesiredHeadingDegrees = globalWindDirectionDegrees + 180 + UPWIND_MAX_ANGLE_DEGREES * 2
+        measuredWindSpeedKmph, measuredWindDirectionDegrees = globalWindToMeasuredWind(globalWindSpeed=10, globalWindDirectionDegrees=globalWindDirectionDegrees, boatSpeed=1, headingDegrees=0)
+        state = BoatState(globalWaypoint=latlon(1,1), position=latlon(0,0), measuredWindDirectionDegrees=measuredWindDirectionDegrees, measuredWindSpeedKmph=measuredWindSpeedKmph, AISData=AISMsg(), headingDegrees=0, speedKmph=1)
+        self.assertFalse(sailingUpwindOrDownwind(state=state, desiredHeadingDegrees=notUpwindDesiredHeadingDegrees))
+
+    def test_sailingUpwindOrDownwind_discontinuities(self):
+        # Sanity check that discontinuities are not a problem (eg. 2pi == 6pi)
+        globalWindDirectionDegrees = 10
+        notUpwindDesiredHeadingDegrees = globalWindDirectionDegrees + 180 + UPWIND_MAX_ANGLE_DEGREES * 2
+        globalWindDirectionDegrees += 5 * 360
+        measuredWindSpeedKmph, measuredWindDirectionDegrees = globalWindToMeasuredWind(globalWindSpeed=10, globalWindDirectionDegrees=globalWindDirectionDegrees, boatSpeed=1, headingDegrees=0)
+        state = BoatState(globalWaypoint=latlon(1,1), position=latlon(0,0), measuredWindDirectionDegrees=measuredWindDirectionDegrees, measuredWindSpeedKmph=measuredWindSpeedKmph, AISData=AISMsg(), headingDegrees=0, speedKmph=1)
+        self.assertFalse(sailingUpwindOrDownwind(state=state, desiredHeadingDegrees=notUpwindDesiredHeadingDegrees))
+
+        # Sanity check that discontinuities are not a problem (eg. 2pi == 6pi)
+        globalWindDirectionDegrees = 10
+        notUpwindDesiredHeadingDegrees = globalWindDirectionDegrees + 180 + UPWIND_MAX_ANGLE_DEGREES * 2
+        notUpwindDesiredHeadingDegrees += 6 * 360
+        measuredWindSpeedKmph, measuredWindDirectionDegrees = globalWindToMeasuredWind(globalWindSpeed=10, globalWindDirectionDegrees=globalWindDirectionDegrees, boatSpeed=1, headingDegrees=0)
+        state = BoatState(globalWaypoint=latlon(1,1), position=latlon(0,0), measuredWindDirectionDegrees=measuredWindDirectionDegrees, measuredWindSpeedKmph=measuredWindSpeedKmph, AISData=AISMsg(), headingDegrees=0, speedKmph=1)
+        self.assertFalse(sailingUpwindOrDownwind(state=state, desiredHeadingDegrees=notUpwindDesiredHeadingDegrees))
+
+        # Sanity check that discontinuities are not a problem (eg. 2pi == 6pi)
+        globalWindDirectionDegrees = 30
+        downwindDesiredHeadingDegrees = globalWindDirectionDegrees + DOWNWIND_MAX_ANGLE_DEGREES / 2
+        globalWindDirectionDegrees += 3 * 360
+        measuredWindSpeedKmph, measuredWindDirectionDegrees = globalWindToMeasuredWind(globalWindSpeed=10, globalWindDirectionDegrees=globalWindDirectionDegrees, boatSpeed=1, headingDegrees=120)
+        state = BoatState(globalWaypoint=latlon(1,1), position=latlon(0,0), measuredWindDirectionDegrees=measuredWindDirectionDegrees, measuredWindSpeedKmph=measuredWindSpeedKmph, AISData=AISMsg(), headingDegrees=120, speedKmph=1)
+        self.assertTrue(sailingUpwindOrDownwind(state=state, desiredHeadingDegrees=downwindDesiredHeadingDegrees))
+
+        # Sanity check that discontinuities are not a problem (eg. 2pi == 6pi)
+        globalWindDirectionDegrees = 30
+        downwindDesiredHeadingDegrees = globalWindDirectionDegrees + DOWNWIND_MAX_ANGLE_DEGREES / 2
+        downwindDesiredHeadingDegrees += 7 * 360
+        measuredWindSpeedKmph, measuredWindDirectionDegrees = globalWindToMeasuredWind(globalWindSpeed=10, globalWindDirectionDegrees=globalWindDirectionDegrees, boatSpeed=1, headingDegrees=120)
+        state = BoatState(globalWaypoint=latlon(1,1), position=latlon(0,0), measuredWindDirectionDegrees=measuredWindDirectionDegrees, measuredWindSpeedKmph=measuredWindSpeedKmph, AISData=AISMsg(), headingDegrees=120, speedKmph=1)
+        self.assertTrue(sailingUpwindOrDownwind(state=state, desiredHeadingDegrees=downwindDesiredHeadingDegrees))
+
+    def test_obstacleOnPath(self):
+        '''To visualize the obstacleOnPath check, go to updated_geometric_planner.py and uncomment the plotting in hasObstacleOnPath()'''
+        # Create simple path
+        measuredWindSpeedKmph, measuredWindDirectionDegrees = globalWindToMeasuredWind(globalWindSpeed=10, globalWindDirectionDegrees=90, boatSpeed=0, headingDegrees=0)
+        state = BoatState(globalWaypoint=latlon(1,1), position=latlon(0,0), measuredWindDirectionDegrees=measuredWindDirectionDegrees, measuredWindSpeedKmph=measuredWindSpeedKmph, AISData=AISMsg(), headingDegrees=0, speedKmph=0)
+        localPathSS, referenceLatlon = createLocalPathSS(state, runtimeSeconds=3, numRuns=1)
+
+        # No obstacles at all
+        self.assertFalse(obstacleOnPath(state=state, nextLocalWaypointIndex=1, localPathSS=localPathSS, referenceLatlon=referenceLatlon))
+
+        # Put obstacle on path between waypoints 1 and 2, going east quickly
+        waypoint1 = localPathSS.getSolutionPath().getState(1)
+        waypoint2 = localPathSS.getSolutionPath().getState(2)
+        shipXY = [waypoint1.getX() + (waypoint2.getX() - waypoint1.getX()) / 2, waypoint1.getY() + (waypoint2.getY() - waypoint1.getY()) / 2]
+        between1and2Latlon = XYToLatlon(shipXY, referenceLatlon)
+        state.AISData = AISMsg([AISShip(ID=0, lat=between1and2Latlon.lat, lon=between1and2Latlon.lon, headingDegrees=HEADING_EAST, speedKmph=30)])
+
+        # Obstacle on path
+        self.assertTrue(obstacleOnPath(state=state, nextLocalWaypointIndex=1, localPathSS=localPathSS, referenceLatlon=referenceLatlon))
+
+        # Move boat position, but still have obstacle on path
+        state.position = latlon(-1, -1)
+        self.assertTrue(obstacleOnPath(state=state, nextLocalWaypointIndex=1, localPathSS=localPathSS, referenceLatlon=referenceLatlon))
+
+        # Move obstacle to be off the path
+        between1and2shiftedRightLatlon = XYToLatlon([shipXY[0] + 0.5, shipXY[1]], referenceLatlon)
+        state.AISData = AISMsg([AISShip(ID=0, lat=between1and2shiftedRightLatlon.lat, lon=between1and2shiftedRightLatlon.lon, headingDegrees=HEADING_EAST, speedKmph=30)])
+        self.assertFalse(obstacleOnPath(state=state, nextLocalWaypointIndex=1, localPathSS=localPathSS, referenceLatlon=referenceLatlon))
+
+        # Move boat position AND increment nextLocalWaypointIndex so it is aiming for waypoint2, so that new "path" has an obstacle on it
+        waypoint1Latlon = XYToLatlon([waypoint1.getX(), waypoint1.getY()], referenceLatlon)
+        waypoint2Latlon = XYToLatlon([waypoint2.getX(), waypoint2.getY()], referenceLatlon)
+        state.position = latlon(waypoint1Latlon.lat, waypoint2Latlon.lon)
+        self.assertTrue(obstacleOnPath(state=state, nextLocalWaypointIndex=2, localPathSS=localPathSS, referenceLatlon=referenceLatlon))
+
+        # Move boat position AND increment nextLocalWaypointIndex so it is aiming for waypoint2, so that new "path" doesn't have an obstacle on it
+        state.position = latlon(waypoint2Latlon.lat, waypoint1Latlon.lon)
+        self.assertFalse(obstacleOnPath(state=state, nextLocalWaypointIndex=2, localPathSS=localPathSS, referenceLatlon=referenceLatlon))
+
+        # Move obstacle to be between waypoint1 and waypoint2, but then have the boat already on waypoint2 going to waypoint3, so no obstacle on it
+        state.position = latlon(waypoint2Latlon.lat, waypoint2Latlon.lon)
+        state.AISData = AISMsg([AISShip(ID=0, lat=between1and2Latlon.lat, lon=between1and2Latlon.lon, headingDegrees=HEADING_EAST, speedKmph=30)])
+        self.assertFalse(obstacleOnPath(state=state, nextLocalWaypointIndex=3, localPathSS=localPathSS, referenceLatlon=referenceLatlon))
 
 if __name__ == '__main__':
     rostest.rosrun('local_pathfinding', 'test_utilities', TestUtilities)

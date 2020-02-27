@@ -16,6 +16,10 @@ from math import sqrt
 ## functions.
 ##
 
+# Upwind downwind constants
+UPWIND_MAX_ANGLE_DEGREES = 30.0
+DOWNWIND_MAX_ANGLE_DEGREES = 30.0
+
 class ValidityChecker(ob.StateValidityChecker):
     def __init__(self, si, obstacles):
         super(ValidityChecker, self).__init__(si)
@@ -75,18 +79,18 @@ class MinTurningObjective(ob.StateCostIntegralObjective):
         self.si_ = si
 
     # This objective function punishes the boat for tacking or jibing
-    # by adding a 500 cost for turns over 60 degrees
+    # by adding a 500 cost for large turns
     def motionCost(self, s1, s2):
-        direction = math.atan2(s2.getY() - s1.getY(), s2.getX() - s1.getX())
+        direction_radians = math.atan2(s2.getY() - s1.getY(), s2.getX() - s1.getX())
         try:
-            diff = abs_angle_dist(direction, self.last_direction)
+            diff_radians = abs_angle_dist_radians(direction_radians, self.last_direction_radians)
         except AttributeError:
-            self.last_direction = direction
-            diff = abs_angle_dist(direction, self.last_direction)
-        if diff > math.radians(60):
+            self.last_direction_radians = direction_radians
+            diff_radians = abs_angle_dist_radians(direction_radians, self.last_direction_radians)
+        if diff_radians > math.radians(2 * max(UPWIND_MAX_ANGLE_DEGREES, DOWNWIND_MAX_ANGLE_DEGREES)):
             return 500.0
         else:
-            return diff*10
+            return diff_radians*10
 
 
 class WindObjective(ob.StateCostIntegralObjective):
@@ -97,26 +101,24 @@ class WindObjective(ob.StateCostIntegralObjective):
 
     # This objective function punishes the boat for going up/downwind
     def motionCost(self, s1, s2):
-        direction = math.degrees(math.atan2(s2.getY() - s1.getY(), s2.getX() - s1.getX()))
         distance = ((s2.getY() - s1.getY())**2 + (s2.getX() - s1.getX())**2)**0.5
-        relativeWindDirection = self.windDirectionDegrees - direction
+        boatDirectionRadians = math.atan2(s2.getY() - s1.getY(), s2.getX() - s1.getX())
 
-        upwind_angle = 30
-        downwind_angle = 30
-
-        if math.fabs(relativeWindDirection) < upwind_angle:
-            multiplier = sys.maxsize
-        elif math.fabs(relativeWindDirection - 180) < downwind_angle:
-            multiplier = sys.maxsize
-        else:
-            multiplier = 0.0
-
-        return multiplier * distance
+        isUpwindOrDownwind = isUpwind(math.radians(self.windDirectionDegrees), boatDirectionRadians) or isDownwind(math.radians(self.windDirectionDegrees), boatDirectionRadians)
+        return sys.maxsize * distance if isUpwindOrDownwind else 0.0
 
 
-def abs_angle_dist(angle1, angle2):
+def isUpwind(windDirectionRadians, boatDirectionRadians):
+    diffRadians = abs_angle_dist_radians(windDirectionRadians, boatDirectionRadians)
+    return math.fabs(diffRadians - math.radians(180)) < math.radians(UPWIND_MAX_ANGLE_DEGREES)
+
+def isDownwind(windDirectionRadians, boatDirectionRadians):
+    diffRadians = abs_angle_dist_radians(windDirectionRadians, boatDirectionRadians)
+    return math.fabs(diffRadians) < math.radians(DOWNWIND_MAX_ANGLE_DEGREES)
+
+def abs_angle_dist_radians(angle1_radians, angle2_radians):
     # Absolute distance between angles
-    fabs = math.fabs(math.atan2(math.sin(angle1 - angle2), math.cos(angle1 - angle2)))
+    fabs = math.fabs(math.atan2(math.sin(angle1_radians - angle2_radians), math.cos(angle1_radians - angle2_radians)))
     return fabs
 
 

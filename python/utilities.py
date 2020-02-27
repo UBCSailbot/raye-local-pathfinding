@@ -3,15 +3,17 @@ from ompl import util as ou
 import rospy
 import time
 from plotting import plot_path, plot_path_2
-from updated_geometric_planner import plan, Obstacle, hasNoCollisions
+from updated_geometric_planner import plan, Obstacle, hasObstacleOnPath
+from planner_helpers import isUpwind, isDownwind
 from cli import parse_obstacle
 import math 
 from geopy.distance import distance
 import geopy.distance
-from local_pathfinding.msg import latlon, AISShip
+from local_pathfinding.msg import latlon, AISShip, AISMsg
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import patches
+from Sailbot import BoatState
 
 # Location constants
 PORT_RENFREW_LATLON = latlon(48.5, -124.8)
@@ -39,6 +41,10 @@ BOAT_FORWARD = 90
 BOAT_LEFT = 180
 BOAT_BACKWARD = 270
 
+# Constants for modeling AIS boats
+AIS_BOAT_RADIUS_KM = 0.2
+AIS_BOAT_CIRCLE_SPACING_KM = AIS_BOAT_RADIUS_KM * 1.5  # Distance between circles that make up an AIS boat
+
 def latlonToXY(latlon, referenceLatlon):
     x = distance((referenceLatlon.lat, referenceLatlon.lon), (referenceLatlon.lat, latlon.lon)).kilometers
     y = distance((referenceLatlon.lat, referenceLatlon.lon), (latlon.lat, referenceLatlon.lon)).kilometers
@@ -55,8 +61,8 @@ def XYToLatlon(xy, referenceLatlon):
     destination = y_distance.destination(point=(destination.latitude, destination.longitude), bearing=BEARING_NORTH)
     return latlon(destination.latitude, destination.longitude)
 
-def isValid(state, obstacles):
-    x, y = state
+def isValid(xy, obstacles):
+    x, y = xy
     for obstacle in obstacles:
         if math.sqrt(pow(x - obstacle.x, 2) + pow(y - obstacle.y, 2)) - obstacle.radius <= 0:
             return False
@@ -68,6 +74,7 @@ def plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, 
 
     # Create plot with start and goal
     markersize = min(dimensions[2]-dimensions[0], dimensions[3]-dimensions[1]) / 2
+    plt.ion()
     axes = plt.gca()
     goalPlot, = axes.plot(goal[0], goal[1], marker='*', color='y', markersize=markersize)                          # Yellow star
     startPlot, = axes.plot(start[0], start[1], marker=(3,0,headingDegrees - 90), color='r', markersize=markersize) # Red triangle with correct heading. The (-90) is because the triangle default heading 0 points North, but this heading has 0 be East.
@@ -94,8 +101,7 @@ def plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, 
     plt.draw()
     plt.pause(0.001)
 
-
-def createLocalPathSS(state):
+def createLocalPathSS(state, runtimeSeconds=3, numRuns=3, plot=False):
     ou.setLogLevel(ou.LOG_WARN)
 
     # Get setup parameters from state for ompl plan()
@@ -118,12 +124,12 @@ def createLocalPathSS(state):
             obstacle.radius /= shrinkFactor
 
     # Run the planner multiple times and find the best one
-    runtimeSeconds = 5
-    numRuns = 3
     rospy.loginfo("Running createLocalPathSS. runtimeSeconds: {}. numRuns: {}. Total time: {} seconds".format(runtimeSeconds, numRuns, runtimeSeconds*numRuns))
 
     # Create non-blocking plot showing the setup of the pathfinding problem. Useful to understand if the pathfinding problem is invalid or impossible
-    plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, obstacles, state.headingDegrees)
+    if plot:
+        plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, obstacles, state.headingDegrees)
+
     solutions = []
     for i in range(numRuns):
         # TODO: Incorporate globalWindSpeed into pathfinding?
@@ -167,19 +173,26 @@ def getLocalPath(localPathSS, referenceLatlon):
         localPath.append(XYToLatlon(xy, referenceLatlon))
     return localPath
 
-def badPath(state, localPathSS, referenceLatlon, desiredHeadingMsg):
-    # If sailing upwind or downwind, isBad
+def sailingUpwindOrDownwind(state, desiredHeadingDegrees):
     globalWindSpeedKmph, globalWindDirectionDegrees = measuredWindToGlobalWind(state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
-    if math.fabs(globalWindDirectionDegrees - desiredHeadingMsg.headingDegrees) < 30 or math.fabs(globalWindDirectionDegrees- desiredHeadingMsg.headingDegrees - math.radians(180)) < 30:
-        rospy.logwarn("Sailing upwind/downwind. Global Wind direction: {}. Desired Heading: {}".format(globalWindDirectionDegrees, desiredHeading.headingDegrees))
+
+    if isDownwind(math.radians(globalWindDirectionDegrees), math.radians(desiredHeadingDegrees)):
+        rospy.logwarn("Sailing downwind. Global Wind direction: {}. Desired Heading: {}".format(globalWindDirectionDegrees, desiredHeadingDegrees))
         return True
 
+    elif isUpwind(math.radians(globalWindDirectionDegrees), math.radians(desiredHeadingDegrees)):
+        rospy.logwarn("Sailing upwind. Global Wind direction: {}. Desired Heading: {}".format(globalWindDirectionDegrees, desiredHeadingDegrees))
+        return True
+
+    return False
+
+def obstacleOnPath(state, nextLocalWaypointIndex, localPathSS, referenceLatlon):
     # Check if path will hit objects
+    positionXY = latlonToXY(state.position, referenceLatlon)
     obstacles = extendObstaclesArray(state.AISData.ships, state.position, state.speedKmph, referenceLatlon)
-    if not hasNoCollisions(localPathSS, obstacles):
-        rospy.logwarn("Going to hit obstacle.")
+    if hasObstacleOnPath(positionXY, nextLocalWaypointIndex, localPathSS, obstacles):
+        rospy.logwarn("Obstacle on path!")
         return True
-
     return False
 
 def globalWaypointReached(position, globalWaypoint):
@@ -268,37 +281,41 @@ def getDesiredHeading(position, localWaypoint):
     xy = latlonToXY(localWaypoint, position)
     return math.degrees(math.atan2(xy[1], xy[0]))
 
-def extendObstaclesArray(aisArray, sailbotPosition, sailbotSpeedKmph, referenceLatLon):
-#assuming speed in km/h
+def extendObstaclesArray(aisArray, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
     obstacles = []
-    radiusKm = 0.2  # Change this to change the width of obstacles
-    spacingKm = 0.2 # Change this to change the distance between circles that make up a boat
-
     for aisData in aisArray:
-        aisX, aisY = latlonToXY(latlon(aisData.lat, aisData.lon), referenceLatLon)
+        aisX, aisY = latlonToXY(latlon(aisData.lat, aisData.lon), referenceLatlon)
+
+        # Calculate length to extend boat
+        MAX_TIME_TO_LOC_HOURS = 10  # Do not extend objects more than 10 hours distance
         distanceToBoatKm = distance((aisData.lat, aisData.lon), (sailbotPosition.lat, sailbotPosition.lon)).kilometers
-        timeToLocHours = distanceToBoatKm / sailbotSpeedKmph
+        if sailbotSpeedKmph == 0 or distanceToBoatKm / sailbotSpeedKmph > MAX_TIME_TO_LOC_HOURS:
+            timeToLocHours = MAX_TIME_TO_LOC_HOURS
+        else:
+            timeToLocHours = distanceToBoatKm / sailbotSpeedKmph
+        extendBoatLengthKm = aisData.speedKmph * timeToLocHours
+
         if aisData.headingDegrees == 90 or aisData.headingDegrees == 270:
             if aisData.headingDegrees == 90:
-                endY = aisY + aisData.speedKmph * timeToLocHours
-                yRange = np.arange(aisY, endY, spacingKm)
+                endY = aisY + extendBoatLengthKm
+                yRange = np.arange(aisY, endY, AIS_BOAT_CIRCLE_SPACING_KM)
             if aisData.headingDegrees == 270:
-                endY = aisY - aisData.speedKmph * timeToLocHours
-                yRange = np.arange(endY, aisY, spacingKm)
+                endY = aisY - extendBoatLengthKm
+                yRange = np.arange(endY, aisY, AIS_BOAT_CIRCLE_SPACING_KM)
             for y in yRange:
                 # Multiplier to increase size of circles showing where the boat will be in the future in range [1, 2]
                 multiplier = 1 + abs(float(y - aisY) / (endY - aisY))
-                obstacles.append(Obstacle(aisX, y, radiusKm * multiplier))
+                obstacles.append(Obstacle(aisX, y, AIS_BOAT_RADIUS_KM * multiplier))
         else:
             isHeadingWest = aisData.headingDegrees < 270 and aisData.headingDegrees > 90
             slope = math.tan(math.radians(aisData.headingDegrees))
-            dx = spacingKm / math.sqrt(1 + slope**2)
+            dx = AIS_BOAT_CIRCLE_SPACING_KM / math.sqrt(1 + slope**2)
 
             if aisX > 0:
                 b = aisY + slope * -math.fabs(aisX)
             else:
                 b = aisY + slope * math.fabs(aisX)
-            xDistTravelled =  math.fabs(aisData.speedKmph * timeToLocHours * math.cos(math.radians(aisData.headingDegrees)))
+            xDistTravelled =  math.fabs(extendBoatLengthKm * math.cos(math.radians(aisData.headingDegrees)))
             y = lambda x: slope * x + b 
             if isHeadingWest:
                 endX = aisX - xDistTravelled
@@ -309,7 +326,7 @@ def extendObstaclesArray(aisArray, sailbotPosition, sailbotSpeedKmph, referenceL
             for x in xRange:
                 # Multiplier to increase size of circles showing where the boat will be in the future in range [1, 2]
                 multiplier = 1 + abs(float(x - aisX) / (endX - aisX))
-                obstacles.append(Obstacle(x, y(x), radiusKm * multiplier))
+                obstacles.append(Obstacle(x, y(x), AIS_BOAT_RADIUS_KM * multiplier))
     return obstacles
 
 def measuredWindToGlobalWind(measuredWindSpeed, measuredWindDirectionDegrees, boatSpeed, headingDegrees):
