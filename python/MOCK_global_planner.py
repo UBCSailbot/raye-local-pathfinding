@@ -8,7 +8,7 @@ from geopy.distance import distance
 
 # Constants for this class
 PUBLISH_PERIOD_SECONDS = 10.0
-NEW_GLOBAL_PATH_PERIOD_SECONDS = 3600.0
+NEW_GLOBAL_PATH_PERIOD_SECONDS = 3600.0 * 24
 AVG_WAYPOINT_DISTANCE_KM = 30  # TODO: Set this to match global pathfinding
 
 # Global variables for tracking boat position
