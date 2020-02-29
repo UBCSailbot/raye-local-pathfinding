@@ -135,31 +135,40 @@ def createLocalPathSS(state, runtimeSeconds=3, numRuns=3, plot=False):
     if plot:
         plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, obstacles, state.headingDegrees, amountShrinked)
 
+    def isValidSolution(solution, referenceLatlon, state):
+        if not solution.haveExactSolutionPath():
+            rospy.logwarn("Solution does not have exact solution path")
+            return False
+        # TODO: Check if this is needed or redundant. Sometimes it seemed like exact solution paths kept having obstacles on them, so it kept re-running, but need to do more testing
+        if obstacleOnPath(state=state, nextLocalWaypointIndex=1, localPathSS=solution, referenceLatlon=referenceLatlon):
+            rospy.logwarn("Solution has obstacle on path")
+            return False
+        return True
+
     solutions = []
     for i in range(numRuns):
         # TODO: Incorporate globalWindSpeed into pathfinding?
         rospy.loginfo("Starting path-planning run number: {}".format(i))
         solution = plan(runtimeSeconds, "RRTStar", 'WeightedLengthAndClearanceCombo', globalWindDirectionDegrees, dimensions, start, goal, obstacles)
-        if not solution.haveExactSolutionPath():
-            rospy.logwarn("Solution number {} does not have exact solution path".format(i))
-        elif obstacleOnPath(state=state, nextLocalWaypointIndex=1, localPathSS=solution, referenceLatlon=referenceLatlon):
-            rospy.logwarn("Solution number {} has obstacle on path".format(i))
-        else:
+        if isValidSolution(solution, referenceLatlon, state):
             solutions.append(solution)
 
     # If no solutions found, re-run with larger runtime
     # TODO: Figure out if there is a better method to handle this case
+    increaseRuntimeFactor = 2.0
     while len(solutions) == 0:
         rospy.logerr("No valid solutions found in {} seconds runtime".format(runtimeSeconds))
-        runtimeSeconds *= 5.0
+        runtimeSeconds *= increaseRuntimeFactor
         rospy.logerr("Attempting to rerun with longer runtime: {} seconds".format(runtimeSeconds))
+
+        # TODO: Incorporate globalWindSpeed into pathfinding?
         solution = plan(runtimeSeconds, "RRTStar", 'WeightedLengthAndClearanceCombo', globalWindDirectionDegrees, dimensions, start, goal, obstacles)
 
-        # If new solution is valid, then use it
-        if solution.haveExactSolutionPath() and not obstacleOnPath(state=state, nextLocalWaypointIndex=1, localPathSS=solution, referenceLatlon=referenceLatlon):
+        if isValidSolution(solution, referenceLatlon, state):
             solutions.append(solution)
-        # If valid solution can't be found for large runtime, then just use the inexact solution
-        elif runtimeSeconds >= MAX_ALLOWABLE_PATHFINDING_RUNTIME_SECONDS:
+
+        # If valid solution can't be found for large runtime, then just use the invalid solution
+        elif runtimeSeconds * increaseRuntimeFactor >= MAX_ALLOWABLE_PATHFINDING_RUNTIME_SECONDS:
             rospy.logerr("No valid solution can be found. Using invalid solution.")
             solutions.append(solution)
 
