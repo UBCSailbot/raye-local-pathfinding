@@ -9,6 +9,7 @@ import local_pathfinding.msg as msg
 
 # Constants
 AIS_PUBLISH_PERIOD_SECONDS = 1.0
+NUM_AIS_SHIPS = 30
 
 class Ship:
     def __init__(self, id, sailbot_lat, sailbot_lon, publishPeriodSeconds, speedup):
@@ -45,7 +46,7 @@ class MOCK_AISEnvironment:
     # Just a class to keep track of the ships surrounding the sailbot
     def __init__(self, lat, lon, speedup):
         self.publishPeriodSeconds = AIS_PUBLISH_PERIOD_SECONDS
-        self.numShips = 10
+        self.numShips = NUM_AIS_SHIPS
         self.ships = []
         for i in range(self.numShips):
             self.ships.append(Ship(i, lat, lon, self.publishPeriodSeconds, speedup))
@@ -65,7 +66,7 @@ class MOCK_AISEnvironment:
 
 if __name__ == '__main__':
     # Get speedup parameter
-    speedup = rospy.get_param('speedup', 1.0)
+    speedup = rospy.get_param('speedup', default=1.0)
 
     ais_env = MOCK_AISEnvironment(PORT_RENFREW_LATLON.lat, PORT_RENFREW_LATLON.lon, speedup)
     r = rospy.Rate(1.0 / ais_env.publishPeriodSeconds) #hz

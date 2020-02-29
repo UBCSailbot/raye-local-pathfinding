@@ -8,7 +8,7 @@ from utilities import *
 import time
 
 # Constants
-DESIRED_HEADING_PUBLISH_PERIOD_SECONDS = 1.0
+MAIN_LOOP_PERIOD_SECONDS = 1.0
 
 if __name__ == '__main__':
     # Create sailbot ROS object that subscribes to relevant topics
@@ -22,10 +22,10 @@ if __name__ == '__main__':
     localPathPublisher = rospy.Publisher('localPath', msg.path, queue_size=4)
     nextLocalWaypointPublisher = rospy.Publisher('nextLocalWaypoint', msg.latlon, queue_size=4)
     nextGlobalWaypointPublisher = rospy.Publisher('nextGlobalWaypoint', msg.latlon, queue_size=4)
-    publishRate = rospy.Rate(1.0 / DESIRED_HEADING_PUBLISH_PERIOD_SECONDS)
+    publishRate = rospy.Rate(1.0 / MAIN_LOOP_PERIOD_SECONDS)
 
     # Get speedup parameter
-    speedup = rospy.get_param('speedup', 1.0)
+    speedup = rospy.get_param('speedup', default=1.0)
 
     # Wait until first global path is received
     while not sailbot.newGlobalPathReceived:

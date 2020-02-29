@@ -65,7 +65,7 @@ def MOCK_global():
     rospy.Subscriber("GPS", msg.GPS, gpsCallback)
 
     # Get speedup parameter
-    speedup = rospy.get_param('speedup', 1.0)
+    speedup = rospy.get_param('speedup', default=1.0)
 
     # Publish new global path periodically
     # Publish new global path more often with speedup

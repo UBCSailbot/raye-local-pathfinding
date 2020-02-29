@@ -23,6 +23,7 @@ MAUI_LATLON = latlon(20.0, -156.0)
 AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM = 3
 GLOBAL_WAYPOINT_REACHED_RADIUS_KM = 5
 PATH_UPDATE_TIME_LIMIT_SECONDS = 7200
+MAX_ALLOWABLE_PATHFINDING_RUNTIME_SECONDS = 60
 
 # Constants for bearing and heading
 BEARING_NORTH = 0
@@ -139,56 +140,39 @@ def createLocalPathSS(state, runtimeSeconds=3, numRuns=3, plot=False):
         # TODO: Incorporate globalWindSpeed into pathfinding?
         rospy.loginfo("Starting path-planning run number: {}".format(i))
         solution = plan(runtimeSeconds, "RRTStar", 'WeightedLengthAndClearanceCombo', globalWindDirectionDegrees, dimensions, start, goal, obstacles)
-        if solution.haveExactSolutionPath():
-            solutions.append(solution)
-        else:
+        if not solution.haveExactSolutionPath():
             rospy.logwarn("Solution number {} does not have exact solution path".format(i))
-
-    def getBestValidSolution(solutions, referenceLatlon, state):
-        # No solution
-        if len(solutions) == 0:
-            return None
-
-        # Find valid solution with minimum cost
-        solution = min(solutions, key=lambda x: x.getSolutionPath().cost(x.getOptimizationObjective()).value())
-        solutions.remove(solution)
-        while obstacleOnPath(state=state, nextLocalWaypointIndex=1, localPathSS=solution, referenceLatlon=referenceLatlon):
-            # No valid solution
-            if len(solutions) == 0:
-                return None
-
-            # Try next best solution
-            solution = min(solutions, key=lambda x: x.getSolutionPath().cost(x.getOptimizationObjective()).value())
-            solutions.remove(solution)
-
-        # Found valid solution
-        return solution
+        elif obstacleOnPath(state=state, nextLocalWaypointIndex=1, localPathSS=solution, referenceLatlon=referenceLatlon):
+            rospy.logwarn("Solution number {} has obstacle on path".format(i))
+        else:
+            solutions.append(solution)
 
     # If no solutions found, re-run with larger runtime
     # TODO: Figure out if there is a better method to handle this case
-    bestValidSolution = getBestValidSolution(solutions, referenceLatlon, state)
-    while bestValidSolution is None:
+    while len(solutions) == 0:
         rospy.logerr("No valid solutions found in {} seconds runtime".format(runtimeSeconds))
         runtimeSeconds *= 5.0
         rospy.logerr("Attempting to rerun with longer runtime: {} seconds".format(runtimeSeconds))
         solution = plan(runtimeSeconds, "RRTStar", 'WeightedLengthAndClearanceCombo', globalWindDirectionDegrees, dimensions, start, goal, obstacles)
 
-        # If new solution has exact path, then use it
-        if solution.haveExactSolutionPath():
+        # If new solution is valid, then use it
+        if solution.haveExactSolutionPath() and not obstacleOnPath(state=state, nextLocalWaypointIndex=1, localPathSS=solution, referenceLatlon=referenceLatlon):
             solutions.append(solution)
-        # If exact solution can't be found for large runtime, then just use the inexact solution
-        elif runtimeSeconds >= 100:
-            rospy.logerr("No exact solution can be found. Using inexact solution.")
+        # If valid solution can't be found for large runtime, then just use the inexact solution
+        elif runtimeSeconds >= MAX_ALLOWABLE_PATHFINDING_RUNTIME_SECONDS:
+            rospy.logerr("No valid solution can be found. Using invalid solution.")
             solutions.append(solution)
 
+    solution = min(solutions, key=lambda x: x.getSolutionPath().cost(x.getOptimizationObjective()).value())
+
     # Set the average distance between waypoints
-    localPathLengthKm = bestValidSolution.getSolutionPath().length()
+    localPathLengthKm = solution.getSolutionPath().length()
     numberOfLocalWaypoints = int(localPathLengthKm / AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM)
-    bestValidSolution.getSolutionPath().interpolate(numberOfLocalWaypoints)
+    solution.getSolutionPath().interpolate(numberOfLocalWaypoints)
 
     # Close any plots
     plt.close()
-    return bestValidSolution, referenceLatlon
+    return solution, referenceLatlon
 
 def getLocalPath(localPathSS, referenceLatlon):
     # Convert localPathSS solution path (in km WRT reference) into list of latlons

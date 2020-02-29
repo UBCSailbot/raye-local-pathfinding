@@ -39,7 +39,7 @@ class MOCK_ControllerAndSailbot:
 
 if __name__ == '__main__':
     # Get speedup parameter
-    speedup = rospy.get_param('speedup', 1.0)
+    speedup = rospy.get_param('speedup', default=1.0)
 
     MOCK_ctrl_sailbot = MOCK_ControllerAndSailbot(PORT_RENFREW_LATLON.lat, PORT_RENFREW_LATLON.lon, speedup)
     r = rospy.Rate(float(1) / MOCK_ctrl_sailbot.publishPeriodSeconds)

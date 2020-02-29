@@ -32,7 +32,7 @@ def talker():
     msg = windSensor()
 
     # Get speedup parameter
-    speedup = rospy.get_param('speedup', 1.0)
+    speedup = rospy.get_param('speedup', default=1.0)
 
     # Set initial global wind conditions
     globalWindSpeedKmph = random.randint(MIN_GLOBAL_WIND_SPEED_KMPH, MAX_GLOBAL_WIND_SPEED_KMPH)
