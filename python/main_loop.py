@@ -7,6 +7,9 @@ from Sailbot import *
 from utilities import *
 import time
 
+# Constant
+NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES = 5
+
 if __name__ == '__main__':
     # Create sailbot ROS object that subscribes to relevant topics
     sailbot = Sailbot(nodeName='local_pathfinding')
@@ -49,7 +52,7 @@ if __name__ == '__main__':
 
         # Generate new local path if needed
         isSailingUpwindOrDownwind = sailingUpwindOrDownwind(state, desiredHeadingMsg.headingDegrees)
-        hasObstacleOnPath = obstacleOnPath(state, localPathIndex, localPathSS, referenceLatlon)
+        hasObstacleOnPath = obstacleOnPath(state, localPathIndex, NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES, localPathSS, referenceLatlon)
         isTimeLimitExceeded = timeLimitExceeded(lastTimePathCreated)
         isGlobalWaypointReached = globalWaypointReached(state.position, state.globalWaypoint)
         newGlobalPathReceived = sailbot.newGlobalPathReceived

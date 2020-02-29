@@ -186,11 +186,30 @@ def sailingUpwindOrDownwind(state, desiredHeadingDegrees):
 
     return False
 
-def obstacleOnPath(state, nextLocalWaypointIndex, localPathSS, referenceLatlon):
+def obstacleOnPath(state, nextLocalWaypointIndex, numLookAheadWaypoints, localPathSS, referenceLatlon):
     # Check if path will hit objects
     positionXY = latlonToXY(state.position, referenceLatlon)
     obstacles = extendObstaclesArray(state.AISData.ships, state.position, state.speedKmph, referenceLatlon)
-    if hasObstacleOnPath(positionXY, nextLocalWaypointIndex, localPathSS, obstacles):
+
+    # Ensure nextLocalWaypointIndex + numLookAheadWaypoints is in bounds
+    '''
+    Let path = [(0,0), (1,1), (2,2), (3,3), (4,4)], len(path) = 5
+
+    If: nextLocalWaypointIndex = 2, numLookAheadWaypoints = 2
+    Then: care about waypoints (2,2), (3,3)
+          len(path) >= nextLocalWaypointIndex + numLookAheadWaypoints, so valid
+
+    If: nextLocalWaypointIndex = 2, numLookAheadWaypoints = 6
+    Then: care about waypoints (2,2), (3,3), (4,4)
+          len(path) < nextLocalWaypointIndex + numLookAheadWaypoints, so invalid
+          update numLookAheadWaypoints to len(path) - nextLocalWaypointIndex = 3
+    '''
+    if nextLocalWaypointIndex + numLookAheadWaypoints > len(localPathSS.getSolutionPath().getStates()):
+        rospy.logwarn("numLookAheadWaypoints = {} is out of bounds.".format(numLookAheadWaypoints))
+        numLookAheadWaypoints = len(localPathSS.getSolutionPath().getStates()) - nextLocalWaypointIndex
+        rospy.logwarn("Changing it to stay in bounds: numLookAheadWaypoints = {}".format(numLookAheadWaypoints))
+
+    if hasObstacleOnPath(positionXY, nextLocalWaypointIndex, numLookAheadWaypoints, localPathSS, obstacles):
         rospy.logwarn("Obstacle on path!")
         return True
     return False

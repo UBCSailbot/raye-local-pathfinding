@@ -43,7 +43,7 @@ def allocatePlanner(si, plannerType):
         ou.OMPL_ERROR("Planner-type is not implemented in allocation function.")
 
 
-def hasObstacleOnPath(positionXY, nextLocalWaypointIndex, localPathSS, obstacles):
+def hasObstacleOnPath(positionXY, nextLocalWaypointIndex, numLookAheadWaypoints, localPathSS, obstacles):
     # Set the objects used to check which states in the space are valid
     validity_checker = ph.ValidityChecker(localPathSS.getSpaceInformation(), obstacles)
     localPathSS.setStateValidityChecker(validity_checker)
@@ -68,7 +68,8 @@ def hasObstacleOnPath(positionXY, nextLocalWaypointIndex, localPathSS, obstacles
     firstState = spaceInformation.allocState()
     firstState.setXY(positionXY[0], positionXY[1])
     relevantStates.append(firstState)
-    for stateIndex in range(nextLocalWaypointIndex, len(solutionPath.getStates())):
+    for i in range(numLookAheadWaypoints):
+        stateIndex = nextLocalWaypointIndex + i
         relevantStates.append(solutionPath.getState(stateIndex))
 
     # Interpolate between states and check for validity
