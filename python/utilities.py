@@ -22,7 +22,7 @@ MAUI_LATLON = latlon(20.0, -156.0)
 # Constants
 AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM = 3
 GLOBAL_WAYPOINT_REACHED_RADIUS_KM = 5
-PATH_UPDATE_TIME_LIMIT_SECONDS = 5000
+PATH_UPDATE_TIME_LIMIT_SECONDS = 7200
 
 # Constants for bearing and heading
 BEARING_NORTH = 0
@@ -68,7 +68,7 @@ def isValid(xy, obstacles):
             return False
     return True
 
-def plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, obstacles, headingDegrees):
+def plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, obstacles, headingDegrees, amountObstaclesShrinked):
     # Clear plot if already there
     plt.cla()
 
@@ -85,7 +85,7 @@ def plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, 
     plt.grid(True)
     axes.set_xlabel('X distance to position (km)')
     axes.set_ylabel('Y distance to position (km)')
-    axes.set_title('Setup of pathfinding problem')
+    axes.set_title('Setup of pathfinding problem (amountObstaclesShrinked = {})'.format(amountObstaclesShrinked))
 
     # Add boats and wind speed arrow
     for ship in obstacles:
@@ -116,19 +116,23 @@ def createLocalPathSS(state, runtimeSeconds=3, numRuns=3, plot=False):
 
     # If start or goal is invalid, shrink objects and re-run
     # TODO: Figure out if there is a better method to handle this case
+    amountShrinked = 1.0
+    shrinkFactor = 2.0
     while not isValid(start, obstacles) or not isValid(goal, obstacles):
         rospy.logerr("start or goal state is not valid")
-        shrinkFactor = 2.0
         rospy.logerr("Shrinking obstacles by a factor of {}".format(shrinkFactor))
         for obstacle in obstacles:
             obstacle.radius /= shrinkFactor
+        amountShrinked *= shrinkFactor
+    if amountShrinked > 1.0000001:
+        rospy.logwarn("Obstacles have been shrinked by factor of {}".format(amountShrinked))
 
     # Run the planner multiple times and find the best one
     rospy.loginfo("Running createLocalPathSS. runtimeSeconds: {}. numRuns: {}. Total time: {} seconds".format(runtimeSeconds, numRuns, runtimeSeconds*numRuns))
 
     # Create non-blocking plot showing the setup of the pathfinding problem. Useful to understand if the pathfinding problem is invalid or impossible
     if plot:
-        plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, obstacles, state.headingDegrees)
+        plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, obstacles, state.headingDegrees, amountShrinked)
 
     solutions = []
     for i in range(numRuns):
@@ -140,10 +144,31 @@ def createLocalPathSS(state, runtimeSeconds=3, numRuns=3, plot=False):
         else:
             rospy.logwarn("Solution number {} does not have exact solution path".format(i))
 
+    def getBestValidSolution(solutions, referenceLatlon, state):
+        # No solution
+        if len(solutions) == 0:
+            return None
+
+        # Find valid solution with minimum cost
+        solution = min(solutions, key=lambda x: x.getSolutionPath().cost(x.getOptimizationObjective()).value())
+        solutions.remove(solution)
+        while obstacleOnPath(state=state, nextLocalWaypointIndex=1, localPathSS=solution, referenceLatlon=referenceLatlon):
+            # No valid solution
+            if len(solutions) == 0:
+                return None
+
+            # Try next best solution
+            solution = min(solutions, key=lambda x: x.getSolutionPath().cost(x.getOptimizationObjective()).value())
+            solutions.remove(solution)
+
+        # Found valid solution
+        return solution
+
     # If no solutions found, re-run with larger runtime
     # TODO: Figure out if there is a better method to handle this case
-    while len(solutions) == 0:
-        rospy.logerr("No solutions found in {} seconds runtime".format(runtimeSeconds))
+    bestValidSolution = getBestValidSolution(solutions, referenceLatlon, state)
+    while bestValidSolution is None:
+        rospy.logerr("No valid solutions found in {} seconds runtime".format(runtimeSeconds))
         runtimeSeconds *= 5.0
         rospy.logerr("Attempting to rerun with longer runtime: {} seconds".format(runtimeSeconds))
         solution = plan(runtimeSeconds, "RRTStar", 'WeightedLengthAndClearanceCombo', globalWindDirectionDegrees, dimensions, start, goal, obstacles)
@@ -156,14 +181,14 @@ def createLocalPathSS(state, runtimeSeconds=3, numRuns=3, plot=False):
             rospy.logerr("No exact solution can be found. Using inexact solution.")
             solutions.append(solution)
 
-    solution = min(solutions, key=lambda x: x.getSolutionPath().cost(x.getOptimizationObjective()).value())
-
     # Set the average distance between waypoints
-    localPathLengthKm = solution.getSolutionPath().length()
+    localPathLengthKm = bestValidSolution.getSolutionPath().length()
     numberOfLocalWaypoints = int(localPathLengthKm / AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM)
-    solution.getSolutionPath().interpolate(numberOfLocalWaypoints)
+    bestValidSolution.getSolutionPath().interpolate(numberOfLocalWaypoints)
 
-    return solution, referenceLatlon
+    # Close any plots
+    plt.close()
+    return bestValidSolution, referenceLatlon
 
 def getLocalPath(localPathSS, referenceLatlon):
     # Convert localPathSS solution path (in km WRT reference) into list of latlons
@@ -256,8 +281,10 @@ def localWaypointReached(position, localPath, localPathIndex, refLatlon):
 
     return False
 
-def timeLimitExceeded(lastTimePathCreated):
-    return time.time() - lastTimePathCreated > PATH_UPDATE_TIME_LIMIT_SECONDS
+def timeLimitExceeded(lastTimePathCreated, speedup):
+    # Shorter time limit when there is speedup
+    pathUpdateTimeLimitSecondsSpeedup = PATH_UPDATE_TIME_LIMIT_SECONDS / speedup
+    return time.time() - lastTimePathCreated > pathUpdateTimeLimitSecondsSpeedup
 
 def getLocalWaypointLatLon(localPath, localPathIndex):
     # If local path is empty, return (0, 0)

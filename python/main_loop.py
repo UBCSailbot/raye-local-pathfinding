@@ -7,6 +7,9 @@ from Sailbot import *
 from utilities import *
 import time
 
+# Constants
+DESIRED_HEADING_PUBLISH_PERIOD_SECONDS = 1.0
+
 if __name__ == '__main__':
     # Create sailbot ROS object that subscribes to relevant topics
     sailbot = Sailbot(nodeName='local_pathfinding')
@@ -19,7 +22,10 @@ if __name__ == '__main__':
     localPathPublisher = rospy.Publisher('localPath', msg.path, queue_size=4)
     nextLocalWaypointPublisher = rospy.Publisher('nextLocalWaypoint', msg.latlon, queue_size=4)
     nextGlobalWaypointPublisher = rospy.Publisher('nextGlobalWaypoint', msg.latlon, queue_size=4)
-    publishRate = rospy.Rate(1) # Hz
+    publishRate = rospy.Rate(1.0 / DESIRED_HEADING_PUBLISH_PERIOD_SECONDS)
+
+    # Get speedup parameter
+    speedup = rospy.get_param('speedup', 1.0)
 
     # Wait until first global path is received
     while not sailbot.newGlobalPathReceived:
@@ -50,7 +56,7 @@ if __name__ == '__main__':
         # Generate new local path if needed
         isSailingUpwindOrDownwind = sailingUpwindOrDownwind(state, desiredHeadingMsg.headingDegrees)
         hasObstacleOnPath = obstacleOnPath(state, localPathIndex, localPathSS, referenceLatlon)
-        isTimeLimitExceeded = timeLimitExceeded(lastTimePathCreated)
+        isTimeLimitExceeded = timeLimitExceeded(lastTimePathCreated, speedup)
         isGlobalWaypointReached = globalWaypointReached(state.position, state.globalWaypoint)
         newGlobalPathReceived = sailbot.newGlobalPathReceived
         localPathIndexOutOfBounds = localPathIndex >= len(localPath)
