@@ -7,6 +7,9 @@ from utilities import headingToBearingDegrees, PORT_RENFREW_LATLON
 
 import local_pathfinding.msg as msg
 
+# Can set random seed to get deterministic start for testing
+random.seed(1)
+
 # Constants
 AIS_PUBLISH_PERIOD_SECONDS = 1.0
 NUM_AIS_SHIPS = 30
@@ -19,7 +22,7 @@ class Ship:
         self.speedup = speedup
 
         # Set AIS boat position to be in about 50km radius around sailbot
-        boatLatlon = distance(kilometers=abs(random.gauss(10, 5))).destination(point=(sailbot_lat, sailbot_lon), bearing=random.randint(0, 360))
+        boatLatlon = distance(kilometers=abs(random.randint(5, 50))).destination(point=(sailbot_lat, sailbot_lon), bearing=random.randint(0, 360))
         self.lat = boatLatlon.latitude
         self.lon = boatLatlon.longitude
 
