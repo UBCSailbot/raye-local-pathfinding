@@ -10,6 +10,17 @@ import time
 # Constant
 NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES = 5
 
+def printCostBreakdown(ss):
+    print("*****************COST BREAKDOWN*****************")
+    balancedObjective = ss.getOptimizationObjective()
+    for i in range(balancedObjective.getObjectiveCount()):
+        weight = balancedObjective.getObjectiveWeight(i)
+        objective = balancedObjective.getObjective(i)
+        print("{}: Cost = {}. Weight = {}. Total Cost = {}".format(type(objective).__name__, ss.getSolutionPath().cost(objective).value(), weight, ss.getSolutionPath().cost(objective).value() * weight))
+    print("=============")
+    print("{}: Total Cost = {}".format(type(balancedObjective).__name__, ss.getSolutionPath().cost(balancedObjective).value()))
+    print("*************")
+
 if __name__ == '__main__':
     # Create sailbot ROS object that subscribes to relevant topics
     sailbot = Sailbot(nodeName='local_pathfinding')
@@ -38,6 +49,8 @@ if __name__ == '__main__':
     # Create first path and track time of updates
     state = sailbot.getCurrentState()
     localPathSS, referenceLatlon = createLocalPathSS(state, plot=True)
+    printCostBreakdown(localPathSS)
+
     localPath = getLocalPath(localPathSS, referenceLatlon)
     localPathIndex = 1  # First waypoint is the start point, so second waypoint is the next local waypoint
     localWaypoint = getLocalWaypointLatLon(localPath, localPathIndex)
@@ -73,6 +86,7 @@ if __name__ == '__main__':
             # Update local path
             state = sailbot.getCurrentState()
             localPathSS, referenceLatlon = createLocalPathSS(state, plot=True)
+            printCostBreakdown(localPathSS)
             localPath = getLocalPath(localPathSS, referenceLatlon)
             localPathIndex = 1  # First waypoint is the start point, so second waypoint is the next local waypoint
             localWaypoint = getLocalWaypointLatLon(localPath, localPathIndex)
