@@ -7,10 +7,10 @@ from utilities import globalWindToMeasuredWind
 import random
 
 # Constants
-WIND_PUBLISH_PERIOD_SECONDS = 15.0
+WIND_PUBLISH_PERIOD_SECONDS = 1.0
 MAX_GLOBAL_WIND_SPEED_KMPH = 10
 MIN_GLOBAL_WIND_SPEED_KMPH = 1
-CHANGE_WIND_DIRECTION_PERIOD_SECONDS = 600
+CHANGE_WIND_DIRECTION_PERIOD_SECONDS = 3600.0 * 3
 CHANGE_WIND_DIRECTION_AMOUNT_DEGREES = 45
 
 # Global variables for tracking boat speed
@@ -31,13 +31,18 @@ def talker():
     r = rospy.Rate(1.0 / WIND_PUBLISH_PERIOD_SECONDS)
     msg = windSensor()
 
+    # Get speedup parameter
+    speedup = rospy.get_param('speedup', default=1.0)
+
     # Set initial global wind conditions
     globalWindSpeedKmph = random.randint(MIN_GLOBAL_WIND_SPEED_KMPH, MAX_GLOBAL_WIND_SPEED_KMPH)
     globalWindDirectionDegrees = 90
 
-    # Change wind counter
+    # Change wind periodically and
+    # Change wind more often with speedup
     changeWindCounter = 0
-    changeWindMax = int(CHANGE_WIND_DIRECTION_PERIOD_SECONDS / WIND_PUBLISH_PERIOD_SECONDS)
+    changeWindDirectionPeriodSecondsSpeedup = CHANGE_WIND_DIRECTION_PERIOD_SECONDS / speedup
+    changeWindMax = int(changeWindDirectionPeriodSecondsSpeedup / WIND_PUBLISH_PERIOD_SECONDS)
     while not rospy.is_shutdown():
         # Update global wind speed and direction
         if changeWindCounter >= changeWindMax:
