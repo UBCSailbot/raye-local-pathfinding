@@ -62,6 +62,7 @@ class MOCK_AISEnvironment:
         for i in range(self.numShips):
             self.ships.append(RandomShip(i, lat, lon, self.publishPeriodSeconds))
 
+
         rospy.init_node('MOCK_AIS', anonymous=True)
         self.publisher = rospy.Publisher("AIS", AISMsg, queue_size=4)
         rospy.Subscriber('/new_boats', AISShip, self.new_boat_callback)
@@ -71,7 +72,7 @@ class MOCK_AISEnvironment:
         for i in range(self.numShips):
             if isinstance(self.ships[i], RandomShip):
                 self.ships[i].move()
-
+      
     def make_ros_message(self):
         rospy.loginfo([ship.id for ship in self.ships])
         ship_list = []
