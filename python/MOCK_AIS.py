@@ -16,7 +16,7 @@ AIS_PUBLISH_PERIOD_SECONDS = 1.0
 NUM_AIS_SHIPS = 30
 
 class RandomShip:
-    def __init__(self, id, sailbot_lat, sailbot_lon, publishPeriodSeconds):
+    def __init__(self, id, sailbot_lat, sailbot_lon, publishPeriodSeconds, speedup):
         self.id = id
         self.headingDegrees = random.randint(0, 360)
         self.speedKmph = random.randint(0, 15)
