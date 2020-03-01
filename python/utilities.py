@@ -24,6 +24,7 @@ AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM = 3
 GLOBAL_WAYPOINT_REACHED_RADIUS_KM = 5
 PATH_UPDATE_TIME_LIMIT_SECONDS = 7200
 MAX_ALLOWABLE_PATHFINDING_RUNTIME_SECONDS = 60
+NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES = 5
 
 # Constants for bearing and heading
 BEARING_NORTH = 0
@@ -45,6 +46,17 @@ BOAT_BACKWARD = 270
 # Constants for modeling AIS boats
 AIS_BOAT_RADIUS_KM = 0.2
 AIS_BOAT_CIRCLE_SPACING_KM = AIS_BOAT_RADIUS_KM * 1.5  # Distance between circles that make up an AIS boat
+
+def printCostBreakdown(ss):
+    print("*****************COST BREAKDOWN*****************")
+    balancedObjective = ss.getOptimizationObjective()
+    for i in range(balancedObjective.getObjectiveCount()):
+        weight = balancedObjective.getObjectiveWeight(i)
+        objective = balancedObjective.getObjective(i)
+        print("{}: Cost = {}. Weight = {}. Total Cost = {}".format(type(objective).__name__, ss.getSolutionPath().cost(objective).value(), weight, ss.getSolutionPath().cost(objective).value() * weight))
+    print("=============")
+    print("{}: Total Cost = {}".format(type(balancedObjective).__name__, ss.getSolutionPath().cost(balancedObjective).value()))
+    print("*************")
 
 def latlonToXY(latlon, referenceLatlon):
     x = distance((referenceLatlon.lat, referenceLatlon.lon), (referenceLatlon.lat, latlon.lon)).kilometers
@@ -140,7 +152,7 @@ def createLocalPathSS(state, runtimeSeconds=3, numRuns=3, plot=False):
             rospy.logwarn("Solution does not have exact solution path")
             return False
         # TODO: Check if this is needed or redundant. Sometimes it seemed like exact solution paths kept having obstacles on them, so it kept re-running, but need to do more testing
-        if obstacleOnPath(state=state, nextLocalWaypointIndex=1, localPathSS=solution, referenceLatlon=referenceLatlon):
+        if obstacleOnPath(state=state, nextLocalWaypointIndex=1, numLookAheadWaypoints=len(solution.getSolutionPath().getStates()) - 1, localPathSS=solution, referenceLatlon=referenceLatlon):
             rospy.logwarn("Solution has obstacle on path")
             return False
         return True

@@ -9,18 +9,6 @@ import time
 
 # Constants
 MAIN_LOOP_PERIOD_SECONDS = 1.0
-NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES = 5
-
-def printCostBreakdown(ss):
-    print("*****************COST BREAKDOWN*****************")
-    balancedObjective = ss.getOptimizationObjective()
-    for i in range(balancedObjective.getObjectiveCount()):
-        weight = balancedObjective.getObjectiveWeight(i)
-        objective = balancedObjective.getObjective(i)
-        print("{}: Cost = {}. Weight = {}. Total Cost = {}".format(type(objective).__name__, ss.getSolutionPath().cost(objective).value(), weight, ss.getSolutionPath().cost(objective).value() * weight))
-    print("=============")
-    print("{}: Total Cost = {}".format(type(balancedObjective).__name__, ss.getSolutionPath().cost(balancedObjective).value()))
-    print("*************")
 
 if __name__ == '__main__':
     # Create sailbot ROS object that subscribes to relevant topics
