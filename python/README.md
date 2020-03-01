@@ -1,16 +1,16 @@
-## How to add and delete boats
+# How to add and delete boats
 
 Ensure all nodes are launched. Use `roslaunch local_pathfinding all.launch`
 
-# Add Boats
+## Add Boats
 
 Type `rostopic pub /new_boats ...` and press Tab twice to generate a message template and fill in the parameters for the ship you would like to add.
 
-# Delete Boats
+## Delete Boats
 
 Type `rostopic pub /delete_boats` and press Tab twice. Fill in the ID of the boats you want to remove.
 
-# Add boats using other methods
+## Add boats using other methods
 
 Type `rostopic pub /boat_on_path ...` and press Tab twice.
 
