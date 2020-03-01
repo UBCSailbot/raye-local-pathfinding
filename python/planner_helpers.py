@@ -20,6 +20,12 @@ from math import sqrt
 UPWIND_MAX_ANGLE_DEGREES = 30.0
 DOWNWIND_MAX_ANGLE_DEGREES = 30.0
 
+# Balanced objective constants
+LENGTH_WEIGHT = 1.0
+CLEARANCE_WEIGHT = 1.0
+MIN_TURN_WEIGHT = 1.0
+WIND_WEIGHT = 1.0
+
 class ValidityChecker(ob.StateValidityChecker):
     def __init__(self, si, obstacles):
         super(ValidityChecker, self).__init__(si)
@@ -50,7 +56,6 @@ class ValidityChecker(ob.StateValidityChecker):
         # Distance formula between two points, offset by the circle's
         # radius
         for obstacle in self.obstacles:
-
             clearance += (sqrt(pow(x - obstacle.x, 2) + pow(y - obstacle.y, 2)) - obstacle.radius)
             if clearance <= 0:
                 return 0
@@ -105,7 +110,10 @@ class WindObjective(ob.StateCostIntegralObjective):
         boatDirectionRadians = math.atan2(s2.getY() - s1.getY(), s2.getX() - s1.getX())
 
         isUpwindOrDownwind = isUpwind(math.radians(self.windDirectionDegrees), boatDirectionRadians) or isDownwind(math.radians(self.windDirectionDegrees), boatDirectionRadians)
-        return sys.maxsize * distance if isUpwindOrDownwind else 0.0
+        if isUpwindOrDownwind:
+            return sys.maxsize * distance
+        else:
+            return 0.0
 
 
 def isUpwind(windDirectionRadians, boatDirectionRadians):
@@ -120,7 +128,6 @@ def abs_angle_dist_radians(angle1_radians, angle2_radians):
     # Absolute distance between angles
     fabs = math.fabs(math.atan2(math.sin(angle1_radians - angle2_radians), math.cos(angle1_radians - angle2_radians)))
     return fabs
-
 
 def get_clearance_objective(si):
     return ClearanceObjective(si)
@@ -140,11 +147,10 @@ def getBalancedObjective(si):
     windObj = WindObjective(si)
 
     opt = ob.MultiOptimizationObjective(si)
-    opt.addObjective(lengthObj, 1.0)
-    opt.addObjective(clearObj, 1.0)
-    opt.addObjective(minTurnObj, 1.0)
-    opt.addObjective(windObj, 1.0)
-    # opt.setCostThreshold(ob.Cost(5))
+    opt.addObjective(lengthObj, LENGTH_WEIGHT)
+    opt.addObjective(clearObj, CLEARANCE_WEIGHT)
+    opt.addObjective(minTurnObj, MIN_TURN_WEIGHT)
+    opt.addObjective(windObj, WIND_WEIGHT)
 
     return opt
 

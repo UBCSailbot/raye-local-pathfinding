@@ -45,6 +45,10 @@ BOAT_BACKWARD = 270
 AIS_BOAT_RADIUS_KM = 0.2
 AIS_BOAT_CIRCLE_SPACING_KM = AIS_BOAT_RADIUS_KM * 1.5  # Distance between circles that make up an AIS boat
 
+# Constants for pathfinding. Look in planner_helpers.py for more information
+PLANNER_TYPE = "RRTStar"
+PLANNER_OBJECTIVE = 'WeightedLengthAndClearanceCombo'
+
 def latlonToXY(latlon, referenceLatlon):
     x = distance((referenceLatlon.lat, referenceLatlon.lon), (referenceLatlon.lat, latlon.lon)).kilometers
     y = distance((referenceLatlon.lat, referenceLatlon.lon), (latlon.lat, referenceLatlon.lon)).kilometers
@@ -134,7 +138,7 @@ def createLocalPathSS(state, runtimeSeconds=3, numRuns=3, plot=False):
     for i in range(numRuns):
         # TODO: Incorporate globalWindSpeed into pathfinding?
         rospy.loginfo("Starting path-planning run number: {}".format(i))
-        solution = plan(runtimeSeconds, "RRTStar", 'WeightedLengthAndClearanceCombo', globalWindDirectionDegrees, dimensions, start, goal, obstacles)
+        solution = plan(runtimeSeconds, PLANNER_TYPE, PLANNER_OBJECTIVE, globalWindDirectionDegrees, dimensions, start, goal, obstacles)
         if solution.haveExactSolutionPath():
             solutions.append(solution)
         else:
@@ -146,7 +150,7 @@ def createLocalPathSS(state, runtimeSeconds=3, numRuns=3, plot=False):
         rospy.logerr("No solutions found in {} seconds runtime".format(runtimeSeconds))
         runtimeSeconds *= 5.0
         rospy.logerr("Attempting to rerun with longer runtime: {} seconds".format(runtimeSeconds))
-        solution = plan(runtimeSeconds, "RRTStar", 'WeightedLengthAndClearanceCombo', globalWindDirectionDegrees, dimensions, start, goal, obstacles)
+        solution = plan(runtimeSeconds, PLANNER_TYPE, PLANNER_OBJECTIVE, globalWindDirectionDegrees, dimensions, start, goal, obstacles)
 
         # If new solution has exact path, then use it
         if solution.haveExactSolutionPath():
