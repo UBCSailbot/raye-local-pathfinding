@@ -82,7 +82,6 @@ class MOCK_AISEnvironment:
     def new_boat_callback(self, msg):
         self.ships.append(Ship(msg.ID, msg.lat, msg.lon, msg.headingDegrees, msg.speedKmph))
         self.numShips += 1
-        print("in callback")
         
     def remove_boat_callback(self, msg):
         self.ships[:] = [ship for ship in self.ships if not ship.id == msg.data] 

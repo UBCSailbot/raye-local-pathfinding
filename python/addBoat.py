@@ -33,11 +33,12 @@ def localPath_callback(msg):
     global localPath
     localPath = msg.waypoints
 
-rospy.init_node('boat_changer', anonymous=True)
-rospy.Subscriber('/change_boats', addBoat, command_callback)
-rospy.Subscriber('/nextLocalWaypoint', latlon, lwp_callback)
-rospy.Subscriber('/GPS', GPS, gps_callback)
-rospy.Subscriber('/localPath', path, localPath_callback)
-add_pub = rospy.Publisher('/new_boats', AISShip, queue_size=4)
-rospy.Rate(1)
-rospy.spin()
+if __name__ == "__main__":
+    rospy.init_node('addBoatsToPath', anonymous=True)
+    rospy.Subscriber('/boat_on_path', addBoat, command_callback)
+    rospy.Subscriber('/nextLocalWaypoint', latlon, lwp_callback)
+    rospy.Subscriber('/GPS', GPS, gps_callback)
+    rospy.Subscriber('/localPath', path, localPath_callback)
+    add_pub = rospy.Publisher('/new_boats', AISShip, queue_size=4)
+    rospy.Rate(1)
+    rospy.spin()
