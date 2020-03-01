@@ -8,7 +8,7 @@ from std_msgs.msg import Int32
 
 from local_pathfinding.msg import AISShip, AISMsg
 
-class Ship:
+class RandomShip:
     def __init__(self, id, sailbot_lat, sailbot_lon, publishPeriodSeconds):
         self.id = id
         self.headingDegrees = random.randint(0, 360)
@@ -36,7 +36,23 @@ class Ship:
                     self.headingDegrees,
                     self.speedKmph)
 
+class Ship:
+    def __init__(self, id, boat_lat, boat_lon, heading, speed):
+        self.id = id
+        self.lat = boat_lat
+        self.lon = boat_lon
+        self.headingDegrees = heading
+        self.speedKmph = speed
 
+    def make_ros_message(self):
+        return AISShip(
+                    self.id,
+                    self.lat,
+                    self.lon,
+                    self.headingDegrees,
+                    self.speedKmph)
+
+        
 class MOCK_AISEnvironment: 
     # Just a class to keep track of the ships surrounding the sailbot
     def __init__(self, lat, lon):
@@ -44,7 +60,7 @@ class MOCK_AISEnvironment:
         self.numShips = 10
         self.ships = []
         for i in range(self.numShips):
-            self.ships.append(Ship(i, lat, lon, self.publishPeriodSeconds))
+            self.ships.append(RandomShip(i, lat, lon, self.publishPeriodSeconds))
 
         rospy.init_node('MOCK_AIS', anonymous=True)
         self.publisher = rospy.Publisher("AIS", AISMsg, queue_size=4)
@@ -53,7 +69,8 @@ class MOCK_AISEnvironment:
 
     def move_ships(self):
         for i in range(self.numShips):
-            self.ships[i].move()
+            if isinstance(self.ships[i], RandomShip):
+                self.ships[i].move()
 
     def make_ros_message(self):
         rospy.loginfo([ship.id for ship in self.ships])
@@ -63,8 +80,9 @@ class MOCK_AISEnvironment:
         return AISMsg(ship_list)
     
     def new_boat_callback(self, msg):
-        self.ships.append(Ship(msg.ID, msg.lat, msg.lon, self.publishPeriodSeconds))
+        self.ships.append(Ship(msg.ID, msg.lat, msg.lon, msg.headingDegrees, msg.speedKmph))
         self.numShips += 1
+        print("in callback")
         
     def remove_boat_callback(self, msg):
         self.ships[:] = [ship for ship in self.ships if not ship.id == msg.data] 
@@ -75,7 +93,7 @@ if __name__ == '__main__':
     r = rospy.Rate(1.0 / ais_env.publishPeriodSeconds) #hz
 
     while not rospy.is_shutdown():
-        ais_env.move_ships()
         data = ais_env.make_ros_message()
+        ais_env.move_ships()
         ais_env.publisher.publish(data)
         r.sleep()
