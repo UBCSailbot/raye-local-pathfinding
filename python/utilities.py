@@ -315,6 +315,10 @@ def extendObstaclesArray(aisArray, sailbotPosition, sailbotSpeedKmph, referenceL
             timeToLocHours = distanceToBoatKm / sailbotSpeedKmph
         extendBoatLengthKm = aisData.speedKmph * timeToLocHours
 
+        if extendBoatLengthKm == 0:
+            obstacles.append(Obstacle(aisX, aisY, AIS_BOAT_RADIUS_KM))
+
+
         if aisData.headingDegrees == 90 or aisData.headingDegrees == 270:
             if aisData.headingDegrees == 90:
                 endY = aisY + extendBoatLengthKm
