@@ -6,5 +6,5 @@
     <node pkg="local_pathfinding" type="MOCK_UDP_bridge.py" name="MOCK_UDP_bridge" />
     <node pkg="local_pathfinding" type="addBoat.py" name="addBoat" />
     <node pkg="local_pathfinding" type="main_loop.py" name="main_loop" />
-    <node pkg="local_pathfinding" type="local_path_visualizer.py" name="local_paath_visualizer" />
+    <node pkg="local_pathfinding" type="local_path_visualizer.py" name="local_path_visualizer" />
 </launch>

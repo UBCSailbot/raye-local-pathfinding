@@ -13,7 +13,7 @@ def command_callback(msg):
     if msg.addType == "nextWaypoint":
         add_pub.publish(AISShip(msg.ship.ID, localWaypoint.lat, localWaypoint.lon, msg.ship.headingDegrees, msg.ship.speedKmph))
     if msg.addType == "onBoat":
-        add_pub.publish(AISShip(msg.ship.ID, gps.lat, gps.lon, 0, 0))
+        add_pub.publish(AISShip(msg.ship.ID, gps.lat, gps.lon, msg.ship.headingDegrees, msg.ship.speedKmph))
     if msg.addType == "index":
         if msg.waypointIndex < len(localPath) and msg.waypointIndex >=0:
             add_pub.publish(AISShip(msg.ship.ID, localPath[msg.waypointIndex].lat, localPath[msg.waypointIndex].lon, msg.ship.headingDegrees, msg.ship.speedKmph))
