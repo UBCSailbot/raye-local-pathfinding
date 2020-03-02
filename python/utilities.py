@@ -208,7 +208,7 @@ def sailingUpwindOrDownwind(state, desiredHeadingDegrees):
 
     return False
 
-def obstacleOnPath(state, nextLocalWaypointIndex, numLookAheadWaypoints, localPathSS, referenceLatlon):
+def obstacleOnPath(state, nextLocalWaypointIndex, localPathSS, referenceLatlon, numLookAheadWaypoints=None):
     # Check if path will hit objects
     positionXY = latlonToXY(state.position, referenceLatlon)
     obstacles = extendObstaclesArray(state.AISData.ships, state.position, state.speedKmph, referenceLatlon)
@@ -226,6 +226,10 @@ def obstacleOnPath(state, nextLocalWaypointIndex, numLookAheadWaypoints, localPa
           len(path) < nextLocalWaypointIndex + numLookAheadWaypoints, so invalid
           update numLookAheadWaypoints to len(path) - nextLocalWaypointIndex = 3
     '''
+    if numLookAheadWaypoints is None:
+        rospy.logwarn("numLookAheadWaypoints is None")
+        numLookAheadWaypoints = len(localPathSS.getSolutionPath().getStates()) - nextLocalWaypointIndex
+        rospy.logwarn("Changing it to look at all waypoints: numLookAheadWaypoints = {}".format(numLookAheadWaypoints))
     if nextLocalWaypointIndex + numLookAheadWaypoints > len(localPathSS.getSolutionPath().getStates()):
         rospy.logwarn("numLookAheadWaypoints = {} is out of bounds.".format(numLookAheadWaypoints))
         numLookAheadWaypoints = len(localPathSS.getSolutionPath().getStates()) - nextLocalWaypointIndex
