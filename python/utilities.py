@@ -25,6 +25,10 @@ GLOBAL_WAYPOINT_REACHED_RADIUS_KM = 5
 PATH_UPDATE_TIME_LIMIT_SECONDS = 7200
 MAX_ALLOWABLE_PATHFINDING_RUNTIME_SECONDS = 60
 
+# Scale NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES to change based on waypoint distance
+LOOK_AHEAD_FOR_OBSTACLES_KM = 20
+NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES = int(math.ceil(LOOK_AHEAD_FOR_OBSTACLES_KM / AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM))
+
 # Constants for bearing and heading
 BEARING_NORTH = 0
 BEARING_EAST = 90
@@ -204,11 +208,34 @@ def sailingUpwindOrDownwind(state, desiredHeadingDegrees):
 
     return False
 
-def obstacleOnPath(state, nextLocalWaypointIndex, localPathSS, referenceLatlon):
+def obstacleOnPath(state, nextLocalWaypointIndex, localPathSS, referenceLatlon, numLookAheadWaypoints=None):
     # Check if path will hit objects
     positionXY = latlonToXY(state.position, referenceLatlon)
     obstacles = extendObstaclesArray(state.AISData.ships, state.position, state.speedKmph, referenceLatlon)
-    if hasObstacleOnPath(positionXY, nextLocalWaypointIndex, localPathSS, obstacles):
+
+    # Ensure nextLocalWaypointIndex + numLookAheadWaypoints is in bounds
+    '''
+    Let path = [(0,0), (1,1), (2,2), (3,3), (4,4)], len(path) = 5
+
+    If: nextLocalWaypointIndex = 2, numLookAheadWaypoints = 2
+    Then: care about waypoints (2,2), (3,3)
+          len(path) >= nextLocalWaypointIndex + numLookAheadWaypoints, so valid
+
+    If: nextLocalWaypointIndex = 2, numLookAheadWaypoints = 6
+    Then: care about waypoints (2,2), (3,3), (4,4)
+          len(path) < nextLocalWaypointIndex + numLookAheadWaypoints, so invalid
+          update numLookAheadWaypoints to len(path) - nextLocalWaypointIndex = 3
+    '''
+    if numLookAheadWaypoints is None:
+        rospy.logwarn("numLookAheadWaypoints is None")
+        numLookAheadWaypoints = len(localPathSS.getSolutionPath().getStates()) - nextLocalWaypointIndex
+        rospy.logwarn("Changing it to look at all waypoints: numLookAheadWaypoints = {}".format(numLookAheadWaypoints))
+    if nextLocalWaypointIndex + numLookAheadWaypoints > len(localPathSS.getSolutionPath().getStates()):
+        rospy.logwarn("numLookAheadWaypoints = {} is out of bounds.".format(numLookAheadWaypoints))
+        numLookAheadWaypoints = len(localPathSS.getSolutionPath().getStates()) - nextLocalWaypointIndex
+        rospy.logwarn("Changing it to stay in bounds: numLookAheadWaypoints = {}".format(numLookAheadWaypoints))
+
+    if hasObstacleOnPath(positionXY, nextLocalWaypointIndex, numLookAheadWaypoints, localPathSS, obstacles):
         rospy.logwarn("Obstacle on path!")
         return True
     return False
