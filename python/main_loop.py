@@ -7,10 +7,6 @@ from Sailbot import *
 from utilities import *
 import time
 
-# Constant
-# TODO: Set this so that we only care about obstacles in a given time range. If waypoint distance changes, this should scale proportionally
-NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES = 5
-
 if __name__ == '__main__':
     # Create sailbot ROS object that subscribes to relevant topics
     sailbot = Sailbot(nodeName='local_pathfinding')
