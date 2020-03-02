@@ -8,6 +8,7 @@ from utilities import *
 import time
 
 # Constant
+# TODO: Set this so that we only care about obstacles in a given time range. If waypoint distance changes, this should scale proportionally
 NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES = 5
 
 if __name__ == '__main__':
