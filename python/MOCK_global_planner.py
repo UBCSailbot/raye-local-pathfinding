@@ -8,7 +8,7 @@ from geopy.distance import distance
 
 # Constants for this class
 PUBLISH_PERIOD_SECONDS = 10.0
-NUM_PUBLISH_PERIODS_PER_UPDATE = 100
+NEW_GLOBAL_PATH_PERIOD_SECONDS = 3600.0 * 24
 AVG_WAYPOINT_DISTANCE_KM = 30  # TODO: Set this to match global pathfinding
 
 # Global variables for tracking boat position
@@ -64,10 +64,17 @@ def MOCK_global():
     # Subscribe to GPS to publish new global paths based on boat position
     rospy.Subscriber("GPS", msg.GPS, gpsCallback)
 
+    # Get speedup parameter
+    speedup = rospy.get_param('speedup', default=1.0)
+
+    # Publish new global path periodically
+    # Publish new global path more often with speedup
     republish_counter = 0
+    newGlobalPathPeriodSecondsSpeedup = NEW_GLOBAL_PATH_PERIOD_SECONDS / speedup
+    numPublishPeriodsPerUpdate = int(NEW_GLOBAL_PATH_PERIOD_SECONDS / PUBLISH_PERIOD_SECONDS)
     while not rospy.is_shutdown():
-        # Send updated global path every X periods
-        if republish_counter >= NUM_PUBLISH_PERIODS_PER_UPDATE:
+        # Send updated global path
+        if republish_counter >= numPublishPeriodsPerUpdate:
             republish_counter = 0
             init = [boatLat, boatLon]
             path = create_path(init, goal)

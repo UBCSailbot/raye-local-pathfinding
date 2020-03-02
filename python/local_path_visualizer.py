@@ -9,6 +9,10 @@ from matplotlib import pyplot as plt
 from matplotlib import patches
 import time
 
+# Constants
+VISUALIZER_UPDATE_PERIOD_SECONDS = 1.0
+
+# Globals for callbacks
 localPath = None
 nextLocalWaypoint = None
 nextGlobalWaypoint = None
@@ -55,7 +59,10 @@ if __name__ == '__main__':
     rospy.Subscriber("localPath", path, localPathCallback)
     rospy.Subscriber("nextLocalWaypoint", latlon, nextLocalWaypointCallback)
     rospy.Subscriber("nextGlobalWaypoint", latlon, nextGlobalWaypointCallback)
-    r = rospy.Rate(1) #hz
+    r = rospy.Rate(1.0 / VISUALIZER_UPDATE_PERIOD_SECONDS)
+
+    # Get speedup parameter
+    speedup = rospy.get_param('speedup', 1.0)
 
     # Wait for first messages
     while localPath is None or nextLocalWaypoint is None or nextGlobalWaypoint is None:
@@ -93,7 +100,7 @@ if __name__ == '__main__':
     plt.grid(True)
     axes.set_xlabel('X distance to next global waypoint (km)')
     axes.set_ylabel('Y distance to next global waypoint (km)')
-    axes.set_title('Local Path Visualizer')
+    axes.set_title('Local Path Visualizer (speedup = {})'.format(speedup))
     axes.set_aspect(aspect=1)
 
     # Show wind speed text and position text
