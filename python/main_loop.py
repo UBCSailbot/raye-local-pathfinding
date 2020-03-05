@@ -71,7 +71,7 @@ if __name__ == '__main__':
 
         # Generate new local path if needed
         isSailingUpwindOrDownwind = sailingUpwindOrDownwind(state, desiredHeadingMsg.headingDegrees)
-        hasObstacleOnPath = obstacleOnPath(state, localPathIndex, NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES, localPathSS, referenceLatlon)
+        hasObstacleOnPath = obstacleOnPath(state, localPathIndex, localPathSS, referenceLatlon, NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES)
         isTimeLimitExceeded = timeLimitExceeded(lastTimePathCreated, speedup)
         isGlobalWaypointReached = globalWaypointReached(state.position, state.globalWaypoint)
         newGlobalPathReceived = sailbot.newGlobalPathReceived

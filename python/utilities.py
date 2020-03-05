@@ -24,7 +24,10 @@ AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM = 3
 GLOBAL_WAYPOINT_REACHED_RADIUS_KM = 5
 PATH_UPDATE_TIME_LIMIT_SECONDS = 7200
 MAX_ALLOWABLE_PATHFINDING_RUNTIME_SECONDS = 60
-NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES = 5
+
+# Scale NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES to change based on waypoint distance
+LOOK_AHEAD_FOR_OBSTACLES_KM = 20
+NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES = int(math.ceil(LOOK_AHEAD_FOR_OBSTACLES_KM / AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM))
 
 # Constants for bearing and heading
 BEARING_NORTH = 0
@@ -152,7 +155,7 @@ def createLocalPathSS(state, runtimeSeconds=3, numRuns=3, plot=False):
             rospy.logwarn("Solution does not have exact solution path")
             return False
         # TODO: Check if this is needed or redundant. Sometimes it seemed like exact solution paths kept having obstacles on them, so it kept re-running, but need to do more testing
-        if obstacleOnPath(state=state, nextLocalWaypointIndex=1, numLookAheadWaypoints=len(solution.getSolutionPath().getStates()) - 1, localPathSS=solution, referenceLatlon=referenceLatlon):
+        if obstacleOnPath(state=state, nextLocalWaypointIndex=1, localPathSS=solution, referenceLatlon=referenceLatlon):
             rospy.logwarn("Solution has obstacle on path")
             return False
         return True
@@ -216,7 +219,7 @@ def sailingUpwindOrDownwind(state, desiredHeadingDegrees):
 
     return False
 
-def obstacleOnPath(state, nextLocalWaypointIndex, numLookAheadWaypoints, localPathSS, referenceLatlon):
+def obstacleOnPath(state, nextLocalWaypointIndex, localPathSS, referenceLatlon, numLookAheadWaypoints=None):
     # Check if path will hit objects
     positionXY = latlonToXY(state.position, referenceLatlon)
     obstacles = extendObstaclesArray(state.AISData.ships, state.position, state.speedKmph, referenceLatlon)
@@ -234,6 +237,10 @@ def obstacleOnPath(state, nextLocalWaypointIndex, numLookAheadWaypoints, localPa
           len(path) < nextLocalWaypointIndex + numLookAheadWaypoints, so invalid
           update numLookAheadWaypoints to len(path) - nextLocalWaypointIndex = 3
     '''
+    if numLookAheadWaypoints is None:
+        rospy.logwarn("numLookAheadWaypoints is None")
+        numLookAheadWaypoints = len(localPathSS.getSolutionPath().getStates()) - nextLocalWaypointIndex
+        rospy.logwarn("Changing it to look at all waypoints: numLookAheadWaypoints = {}".format(numLookAheadWaypoints))
     if nextLocalWaypointIndex + numLookAheadWaypoints > len(localPathSS.getSolutionPath().getStates()):
         rospy.logwarn("numLookAheadWaypoints = {} is out of bounds.".format(numLookAheadWaypoints))
         numLookAheadWaypoints = len(localPathSS.getSolutionPath().getStates()) - nextLocalWaypointIndex
@@ -345,6 +352,10 @@ def extendObstaclesArray(aisArray, sailbotPosition, sailbotSpeedKmph, referenceL
         else:
             timeToLocHours = distanceToBoatKm / sailbotSpeedKmph
         extendBoatLengthKm = aisData.speedKmph * timeToLocHours
+
+        if extendBoatLengthKm == 0:
+            obstacles.append(Obstacle(aisX, aisY, AIS_BOAT_RADIUS_KM))
+
 
         if aisData.headingDegrees == 90 or aisData.headingDegrees == 270:
             if aisData.headingDegrees == 90:
