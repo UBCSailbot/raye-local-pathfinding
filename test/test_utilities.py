@@ -310,71 +310,69 @@ class TestUtilities(unittest.TestCase):
             distance = ((currState.getX() - prevState.getX())**2 + (currState.getY() - prevState.getY())**2)**0.5
             self.assertTrue(AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM / 2 < distance and distance < 2 * AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM)
 
-    def test_sailingUpwindOrDownwind(self):
-        # Set state with global wind direction nearly same as boat direction (sailing downwind)
-        globalWindDirectionDegrees = 30
-        downwindDesiredHeadingDegrees = globalWindDirectionDegrees + DOWNWIND_MAX_ANGLE_DEGREES / 2
-        measuredWindSpeedKmph, measuredWindDirectionDegrees = globalWindToMeasuredWind(globalWindSpeed=10, globalWindDirectionDegrees=globalWindDirectionDegrees, boatSpeed=1, headingDegrees=120)
-        state = BoatState(globalWaypoint=latlon(1,1), position=latlon(0,0), measuredWindDirectionDegrees=measuredWindDirectionDegrees, measuredWindSpeedKmph=measuredWindSpeedKmph, AISData=AISMsg(), headingDegrees=120, speedKmph=1)
-        self.assertTrue(sailingUpwindOrDownwind(state=state, desiredHeadingDegrees=downwindDesiredHeadingDegrees))
+    def test_upwindOrDownwindOnPath(self):
+        # Create simple path from latlon(0,0) to latlon(1,1)
+        measuredWindSpeedKmph, measuredWindDirectionDegrees = globalWindToMeasuredWind(globalWindSpeed=10, globalWindDirectionDegrees=90, boatSpeed=0, headingDegrees=0)
+        state = BoatState(globalWaypoint=latlon(1,1), position=latlon(0,0), measuredWindDirectionDegrees=measuredWindDirectionDegrees, measuredWindSpeedKmph=measuredWindSpeedKmph, AISData=AISMsg(), headingDegrees=0, speedKmph=0)
+        localPathSS, referenceLatlon = createLocalPathSS(state, runtimeSeconds=3, numRuns=1)
+        solutionPath = localPathSS.getSolutionPath()
 
-        # Set state so the boat is not going downwind
-        globalWindDirectionDegrees = 10
-        notDownwindDesiredHeadingDegrees = globalWindDirectionDegrees + DOWNWIND_MAX_ANGLE_DEGREES * 2
-        measuredWindSpeedKmph, measuredWindDirectionDegrees = globalWindToMeasuredWind(globalWindSpeed=10, globalWindDirectionDegrees=globalWindDirectionDegrees, boatSpeed=1, headingDegrees=0)
-        state = BoatState(globalWaypoint=latlon(1,1), position=latlon(0,0), measuredWindDirectionDegrees=measuredWindDirectionDegrees, measuredWindSpeedKmph=measuredWindSpeedKmph, AISData=AISMsg(), headingDegrees=0, speedKmph=1)
-        self.assertFalse(sailingUpwindOrDownwind(state=state, desiredHeadingDegrees=notDownwindDesiredHeadingDegrees))
+        # Set state with global wind direction nearly same as boat current direction (sailing downwind)
+        nextLocalWaypointIndex = 1
+        boatPositionXY = latlonToXY(state.position, referenceLatlon)
+        desiredHeadingDegrees = math.degrees(math.atan2(solutionPath.getState(nextLocalWaypointIndex).getY() - boatPositionXY[1], solutionPath.getState(nextLocalWaypointIndex).getX() - boatPositionXY[0]))
+        downwindGlobalWindDirectionDegrees = desiredHeadingDegrees + DOWNWIND_MAX_ANGLE_DEGREES / 2
 
-        # Set state with global wind direction nearly 180 degrees from boat direction (sailing upwind)
-        globalWindDirectionDegrees = 279
-        upwindDesiredHeadingDegrees = globalWindDirectionDegrees + 180 + UPWIND_MAX_ANGLE_DEGREES / 2
-        measuredWindSpeedKmph, measuredWindDirectionDegrees = globalWindToMeasuredWind(globalWindSpeed=10, globalWindDirectionDegrees=globalWindDirectionDegrees, boatSpeed=1, headingDegrees=0)
-        state = BoatState(globalWaypoint=latlon(1,1), position=latlon(0,0), measuredWindDirectionDegrees=measuredWindDirectionDegrees, measuredWindSpeedKmph=measuredWindSpeedKmph, AISData=AISMsg(), headingDegrees=0, speedKmph=1)
-        self.assertTrue(sailingUpwindOrDownwind(state=state, desiredHeadingDegrees=upwindDesiredHeadingDegrees))
+        measuredWindSpeedKmph, measuredWindDirectionDegrees = globalWindToMeasuredWind(globalWindSpeed=10, globalWindDirectionDegrees=downwindGlobalWindDirectionDegrees, boatSpeed=1, headingDegrees=120)
+        downwindState = BoatState(globalWaypoint=latlon(1,1), position=latlon(0,0), measuredWindDirectionDegrees=measuredWindDirectionDegrees, measuredWindSpeedKmph=measuredWindSpeedKmph, AISData=AISMsg(), headingDegrees=120, speedKmph=1)
+        self.assertTrue(upwindOrDownwindOnPath(state=downwindState, nextLocalWaypointIndex=nextLocalWaypointIndex, localPathSS=localPathSS, referenceLatlon=referenceLatlon, numLookAheadWaypoints=1))
 
-        # Set state so the boat is not going upwind
-        globalWindDirectionDegrees = 10
-        notUpwindDesiredHeadingDegrees = globalWindDirectionDegrees + 180 + UPWIND_MAX_ANGLE_DEGREES * 2
-        measuredWindSpeedKmph, measuredWindDirectionDegrees = globalWindToMeasuredWind(globalWindSpeed=10, globalWindDirectionDegrees=globalWindDirectionDegrees, boatSpeed=1, headingDegrees=0)
-        state = BoatState(globalWaypoint=latlon(1,1), position=latlon(0,0), measuredWindDirectionDegrees=measuredWindDirectionDegrees, measuredWindSpeedKmph=measuredWindSpeedKmph, AISData=AISMsg(), headingDegrees=0, speedKmph=1)
-        self.assertFalse(sailingUpwindOrDownwind(state=state, desiredHeadingDegrees=notUpwindDesiredHeadingDegrees))
+        # Set state with global wind direction nearly 180 degrees from boat current direction (sailing upwind)
+        nextLocalWaypointIndex = 1
+        boatPositionXY = latlonToXY(state.position, referenceLatlon)
+        desiredHeadingDegrees = math.degrees(math.atan2(solutionPath.getState(nextLocalWaypointIndex).getY() - boatPositionXY[1], solutionPath.getState(nextLocalWaypointIndex).getX() - boatPositionXY[0]))
+        upwindGlobalWindDirectionDegrees = desiredHeadingDegrees + 180 + UPWIND_MAX_ANGLE_DEGREES / 2
 
-    def test_sailingUpwindOrDownwind_discontinuities(self):
-        # Sanity check that discontinuities are not a problem (eg. 2pi == 6pi)
-        globalWindDirectionDegrees = 10
-        notUpwindDesiredHeadingDegrees = globalWindDirectionDegrees + 180 + UPWIND_MAX_ANGLE_DEGREES * 2
-        globalWindDirectionDegrees += 5 * 360
-        measuredWindSpeedKmph, measuredWindDirectionDegrees = globalWindToMeasuredWind(globalWindSpeed=10, globalWindDirectionDegrees=globalWindDirectionDegrees, boatSpeed=1, headingDegrees=0)
-        state = BoatState(globalWaypoint=latlon(1,1), position=latlon(0,0), measuredWindDirectionDegrees=measuredWindDirectionDegrees, measuredWindSpeedKmph=measuredWindSpeedKmph, AISData=AISMsg(), headingDegrees=0, speedKmph=1)
-        self.assertFalse(sailingUpwindOrDownwind(state=state, desiredHeadingDegrees=notUpwindDesiredHeadingDegrees))
+        measuredWindSpeedKmph, measuredWindDirectionDegrees = globalWindToMeasuredWind(globalWindSpeed=10, globalWindDirectionDegrees=upwindGlobalWindDirectionDegrees, boatSpeed=1, headingDegrees=120)
+        upwindState = BoatState(globalWaypoint=latlon(1,1), position=latlon(0,0), measuredWindDirectionDegrees=measuredWindDirectionDegrees, measuredWindSpeedKmph=measuredWindSpeedKmph, AISData=AISMsg(), headingDegrees=120, speedKmph=1)
+        self.assertTrue(upwindOrDownwindOnPath(state=upwindState, nextLocalWaypointIndex=nextLocalWaypointIndex, localPathSS=localPathSS, referenceLatlon=referenceLatlon, numLookAheadWaypoints=1))
 
-        # Sanity check that discontinuities are not a problem (eg. 2pi == 6pi)
-        globalWindDirectionDegrees = 10
-        notUpwindDesiredHeadingDegrees = globalWindDirectionDegrees + 180 + UPWIND_MAX_ANGLE_DEGREES * 2
-        notUpwindDesiredHeadingDegrees += 6 * 360
-        measuredWindSpeedKmph, measuredWindDirectionDegrees = globalWindToMeasuredWind(globalWindSpeed=10, globalWindDirectionDegrees=globalWindDirectionDegrees, boatSpeed=1, headingDegrees=0)
-        state = BoatState(globalWaypoint=latlon(1,1), position=latlon(0,0), measuredWindDirectionDegrees=measuredWindDirectionDegrees, measuredWindSpeedKmph=measuredWindSpeedKmph, AISData=AISMsg(), headingDegrees=0, speedKmph=1)
-        self.assertFalse(sailingUpwindOrDownwind(state=state, desiredHeadingDegrees=notUpwindDesiredHeadingDegrees))
+        # Set state so the boat is not going downwind or upwind
+        nextLocalWaypointIndex = 1
+        boatPositionXY = latlonToXY(state.position, referenceLatlon)
+        desiredHeadingDegrees = math.degrees(math.atan2(solutionPath.getState(nextLocalWaypointIndex).getY() - boatPositionXY[1], solutionPath.getState(nextLocalWaypointIndex).getX() - boatPositionXY[0]))
+        validGlobalWindDirectionDegrees = desiredHeadingDegrees + DOWNWIND_MAX_ANGLE_DEGREES * 2
 
-        # Sanity check that discontinuities are not a problem (eg. 2pi == 6pi)
-        globalWindDirectionDegrees = 30
-        downwindDesiredHeadingDegrees = globalWindDirectionDegrees + DOWNWIND_MAX_ANGLE_DEGREES / 2
-        globalWindDirectionDegrees += 3 * 360
-        measuredWindSpeedKmph, measuredWindDirectionDegrees = globalWindToMeasuredWind(globalWindSpeed=10, globalWindDirectionDegrees=globalWindDirectionDegrees, boatSpeed=1, headingDegrees=120)
-        state = BoatState(globalWaypoint=latlon(1,1), position=latlon(0,0), measuredWindDirectionDegrees=measuredWindDirectionDegrees, measuredWindSpeedKmph=measuredWindSpeedKmph, AISData=AISMsg(), headingDegrees=120, speedKmph=1)
-        self.assertTrue(sailingUpwindOrDownwind(state=state, desiredHeadingDegrees=downwindDesiredHeadingDegrees))
+        measuredWindSpeedKmph, measuredWindDirectionDegrees = globalWindToMeasuredWind(globalWindSpeed=10, globalWindDirectionDegrees=validGlobalWindDirectionDegrees, boatSpeed=1, headingDegrees=120)
+        validState = BoatState(globalWaypoint=latlon(1,1), position=latlon(0,0), measuredWindDirectionDegrees=measuredWindDirectionDegrees, measuredWindSpeedKmph=measuredWindSpeedKmph, AISData=AISMsg(), headingDegrees=120, speedKmph=1)
+        self.assertFalse(upwindOrDownwindOnPath(state=validState, nextLocalWaypointIndex=nextLocalWaypointIndex, localPathSS=localPathSS, referenceLatlon=referenceLatlon, numLookAheadWaypoints=1))
 
-        # Sanity check that discontinuities are not a problem (eg. 2pi == 6pi)
-        globalWindDirectionDegrees = 30
-        downwindDesiredHeadingDegrees = globalWindDirectionDegrees + DOWNWIND_MAX_ANGLE_DEGREES / 2
-        downwindDesiredHeadingDegrees += 7 * 360
-        measuredWindSpeedKmph, measuredWindDirectionDegrees = globalWindToMeasuredWind(globalWindSpeed=10, globalWindDirectionDegrees=globalWindDirectionDegrees, boatSpeed=1, headingDegrees=120)
-        state = BoatState(globalWaypoint=latlon(1,1), position=latlon(0,0), measuredWindDirectionDegrees=measuredWindDirectionDegrees, measuredWindSpeedKmph=measuredWindSpeedKmph, AISData=AISMsg(), headingDegrees=120, speedKmph=1)
-        self.assertTrue(sailingUpwindOrDownwind(state=state, desiredHeadingDegrees=downwindDesiredHeadingDegrees))
+        # Move boat so that boat is not going downwind or upwind
+        nextLocalWaypointIndex = 1
+        newPosition = latlon(1, 0)
+        boatPositionXY = latlonToXY(newPosition, referenceLatlon)
+        desiredHeadingDegrees = math.degrees(math.atan2(solutionPath.getState(nextLocalWaypointIndex).getY() - boatPositionXY[1], solutionPath.getState(nextLocalWaypointIndex).getX() - boatPositionXY[0]))
+        validGlobalWindDirectionDegrees = desiredHeadingDegrees + UPWIND_MAX_ANGLE_DEGREES * 2
+
+        measuredWindSpeedKmph, measuredWindDirectionDegrees = globalWindToMeasuredWind(globalWindSpeed=10, globalWindDirectionDegrees=validGlobalWindDirectionDegrees, boatSpeed=1, headingDegrees=120)
+        validState = BoatState(globalWaypoint=latlon(1,1), position=newPosition, measuredWindDirectionDegrees=measuredWindDirectionDegrees, measuredWindSpeedKmph=measuredWindSpeedKmph, AISData=AISMsg(), headingDegrees=120, speedKmph=1)
+        self.assertFalse(upwindOrDownwindOnPath(state=validState, nextLocalWaypointIndex=nextLocalWaypointIndex, localPathSS=localPathSS, referenceLatlon=referenceLatlon, numLookAheadWaypoints=1))
+
+        # Move boat so that boat is going downwind
+        nextLocalWaypointIndex = 1
+        newPosition = latlon(1, 0)
+        boatPositionXY = latlonToXY(newPosition, referenceLatlon)
+        desiredHeadingDegrees = math.degrees(math.atan2(solutionPath.getState(nextLocalWaypointIndex).getY() - boatPositionXY[1], solutionPath.getState(nextLocalWaypointIndex).getX() - boatPositionXY[0]))
+        downwindGlobalWindDirectionDegrees = desiredHeadingDegrees + DOWNWIND_MAX_ANGLE_DEGREES / 2
+
+        measuredWindSpeedKmph, measuredWindDirectionDegrees = globalWindToMeasuredWind(globalWindSpeed=10, globalWindDirectionDegrees=downwindGlobalWindDirectionDegrees, boatSpeed=1, headingDegrees=120)
+        downwindState = BoatState(globalWaypoint=latlon(1,1), position=newPosition, measuredWindDirectionDegrees=measuredWindDirectionDegrees, measuredWindSpeedKmph=measuredWindSpeedKmph, AISData=AISMsg(), headingDegrees=120, speedKmph=1)
+        self.assertTrue(upwindOrDownwindOnPath(state=downwindState, nextLocalWaypointIndex=nextLocalWaypointIndex, localPathSS=localPathSS, referenceLatlon=referenceLatlon, numLookAheadWaypoints=1))
+
 
     def test_obstacleOnPath(self):
         '''To visualize the obstacleOnPath check, go to updated_geometric_planner.py and uncomment the plotting in hasObstacleOnPath()'''
-        # Create simple path
+        # Create simple path from latlon(0,0) to latlon(1,1)
         measuredWindSpeedKmph, measuredWindDirectionDegrees = globalWindToMeasuredWind(globalWindSpeed=10, globalWindDirectionDegrees=90, boatSpeed=0, headingDegrees=0)
         state = BoatState(globalWaypoint=latlon(1,1), position=latlon(0,0), measuredWindDirectionDegrees=measuredWindDirectionDegrees, measuredWindSpeedKmph=measuredWindSpeedKmph, AISData=AISMsg(), headingDegrees=0, speedKmph=0)
         localPathSS, referenceLatlon = createLocalPathSS(state, runtimeSeconds=3, numRuns=1)
