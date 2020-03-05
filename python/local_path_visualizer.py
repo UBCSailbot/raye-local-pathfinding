@@ -47,10 +47,11 @@ def getXYLimits(xy0, xy1):
 
     # Scale for extra space
     extraWidth = xPLim - xNLim
-    xPLim += 0.2*extraWidth
-    xNLim -= 0.2*extraWidth
-    yPLim += 0.2*extraWidth
-    yNLim -= 0.2*extraWidth
+    multiplier = 0.5
+    xPLim += multiplier*extraWidth
+    xNLim -= multiplier*extraWidth
+    yPLim += multiplier*extraWidth
+    yNLim -= multiplier*extraWidth
     return xPLim, xNLim, yPLim, yNLim
 
 if __name__ == '__main__':

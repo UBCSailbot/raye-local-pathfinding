@@ -23,14 +23,14 @@ MAUI_LATLON = latlon(20.0, -156.0)
 
 # Constants
 AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM = 3
-GLOBAL_WAYPOINT_REACHED_RADIUS_KM = 5
+GLOBAL_WAYPOINT_REACHED_RADIUS_KM = 10
 PATH_UPDATE_TIME_LIMIT_SECONDS = 7200
 MAX_ALLOWABLE_PATHFINDING_RUNTIME_SECONDS = 30
 
 # Scale NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES and NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND to change based on waypoint distance
 LOOK_AHEAD_FOR_OBSTACLES_KM = 20
 NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES = int(math.ceil(LOOK_AHEAD_FOR_OBSTACLES_KM / AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM))
-LOOK_AHEAD_FOR_UPWIND_DOWNWIND_KM = 5
+LOOK_AHEAD_FOR_UPWIND_DOWNWIND_KM = 10
 NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND = int(math.ceil(LOOK_AHEAD_FOR_UPWIND_DOWNWIND_KM / AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM))
 
 # Constants for bearing and heading
@@ -71,6 +71,9 @@ def printCostBreakdown(ss):
     screenshot = pyautogui.screenshot()
     screenshot.save("{}/../images/planning/{}.png".format(os.path.dirname(os.path.abspath(__file__)), int(time.time())))
     rospy.logerr("Image saved!")
+
+    # Close any plots
+    plt.close()
 
 
 def latlonToXY(latlon, referenceLatlon):
@@ -206,8 +209,6 @@ def createLocalPathSS(state, runtimeSeconds=3, numRuns=3, plot=False):
     numberOfLocalWaypoints = int(localPathLengthKm / AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM)
     solution.getSolutionPath().interpolate(numberOfLocalWaypoints)
 
-    # Close any plots
-    plt.close()
     return solution, referenceLatlon
 
 def getLocalPath(localPathSS, referenceLatlon):
