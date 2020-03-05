@@ -212,12 +212,19 @@ def upwindOrDownwindOnPath(state, nextLocalWaypointIndex, localPathSS, reference
     # Calculate global wind from measured wind and boat state
     globalWindSpeedKmph, globalWindDirectionDegrees = measuredWindToGlobalWind(state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
 
-    # Check numLookAheadWaypoints for upwind or downwind sailing
-    for waypointIndex in range(nextLocalWaypointIndex + 1, nextLocalWaypointIndex + numLookAheadWaypoints):
-        # Calculate required heading between waypoints
+    # Get relevant waypoints (boat position first, then the next numLookAheadWaypoints startin from nextLocalWaypoint onwards)
+    relevantWaypoints = []
+    relevantWaypoints.append(latlonToXY(state.position, referenceLatlon))
+    for waypointIndex in range(nextLocalWaypointIndex, nextLocalWaypointIndex + numLookAheadWaypoints):
         waypoint = localPathSS.getSolutionPath().getState(waypointIndex)
-        prevWaypoint = localPathSS.getSolutionPath().getState(waypointIndex - 1)
-        requiredHeadingDegrees = math.degrees(math.atan2(waypoint.getY() - prevWaypoint.getY(), waypoint.getX() - prevWaypoint.getX()))
+        relevantWaypoints.append([waypoint.getX(), waypoint.getY()])
+
+    # Check relevantWaypoints for upwind or downwind sailing
+    for waypointIndex in range(1, len(relevantWaypoints)):
+        # Calculate required heading between waypoints
+        waypoint = relevantWaypoints[waypointIndex]
+        prevWaypoint = relevantWaypoints[waypointIndex - 1]
+        requiredHeadingDegrees = math.degrees(math.atan2(waypoint[1] - prevWaypoint[1], waypoint[0] - prevWaypoint[0]))
 
         if isDownwind(math.radians(globalWindDirectionDegrees), math.radians(requiredHeadingDegrees)):
             rospy.logwarn("Downwind sailing on path. globalWindDirectionDegrees: {}. requiredHeadingDegrees: {}. waypointIndex: {}".format(globalWindDirectionDegrees, requiredHeadingDegrees, waypointIndex))
