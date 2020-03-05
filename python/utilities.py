@@ -49,7 +49,7 @@ BOAT_LEFT = 180
 BOAT_BACKWARD = 270
 
 # Constants for modeling AIS boats
-AIS_BOAT_RADIUS_KM = 2
+AIS_BOAT_RADIUS_KM = 0.2
 AIS_BOAT_CIRCLE_SPACING_KM = AIS_BOAT_RADIUS_KM * 1.5  # Distance between circles that make up an AIS boat
 
 def latlonToXY(latlon, referenceLatlon):
