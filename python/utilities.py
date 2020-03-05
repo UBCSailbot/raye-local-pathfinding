@@ -137,7 +137,7 @@ def createLocalPathSS(state, runtimeSeconds=3, numRuns=3, plot=False):
 
     # Get setup parameters from state for ompl plan()
     # Convert all latlons to NE in km wrt referenceLatlon
-    referenceLatlon = state.position
+    referenceLatlon = state.globalWaypoint
     start = latlonToXY(state.position, referenceLatlon)
     goal = latlonToXY(state.globalWaypoint, referenceLatlon)
     extraKm = 10   # Extra length to allow wider solution space
