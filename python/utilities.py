@@ -23,11 +23,13 @@ MAUI_LATLON = latlon(20.0, -156.0)
 AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM = 3
 GLOBAL_WAYPOINT_REACHED_RADIUS_KM = 5
 PATH_UPDATE_TIME_LIMIT_SECONDS = 7200
-MAX_ALLOWABLE_PATHFINDING_RUNTIME_SECONDS = 60
+MAX_ALLOWABLE_PATHFINDING_RUNTIME_SECONDS = 30
 
-# Scale NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES to change based on waypoint distance
+# Scale NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES and NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND to change based on waypoint distance
 LOOK_AHEAD_FOR_OBSTACLES_KM = 20
 NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES = int(math.ceil(LOOK_AHEAD_FOR_OBSTACLES_KM / AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM))
+LOOK_AHEAD_FOR_UPWIND_DOWNWIND_KM = 20
+NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND = int(math.ceil(LOOK_AHEAD_FOR_UPWIND_DOWNWIND_KM / AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM))
 
 # Constants for bearing and heading
 BEARING_NORTH = 0
@@ -141,7 +143,7 @@ def createLocalPathSS(state, runtimeSeconds=3, numRuns=3, plot=False):
             obstacle.radius /= shrinkFactor
         amountShrinked *= shrinkFactor
     if amountShrinked > 1.0000001:
-        rospy.logwarn("Obstacles have been shrinked by factor of {}".format(amountShrinked))
+        rospy.logerr("Obstacles have been shrinked by factor of {}".format(amountShrinked))
 
     # Run the planner multiple times and find the best one
     rospy.loginfo("Running createLocalPathSS. runtimeSeconds: {}. numRuns: {}. Total time: {} seconds".format(runtimeSeconds, numRuns, runtimeSeconds*numRuns))
@@ -152,11 +154,11 @@ def createLocalPathSS(state, runtimeSeconds=3, numRuns=3, plot=False):
 
     def isValidSolution(solution, referenceLatlon, state):
         if not solution.haveExactSolutionPath():
-            rospy.logwarn("Solution does not have exact solution path")
+            rospy.logwarn("Attempted solution does not have exact solution path")
             return False
         # TODO: Check if this is needed or redundant. Sometimes it seemed like exact solution paths kept having obstacles on them, so it kept re-running, but need to do more testing
-        if obstacleOnPath(state=state, nextLocalWaypointIndex=1, localPathSS=solution, referenceLatlon=referenceLatlon):
-            rospy.logwarn("Solution has obstacle on path")
+        if obstacleOnPath(state=state, nextLocalWaypointIndex=1, localPathSS=solution, referenceLatlon=referenceLatlon, numLookAheadWaypoints=len(solution.getSolutionPath().getStates()) - 1):
+            rospy.logwarn("Attempted solution has obstacle on path")
             return False
         return True
 
@@ -184,7 +186,7 @@ def createLocalPathSS(state, runtimeSeconds=3, numRuns=3, plot=False):
 
         # If valid solution can't be found for large runtime, then just use the invalid solution
         elif runtimeSeconds * increaseRuntimeFactor >= MAX_ALLOWABLE_PATHFINDING_RUNTIME_SECONDS:
-            rospy.logerr("No valid solution can be found. Using invalid solution.")
+            rospy.logerr("No valid solution can be found under {} seconds. Using invalid solution.".format(MAX_ALLOWABLE_PATHFINDING_RUNTIME_SECONDS))
             solutions.append(solution)
 
     solution = min(solutions, key=lambda x: x.getSolutionPath().cost(x.getOptimizationObjective()).value())
@@ -206,16 +208,42 @@ def getLocalPath(localPathSS, referenceLatlon):
         localPath.append(XYToLatlon(xy, referenceLatlon))
     return localPath
 
-def sailingUpwindOrDownwind(state, desiredHeadingDegrees):
+def upwindOrDownwindOnPath(state, nextLocalWaypointIndex, localPathSS, referenceLatlon, numLookAheadWaypoints=None):
+    # Default behavior when numLookAheadWaypoints is not given
+    if numLookAheadWaypoints is None:
+        rospy.logwarn("upwindOrDownwindOnPath() numLookAheadWaypoints is None")
+        numLookAheadWaypoints = len(localPathSS.getSolutionPath().getStates()) - nextLocalWaypointIndex
+        rospy.logwarn("upwindOrDownwindOnPath() Changing it to look at all waypoints: numLookAheadWaypoints = {}".format(numLookAheadWaypoints))
+    # Handle bad input
+    if nextLocalWaypointIndex + numLookAheadWaypoints > len(localPathSS.getSolutionPath().getStates()):
+        rospy.logwarn("upwindOrDownwindOnPath() numLookAheadWaypoints = {} is out of bounds.".format(numLookAheadWaypoints))
+        numLookAheadWaypoints = len(localPathSS.getSolutionPath().getStates()) - nextLocalWaypointIndex
+        rospy.logwarn("upwindOrDownwindOnPath() Changing it to stay in bounds: numLookAheadWaypoints = {}".format(numLookAheadWaypoints))
+
+    # Calculate global wind from measured wind and boat state
     globalWindSpeedKmph, globalWindDirectionDegrees = measuredWindToGlobalWind(state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
 
-    if isDownwind(math.radians(globalWindDirectionDegrees), math.radians(desiredHeadingDegrees)):
-        rospy.logwarn("Sailing downwind. Global Wind direction: {}. Desired Heading: {}".format(globalWindDirectionDegrees, desiredHeadingDegrees))
-        return True
+    # Get relevant waypoints (boat position first, then the next numLookAheadWaypoints startin from nextLocalWaypoint onwards)
+    relevantWaypoints = []
+    relevantWaypoints.append(latlonToXY(state.position, referenceLatlon))
+    for waypointIndex in range(nextLocalWaypointIndex, nextLocalWaypointIndex + numLookAheadWaypoints):
+        waypoint = localPathSS.getSolutionPath().getState(waypointIndex)
+        relevantWaypoints.append([waypoint.getX(), waypoint.getY()])
 
-    elif isUpwind(math.radians(globalWindDirectionDegrees), math.radians(desiredHeadingDegrees)):
-        rospy.logwarn("Sailing upwind. Global Wind direction: {}. Desired Heading: {}".format(globalWindDirectionDegrees, desiredHeadingDegrees))
-        return True
+    # Check relevantWaypoints for upwind or downwind sailing
+    for waypointIndex in range(1, len(relevantWaypoints)):
+        # Calculate required heading between waypoints
+        waypoint = relevantWaypoints[waypointIndex]
+        prevWaypoint = relevantWaypoints[waypointIndex - 1]
+        requiredHeadingDegrees = math.degrees(math.atan2(waypoint[1] - prevWaypoint[1], waypoint[0] - prevWaypoint[0]))
+
+        if isDownwind(math.radians(globalWindDirectionDegrees), math.radians(requiredHeadingDegrees)):
+            rospy.logwarn("Downwind sailing on path. globalWindDirectionDegrees: {}. requiredHeadingDegrees: {}. waypointIndex: {}".format(globalWindDirectionDegrees, requiredHeadingDegrees, waypointIndex))
+            return True
+
+        elif isUpwind(math.radians(globalWindDirectionDegrees), math.radians(requiredHeadingDegrees)):
+            rospy.logwarn("Upwind sailing on path. globalWindDirectionDegrees: {}. requiredHeadingDegrees: {}. waypointIndex: {}".format(globalWindDirectionDegrees, requiredHeadingDegrees, waypointIndex))
+            return True
 
     return False
 
@@ -238,13 +266,13 @@ def obstacleOnPath(state, nextLocalWaypointIndex, localPathSS, referenceLatlon, 
           update numLookAheadWaypoints to len(path) - nextLocalWaypointIndex = 3
     '''
     if numLookAheadWaypoints is None:
-        rospy.logwarn("numLookAheadWaypoints is None")
+        rospy.logwarn("obstacleOnPath() numLookAheadWaypoints is None")
         numLookAheadWaypoints = len(localPathSS.getSolutionPath().getStates()) - nextLocalWaypointIndex
-        rospy.logwarn("Changing it to look at all waypoints: numLookAheadWaypoints = {}".format(numLookAheadWaypoints))
+        rospy.logwarn("obstacleOnPath() Changing it to look at all waypoints: numLookAheadWaypoints = {}".format(numLookAheadWaypoints))
     if nextLocalWaypointIndex + numLookAheadWaypoints > len(localPathSS.getSolutionPath().getStates()):
-        rospy.logwarn("numLookAheadWaypoints = {} is out of bounds.".format(numLookAheadWaypoints))
+        rospy.logwarn("obstacleOnPath() numLookAheadWaypoints = {} is out of bounds.".format(numLookAheadWaypoints))
         numLookAheadWaypoints = len(localPathSS.getSolutionPath().getStates()) - nextLocalWaypointIndex
-        rospy.logwarn("Changing it to stay in bounds: numLookAheadWaypoints = {}".format(numLookAheadWaypoints))
+        rospy.logwarn("obstacleOnPath() Changing it to stay in bounds: numLookAheadWaypoints = {}".format(numLookAheadWaypoints))
 
     if hasObstacleOnPath(positionXY, nextLocalWaypointIndex, numLookAheadWaypoints, localPathSS, obstacles):
         rospy.logwarn("Obstacle on path!")
