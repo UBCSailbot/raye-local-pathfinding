@@ -14,6 +14,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import patches
 from Sailbot import BoatState
+import pyautogui
+import os
 
 # Location constants
 PORT_RENFREW_LATLON = latlon(48.5, -124.8)
@@ -62,6 +64,14 @@ def printCostBreakdown(ss):
     rospy.logerr("=============")
     rospy.logerr("{}: Total Cost = {}".format(type(balancedObjective).__name__, ss.getSolutionPath().cost(balancedObjective).value()))
     rospy.logerr("*************")
+
+    rospy.logerr("Sleep for 2s")
+    time.sleep(2)
+    rospy.logerr("Saving image")
+    screenshot = pyautogui.screenshot()
+    screenshot.save("{}/../images/planning/{}.png".format(os.path.dirname(os.path.abspath(__file__)), int(time.time())))
+    rospy.logerr("Image saved!")
+
 
 def latlonToXY(latlon, referenceLatlon):
     x = distance((referenceLatlon.lat, referenceLatlon.lon), (referenceLatlon.lat, latlon.lon)).kilometers
