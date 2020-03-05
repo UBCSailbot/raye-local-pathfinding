@@ -23,7 +23,7 @@ MAUI_LATLON = latlon(20.0, -156.0)
 AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM = 3
 GLOBAL_WAYPOINT_REACHED_RADIUS_KM = 5
 PATH_UPDATE_TIME_LIMIT_SECONDS = 7200
-MAX_ALLOWABLE_PATHFINDING_RUNTIME_SECONDS = 60
+MAX_ALLOWABLE_PATHFINDING_RUNTIME_SECONDS = 30
 
 # Scale NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES and NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND to change based on waypoint distance
 LOOK_AHEAD_FOR_OBSTACLES_KM = 20
@@ -197,16 +197,35 @@ def getLocalPath(localPathSS, referenceLatlon):
         localPath.append(XYToLatlon(xy, referenceLatlon))
     return localPath
 
-def sailingUpwindOrDownwind(state, desiredHeadingDegrees):
+def upwindOrDownwindOnPath(state, nextLocalWaypointIndex, localPathSS, referenceLatlon,  desiredHeadingDegrees, numLookAheadWaypoints=None):
+    # Default behavior when numLookAheadWaypoints is not given
+    if numLookAheadWaypoints is None:
+        rospy.logwarn("numLookAheadWaypoints is None")
+        numLookAheadWaypoints = len(localPathSS.getSolutionPath().getStates()) - nextLocalWaypointIndex
+        rospy.logwarn("Changing it to look at all waypoints: numLookAheadWaypoints = {}".format(numLookAheadWaypoints))
+    # Handle bad input
+    if nextLocalWaypointIndex + numLookAheadWaypoints > len(localPathSS.getSolutionPath().getStates()):
+        rospy.logwarn("numLookAheadWaypoints = {} is out of bounds.".format(numLookAheadWaypoints))
+        numLookAheadWaypoints = len(localPathSS.getSolutionPath().getStates()) - nextLocalWaypointIndex
+        rospy.logwarn("Changing it to stay in bounds: numLookAheadWaypoints = {}".format(numLookAheadWaypoints))
+
+    # Calculate global wind from measured wind and boat state
     globalWindSpeedKmph, globalWindDirectionDegrees = measuredWindToGlobalWind(state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
 
-    if isDownwind(math.radians(globalWindDirectionDegrees), math.radians(desiredHeadingDegrees)):
-        rospy.logwarn("Sailing downwind. Global Wind direction: {}. Desired Heading: {}".format(globalWindDirectionDegrees, desiredHeadingDegrees))
-        return True
+    # Check numLookAheadWaypoints for upwind or downwind sailing
+    for waypointIndex in range(nextLocalWaypointIndex + 1, nextLocalWaypointIndex + numLookAheadWaypoints):
+        # Calculate required heading between waypoints
+        waypoint = localPathSS.getSolutionPath().getState(waypointIndex)
+        prevWaypoint = localPathSS.getSolutionPath().getState(waypointIndex - 1)
+        requiredHeadingDegrees = math.degrees(math.atan2(waypoint.getY() - prevWaypoint.getY(), waypoint.getX() - prevWaypoint.getX()))
 
-    elif isUpwind(math.radians(globalWindDirectionDegrees), math.radians(desiredHeadingDegrees)):
-        rospy.logwarn("Sailing upwind. Global Wind direction: {}. Desired Heading: {}".format(globalWindDirectionDegrees, desiredHeadingDegrees))
-        return True
+        if isDownwind(math.radians(globalWindDirectionDegrees), math.radians(requiredHeadingDegrees)):
+            rospy.logwarn("Sailing downwind. globalWindDirectionDegrees: {}. requiredHeadingDegrees: {}. waypointIndex: {}".format(globalWindDirectionDegrees, requiredHeadingDegrees, waypointIndex))
+            return True
+
+        elif isUpwind(math.radians(globalWindDirectionDegrees), math.radians(requiredHeadingDegrees)):
+            rospy.logwarn("Sailing upwind. globalWindDirectionDegrees: {}. requiredHeadingDegrees: {}. waypointIndex: {}".format(globalWindDirectionDegrees, requiredHeadingDegrees, waypointIndex))
+            return True
 
     return False
 

@@ -68,15 +68,15 @@ if __name__ == '__main__':
         plt.pause(0.001)
 
         # Generate new local path if needed
-        isSailingUpwindOrDownwind = sailingUpwindOrDownwind(state, desiredHeadingMsg.headingDegrees)
+        hasUpwindOrDownwindOnPath = upwindOrDownwindOnPath(state, localPathIndex, localPathSS, referenceLatlon, NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND)
         hasObstacleOnPath = obstacleOnPath(state, localPathIndex, localPathSS, referenceLatlon, NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES)
         isTimeLimitExceeded = timeLimitExceeded(lastTimePathCreated, speedup)
         isGlobalWaypointReached = globalWaypointReached(state.position, state.globalWaypoint)
         newGlobalPathReceived = sailbot.newGlobalPathReceived
         localPathIndexOutOfBounds = localPathIndex >= len(localPath)
-        if isSailingUpwindOrDownwind or hasObstacleOnPath or isTimeLimitExceeded or isGlobalWaypointReached or newGlobalPathReceived or localPathIndexOutOfBounds:
+        if hasUpwindOrDownwindOnPath or hasObstacleOnPath or isTimeLimitExceeded or isGlobalWaypointReached or newGlobalPathReceived or localPathIndexOutOfBounds:
             # Log reason for local path update
-            rospy.loginfo("Updating Local Path. Reason: isSailingUpwindOrDownwind? {}. hasObstacleOnPath? {}. isTimeLimitExceeded? {}. isGlobalWaypointReached? {}. newGlobalPathReceived? {}. localPathIndexOutOfBounds? {}.".format(isSailingUpwindOrDownwind, hasObstacleOnPath, isTimeLimitExceeded, isGlobalWaypointReached, newGlobalPathReceived, localPathIndexOutOfBounds))
+            rospy.loginfo("Updating Local Path. Reason: hasUpwindOrDownwindOnPath? {}. hasObstacleOnPath? {}. isTimeLimitExceeded? {}. isGlobalWaypointReached? {}. newGlobalPathReceived? {}. localPathIndexOutOfBounds? {}.".format(hasUpwindOrDownwindOnPath, hasObstacleOnPath, isTimeLimitExceeded, isGlobalWaypointReached, newGlobalPathReceived, localPathIndexOutOfBounds))
 
             # Reset saiblot newGlobalPathReceived boolean
             if newGlobalPathReceived:
