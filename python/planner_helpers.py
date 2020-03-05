@@ -84,7 +84,7 @@ class MinTurningObjective(ob.StateCostIntegralObjective):
         self.si_ = si
 
     # This objective function punishes the boat for tacking or jibing
-    # by adding a 500 cost for large turns
+    # by adding a large cost for large turns
     def motionCost(self, s1, s2):
         direction_radians = math.atan2(s2.getY() - s1.getY(), s2.getX() - s1.getX())
         try:
@@ -92,10 +92,12 @@ class MinTurningObjective(ob.StateCostIntegralObjective):
         except AttributeError:
             self.last_direction_radians = direction_radians
             diff_radians = abs_angle_dist_radians(direction_radians, self.last_direction_radians)
+        # Multiplier >= 1, punishes more for larger turns
+        multiplier = diff_radians / math.radians(2 * max(UPWIND_MAX_ANGLE_DEGREES, DOWNWIND_MAX_ANGLE_DEGREES))
         if diff_radians > math.radians(2 * max(UPWIND_MAX_ANGLE_DEGREES, DOWNWIND_MAX_ANGLE_DEGREES)):
-            return 500.0
+            return 500.0 * multiplier
         else:
-            return diff_radians*10
+            return 10.0 * multiplier
 
 
 class WindObjective(ob.StateCostIntegralObjective):
@@ -111,7 +113,7 @@ class WindObjective(ob.StateCostIntegralObjective):
 
         isUpwindOrDownwind = isUpwind(math.radians(self.windDirectionDegrees), boatDirectionRadians) or isDownwind(math.radians(self.windDirectionDegrees), boatDirectionRadians)
         if isUpwindOrDownwind:
-            return sys.maxsize * distance
+            return 1000.0 * distance
         else:
             return 0.0
 
