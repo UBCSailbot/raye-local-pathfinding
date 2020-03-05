@@ -28,7 +28,7 @@ MAX_ALLOWABLE_PATHFINDING_RUNTIME_SECONDS = 30
 # Scale NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES and NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND to change based on waypoint distance
 LOOK_AHEAD_FOR_OBSTACLES_KM = 20
 NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES = int(math.ceil(LOOK_AHEAD_FOR_OBSTACLES_KM / AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM))
-LOOK_AHEAD_FOR_UPWIND_DOWNWIND_KM = 20
+LOOK_AHEAD_FOR_UPWIND_DOWNWIND_KM = 5
 NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND = int(math.ceil(LOOK_AHEAD_FOR_UPWIND_DOWNWIND_KM / AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM))
 
 # Constants for bearing and heading
@@ -49,19 +49,19 @@ BOAT_LEFT = 180
 BOAT_BACKWARD = 270
 
 # Constants for modeling AIS boats
-AIS_BOAT_RADIUS_KM = 0.2
+AIS_BOAT_RADIUS_KM = 2
 AIS_BOAT_CIRCLE_SPACING_KM = AIS_BOAT_RADIUS_KM * 1.5  # Distance between circles that make up an AIS boat
 
 def printCostBreakdown(ss):
-    print("*****************COST BREAKDOWN*****************")
+    rospy.logerr("*****************COST BREAKDOWN*****************")
     balancedObjective = ss.getOptimizationObjective()
     for i in range(balancedObjective.getObjectiveCount()):
         weight = balancedObjective.getObjectiveWeight(i)
         objective = balancedObjective.getObjective(i)
-        print("{}: Cost = {}. Weight = {}. Total Cost = {}".format(type(objective).__name__, ss.getSolutionPath().cost(objective).value(), weight, ss.getSolutionPath().cost(objective).value() * weight))
-    print("=============")
-    print("{}: Total Cost = {}".format(type(balancedObjective).__name__, ss.getSolutionPath().cost(balancedObjective).value()))
-    print("*************")
+        rospy.logerr("{}: Cost = {}. Weight = {}. Total Cost = {}".format(type(objective).__name__, ss.getSolutionPath().cost(objective).value(), weight, ss.getSolutionPath().cost(objective).value() * weight))
+    rospy.logerr("=============")
+    rospy.logerr("{}: Total Cost = {}".format(type(balancedObjective).__name__, ss.getSolutionPath().cost(balancedObjective).value()))
+    rospy.logerr("*************")
 
 def latlonToXY(latlon, referenceLatlon):
     x = distance((referenceLatlon.lat, referenceLatlon.lon), (referenceLatlon.lat, latlon.lon)).kilometers
