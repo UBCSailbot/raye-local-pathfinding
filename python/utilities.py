@@ -132,7 +132,7 @@ def createLocalPathSS(state, runtimeSeconds=3, numRuns=3, plot=False):
             obstacle.radius /= shrinkFactor
         amountShrinked *= shrinkFactor
     if amountShrinked > 1.0000001:
-        rospy.logwarn("Obstacles have been shrinked by factor of {}".format(amountShrinked))
+        rospy.logerr("Obstacles have been shrinked by factor of {}".format(amountShrinked))
 
     # Run the planner multiple times and find the best one
     rospy.loginfo("Running createLocalPathSS. runtimeSeconds: {}. numRuns: {}. Total time: {} seconds".format(runtimeSeconds, numRuns, runtimeSeconds*numRuns))
@@ -143,11 +143,11 @@ def createLocalPathSS(state, runtimeSeconds=3, numRuns=3, plot=False):
 
     def isValidSolution(solution, referenceLatlon, state):
         if not solution.haveExactSolutionPath():
-            rospy.logwarn("Solution does not have exact solution path")
+            rospy.logwarn("Attempted solution does not have exact solution path")
             return False
         # TODO: Check if this is needed or redundant. Sometimes it seemed like exact solution paths kept having obstacles on them, so it kept re-running, but need to do more testing
         if obstacleOnPath(state=state, nextLocalWaypointIndex=1, localPathSS=solution, referenceLatlon=referenceLatlon, numLookAheadWaypoints=len(solution.getSolutionPath().getStates()) - 1):
-            rospy.logwarn("Solution has obstacle on path")
+            rospy.logwarn("Attempted solution has obstacle on path")
             return False
         return True
 
@@ -175,7 +175,7 @@ def createLocalPathSS(state, runtimeSeconds=3, numRuns=3, plot=False):
 
         # If valid solution can't be found for large runtime, then just use the invalid solution
         elif runtimeSeconds * increaseRuntimeFactor >= MAX_ALLOWABLE_PATHFINDING_RUNTIME_SECONDS:
-            rospy.logerr("No valid solution can be found. Using invalid solution.")
+            rospy.logerr("No valid solution can be found under {} seconds. Using invalid solution.".format(MAX_ALLOWABLE_PATHFINDING_RUNTIME_SECONDS))
             solutions.append(solution)
 
     solution = min(solutions, key=lambda x: x.getSolutionPath().cost(x.getOptimizationObjective()).value())
