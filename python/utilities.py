@@ -25,9 +25,11 @@ GLOBAL_WAYPOINT_REACHED_RADIUS_KM = 5
 PATH_UPDATE_TIME_LIMIT_SECONDS = 7200
 MAX_ALLOWABLE_PATHFINDING_RUNTIME_SECONDS = 60
 
-# Scale NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES to change based on waypoint distance
+# Scale NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES and NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND to change based on waypoint distance
 LOOK_AHEAD_FOR_OBSTACLES_KM = 20
 NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES = int(math.ceil(LOOK_AHEAD_FOR_OBSTACLES_KM / AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM))
+LOOK_AHEAD_FOR_UPWIND_DOWNWIND_KM = 20
+NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND = int(math.ceil(LOOK_AHEAD_FOR_UPWIND_DOWNWIND_KM / AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM))
 
 # Constants for bearing and heading
 BEARING_NORTH = 0
@@ -144,7 +146,7 @@ def createLocalPathSS(state, runtimeSeconds=3, numRuns=3, plot=False):
             rospy.logwarn("Solution does not have exact solution path")
             return False
         # TODO: Check if this is needed or redundant. Sometimes it seemed like exact solution paths kept having obstacles on them, so it kept re-running, but need to do more testing
-        if obstacleOnPath(state=state, nextLocalWaypointIndex=1, localPathSS=solution, referenceLatlon=referenceLatlon):
+        if obstacleOnPath(state=state, nextLocalWaypointIndex=1, localPathSS=solution, referenceLatlon=referenceLatlon, numLookAheadWaypoints=len(solution.getSolutionPath().getStates()) - 1):
             rospy.logwarn("Solution has obstacle on path")
             return False
         return True

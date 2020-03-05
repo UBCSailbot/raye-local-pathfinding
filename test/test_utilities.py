@@ -396,6 +396,9 @@ class TestUtilities(unittest.TestCase):
         state.position = latlon(-1, -1)
         self.assertTrue(obstacleOnPath(state=state, nextLocalWaypointIndex=1, localPathSS=localPathSS, referenceLatlon=referenceLatlon))
 
+        # Only look ahead 1 waypoint, so no obstacle on that shorter path (defaults to all waypoints if numLookAheadWaypoints not given)
+        self.assertFalse(obstacleOnPath(state=state, nextLocalWaypointIndex=1, localPathSS=localPathSS, referenceLatlon=referenceLatlon, numLookAheadWaypoints=1))
+
         # Move obstacle to be off the path
         between1and2shiftedRightLatlon = XYToLatlon([shipXY[0] + 0.5, shipXY[1]], referenceLatlon)
         state.AISData = AISMsg([AISShip(ID=0, lat=between1and2shiftedRightLatlon.lat, lon=between1and2shiftedRightLatlon.lon, headingDegrees=HEADING_EAST, speedKmph=30)])
