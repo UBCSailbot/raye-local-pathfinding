@@ -46,12 +46,12 @@ def getXYLimits(xy0, xy1):
         xNLim = yWidth/xWidth * xNLim
 
     # Scale for extra space
-    extraWidth = xPLim - xNLim
     multiplier = 0.5
-    xPLim += multiplier*extraWidth
-    xNLim -= multiplier*extraWidth
-    yPLim += multiplier*extraWidth
-    yNLim -= multiplier*extraWidth
+    extraWidth = multiplier * (xPLim - xNLim)
+    xPLim += extraWidth
+    xNLim -= extraWidth
+    yPLim += extraWidth
+    yNLim -= extraWidth
     return xPLim, xNLim, yPLim, yNLim
 
 if __name__ == '__main__':
@@ -87,7 +87,9 @@ if __name__ == '__main__':
     localPathY = [xy[1] for xy in localPathXY]
 
     # Create plot with waypoints and boat
-    xPLim, xNLim, yPLim, yNLim = getXYLimits(localPathXY[0], nextGlobalWaypointXY)
+    lowerLeft = [min(localPathXY[0][0], nextGlobalWaypointXY[0], positionXY[0]), min(localPathXY[0][1], nextGlobalWaypointXY[1], positionXY[1])]
+    upperRight = [max(localPathXY[0][0], nextGlobalWaypointXY[0], positionXY[0]), max(localPathXY[0][1], nextGlobalWaypointXY[1], positionXY[1])]
+    xPLim, xNLim, yPLim, yNLim = getXYLimits(lowerLeft, upperRight)
     markersize = min(xPLim - xNLim, yPLim - yNLim) / 2
     axes = plt.gca()
     localPathPlot, = axes.plot(localPathX, localPathY, marker='.', color='g', markersize=markersize / 2, linewidth=2)                    # Small green dots
@@ -161,3 +163,11 @@ if __name__ == '__main__':
         # Removes all ships and wind arrow
         for p in axes.patches:
             p.remove()
+
+        # Resizes axes if needed
+        lowerLeft = [min(localPathXY[0][0], nextGlobalWaypointXY[0], positionXY[0]), min(localPathXY[0][1], nextGlobalWaypointXY[1], positionXY[1])]
+        upperRight = [max(localPathXY[0][0], nextGlobalWaypointXY[0], positionXY[0]), max(localPathXY[0][1], nextGlobalWaypointXY[1], positionXY[1])]
+        if lowerLeft[0] < xNLim or lowerLeft[1] < yNLim or upperRight[0] > xPLim or upperRight[1] > yPLim:
+            xPLim, xNLim, yPLim, yNLim = getXYLimits(lowerLeft, upperRight)
+            axes.set_xlim(xNLim, xPLim)
+            axes.set_ylim(yNLim, yPLim)
