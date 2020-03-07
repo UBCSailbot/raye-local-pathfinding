@@ -9,7 +9,7 @@ from std_msgs.msg import Int32
 from local_pathfinding.msg import AISShip, AISMsg
 
 # Can set random seed to get deterministic start for testing
-random.seed(1)
+random.seed(2)
 
 # Constants
 AIS_PUBLISH_PERIOD_SECONDS = 1.0
@@ -23,7 +23,7 @@ class RandomShip:
         self.speedup = speedup
 
         # Set AIS boat position to be in about 50km radius around sailbot
-        boatLatlon = distance(kilometers=abs(random.randint(5, 50))).destination(point=(sailbot_lat, sailbot_lon), bearing=random.randint(0, 360))
+        boatLatlon = distance(kilometers=abs(random.randint(10, 150))).destination(point=(sailbot_lat, sailbot_lon), bearing=random.randint(0, 360))
         self.lat = boatLatlon.latitude
         self.lon = boatLatlon.longitude
 
