@@ -87,9 +87,7 @@ if __name__ == '__main__':
     localPathY = [xy[1] for xy in localPathXY]
 
     # Create plot with waypoints and boat
-    lowerLeft = [min(localPathXY[0][0], nextGlobalWaypointXY[0], positionXY[0]), min(localPathXY[0][1], nextGlobalWaypointXY[1], positionXY[1])]
-    upperRight = [max(localPathXY[0][0], nextGlobalWaypointXY[0], positionXY[0]), max(localPathXY[0][1], nextGlobalWaypointXY[1], positionXY[1])]
-    xPLim, xNLim, yPLim, yNLim = getXYLimits(lowerLeft, upperRight)
+    xPLim, xNLim, yPLim, yNLim = getXYLimits(positionXY, nextGlobalWaypointXY)
     markersize = min(xPLim - xNLim, yPLim - yNLim) / 2
     axes = plt.gca()
     localPathPlot, = axes.plot(localPathX, localPathY, marker='.', color='g', markersize=markersize / 2, linewidth=2)                    # Small green dots
@@ -126,6 +124,7 @@ if __name__ == '__main__':
         localPathX = [xy[0] for xy in localPathXY]
         localPathY = [xy[1] for xy in localPathXY]
         shipsXY = extendObstaclesArray(state.AISData.ships, state.position, state.speedKmph, referenceLatlon)
+
         # Update plots
         localPathPlot.set_xdata(localPathX)
         localPathPlot.set_ydata(localPathY)
@@ -137,8 +136,13 @@ if __name__ == '__main__':
         positionPlot.set_ydata(positionXY[1])
         positionPlot.set_marker((3, 0, state.headingDegrees-90))  # Creates a triangle with correct 'heading'
 
+        # Resizes axes if needed
+        if positionXY[0] < xNLim or positionXY[1] < yNLim or positionXY[0] > xPLim or positionXY[1] > yPLim or max(math.fabs(nextGlobalWaypointXY[0] - positionXY[0])/(xPLim - xNLim), math.fabs(positionXY[1] - nextGlobalWaypointXY[1])/(xPLim - xNLim)) < 0.3:
+            xPLim, xNLim, yPLim, yNLim = getXYLimits(positionXY, nextGlobalWaypointXY)
+            axes.set_xlim(xNLim, xPLim)
+            axes.set_ylim(yNLim, yPLim)
+
         # Update wind speed text
-        xPLim, xNLim, yPLim, yNLim = getXYLimits(localPathXY[0], nextGlobalWaypointXY)
         arrowLength = min(xPLim - xNLim, yPLim - yNLim) / 15
         arrowCenter = (xNLim + 1.5*arrowLength, yPLim - 1.5*arrowLength)
         globalWindSpeedKmph, globalWindDirectionDegrees = measuredWindToGlobalWind(state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
@@ -163,11 +167,3 @@ if __name__ == '__main__':
         # Removes all ships and wind arrow
         for p in axes.patches:
             p.remove()
-
-        # Resizes axes if needed
-        lowerLeft = [min(localPathXY[0][0], nextGlobalWaypointXY[0], positionXY[0]), min(localPathXY[0][1], nextGlobalWaypointXY[1], positionXY[1])]
-        upperRight = [max(localPathXY[0][0], nextGlobalWaypointXY[0], positionXY[0]), max(localPathXY[0][1], nextGlobalWaypointXY[1], positionXY[1])]
-        if lowerLeft[0] < xNLim or lowerLeft[1] < yNLim or upperRight[0] > xPLim or upperRight[1] > yPLim:
-            xPLim, xNLim, yPLim, yNLim = getXYLimits(lowerLeft, upperRight)
-            axes.set_xlim(xNLim, xPLim)
-            axes.set_ylim(yNLim, yPLim)
