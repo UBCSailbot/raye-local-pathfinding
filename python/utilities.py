@@ -117,6 +117,7 @@ def plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, 
     axes.set_xlabel('X distance to position (km)')
     axes.set_ylabel('Y distance to position (km)')
     axes.set_title('Setup of pathfinding problem (amountObstaclesShrinked = {})'.format(amountObstaclesShrinked))
+    axes.axis('equal')
 
     # Add boats and wind speed arrow
     for ship in obstacles:
