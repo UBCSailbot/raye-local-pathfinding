@@ -26,13 +26,14 @@ class ValidityChecker(ob.StateValidityChecker):
         self.obstacles = obstacles
 
     def isValid(self, state):
+        INVALID_RADIUS_AROUND_START = 1
         xy = (state.getX(), state.getY())
         for obstacle in self.obstacles:
             angle = math.atan2(xy[1] - obstacle.xy[1], xy[0] - obstacle.xy[0])
             if angle < 0:
                 angle += 360
             distance = math.sqrt((xy[1] - obstacle.xy[1]) **2 + (xy[0] - obstacle.xy[0]) ** 2)
-            if distance < 1:
+            if distance < INVALID_RADIUS_AROUND_START:
                 return False
 
             if (angle > obstacle.theta1 and angle < obstacle.theta2 and distance < obstacle.radius):

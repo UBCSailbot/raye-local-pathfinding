@@ -62,33 +62,15 @@ def XYToLatlon(xy, referenceLatlon):
     destination = y_distance.destination(point=(destination.latitude, destination.longitude), bearing=BEARING_NORTH)
     return latlon(destination.latitude, destination.longitude)
 
-#def isValid(xy, obstacles):
-#    M  = np.array(xy[0], xy[1])
-#    for obstacle in self.obstacles:
-#        A = np.array(A)
-#        B = np.array(B)
-#        C = np.array(C)
-#        AB = B - A 
-#        AM = M - A 
-#        BC = C- B
-#        BM = M - B 
-#        if not (0 <= AB.dot(AM) and AB.dot(AM) <= AB.dot(AB)) and (0 <= BC.dot(BM) and BC.dot(BM) <= BC.dot(BC)):
-#            return False
-#    return True
-
 def isValid(xy, obstacles):
-    print "xy", xy
+    INVALID_RADIUS_AROUND_START = 1
     for obstacle in obstacles:
         angle = math.degrees(math.atan2(xy[1] - obstacle.xy[1], xy[0] - obstacle.xy[0]))
         if angle < 0:
             angle += 360
         distance = math.sqrt((xy[1] - obstacle.xy[1]) **2 + (xy[0] - obstacle.xy[0]) ** 2)
-        if distance < 1:
-            return False    #checks if obstacle way too close to boat
-        print "angle", angle
-        print "distance", distance
-        print "Thetas: ", obstacle.theta1, obstacle.theta2
-        print "radius: ", obstacle.radius
+        if distance < INVALID_RADIUS_AROUND_START:
+            return False 
         if (angle > obstacle.theta1 and angle < obstacle.theta2 and distance < obstacle.radius):
             return False
     return True
