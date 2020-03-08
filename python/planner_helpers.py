@@ -27,14 +27,29 @@ class ValidityChecker(ob.StateValidityChecker):
 
     # Returns whether the given state's position overlaps the
     # circular obstacle
-    def isValid(self, state):
-        x = state.getX()
-        y = state.getY()
-        for obstacle in self.obstacles:
-            if sqrt(pow(x - obstacle.x, 2) + pow(y - obstacle.y, 2)) - obstacle.radius <= 0:
-                return False
+#    def isValid(self, state):
+#        x = state.getX()
+#        y = state.getY()
+#        for obstacle in self.obstacles:
+#            if sqrt(pow(x - obstacle.x, 2) + pow(y - obstacle.y, 2)) - obstacle.radius <= 0:
+#                return False
+#
+#        return True
 
+    def isValid(self, state):
+        M  = np.array([state.getX(), state.getY()])
+        for obstacle in self.obstacles:
+            A = np.array(A)
+            B = np.array(B)
+            C = np.array(C)
+            AB = B - A 
+            AM = M - A
+            BC = C- B
+            BM = M - B
+            if not (0 <= AB.dot(AM) and AB.dot(AM) <= AB.dot(AB)) and (0 <= BC.dot(BM) and BC.dot(BM) <= BC.dot(BC)):
+                return False
         return True
+
 
     # Returns the distance from the given state's position to the
     # boundary of the circular obstacle.
@@ -49,12 +64,12 @@ class ValidityChecker(ob.StateValidityChecker):
         clearance = 0
         # Distance formula between two points, offset by the circle's
         # radius
-        for obstacle in self.obstacles:
-
-            clearance += (sqrt(pow(x - obstacle.x, 2) + pow(y - obstacle.y, 2)) - obstacle.radius)
-            if clearance <= 0:
-                return 0
-
+#        for obstacle in self.obstacles:
+#
+#            clearance += (sqrt(pow(x - obstacle.x, 2) + pow(y - obstacle.y, 2)) - obstacle.radius)
+#            if clearance <= 0:
+#                return 0
+#
         return clearance
 
 

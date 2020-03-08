@@ -63,9 +63,16 @@ def XYToLatlon(xy, referenceLatlon):
     return latlon(destination.latitude, destination.longitude)
 
 def isValid(xy, obstacles):
-    x, y = xy
-    for obstacle in obstacles:
-        if math.sqrt(pow(x - obstacle.x, 2) + pow(y - obstacle.y, 2)) - obstacle.radius <= 0:
+    M  = np.array(xy[0], xy[1])
+    for obstacle in self.obstacles:
+        A = np.array(A)
+        B = np.array(B)
+        C = np.array(C)
+        AB = B - A 
+        AM = M - A 
+        BC = C- B
+        BM = M - B 
+        if not (0 <= AB.dot(AM) and AB.dot(AM) <= AB.dot(AB)) and (0 <= BC.dot(BM) and BC.dot(BM) <= BC.dot(BC)):
             return False
     return True
 

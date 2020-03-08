@@ -10,14 +10,23 @@ import planner_helpers as ph
 import matplotlib.pyplot as plt
 from matplotlib import patches
 
+#class Obstacle:
+#    def __init__(self, x, y, radius):
+#        self.x = x
+#        self.y = y
+#        self.radius = radius
+#    def __str__(self):
+#        return str((self.x, self.y, self.radius))
+#
 class Obstacle:
-    def __init__(self, x, y, radius):
-        self.x = x
-        self.y = y
-        self.radius = radius
-    def __str__(self):
-        return str((self.x, self.y, self.radius))
+    def __init__(self, A, B, C):
+        self.A = A 
+        self.B = B
+        self.C = C 
 
+    def __str__(self):
+        return str((self.A, self.B, self.C))
+       
 
 def absolute_distance_between_angles(angle1, angle2):
     fabs = math.fabs(math.atan2(math.sin(angle1 - angle2), math.cos(angle1 - angle2)))
