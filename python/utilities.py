@@ -123,8 +123,6 @@ def plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, 
     windDirection = patches.FancyArrow(arrowStart[0], arrowStart[1], arrowLength*math.cos(math.radians(globalWindDirectionDegrees)), arrowLength*math.sin(math.radians(globalWindDirectionDegrees)), width=arrowLength/4)
     axes.add_patch(windDirection)
 
-    plt.show()
-
     # Draw plot
     plt.draw()
     plt.pause(0.001)
@@ -146,12 +144,12 @@ def createLocalPathSS(state, runtimeSeconds=3, numRuns=3, plot=False):
     # TODO: Figure out if there is a better method to handle this case
     amountShrinked = 1.0
     shrinkFactor = 2.0
-#    while not isValid(start, obstacles) or not isValid(goal, obstacles):
-#        rospy.logerr("start or goal state is not valid")
-#        rospy.logerr("Shrinking obstacles by a factor of {}".format(shrinkFactor))
-#        for obstacle in obstacles:
-#            obstacle.radius /= shrinkFactor
-#        amountShrinked *= shrinkFactor
+    while not isValid(start, obstacles) or not isValid(goal, obstacles):
+        rospy.logerr("start or goal state is not valid")
+        rospy.logerr("Shrinking obstacles by a factor of {}".format(shrinkFactor))
+        for obstacle in obstacles:
+            obstacle.radius /= shrinkFactor
+        amountShrinked *= shrinkFactor
     if amountShrinked > 1.0000001:
         rospy.logwarn("Obstacles have been shrinked by factor of {}".format(amountShrinked))
 
@@ -330,11 +328,12 @@ def getDesiredHeading(position, localWaypoint):
 
 def extendObstaclesArray(aisArray, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
     EXPAND_ANGLE = 0.5 
+    MAX_TIME_TO_LOC_HOURS = 10  # Do not extend objects more than 10 hours distance
+
     obstacles = []
     for aisData in aisArray:
         aisX, aisY = latlonToXY(latlon(aisData.lat, aisData.lon), referenceLatlon)
 
-        # fix case where this exceedsd 360
         theta1 = aisData.headingDegrees - EXPAND_ANGLE
         theta2 = aisData.headingDegrees + EXPAND_ANGLE
         if theta1 < 0:
@@ -342,7 +341,6 @@ def extendObstaclesArray(aisArray, sailbotPosition, sailbotSpeedKmph, referenceL
         if theta2 > 360:
             theta2 -= 360
 
-        MAX_TIME_TO_LOC_HOURS = 10  # Do not extend objects more than 10 hours distance
         distanceToBoatKm = distance((aisData.lat, aisData.lon), (sailbotPosition.lat, sailbotPosition.lon)).kilometers
         if sailbotSpeedKmph == 0 or distanceToBoatKm / sailbotSpeedKmph > MAX_TIME_TO_LOC_HOURS:
             timeToLocHours = MAX_TIME_TO_LOC_HOURS
@@ -352,58 +350,6 @@ def extendObstaclesArray(aisArray, sailbotPosition, sailbotSpeedKmph, referenceL
         radius = aisData.speedKmph * timeToLocHours
         obstacles.append(Obstacle((aisX, aisY), radius, theta1, theta2))
     return obstacles
-
-#def extendObstaclesArray(aisArray, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
-#    obstacles = []
-#    for aisData in aisArray:
-#        aisX, aisY = latlonToXY(latlon(aisData.lat, aisData.lon), referenceLatlon)
-#
-#        # Calculate length to extend boat
-#        MAX_TIME_TO_LOC_HOURS = 10  # Do not extend objects more than 10 hours distance
-#        distanceToBoatKm = distance((aisData.lat, aisData.lon), (sailbotPosition.lat, sailbotPosition.lon)).kilometers
-#        if sailbotSpeedKmph == 0 or distanceToBoatKm / sailbotSpeedKmph > MAX_TIME_TO_LOC_HOURS:
-#            timeToLocHours = MAX_TIME_TO_LOC_HOURS
-#        else:
-#            timeToLocHours = distanceToBoatKm / sailbotSpeedKmph
-#        extendBoatLengthKm = aisData.speedKmph * timeToLocHours
-#
-#        if extendBoatLengthKm == 0:
-#            obstacles.append(Obstacle(aisX, aisY, AIS_BOAT_RADIUS_KM))
-#
-#
-#        if aisData.headingDegrees == 90 or aisData.headingDegrees == 270:
-#            if aisData.headingDegrees == 90:
-#                endY = aisY + extendBoatLengthKm
-#                yRange = np.arange(aisY, endY, AIS_BOAT_CIRCLE_SPACING_KM)
-#            if aisData.headingDegrees == 270:
-#                endY = aisY - extendBoatLengthKm
-#                yRange = np.arange(endY, aisY, AIS_BOAT_CIRCLE_SPACING_KM)
-#            for y in yRange:
-#                # Multiplier to increase size of circles showing where the boat will be in the future in range [1, 2]
-#                multiplier = 1 + abs(float(y - aisY) / (endY - aisY))
-#                obstacles.append(Obstacle(aisX, y, AIS_BOAT_RADIUS_KM * multiplier))
-#        else:
-#            isHeadingWest = aisData.headingDegrees < 270 and aisData.headingDegrees > 90
-#            slope = math.tan(math.radians(aisData.headingDegrees))
-#            dx = AIS_BOAT_CIRCLE_SPACING_KM / math.sqrt(1 + slope**2)
-#
-#            if aisX > 0:
-#                b = aisY + slope * -math.fabs(aisX)
-#            else:
-#                b = aisY + slope * math.fabs(aisX)
-#            xDistTravelled =  math.fabs(extendBoatLengthKm * math.cos(math.radians(aisData.headingDegrees)))
-#            y = lambda x: slope * x + b 
-#            if isHeadingWest:
-#                endX = aisX - xDistTravelled
-#                xRange = np.arange(endX, aisX, dx)
-#            else:
-#                endX = aisX + xDistTravelled
-#                xRange = np.arange(aisX, endX, dx)
-#            for x in xRange:
-#                # Multiplier to increase size of circles showing where the boat will be in the future in range [1, 2]
-#                multiplier = 1 + abs(float(x - aisX) / (endX - aisX))
-#                obstacles.append(Obstacle(x, y(x), AIS_BOAT_RADIUS_KM * multiplier))
-#    return obstacles
 
 def measuredWindToGlobalWind(measuredWindSpeed, measuredWindDirectionDegrees, boatSpeed, headingDegrees):
     # Calculate wind speed in boat frame. X is right. Y is forward.

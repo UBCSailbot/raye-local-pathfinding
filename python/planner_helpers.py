@@ -91,7 +91,6 @@ class ValidityChecker(ob.StateValidityChecker):
 
         return dist
 
-
 class ClearanceObjective(ob.StateCostIntegralObjective):
     def __init__(self, si):
         super(ClearanceObjective, self).__init__(si, True)
