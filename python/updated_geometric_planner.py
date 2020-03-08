@@ -10,23 +10,6 @@ import planner_helpers as ph
 import matplotlib.pyplot as plt
 from matplotlib import patches
 
-#class Obstacle:
-#    def __init__(self, x, y, radius):
-#        self.x = x
-#        self.y = y
-#        self.radius = radius
-#    def __str__(self):
-#        return str((self.x, self.y, self.radius))
-#
-#class Obstacle:
-#    def __init__(self, A, B, C):
-#        self.A = A 
-#        self.B = B
-#        self.C = C 
-#
-#    def __str__(self):
-#        return str((self.A, self.B, self.C))
-       
 class Obstacle:
     def __init__(self, xy, radius, theta1, theta2):
         self.xy = xy
