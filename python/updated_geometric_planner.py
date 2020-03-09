@@ -13,13 +13,13 @@ from matplotlib import patches
 VALIDITY_CHECKING_RESOLUTION = 0.05  # Default 0.01
 
 class Obstacle:
-    def __init__(self, x, y, radius):
-        self.x = x
-        self.y = y
+    def __init__(self, xy, radius, theta1, theta2):
+        self.xy = xy
         self.radius = radius
+        self.theta1 = theta1
+        self.theta2 = theta2
     def __str__(self):
-        return str((self.x, self.y, self.radius))
-
+        return str((self.xy, self.radius, self.theta1, self.theta2))
 
 def allocatePlanner(si, plannerType):
     if plannerType.lower() == "bfmtstar":

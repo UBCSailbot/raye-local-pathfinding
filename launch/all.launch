@@ -1,4 +1,8 @@
 <launch>
+    <!-- Sets speedup, which increases boat speeds --> 
+    <arg name="speedup" default="1.0" />
+    <param name="speedup" type="double" value="$(arg speedup)" />
+
     <node pkg="local_pathfinding" type="MOCK_wind_sensor.py" name="MOCK_wind_sensor" />
     <node pkg="local_pathfinding" type="MOCK_controller_and_boat.py" name="MOCK_controller_and_boat" />
     <node pkg="local_pathfinding" type="MOCK_AIS.py" name="MOCK_AIS" />

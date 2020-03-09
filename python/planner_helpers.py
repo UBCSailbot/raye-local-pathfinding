@@ -31,19 +31,22 @@ class ValidityChecker(ob.StateValidityChecker):
         super(ValidityChecker, self).__init__(si)
         self.obstacles = obstacles
 
-    # Returns whether the given state's position overlaps the
-    # circular obstacle
     def isValid(self, state):
-        x = state.getX()
-        y = state.getY()
+        INVALID_RADIUS_AROUND_START = 1
+        xy = (state.getX(), state.getY())
         for obstacle in self.obstacles:
-            if sqrt(pow(x - obstacle.x, 2) + pow(y - obstacle.y, 2)) - obstacle.radius <= 0:
+            angle = math.atan2(xy[1] - obstacle.xy[1], xy[0] - obstacle.xy[0])
+            if angle < 0:
+                angle += 360
+            distance = math.sqrt((xy[1] - obstacle.xy[1]) **2 + (xy[0] - obstacle.xy[0]) ** 2)
+            if distance < INVALID_RADIUS_AROUND_START:
                 return False
 
+            if (angle > obstacle.theta1 and angle < obstacle.theta2 and distance < obstacle.radius):
+                return False
         return True
 
-    # Returns the distance from the given state's position to the
-    # boundary of the circular obstacle.
+    #returns the sum of clearance from all objects where clearance for an object is the minimum of (start point, line from theta1, line from theta2)
     def clearance(self, state):
         if len(self.obstacles) == 0:
             return 1
@@ -56,12 +59,44 @@ class ValidityChecker(ob.StateValidityChecker):
         # Distance formula between two points, offset by the circle's
         # radius
         for obstacle in self.obstacles:
-            clearance += (sqrt(pow(x - obstacle.x, 2) + pow(y - obstacle.y, 2)) - obstacle.radius)
-            if clearance <= 0:
-                return 0
+            theta1x2, theta1y2 = self.getEndLineSeg(obstacle.xy[0], obstacle.xy[1], obstacle.theta1, obstacle.radius)
 
+            theta2x2, theta2y2 = self.getEndLineSeg(obstacle.xy[0], obstacle.xy[1], obstacle.theta2, obstacle.radius)
+            distLine1 = self.distPtToLineSeg(obstacle.xy[0], obstacle.xy[1], theta1x2, theta1y2, x, y)
+            distLine2 = self.distPtToLineSeg(obstacle.xy[0], obstacle.xy[1], theta2x2, theta2y2, x, y)
+            distStart = math.sqrt((x - obstacle.xy[1]) **2 + (y - obstacle.xy[0]) ** 2)
+            clearance += min([distLine1, distLine2, distStart])
         return clearance
 
+    def getEndLineSeg(self, x, y, theta, length):
+        return (x + length * math.degrees(math.cos(theta)), y + length * math.degrees(math.sin(theta))) 
+
+    # http://paulbourke.net/geometry/pointlineplane/
+    def distPtToLineSeg(self, x1, y1, x2, y2, x3, y3): # x3,y3 is the point
+        px = x2-x1
+        py = y2-y1
+
+        norm = px*px + py*py
+
+        if norm == 0:
+            return 0
+
+        u =  ((x3 - x1) * px + (y3 - y1) * py) / float(norm)
+
+        if u > 1:
+            u = 1
+        elif u < 0:
+            u = 0
+
+        x = x1 + u * px
+        y = y1 + u * py
+
+        dx = x - x3
+        dy = y - y3
+
+        dist = (dx*dx + dy*dy)**.5
+
+        return dist
 
 class ClearanceObjective(ob.StateCostIntegralObjective):
     def __init__(self, si):
@@ -130,6 +165,7 @@ def abs_angle_dist_radians(angle1_radians, angle2_radians):
     # Absolute distance between angles
     fabs = math.fabs(math.atan2(math.sin(angle1_radians - angle2_radians), math.cos(angle1_radians - angle2_radians)))
     return fabs
+
 
 def get_clearance_objective(si):
     return ClearanceObjective(si)
