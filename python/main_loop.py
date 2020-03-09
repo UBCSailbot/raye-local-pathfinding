@@ -55,24 +55,6 @@ if __name__ == '__main__':
         rospy.loginfo("desiredHeadingMsg: {}".format(desiredHeadingMsg.headingDegrees))
         state = sailbot.getCurrentState()
 
-        # Publish desiredHeading
-        desiredHeadingMsg.headingDegrees = getDesiredHeading(state.position, localWaypoint)
-        desiredHeadingPublisher.publish(desiredHeadingMsg)
-
-        # Publish local path
-        localPathPublisher.publish(msg.path(localPath))
-
-        # Publish nextLocalWaypoint and nextGlobalWaypoint
-        nextLocalWaypointPublisher.publish(localWaypoint)
-        nextGlobalWaypointPublisher.publish(state.globalWaypoint)
-
-        if not printed:
-            printCostBreakdown(localPathSS)
-            printed = True
-
-        # If there are any plots, give some time for them to respond to requests, such as closing
-        plt.pause(0.001)
-
         # Generate new local path if needed
         hasUpwindOrDownwindOnPath = upwindOrDownwindOnPath(state, localPathIndex, localPathSS, referenceLatlon, NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND)
         hasObstacleOnPath = obstacleOnPath(state, localPathIndex, localPathSS, referenceLatlon, NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES)
@@ -82,7 +64,7 @@ if __name__ == '__main__':
         localPathIndexOutOfBounds = localPathIndex >= len(localPath)
         if hasUpwindOrDownwindOnPath or hasObstacleOnPath or isTimeLimitExceeded or isGlobalWaypointReached or newGlobalPathReceived or localPathIndexOutOfBounds:
             # Log reason for local path update
-            rospy.loginfo("Updating Local Path. Reason: hasUpwindOrDownwindOnPath? {}. hasObstacleOnPath? {}. isTimeLimitExceeded? {}. isGlobalWaypointReached? {}. newGlobalPathReceived? {}. localPathIndexOutOfBounds? {}.".format(hasUpwindOrDownwindOnPath, hasObstacleOnPath, isTimeLimitExceeded, isGlobalWaypointReached, newGlobalPathReceived, localPathIndexOutOfBounds))
+            rospy.logwarn("Updating Local Path. Reason: hasUpwindOrDownwindOnPath? {}. hasObstacleOnPath? {}. isTimeLimitExceeded? {}. isGlobalWaypointReached? {}. newGlobalPathReceived? {}. localPathIndexOutOfBounds? {}.".format(hasUpwindOrDownwindOnPath, hasObstacleOnPath, isTimeLimitExceeded, isGlobalWaypointReached, newGlobalPathReceived, localPathIndexOutOfBounds))
 
             # Reset saiblot newGlobalPathReceived boolean
             if newGlobalPathReceived:
@@ -107,5 +89,23 @@ if __name__ == '__main__':
             rospy.loginfo("Local waypoint reached")
             localPathIndex += 1
             localWaypoint = getLocalWaypointLatLon(localPath, localPathIndex)
+
+        # Publish desiredHeading
+        desiredHeadingMsg.headingDegrees = getDesiredHeading(state.position, localWaypoint)
+        desiredHeadingPublisher.publish(desiredHeadingMsg)
+
+        # Publish local path
+        localPathPublisher.publish(msg.path(localPath))
+
+        # Publish nextLocalWaypoint and nextGlobalWaypoint
+        nextLocalWaypointPublisher.publish(localWaypoint)
+        nextGlobalWaypointPublisher.publish(state.globalWaypoint)
+
+        if not printed:
+            printCostBreakdown(localPathSS)
+            printed = True
+
+        # If there are any plots, give some time for them to respond to requests, such as closing
+        plt.pause(0.001)
 
         publishRate.sleep()
