@@ -6,7 +6,7 @@ from geopy.distance import distance
 from utilities import headingToBearingDegrees, PORT_RENFREW_LATLON
 from std_msgs.msg import Int32
 
-from local_pathfinding.msg import AISShip, AISMsg
+from local_pathfinding.msg import AISShip, AISMsg, GPS
 
 # Can set random seed to get deterministic start for testing
 random.seed(2)
@@ -68,18 +68,27 @@ class MOCK_AISEnvironment:
         self.publishPeriodSeconds = AIS_PUBLISH_PERIOD_SECONDS
         self.numShips = NUM_AIS_SHIPS
         self.ships = []
+        self.speedup = speedup
         for i in range(self.numShips):
             self.ships.append(RandomShip(i, lat, lon, self.publishPeriodSeconds, speedup))
+
+        self.sailbot_lat = lat
+        self.sailbot_lon = lon
 
         rospy.init_node('MOCK_AIS', anonymous=True)
         self.publisher = rospy.Publisher("AIS", AISMsg, queue_size=4)
         rospy.Subscriber('/new_boats', AISShip, self.new_boat_callback)
         rospy.Subscriber('/delete_boats', Int32, self.remove_boat_callback)
+        rospy.Subscriber('/GPS', GPS, self.gps_callback)
 
     def move_ships(self):
         for i in range(self.numShips):
             if isinstance(self.ships[i], RandomShip):
                 self.ships[i].move()
+                if distance((self.ships[i].lat, self.ships[i].lon), (self.sailbot_lat, self.sailbot_lon)).km > 60.0:
+                    rospy.loginfo("MMSI " + str(self.ships[i].id) + " went out of bounds, moving it closer to the sailbot")
+                    del self.ships[i]
+                    self.ships.insert(i, RandomShip(i, self.sailbot_lat, self.sailbot_lon, self.publishPeriodSeconds, self.speedup))
       
     def make_ros_message(self):
         rospy.loginfo([ship.id for ship in self.ships])
@@ -95,6 +104,10 @@ class MOCK_AISEnvironment:
     def remove_boat_callback(self, msg):
         self.ships[:] = [ship for ship in self.ships if not ship.id == msg.data] 
         self.numShips = len(self.ships)
+
+    def gps_callback(self, msg):
+        self.sailbot_lat = msg.lat
+        self.sailbot_lon = msg.lon
 
 if __name__ == '__main__':
     # Get speedup parameter
