@@ -64,12 +64,16 @@ class Ship:
         
 class MOCK_AISEnvironment: 
     # Just a class to keep track of the ships surrounding the sailbot
-    def __init__(self, lat, lon, speedup):
+    def __init__(self, lat, lon, speedup, startup_file):
         self.publishPeriodSeconds = AIS_PUBLISH_PERIOD_SECONDS
         self.numShips = NUM_AIS_SHIPS
         self.ships = []
-        for i in range(self.numShips):
-            self.ships.append(RandomShip(i, lat, lon, self.publishPeriodSeconds, speedup))
+        if startup_file:
+            # Do something with JSON
+            pass
+        else:
+            for i in range(self.numShips):
+                self.ships.append(RandomShip(i, lat, lon, self.publishPeriodSeconds, speedup))
 
         rospy.init_node('MOCK_AIS', anonymous=True)
         self.publisher = rospy.Publisher("AIS", AISMsg, queue_size=4)
@@ -99,8 +103,10 @@ class MOCK_AISEnvironment:
 if __name__ == '__main__':
     # Get speedup parameter
     speedup = rospy.get_param('speedup', default=1.0)
+    # Get startup_file parameter
+    startup_file = rospy.get_param('startup_file', default=None)
 
-    ais_env = MOCK_AISEnvironment(PORT_RENFREW_LATLON.lat, PORT_RENFREW_LATLON.lon, speedup)
+    ais_env = MOCK_AISEnvironment(PORT_RENFREW_LATLON.lat, PORT_RENFREW_LATLON.lon, speedup, startup_file)
     r = rospy.Rate(1.0 / ais_env.publishPeriodSeconds) #hz
 
     while not rospy.is_shutdown():

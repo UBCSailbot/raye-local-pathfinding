@@ -2,6 +2,9 @@
     <!-- Sets speedup, which increases boat speeds -->
     <arg name="speedup" default="1.0" />
     <param name="speedup" type="double" value="$(arg speedup)" />
+    <!-- Sets startup_file, which represents whether or not get the initial AIS ship positions from a file -->
+    <arg name="startup_file" default="None" />
+    <param name="startup_file" type="string" value="$(arg startup_file)" />
 
     <node pkg="local_pathfinding" type="MOCK_wind_sensor.py" name="MOCK_wind_sensor" />
     <node pkg="local_pathfinding" type="MOCK_controller_and_boat.py" name="MOCK_controller_and_boat" />
