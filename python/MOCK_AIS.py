@@ -2,6 +2,8 @@
 import rospy
 import math
 import random
+import json
+
 from geopy.distance import distance
 from utilities import headingToBearingDegrees, PORT_RENFREW_LATLON
 from std_msgs.msg import Int32
@@ -45,6 +47,14 @@ class RandomShip:
                     self.headingDegrees,
                     self.speedKmph)
 
+    def make_json(self):
+        return [
+                self.id,
+                self.lat,
+                self.lon,
+                self.headingDegrees,
+                self.speedKmph]
+
 class Ship:
     def __init__(self, id, boat_lat, boat_lon, heading, speed):
         self.id = id
@@ -52,6 +62,16 @@ class Ship:
         self.lon = boat_lon
         self.headingDegrees = heading
         self.speedKmph = speed
+        self.speedup = 1.0
+        self.publishPeriodSeconds = 1.0
+
+    def move(self):
+        # Travel greater distance with speedup
+        distanceTraveled = distance(kilometers=self.speedKmph * self.publishPeriodSeconds / 3600 * self.speedup)
+        boatLatlon = distanceTraveled.destination(point=(self.lat, self.lon), bearing=headingToBearingDegrees(self.headingDegrees))
+
+        self.lon = boatLatlon.longitude
+        self.lat = boatLatlon.latitude
 
     def make_ros_message(self):
         return AISShip(
@@ -66,12 +86,15 @@ class MOCK_AISEnvironment:
     # Just a class to keep track of the ships surrounding the sailbot
     def __init__(self, lat, lon, speedup, startup_file):
         self.publishPeriodSeconds = AIS_PUBLISH_PERIOD_SECONDS
-        self.numShips = NUM_AIS_SHIPS
         self.ships = []
         if startup_file:
-            # Do something with JSON
-            pass
+            f = open(startup_file, 'r')
+            ship_list = json.load(f)
+            self.numShips = len(ship_list)
+            for ship in ship_list:
+                self.ships.append(Ship(*ship))
         else:
+            self.numShips = NUM_AIS_SHIPS
             for i in range(self.numShips):
                 self.ships.append(RandomShip(i, lat, lon, self.publishPeriodSeconds, speedup))
 
@@ -82,8 +105,7 @@ class MOCK_AISEnvironment:
 
     def move_ships(self):
         for i in range(self.numShips):
-            if isinstance(self.ships[i], RandomShip):
-                self.ships[i].move()
+            self.ships[i].move()
       
     def make_ros_message(self):
         rospy.loginfo([ship.id for ship in self.ships])
