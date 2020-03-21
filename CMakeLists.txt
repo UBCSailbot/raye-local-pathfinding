@@ -174,6 +174,7 @@ install(PROGRAMS
   python/MOCK_AIS.py
   python/MOCK_UDP_bridge.py
   python/local_path_visualizer.py
+  python/json_dumper.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
