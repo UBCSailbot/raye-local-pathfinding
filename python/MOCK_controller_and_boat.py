@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import rospy
 import math
-import random
+import random, json
 
 import local_pathfinding.msg as msg
 import geopy.distance
@@ -40,8 +40,18 @@ class MOCK_ControllerAndSailbot:
 if __name__ == '__main__':
     # Get speedup parameter
     speedup = rospy.get_param('speedup', default=1.0)
+    # Get gps_file  parameter
+    gps_file = rospy.get_param('gps_file', default=None)
 
-    MOCK_ctrl_sailbot = MOCK_ControllerAndSailbot(PORT_RENFREW_LATLON.lat, PORT_RENFREW_LATLON.lon, speedup)
+    if gps_file:
+        with open(gps_file) as f:
+            pos = json.loads(f.read())
+            lat = pos[0]
+            lon = pos[1]
+            MOCK_ctrl_sailbot = MOCK_ControllerAndSailbot(lat, lon, speedup)
+    else:
+        MOCK_ctrl_sailbot = MOCK_ControllerAndSailbot(PORT_RENFREW_LATLON.lat, PORT_RENFREW_LATLON.lon, speedup)
+
     r = rospy.Rate(float(1) / MOCK_ctrl_sailbot.publishPeriodSeconds)
 
     while not rospy.is_shutdown():

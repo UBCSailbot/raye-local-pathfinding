@@ -11,10 +11,9 @@ def dump_gps(msg):
     now = datetime.datetime.now()
     timestamp = str(now.hour) + str(now.minute) + str(now.second)
     dump = json.dumps([msg.lat, msg.lon])
-    f = open("gps-" + timestamp + ".json", "w")
-    f.write(dump)
-    f.close()
-    print("Dumped GPS to gps-" + timestamp + ".json")
+    with open("gps-" + timestamp + ".json", "w") as f:
+        f.write(dump)
+        print("Dumped GPS to gps-" + timestamp + ".json")
     gps_dumped = True
 
 def dump_ais(msg):
@@ -30,10 +29,9 @@ def dump_ais(msg):
     now = datetime.datetime.now()
     timestamp = str(now.hour) + str(now.minute) + str(now.second)
     dump = json.dumps(ship_list)
-    f = open("ais-" + timestamp + ".json", "w")
-    f.write(dump)
-    f.close()
-    print("Dumped AIS to ais-" + timestamp + ".json")
+    with open("ais-" + timestamp + ".json", "w") as f:
+        f.write(dump)
+        print("Dumped AIS to ais-" + timestamp + ".json")
     ais_dumped = True
         
 if __name__ == '__main__':
