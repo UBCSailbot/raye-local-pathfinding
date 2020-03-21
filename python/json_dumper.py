@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import rospy
-import json, time
+import json, time, datetime
 from std_msgs.msg import Int32
 from local_pathfinding.msg import AISShip, AISMsg, GPS
 global ais_dumped
@@ -8,11 +8,13 @@ global gps_dumped
     
 def dump_gps(msg):
     global gps_dumped
+    now = datetime.datetime.now()
+    timestamp = str(now.hour) + str(now.minute) + str(now.second)
     dump = json.dumps([msg.lat, msg.lon])
-    f = open("gps.json", "w")
+    f = open("gps-" + timestamp + ".json", "w")
     f.write(dump)
     f.close()
-    print("GPS recv")
+    print("Dumped GPS to gps-" + timestamp + ".json")
     gps_dumped = True
 
 def dump_ais(msg):
@@ -25,11 +27,13 @@ def dump_ais(msg):
                           msg.ships[i].lon,
                           msg.ships[i].headingDegrees,
                           msg.ships[i].speedKmph])
+    now = datetime.datetime.now()
+    timestamp = str(now.hour) + str(now.minute) + str(now.second)
     dump = json.dumps(ship_list)
-    f = open("ais.json", "w")
+    f = open("ais-" + timestamp + ".json", "w")
     f.write(dump)
     f.close()
-    print("AIS recv")
+    print("Dumped AIS to ais-" + timestamp + ".json")
     ais_dumped = True
         
 if __name__ == '__main__':
