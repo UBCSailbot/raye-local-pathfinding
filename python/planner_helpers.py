@@ -1,5 +1,6 @@
 import math
 import sys
+import numpy as np
 
 from ompl import util as ou
 from ompl import base as ob
@@ -28,35 +29,42 @@ class ValidityChecker(ob.StateValidityChecker):
     # Returns whether the given state's position overlaps the
     # circular obstacle
     def isValid(self, state):
-        x = state.getX()
-        y = state.getY()
+        xy = [state.getX(), state.getY()]
         for obstacle in self.obstacles:
-            if sqrt(pow(x - obstacle.x, 2) + pow(y - obstacle.y, 2)) - obstacle.radius <= 0:
+            distance_center_to_boat = math.sqrt((xy[0] - obstacle.x) ** 2 + (xy[1] - obstacle.y) ** 2)
+            angle_center_to_boat = math.atan2(xy[1] - obstacle.y, xy[0] - obstacle.x)
+            edge_pt = self.ellipseFormula(obstacle, angle_center_to_boat) 
+            distance_to_edge = math.sqrt((edge_pt[0] - obstacle.x) ** 2 +  (edge_pt[1] - obstacle.y) ** 2)
+            if distance_center_to_boat <= distance_to_edge:
                 return False
-
         return True
+
+    def ellipseFormula(self, obstacle, angle):
+        edge_pt = np.array([obstacle.x, obstacle.y]) + 0.5 * obstacle.width * math.cos(math.radians(angle)) * np.array([math.cos(math.radians(obstacle.angle)), math.sin(math.radians(obstacle.angle))]) + 0.5 * obstacle.height * math.sin(math.radians(angle)) * np.array([-math.sin(math.radians(obstacle.angle)), math.cos(math.radians(obstacle.angle))]) 
+        return edge_pt
 
     # Returns the distance from the given state's position to the
     # boundary of the circular obstacle.
     def clearance(self, state):
-        if len(self.obstacles) == 0:
-            return 1
-
-        # Extract the robot's (x,y) position from its state
-        x = state.getX()
-        y = state.getY()
-
-        clearance = 0
-        # Distance formula between two points, offset by the circle's
-        # radius
-        for obstacle in self.obstacles:
-
-            clearance += (sqrt(pow(x - obstacle.x, 2) + pow(y - obstacle.y, 2)) - obstacle.radius)
-            if clearance <= 0:
-                return 0
-
-        return clearance
-
+#        if len(self.obstacles) == 0:
+#            return 1
+#
+#        # Extract the robot's (x,y) position from its state
+#        x = state.getX()
+#        y = state.getY()
+#
+#        clearance = 0
+#        # Distance formula between two points, offset by the circle's
+#        # radius
+#        for obstacle in self.obstacles:
+#
+#            clearance += (sqrt(pow(x - obstacle.x, 2) + pow(y - obstacle.y, 2)) - obstacle.radius)
+#            if clearance <= 0:
+#                return 0
+#
+#        return clearance
+#
+        return 1
 
 class ClearanceObjective(ob.StateCostIntegralObjective):
     def __init__(self, si):
@@ -107,7 +115,6 @@ class WindObjective(ob.StateCostIntegralObjective):
         isUpwindOrDownwind = isUpwind(math.radians(self.windDirectionDegrees), boatDirectionRadians) or isDownwind(math.radians(self.windDirectionDegrees), boatDirectionRadians)
         return sys.maxsize * distance if isUpwindOrDownwind else 0.0
 
-
 def isUpwind(windDirectionRadians, boatDirectionRadians):
     diffRadians = abs_angle_dist_radians(windDirectionRadians, boatDirectionRadians)
     return math.fabs(diffRadians - math.radians(180)) < math.radians(UPWIND_MAX_ANGLE_DEGREES)
@@ -120,7 +127,6 @@ def abs_angle_dist_radians(angle1_radians, angle2_radians):
     # Absolute distance between angles
     fabs = math.fabs(math.atan2(math.sin(angle1_radians - angle2_radians), math.cos(angle1_radians - angle2_radians)))
     return fabs
-
 
 def get_clearance_objective(si):
     return ClearanceObjective(si)
