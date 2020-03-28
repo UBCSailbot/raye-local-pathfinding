@@ -63,6 +63,7 @@ def XYToLatlon(xy, referenceLatlon):
     return latlon(destination.latitude, destination.longitude)
 
 def isValid(xy, obstacles):
+    delta = 0.001
     for obstacle in obstacles:
         distance_center_to_boat = math.sqrt((xy[0] - obstacle.x) ** 2 + (xy[1] - obstacle.y) ** 2)
         angle_center_to_boat = math.atan2(xy[1] - obstacle.y, xy[0] - obstacle.x)
@@ -71,9 +72,8 @@ def isValid(xy, obstacles):
         distance_to_edge = math.sqrt((edge_pt[0] - obstacle.x) ** 2 +  (edge_pt[1] - obstacle.y) ** 2)
         print("dist_to_edge_", distance_to_edge)
         print("distance_center_to_boat", distance_center_to_boat)
-        if distance_center_to_boat <= distance_to_edge:
+        if math.fabs(distance_to_edge - distance_center_to_boat) <= delta:
             return False
-
     return True
 
 def ellipseFormula(obstacle, angle):
@@ -135,6 +135,7 @@ def createLocalPathSS(state, runtimeSeconds=3, numRuns=3, plot=False):
         rospy.logerr("Shrinking obstacles by a factor of {}".format(shrinkFactor))
         for obstacle in obstacles:
             obstacle.width /= shrinkFactor
+            obstacle.height /= shrinkFactor
         amountShrinked *= shrinkFactor
     if amountShrinked > 1.0000001:
         rospy.logwarn("Obstacles have been shrinked by factor of {}".format(amountShrinked))
@@ -332,43 +333,10 @@ def extendObstaclesArray(aisArray, sailbotPosition, sailbotSpeedKmph, referenceL
         width = extendBoatLengthKm
         height = AIS_BOAT_RADIUS_KM
         angle = aisData.headingDegrees
-        xy = [aisX + extendBoatLengthKm * math.cos(angle) * 0.5, aisY + extendBoatLengthKm * math.sin(angle) * 0.5]
+        xy = [aisX + extendBoatLengthKm * math.cos(math.radians(angle)) * 0.5, aisY + extendBoatLengthKm * math.sin(math.radians(angle)) * 0.5]
         obstacles.append(Obstacle(xy[0], xy[1], width, height, angle))
     return obstacles
 
-#        if aisData.headingDegrees == 90 or aisData.headingDegrees == 270:
-#            if aisData.headingDegrees == 90:
-#                endY = aisY + extendBoatLengthKm
-#                yRange = np.arange(aisY, endY, AIS_BOAT_CIRCLE_SPACING_KM)
-#            if aisData.headingDegrees == 270:
-#                endY = aisY - extendBoatLengthKm
-#                yRange = np.arange(endY, aisY, AIS_BOAT_CIRCLE_SPACING_KM)
-#            for y in yRange:
-#                # Multiplier to increase size of circles showing where the boat will be in the future in range [1, 2]
-#                multiplier = 1 + abs(float(y - aisY) / (endY - aisY))
-#                obstacles.append(Obstacle(aisX, y, AIS_BOAT_RADIUS_KM * multiplier))
-#        else:
-#            isHeadingWest = aisData.headingDegrees < 270 and aisData.headingDegrees > 90
-#            slope = math.tan(math.radians(aisData.headingDegrees))
-#            dx = AIS_BOAT_CIRCLE_SPACING_KM / math.sqrt(1 + slope**2)
-#
-#            if aisX > 0:
-#                b = aisY + slope * -math.fabs(aisX)
-#            else:
-#                b = aisY + slope * math.fabs(aisX)
-#            xDistTravelled =  math.fabs(extendBoatLengthKm * math.cos(math.radians(aisData.headingDegrees)))
-#            y = lambda x: slope * x + b 
-#            if isHeadingWest:
-#                endX = aisX - xDistTravelled
-#                xRange = np.arange(endX, aisX, dx)
-#            else:
-#                endX = aisX + xDistTravelled
-#                xRange = np.arange(aisX, endX, dx)
-#            for x in xRange:
-#                # Multiplier to increase size of circles showing where the boat will be in the future in range [1, 2]
-#                multiplier = 1 + abs(float(x - aisX) / (endX - aisX))
-#                obstacles.append(Obstacle(x, y(x), AIS_BOAT_RADIUS_KM * multiplier))
-#    return obstacles
 
 def measuredWindToGlobalWind(measuredWindSpeed, measuredWindDirectionDegrees, boatSpeed, headingDegrees):
     # Calculate wind speed in boat frame. X is right. Y is forward.
