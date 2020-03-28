@@ -26,8 +26,7 @@ class ValidityChecker(ob.StateValidityChecker):
         super(ValidityChecker, self).__init__(si)
         self.obstacles = obstacles
 
-    # Returns whether the given state's position overlaps the
-    # circular obstacle
+    # Returns whether the given state's position overlaps the ellipse
     def isValid(self, state):
         xy = [state.getX(), state.getY()]
         for obstacle in self.obstacles:
