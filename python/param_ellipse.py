@@ -12,7 +12,7 @@ plt.plot([obstacle.x], [obstacle.y], marker='o', markersize=1, color="orange")
 for i in range(0, 180):
 #    point = ellipseFormula(obstacle, i)
 #    point = list(point)
-    point = ellipseFormula2(obstacle, i)
+    point = ellipseFormula(obstacle, i)
     plt.plot([point[0]], [point[1]], marker = 'o', markersize= 1, color="red")
 ax.add_patch(patches.Ellipse((obstacle.x, obstacle.y), obstacle.width, obstacle.height, obstacle.angle))
 plt.show()

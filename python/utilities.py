@@ -75,19 +75,19 @@ def isValid(xy, obstacles):
         a = obstacle.width * 0.5
         b = obstacle.height * 0.5
         
-        #t_param = math.atan2(a * (xy[1] - obstacle.y), b * (xy[0] - obstacle.x))
-        #edge_pt = ellipseFormula(obstacle, t_param) 
-        edge_pt = ellipseFormula(obstacle, math.radians(angle_center_to_boat))
+        t_param = math.atan2(a * (xy[1] - obstacle.y), b * (xy[0] - obstacle.x))
+        edge_pt = ellipseFormula(obstacle, t_param) 
+        #edge_pt = ellipseFormula(obstacle, angle_center_to_boat)
         print(edge_pt)
         distance_to_edge = math.sqrt((edge_pt[0] - obstacle.x) ** 2 +  (edge_pt[1] - obstacle.y) ** 2)
         print("dist_to_edge_", distance_to_edge)
         print("distance_center_to_boat", distance_center_to_boat)
-        #ax = plt.gca()
-        #ax.add_patch(patches.Ellipse((obstacle.x, obstacle.y), obstacle.width, obstacle.height, obstacle.angle))
-        #plt.plot([obstacle.x], [obstacle.y], marker='o', markersize=2, color="green")
-        #plt.plot([xy[0]], [xy[1]], marker='o', markersize=2, color="red")
-        #plt.plot([edge_pt[0]], [edge_pt[1]], marker='o', markersize=2, color="yellow")
-        #plt.show()
+        ax = plt.gca()
+        ax.add_patch(patches.Ellipse((obstacle.x, obstacle.y), obstacle.width, obstacle.height, obstacle.angle))
+        plt.plot([obstacle.x], [obstacle.y], marker='o', markersize=2, color="green")
+        plt.plot([xy[0]], [xy[1]], marker='o', markersize=2, color="red")
+        plt.plot([edge_pt[0]], [edge_pt[1]], marker='o', markersize=2, color="yellow")
+        plt.show()
 
         if distance_center_to_boat < distance_to_edge or math.fabs(distance_to_edge - distance_center_to_boat) <= delta: 
             return False
