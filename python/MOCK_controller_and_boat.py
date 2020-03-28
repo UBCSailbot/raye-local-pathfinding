@@ -11,12 +11,12 @@ from utilities import headingToBearingDegrees, PORT_RENFREW_LATLON
 GPS_PUBLISH_PERIOD_SECONDS = 1.0
 
 class MOCK_ControllerAndSailbot: 
-    def __init__(self, lat, lon, speedup):
+    def __init__(self, lat, lon, headingDegrees, speedKmph, speedup=1.0):
         self.lat = lat
         self.lon = lon
         self.speedup = speedup
-        self.headingDegrees = 180
-        self.speedKmph = 14.4  # Boat should move at about 4m/s = 14.4 km/h
+        self.headingDegrees = headingDegrees
+        self.speedKmph = speedKmph
         self.publishPeriodSeconds = GPS_PUBLISH_PERIOD_SECONDS
 
         rospy.init_node('MOCK_Sailbot_Listener', anonymous=True)
@@ -45,12 +45,13 @@ if __name__ == '__main__':
 
     if gps_file:
         with open(gps_file) as f:
-            pos = json.loads(f.read())
-            lat = pos[0]
-            lon = pos[1]
-            MOCK_ctrl_sailbot = MOCK_ControllerAndSailbot(lat, lon, speedup)
+            record = json.loads(f.read())
+            lat = record[0]
+            lon = record[1]
+            MOCK_ctrl_sailbot = MOCK_ControllerAndSailbot(*record, speedup=speedup)
     else:
-        MOCK_ctrl_sailbot = MOCK_ControllerAndSailbot(PORT_RENFREW_LATLON.lat, PORT_RENFREW_LATLON.lon, speedup)
+        # Boat should move at about 4m/s = 14.4 km/h
+        MOCK_ctrl_sailbot = MOCK_ControllerAndSailbot(PORT_RENFREW_LATLON.lat, PORT_RENFREW_LATLON.lon, 180, 14.4, speedup)
 
     r = rospy.Rate(float(1) / MOCK_ctrl_sailbot.publishPeriodSeconds)
 

@@ -10,7 +10,7 @@ def dump_gps(msg):
     global gps_dumped
     now = datetime.datetime.now()
     timestamp = str(now.hour) + str(now.minute) + str(now.second)
-    dump = json.dumps([msg.lat, msg.lon])
+    dump = json.dumps([msg.lat, msg.lon, msg.headingDegrees, msg.speedKmph])
     with open("gps-" + timestamp + ".json", "w") as f:
         f.write(dump)
         print("Dumped GPS to gps-" + timestamp + ".json")

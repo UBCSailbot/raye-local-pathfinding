@@ -56,14 +56,14 @@ class RandomShip:
                 self.speedKmph]
 
 class Ship:
-    def __init__(self, id, boat_lat, boat_lon, heading, speed):
+    def __init__(self, id, boat_lat, boat_lon, heading, speed, publishPeriodSeconds=1.0, speedup=1.0):
         self.id = id
         self.lat = boat_lat
         self.lon = boat_lon
         self.headingDegrees = heading
         self.speedKmph = speed
-        self.speedup = 1.0
-        self.publishPeriodSeconds = 1.0
+        self.speedup = speedup
+        self.publishPeriodSeconds = publishPeriodSeconds
 
     def move(self):
         # Travel greater distance with speedup
@@ -86,16 +86,15 @@ class MOCK_AISEnvironment:
     # Just a class to keep track of the ships surrounding the sailbot
     def __init__(self, lat, lon, speedup, ais_file):
         self.publishPeriodSeconds = AIS_PUBLISH_PERIOD_SECONDS
+        self.speedup = speedup
         self.ships = []
         if ais_file:
-            self.speedup = 1.0
             f = open(ais_file, 'r')
             ship_list = json.load(f)
             self.numShips = len(ship_list)
             for ship in ship_list:
-                self.ships.append(Ship(*ship))
+                self.ships.append(Ship(*ship, publishPeriodSeconds=self.publishPeriodSeconds, speedup=self.speedup))
         else:
-            self.speedup = speedup
             self.numShips = NUM_AIS_SHIPS
             for i in range(self.numShips):
                 self.ships.append(RandomShip(i, lat, lon, self.publishPeriodSeconds, speedup))
