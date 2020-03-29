@@ -21,14 +21,14 @@ MAUI_LATLON = latlon(20.0, -156.0)
 
 # Constants
 AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM = 3
-GLOBAL_WAYPOINT_REACHED_RADIUS_KM = 5
+GLOBAL_WAYPOINT_REACHED_RADIUS_KM = 10
 PATH_UPDATE_TIME_LIMIT_SECONDS = 7200
 MAX_ALLOWABLE_PATHFINDING_RUNTIME_SECONDS = 30
 
 # Scale NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES and NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND to change based on waypoint distance
 LOOK_AHEAD_FOR_OBSTACLES_KM = 20
 NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES = int(math.ceil(LOOK_AHEAD_FOR_OBSTACLES_KM / AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM))
-LOOK_AHEAD_FOR_UPWIND_DOWNWIND_KM = 20
+LOOK_AHEAD_FOR_UPWIND_DOWNWIND_KM = 10
 NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND = int(math.ceil(LOOK_AHEAD_FOR_UPWIND_DOWNWIND_KM / AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM))
 
 # Constants for bearing and heading
@@ -93,6 +93,7 @@ def plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, 
     axes.set_xlabel('X distance to position (km)')
     axes.set_ylabel('Y distance to position (km)')
     axes.set_title('Setup of pathfinding problem (amountObstaclesShrinked = {})'.format(amountObstaclesShrinked))
+    axes.axis('equal')
 
     # Add boats and wind speed arrow
     for ship in obstacles:
@@ -113,7 +114,7 @@ def createLocalPathSS(state, runtimeSeconds=3, numRuns=3, plot=False):
 
     # Get setup parameters from state for ompl plan()
     # Convert all latlons to NE in km wrt referenceLatlon
-    referenceLatlon = state.position
+    referenceLatlon = state.globalWaypoint
     start = latlonToXY(state.position, referenceLatlon)
     goal = latlonToXY(state.globalWaypoint, referenceLatlon)
     extraKm = 10   # Extra length to allow wider solution space
