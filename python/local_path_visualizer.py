@@ -11,6 +11,7 @@ import time
 
 # Constants
 VISUALIZER_UPDATE_PERIOD_SECONDS = 1.0
+LATLON_TEXT_DECIMAL_PLACES = 3
 
 # Globals for callbacks
 localPath = None
@@ -130,8 +131,8 @@ if __name__ == '__main__':
     arrowCenter = (xNLim + 1.5*arrowLength, yPLim - 1.5*arrowLength)
     globalWindSpeedKmph, globalWindDirectionDegrees = measuredWindToGlobalWind(state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
     windSpeedText = axes.text(arrowCenter[0], arrowCenter[1] + 1.5*arrowLength, "Global Wind Speed Kmph: {}".format(globalWindSpeedKmph), ha='center')
-    positionLatlonText = axes.text(positionXY[0], positionXY[1] + 0.5*arrowLength, "(Lat: {}, Lon: {})".format(round(state.position.lat, 2), round(state.position.lon, 2)), ha='center')
-    nextGlobalWaypointLatlonText = axes.text(nextGlobalWaypointXY[0], nextGlobalWaypointXY[1] + 0.5*arrowLength, "(Lat: {}, Lon: {})".format(round(nextGlobalWaypoint.lat, 2), round(nextGlobalWaypoint.lon, 2)), ha='center')
+    positionLatlonText = axes.text(positionXY[0], positionXY[1] + 0.5*arrowLength, "(Lat: {}, Lon: {})".format(round(state.position.lat, LATLON_TEXT_DECIMAL_PLACES), round(state.position.lon, LATLON_TEXT_DECIMAL_PLACES)), ha='center')
+    nextGlobalWaypointLatlonText = axes.text(nextGlobalWaypointXY[0], nextGlobalWaypointXY[1] + 0.5*arrowLength, "(Lat: {}, Lon: {})".format(round(nextGlobalWaypoint.lat, LATLON_TEXT_DECIMAL_PLACES), round(nextGlobalWaypoint.lon, LATLON_TEXT_DECIMAL_PLACES)), ha='center')
 
     while not rospy.is_shutdown():
         state = sailbot.getCurrentState()
@@ -169,9 +170,9 @@ if __name__ == '__main__':
         windSpeedText.set_position((arrowCenter[0], arrowCenter[1] + 1.5*arrowLength))
         windSpeedText.set_text("Wind Speed Kmph: {}".format(globalWindSpeedKmph))
         positionLatlonText.set_position((positionXY[0], positionXY[1] + 0.5*arrowLength))
-        positionLatlonText.set_text("(Lat: {}, Lon: {})".format(round(state.position.lat, 2), round(state.position.lon, 2)))
+        positionLatlonText.set_text("(Lat: {}, Lon: {})".format(round(state.position.lat, LATLON_TEXT_DECIMAL_PLACES), round(state.position.lon, LATLON_TEXT_DECIMAL_PLACES)))
         nextGlobalWaypointLatlonText.set_position((nextGlobalWaypointXY[0], nextGlobalWaypointXY[1] + 0.5*arrowLength))
-        nextGlobalWaypointLatlonText.set_text("(Lat: {}, Lon: {})".format(round(nextGlobalWaypoint.lat, 2), round(nextGlobalWaypoint.lon, 2)))
+        nextGlobalWaypointLatlonText.set_text("(Lat: {}, Lon: {})".format(round(nextGlobalWaypoint.lat, LATLON_TEXT_DECIMAL_PLACES), round(nextGlobalWaypoint.lon, LATLON_TEXT_DECIMAL_PLACES)))
 
         # Add boats and wind speed arrow
         for ship in shipsXY:
