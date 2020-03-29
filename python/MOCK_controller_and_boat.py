@@ -22,6 +22,7 @@ class MOCK_ControllerAndSailbot:
         rospy.init_node('MOCK_Sailbot_Listener', anonymous=True)
         self.publisher = rospy.Publisher("GPS", msg.GPS, queue_size=4)
         rospy.Subscriber("desiredHeading", msg.heading, self.desiredHeadingCallback)
+        rospy.Subscriber("changeGPS", msg.GPS, self.changeGPSCallback)
 
     def move(self):
         # Travel greater distances with speedup
@@ -36,6 +37,14 @@ class MOCK_ControllerAndSailbot:
     def desiredHeadingCallback(self, data):
         rospy.loginfo(data)
         self.headingDegrees = data.headingDegrees + random.gauss(0, 1)
+
+    def changeGPSCallback(self, data):
+        rospy.loginfo("Received change GPS message = {}".format(data))
+        self.lat = data.lat
+        self.lon = data.lon
+        self.headingDegrees = data.headingDegrees
+        self.speedKmph = data.speedKmph
+
 
 if __name__ == '__main__':
     # Get speedup parameter

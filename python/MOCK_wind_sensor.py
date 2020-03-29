@@ -7,7 +7,7 @@ from utilities import globalWindToMeasuredWind
 import random
 
 # Constants
-WIND_PUBLISH_PERIOD_SECONDS = 1.0
+WIND_PUBLISH_PERIOD_SECONDS = 0.1
 MAX_GLOBAL_WIND_SPEED_KMPH = 10
 MIN_GLOBAL_WIND_SPEED_KMPH = 1
 CHANGE_WIND_DIRECTION_PERIOD_SECONDS = 3600.0 * 3
@@ -28,6 +28,7 @@ globalWindDirectionDegrees = 90
 def globalWindCallback(data):
     global globalWindSpeedKmph
     global globalWindDirectionDegrees
+    rospy.loginfo("Received change global wind message = {}".format(data))
     globalWindSpeedKmph = data.speedKmph
     globalWindDirectionDegrees = data.directionDegrees
 
