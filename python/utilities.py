@@ -65,8 +65,6 @@ def XYToLatlon(xy, referenceLatlon):
 def isValid(xy, obstacles):
     delta = 0.001
     for obstacle in obstacles:
-        print("center point", (obstacle.x, obstacle.y))
-        print("checking if pt is valid at:", xy)
         x = xy[0] - obstacle.x
         y = xy[1] - obstacle.y
         x_ = math.cos(math.radians(obstacle.angle)) * x + math.sin(math.radians(obstacle.angle)) * y
@@ -74,26 +72,13 @@ def isValid(xy, obstacles):
         distance_center_to_boat = math.sqrt(x_ ** 2 + y_ ** 2)
         angle_center_to_boat = math.degrees(math.atan2(y_, x_))
         angle_center_to_boat = (angle_center_to_boat + 360) % 360
-        print("angle_center_to_boat", angle_center_to_boat)
         
         a = obstacle.width * 0.5
         b = obstacle.height * 0.5
         
         t_param = math.atan2(a * y_, b * x_)
-        print("t_param = {}".format(t_param))
         edge_pt = ellipseFormula(obstacle, t_param) 
-        #edge_pt = ellipseFormula(obstacle, angle_center_to_boat)
-        print(edge_pt)
         distance_to_edge = math.sqrt((edge_pt[0] - obstacle.x) ** 2 +  (edge_pt[1] - obstacle.y) ** 2)
-        print("dist_to_edge_", distance_to_edge)
-        print("distance_center_to_boat", distance_center_to_boat)
-        ax = plt.gca()
-        ax.add_patch(patches.Ellipse((obstacle.x, obstacle.y), obstacle.width, obstacle.height, obstacle.angle))
-        plt.plot([obstacle.x], [obstacle.y], marker='o', markersize=2, color="green")
-        plt.plot([xy[0]], [xy[1]], marker='o', markersize=2, color="red")
-        plt.plot([obstacle.x, xy[0]], [obstacle.y, xy[1]], marker = 'o', color='black')
-        plt.plot([edge_pt[0]], [edge_pt[1]], marker='o', markersize=5, color="yellow")
-        plt.show()
 
         if distance_center_to_boat < distance_to_edge or math.fabs(distance_to_edge - distance_center_to_boat) <= delta: 
             return False
@@ -102,13 +87,6 @@ def isValid(xy, obstacles):
 def ellipseFormula(obstacle, t):
     edge_pt = np.array([obstacle.x, obstacle.y]) + 0.5 * obstacle.width * math.cos(t) * np.array([math.cos(math.radians(obstacle.angle)), math.sin(math.radians(obstacle.angle))]) + 0.5 * obstacle.height * math.sin(t) * np.array([-math.sin(math.radians(obstacle.angle)), math.cos(math.radians(obstacle.angle))]) 
     return edge_pt
-
-def ellipseFormula2(obstacle, angle):
-    a = obstacle.width * 0.5
-    b = obstacle.height * 0.5
-    x = a * math.cos(angle) * math.cos(math.radians(obstacle.angle)) - b * math.sin(angle) * math.sin(math.radians(obstacle.angle)) + obstacle.x
-    y = a * math.cos(angle) * math.sin(math.radians(obstacle.angle)) + b * math.sin(angle) * math.cos(math.radians(obstacle.angle)) + obstacle.y
-    return [x, y]
 
 def plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, obstacles, headingDegrees, amountObstaclesShrinked):
     # Clear plot if already there

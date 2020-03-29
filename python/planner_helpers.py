@@ -28,18 +28,30 @@ class ValidityChecker(ob.StateValidityChecker):
 
     # Returns whether the given state's position overlaps the ellipse
     def isValid(self, state):
+        delta = 0.001
         xy = [state.getX(), state.getY()]
         for obstacle in self.obstacles:
-            distance_center_to_boat = math.sqrt((xy[0] - obstacle.x) ** 2 + (xy[1] - obstacle.y) ** 2)
-            angle_center_to_boat = math.atan2(xy[1] - obstacle.y, xy[0] - obstacle.x)
-            edge_pt = self.ellipseFormula(obstacle, angle_center_to_boat) 
+            x = xy[0] - obstacle.x
+            y = xy[1] - obstacle.y
+            x_ = math.cos(math.radians(obstacle.angle)) * x + math.sin(math.radians(obstacle.angle)) * y
+            y_ = -math.sin(math.radians(obstacle.angle)) * x + math.cos(math.radians(obstacle.angle)) * y
+            distance_center_to_boat = math.sqrt(x_ ** 2 + y_ ** 2)
+            angle_center_to_boat = math.degrees(math.atan2(y_, x_))
+            angle_center_to_boat = (angle_center_to_boat + 360) % 360
+            
+            a = obstacle.width * 0.5
+            b = obstacle.height * 0.5
+            
+            t_param = math.atan2(a * y_, b * x_)
+            edge_pt = self.ellipseFormula(obstacle, t_param) 
             distance_to_edge = math.sqrt((edge_pt[0] - obstacle.x) ** 2 +  (edge_pt[1] - obstacle.y) ** 2)
-            if distance_center_to_boat <= distance_to_edge:
+
+            if distance_center_to_boat < distance_to_edge or math.fabs(distance_to_edge - distance_center_to_boat) <= delta: 
                 return False
         return True
 
-    def ellipseFormula(self, obstacle, angle):
-        edge_pt = np.array([obstacle.x, obstacle.y]) + 0.5 * obstacle.width * math.cos(math.radians(angle)) * np.array([math.cos(math.radians(obstacle.angle)), math.sin(math.radians(obstacle.angle))]) + 0.5 * obstacle.height * math.sin(math.radians(angle)) * np.array([-math.sin(math.radians(obstacle.angle)), math.cos(math.radians(obstacle.angle))]) 
+    def ellipseFormula(self, obstacle, t):
+        edge_pt = np.array([obstacle.x, obstacle.y]) + 0.5 * obstacle.width * math.cos(t) * np.array([math.cos(math.radians(obstacle.angle)), math.sin(math.radians(obstacle.angle))]) + 0.5 * obstacle.height * math.sin(t) * np.array([-math.sin(math.radians(obstacle.angle)), math.cos(math.radians(obstacle.angle))]) 
         return edge_pt
 
     # Returns the distance from the given state's position to the
