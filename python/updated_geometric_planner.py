@@ -125,6 +125,7 @@ def plan(run_time, planner_type, objective_type, wind_direction_degrees, dimensi
     space = ob.SE2StateSpace()
 
     # Create bounds on the position
+    bounds = ob.RealVectorBounds(2)
     x_min, y_min, x_max, y_max = dimensions
     bounds.setLow(0, x_min)
     bounds.setLow(1, y_min)

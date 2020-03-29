@@ -59,7 +59,7 @@ def getXYLimits(xy0, xy1):
 # Check when figure needs resizing
 def needAxesResized(positionXY, nextGlobalWaypointXY, xPLim, xNLim, yPLim, yNLim):
     def outOfBounds(xy, xPLim, xNLim, yPLim, yNLim):
-        return xy[0] < xNLim or xy[1] < yNLim or xy[0] > xPLim or xy[1] > yPLim:
+        return xy[0] < xNLim or xy[1] < yNLim or xy[0] > xPLim or xy[1] > yPLim
 
     # Check if boat or goal is out of bounds
     if outOfBounds(positionXY, xPLim, xNLim, yPLim, yNLim) or outOfBounds(nextGlobalWaypointXY, xPLim, xNLim, yPLim, yNLim):

@@ -126,7 +126,7 @@ class WindObjective(ob.StateCostIntegralObjective):
 
         if isUpwind(math.radians(self.windDirectionDegrees), boatDirectionRadians):
             return UPWIND_MULTIPLIER * distance
-        elif isDownwind(math.radians(self.windDirectionDegrees), boatDirectionRadians)
+        elif isDownwind(math.radians(self.windDirectionDegrees), boatDirectionRadians):
             return DOWNWIND_MULTIPLIER * distance
         else:
             return 0.0
