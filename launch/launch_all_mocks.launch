@@ -1,11 +1,14 @@
+<?xml version="1.0"?>
 <launch>
     <!-- Sets speedup, which increases boat speeds -->
     <arg name="speedup" default="1.0" />
     <param name="speedup" type="double" value="$(arg speedup)" />
-    <!-- Sets ais_file, the FULL path of a JSON file containing the initial AIS ship positions -->
+
+    <!-- Sets ais_file, the FULL path of a JSON file to be read to set the initial AIS ship positions -->
     <arg name="ais_file" default="" />
     <param name="ais_file" type="string" value="$(arg ais_file)" />
-    <!-- Sets gps_file, the FULL path of a JSON file containing the initial ship position -->
+
+    <!-- Sets gps_file, the FULL path of a JSON file to be read to set the initial ship position -->
     <arg name="gps_file" default="" />
     <param name="gps_file" type="string" value="$(arg gps_file)" />
 
@@ -14,4 +17,5 @@
     <node pkg="local_pathfinding" type="MOCK_AIS.py" name="MOCK_AIS" />
     <node pkg="local_pathfinding" type="MOCK_global_planner.py" name="MOCK_global_planner" />
     <node pkg="local_pathfinding" type="MOCK_UDP_bridge.py" name="MOCK_UDP_bridge" />
+    <node pkg="local_pathfinding" type="addBoat.py" name="addBoat" />
 </launch>

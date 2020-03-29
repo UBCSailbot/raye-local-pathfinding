@@ -1,10 +1,15 @@
+<?xml version="1.0"?>
 <launch>
-    <node pkg="local_pathfinding" type="MOCK_wind_sensor.py" name="MOCK_wind_sensor" />
-    <node pkg="local_pathfinding" type="MOCK_controller_and_boat.py" name="MOCK_controller_and_boat" />
-    <node pkg="local_pathfinding" type="MOCK_AIS.py" name="MOCK_AIS" />
-    <node pkg="local_pathfinding" type="MOCK_global_planner.py" name="MOCK_global_planner" />
-    <node pkg="local_pathfinding" type="MOCK_UDP_bridge.py" name="MOCK_UDP_bridge" />
-    <node pkg="local_pathfinding" type="addBoat.py" name="addBoat" />
+    <!-- Setup mocks. View launch_all_mocks.launch for argument descriptions. -->
+    <arg name="speedup" default="1.0" />
+    <arg name="ais_file" default="" />
+    <arg name="gps_file" default="" />
+    <include file="$(find local_pathfinding)/launch/launch_all_mocks.launch">
+      <arg name="speedup" value="$(arg speedup)"/>
+      <arg name="ais_file" value="$(arg ais_file)"/>
+      <arg name="gps_file" value="$(arg gps_file)"/>
+    </include>
+
     <node pkg="local_pathfinding" type="main_loop.py" name="main_loop" />
     <node pkg="local_pathfinding" type="local_path_visualizer.py" name="local_path_visualizer" />
 </launch>
