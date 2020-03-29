@@ -2,6 +2,7 @@
 
 import sys
 import rospy
+from std_msgs.msg import Bool
 import local_pathfinding.msg as msg
 from Sailbot import *
 from utilities import *
@@ -10,9 +11,22 @@ import time
 # Constants
 MAIN_LOOP_PERIOD_SECONDS = 1.0
 
+# Global variable to receive path update requests
+localPathUpdateRequested = False
+def updatePathCallback(data):
+    global localPathUpdateRequested
+    rospy.loginfo("localPathUpdateRequested message received.")
+    localPathUpdateRequested = True
+
+
 if __name__ == '__main__':
+    global localPathUpdateRequested
+
     # Create sailbot ROS object that subscribes to relevant topics
     sailbot = Sailbot(nodeName='local_pathfinding')
+
+    # Subscribe to requestLocalPathUpdate
+    rospy.Subscriber('requestLocalPathUpdate', Bool, updatePathCallback)
 
     # Create ros publisher for the desired heading for the controller
     desiredHeadingPublisher = rospy.Publisher('desiredHeading', msg.heading, queue_size=4)
@@ -74,9 +88,13 @@ if __name__ == '__main__':
         isGlobalWaypointReached = globalWaypointReached(state.position, state.globalWaypoint)
         newGlobalPathReceived = sailbot.newGlobalPathReceived
         localPathIndexOutOfBounds = localPathIndex >= len(localPath)
-        if hasUpwindOrDownwindOnPath or hasObstacleOnPath or isTimeLimitExceeded or isGlobalWaypointReached or newGlobalPathReceived or localPathIndexOutOfBounds:
+        if hasUpwindOrDownwindOnPath or hasObstacleOnPath or isTimeLimitExceeded or isGlobalWaypointReached or newGlobalPathReceived or localPathIndexOutOfBounds or localPathUpdateRequested:
             # Log reason for local path update
-            rospy.loginfo("Updating Local Path. Reason: hasUpwindOrDownwindOnPath? {}. hasObstacleOnPath? {}. isTimeLimitExceeded? {}. isGlobalWaypointReached? {}. newGlobalPathReceived? {}. localPathIndexOutOfBounds? {}.".format(hasUpwindOrDownwindOnPath, hasObstacleOnPath, isTimeLimitExceeded, isGlobalWaypointReached, newGlobalPathReceived, localPathIndexOutOfBounds))
+            rospy.loginfo("Updating Local Path. Reason: hasUpwindOrDownwindOnPath? {}. hasObstacleOnPath? {}. isTimeLimitExceeded? {}. isGlobalWaypointReached? {}. newGlobalPathReceived? {}. localPathIndexOutOfBounds? {}. localPathUpdateRequested? {}.".format(hasUpwindOrDownwindOnPath, hasObstacleOnPath, isTimeLimitExceeded, isGlobalWaypointReached, newGlobalPathReceived, localPathIndexOutOfBounds, localPathUpdateRequested))
+
+            # Reset saiblot newGlobalPathReceived boolean
+            if localPathUpdateRequested:
+                localPathUpdateRequested = False
 
             # Reset saiblot newGlobalPathReceived boolean
             if newGlobalPathReceived:
