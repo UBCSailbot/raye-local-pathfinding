@@ -28,23 +28,25 @@ import numpy
 
 currentLatlon = latlon(0, 0)
 referenceLatlon = currentLatlon
-shipLatlon = XYToLatlon(xy=(0, 3), referenceLatlon=referenceLatlon)
+shipLatlon = XYToLatlon(xy=(0, -1.2), referenceLatlon=referenceLatlon)
 shipLatlon2 = XYToLatlon(xy=(-1, -1), referenceLatlon=referenceLatlon)
-ship1 = AISShip(ID=1000, lat=shipLatlon.lat, lon=shipLatlon.lon, headingDegrees=270, speedKmph=1.5)
-ship2 = AISShip(ID=1001, lat=shipLatlon2.lat, lon=shipLatlon2.lon, headingDegrees=45, speedKmph=10)
-obstacles = extendObstaclesArray(aisArray=[ship1, ship2], sailbotPosition=currentLatlon, sailbotSpeedKmph=1, referenceLatlon=referenceLatlon)
+ship1 = AISShip(ID=1000, lat=shipLatlon.lat, lon=shipLatlon.lon, headingDegrees=320, speedKmph=1.5)
+# ship2 = AISShip(ID=1001, lat=shipLatlon2.lat, lon=shipLatlon2.lon, headingDegrees=45, speedKmph=10)
+# ship1 = AISShip(ID=1000, lat=shipLatlon.lat, lon=shipLatlon.lon, headingDegrees=0, speedKmph=1.5)
+# ship2 = AISShip(ID=1001, lat=shipLatlon2.lat, lon=shipLatlon2.lon, headingDegrees=0, speedKmph=10)
+# obstacles = extendObstaclesArray(aisArray=[ship1, ship2], sailbotPosition=currentLatlon, sailbotSpeedKmph=1, referenceLatlon=referenceLatlon)
+obstacles = extendObstaclesArray(aisArray=[ship1], sailbotPosition=currentLatlon, sailbotSpeedKmph=1, referenceLatlon=referenceLatlon)
+
+# ax = plt.gca()
+# for obstacle in obstacles:
+#     ax.add_patch(patches.Ellipse((obstacle.x, obstacle.y), obstacle.width, obstacle.height, obstacle.angle))
+# plt.show()
 
 
-ax = plt.gca()
-for obstacle in obstacles:
-    ax.add_patch(patches.Ellipse((obstacle.x, obstacle.y), obstacle.width, obstacle.height, obstacle.angle))
-plt.show()
-
-
-print isValid([0, 0], obstacles)
 print isValid([1, 1], obstacles)
 print isValid([3, 3], obstacles)
 print isValid([0, -1], obstacles)
 print isValid([0, 4], obstacles)
 print isValid([0, -1.19], obstacles)
+print isValid([0, -1.21], obstacles)
 print isValid([0, -2.3], obstacles)

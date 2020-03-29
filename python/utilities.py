@@ -67,15 +67,20 @@ def isValid(xy, obstacles):
     for obstacle in obstacles:
         print("center point", (obstacle.x, obstacle.y))
         print("checking if pt is valid at:", xy)
-        distance_center_to_boat = math.sqrt((xy[0] - obstacle.x) ** 2 + (xy[1] - obstacle.y) ** 2)
-        angle_center_to_boat = math.degrees(math.atan2(xy[1] - obstacle.y, xy[0] - obstacle.x))
+        x = xy[0] - obstacle.x
+        y = xy[1] - obstacle.y
+        x_ = math.cos(math.radians(obstacle.angle)) * x + math.sin(math.radians(obstacle.angle)) * y
+        y_ = -math.sin(math.radians(obstacle.angle)) * x + math.cos(math.radians(obstacle.angle)) * y
+        distance_center_to_boat = math.sqrt(x_ ** 2 + y_ ** 2)
+        angle_center_to_boat = math.degrees(math.atan2(y_, x_))
         angle_center_to_boat = (angle_center_to_boat + 360) % 360
         print("angle_center_to_boat", angle_center_to_boat)
         
         a = obstacle.width * 0.5
         b = obstacle.height * 0.5
         
-        t_param = math.atan2(a * (xy[1] - obstacle.y), b * (xy[0] - obstacle.x))
+        t_param = math.atan2(a * y_, b * x_)
+        print("t_param = {}".format(t_param))
         edge_pt = ellipseFormula(obstacle, t_param) 
         #edge_pt = ellipseFormula(obstacle, angle_center_to_boat)
         print(edge_pt)
@@ -86,7 +91,8 @@ def isValid(xy, obstacles):
         ax.add_patch(patches.Ellipse((obstacle.x, obstacle.y), obstacle.width, obstacle.height, obstacle.angle))
         plt.plot([obstacle.x], [obstacle.y], marker='o', markersize=2, color="green")
         plt.plot([xy[0]], [xy[1]], marker='o', markersize=2, color="red")
-        plt.plot([edge_pt[0]], [edge_pt[1]], marker='o', markersize=2, color="yellow")
+        plt.plot([obstacle.x, xy[0]], [obstacle.y, xy[1]], marker = 'o', color='black')
+        plt.plot([edge_pt[0]], [edge_pt[1]], marker='o', markersize=5, color="yellow")
         plt.show()
 
         if distance_center_to_boat < distance_to_edge or math.fabs(distance_to_edge - distance_center_to_boat) <= delta: 
@@ -100,8 +106,8 @@ def ellipseFormula(obstacle, t):
 def ellipseFormula2(obstacle, angle):
     a = obstacle.width * 0.5
     b = obstacle.height * 0.5
-    x = a * math.cos(angle) * math.cos(math.radians(obstacle.angle)) - b * math.sin(angle) * math.sin(math.radians(obstacle.angle))
-    y = a * math.cos(angle) * math.sin(math.radians(obstacle.angle)) + b * math.sin(angle) * math.cos(math.radians(obstacle.angle))
+    x = a * math.cos(angle) * math.cos(math.radians(obstacle.angle)) - b * math.sin(angle) * math.sin(math.radians(obstacle.angle)) + obstacle.x
+    y = a * math.cos(angle) * math.sin(math.radians(obstacle.angle)) + b * math.sin(angle) * math.cos(math.radians(obstacle.angle)) + obstacle.y
     return [x, y]
 
 def plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, obstacles, headingDegrees, amountObstaclesShrinked):
@@ -352,13 +358,13 @@ def extendObstaclesArray(aisArray, sailbotPosition, sailbotSpeedKmph, referenceL
         extendBoatLengthKm = aisData.speedKmph * timeToLocHours
 
         if extendBoatLengthKm == 0:
-            obstacles.append(Obstacle(aisX, aisY, AIS_BOAT_RADIUS_KM, AIS_BOAT_RADIUS_KM, 0))
-
-        width = extendBoatLengthKm
-        height = AIS_BOAT_RADIUS_KM
-        angle = aisData.headingDegrees
-        xy = [aisX + extendBoatLengthKm * math.cos(math.radians(angle)) * 0.5, aisY + extendBoatLengthKm * math.sin(math.radians(angle)) * 0.5]
-        obstacles.append(Obstacle(xy[0], xy[1], width, height, angle))
+            obstacles.append(Obstacle(aisX, aisY, AIS_BOAT_RADIUS_KM, AIS_BOAT_RADIUS_KM, aisData.headingDegrees))
+        else:
+            width = extendBoatLengthKm
+            height = AIS_BOAT_RADIUS_KM
+            angle = aisData.headingDegrees
+            xy = [aisX + extendBoatLengthKm * math.cos(math.radians(angle)) * 0.5, aisY + extendBoatLengthKm * math.sin(math.radians(angle)) * 0.5]
+            obstacles.append(Obstacle(xy[0], xy[1], width, height, angle))
     return obstacles
 
 
