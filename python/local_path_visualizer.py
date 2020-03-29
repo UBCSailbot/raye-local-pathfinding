@@ -17,6 +17,7 @@ localPath = None
 nextLocalWaypoint = None
 nextGlobalWaypoint = None
 
+# ROS subscribe callbacks
 def localPathCallback(data):
     global localPath
     localPath = data.waypoints
@@ -29,6 +30,7 @@ def nextGlobalWaypointCallback(data):
     global nextGlobalWaypoint
     nextGlobalWaypoint = data
 
+# Set xy for figure
 def getXYLimits(xy0, xy1):
     xPLim = max([xy0[0], xy1[0]])
     xNLim = min([xy0[0], xy1[0]])
@@ -53,6 +55,25 @@ def getXYLimits(xy0, xy1):
     yPLim += extraWidth
     yNLim -= extraWidth
     return xPLim, xNLim, yPLim, yNLim
+
+# Check when figure needs resizing
+def needAxesResized(positionXY, nextGlobalWaypointXY, xPLim, xNLim, yPLim, yNLim):
+    def outOfBounds(xy, xPLim, xNLim, yPLim, yNLim):
+        return xy[0] < xNLim or xy[1] < yNLim or xy[0] > xPLim or xy[1] > yPLim:
+
+    # Check if boat or goal is out of bounds
+    if outOfBounds(positionXY, xPLim, xNLim, yPLim, yNLim) or outOfBounds(nextGlobalWaypointXY, xPLim, xNLim, yPLim, yNLim):
+        return True
+
+    # Check if figure is too far zoomed out
+    currentWidth = xPLim - xNLim
+    currentHeight = yPLim - yNLim
+    properWidth = math.fabs(nextGlobalWaypointXY[0] - positionXY[0])
+    properHeight = math.fabs(nextGlobalWaypointXY[1] - positionXY[1])
+    if max(properWidth / currentWidth, properHeight / currentHeight) < 0.3:
+        return True
+
+    return False
 
 if __name__ == '__main__':
     # Setup ros subscribers
@@ -87,7 +108,7 @@ if __name__ == '__main__':
     localPathY = [xy[1] for xy in localPathXY]
 
     # Create plot with waypoints and boat
-    xPLim, xNLim, yPLim, yNLim = getXYLimits(localPathXY[0], nextGlobalWaypointXY)
+    xPLim, xNLim, yPLim, yNLim = getXYLimits(positionXY, nextGlobalWaypointXY)
     markersize = min(xPLim - xNLim, yPLim - yNLim) / 2
     axes = plt.gca()
     localPathPlot, = axes.plot(localPathX, localPathY, marker='.', color='g', markersize=markersize / 2, linewidth=2)                    # Small green dots
@@ -135,8 +156,13 @@ if __name__ == '__main__':
         positionPlot.set_ydata(positionXY[1])
         positionPlot.set_marker((3, 0, state.headingDegrees-90))  # Creates a triangle with correct 'heading'
 
+        # Resize axes if needed
+        if needAxesResized(positionXY, nextGlobalWaypointXY, xPLim, xNLim, yPLim, yNLim):
+            xPLim, xNLim, yPLim, yNLim = getXYLimits(positionXY, nextGlobalWaypointXY)
+            axes.set_xlim(xNLim, xPLim)
+            axes.set_ylim(yNLim, yPLim)
+
         # Update wind speed text
-        xPLim, xNLim, yPLim, yNLim = getXYLimits(localPathXY[0], nextGlobalWaypointXY)
         arrowLength = min(xPLim - xNLim, yPLim - yNLim) / 15
         arrowCenter = (xNLim + 1.5*arrowLength, yPLim - 1.5*arrowLength)
         globalWindSpeedKmph, globalWindDirectionDegrees = measuredWindToGlobalWind(state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
