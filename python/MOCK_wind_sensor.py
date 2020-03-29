@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import rospy
 import math
+import json
 
 from local_pathfinding.msg import windSensor, GPS, globalWind
 from utilities import globalWindToMeasuredWind
@@ -43,8 +44,13 @@ def talker():
     r = rospy.Rate(1.0 / WIND_PUBLISH_PERIOD_SECONDS)
     msg = windSensor()
 
-    # Get init_global_wind_degrees parameter
-    globalWindDirectionDegrees = rospy.get_param('init_global_wind_degrees', default=90)
+    # Get wind_file parameter
+    wind_file = rospy.get_param('wind_file', default=None)
+    if wind_file:
+        with open(wind_file) as f:
+            record = json.loads(f.read())
+            globalWindSpeedKmph = record[0]
+            globalWindDirectionDegrees = record[1]
 
     # Get speedup parameter
     speedup = rospy.get_param('speedup', default=1.0)

@@ -8,12 +8,12 @@
     <!-- Sets gps_file, the FULL path of a JSON file containing the initial ship position -->
     <arg name="gps_file" default="" />
     <param name="gps_file" type="string" value="$(arg gps_file)" />
-    <!-- Sets goal_file, the FULL path of a JSON file containing the initial ship position -->
+    <!-- Sets goal_file, the FULL path of a JSON file containing the initial goal position -->
     <arg name="goal_file" default="" />
     <param name="goal_file" type="string" value="$(arg goal_file)" />
-    <!-- Sets init_global_wind_degrees -->
-    <arg name="init_global_wind_degrees" default="90" />
-    <param name="init_global_wind_degrees" type="int" value="$(arg init_global_wind_degrees)" />
+    <!-- Sets wind_file, the FULL path of a JSON file containing the initial wind condition -->
+    <arg name="wind_file" default="" />
+    <param name="wind_file" type="string" value="$(arg wind_file)" />
 
     <node pkg="local_pathfinding" type="MOCK_wind_sensor.py" name="MOCK_wind_sensor" />
     <node pkg="local_pathfinding" type="MOCK_controller_and_boat.py" name="MOCK_controller_and_boat" />
