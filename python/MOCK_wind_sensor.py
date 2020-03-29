@@ -2,7 +2,7 @@
 import rospy
 import math
 
-from local_pathfinding.msg import windSensor, GPS
+from local_pathfinding.msg import windSensor, GPS, globalWind
 from utilities import globalWindToMeasuredWind
 import random
 
@@ -22,9 +22,20 @@ def gpsCallback(data):
     boatHeadingDegrees = data.headingDegrees
     boatSpeedKmph = data.speedKmph
 
+# Global variables for global wind conditions
+globalWindSpeedKmph = random.randint(MIN_GLOBAL_WIND_SPEED_KMPH, MAX_GLOBAL_WIND_SPEED_KMPH)
+globalWindDirectionDegrees = 90
+def globalWindCallback(data):
+    global globalWindSpeedKmph
+    global globalWindDirectionDegrees
+    globalWindSpeedKmph = data.speedKmph
+    globalWindDirectionDegrees = data.directionDegrees
+
 def talker():
     global boatHeadingDegrees
     global boatSpeedKmph
+    global globalWindSpeedKmph
+    global globalWindDirectionDegrees
 
     pub = rospy.Publisher('windSensor', windSensor, queue_size=4)
     rospy.init_node('MOCK_wind_talker', anonymous=True)
@@ -33,10 +44,6 @@ def talker():
 
     # Get speedup parameter
     speedup = rospy.get_param('speedup', default=1.0)
-
-    # Set initial global wind conditions
-    globalWindSpeedKmph = random.randint(MIN_GLOBAL_WIND_SPEED_KMPH, MAX_GLOBAL_WIND_SPEED_KMPH)
-    globalWindDirectionDegrees = 90
 
     # Change wind periodically and
     # Change wind more often with speedup
@@ -63,5 +70,6 @@ def talker():
 if __name__ == '__main__':
     try:
         rospy.Subscriber("GPS", GPS, gpsCallback)
+        rospy.Subscriber("changeGlobalWind", globalWind, globalWindCallback)
         talker()
     except rospy.ROSInterruptException: pass
