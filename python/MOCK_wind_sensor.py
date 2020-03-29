@@ -43,6 +43,9 @@ def talker():
     r = rospy.Rate(1.0 / WIND_PUBLISH_PERIOD_SECONDS)
     msg = windSensor()
 
+    # Get init_global_wind_degrees parameter
+    globalWindDirectionDegrees = rospy.get_param('init_global_wind_degrees', default=90)
+
     # Get speedup parameter
     speedup = rospy.get_param('speedup', default=1.0)
 
