@@ -80,20 +80,21 @@ def plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, 
     plt.cla()
 
     # Create plot with start and goal
-    markersize = min(dimensions[2]-dimensions[0], dimensions[3]-dimensions[1]) / 2
+    x_min, y_min, x_max, y_max = dimensions
+    markersize = min(x_max - x_min, y_max - y_min) / 2
     plt.ion()
     axes = plt.gca()
     goalPlot, = axes.plot(goal[0], goal[1], marker='*', color='y', markersize=markersize)                          # Yellow star
     startPlot, = axes.plot(start[0], start[1], marker=(3,0,headingDegrees - 90), color='r', markersize=markersize) # Red triangle with correct heading. The (-90) is because the triangle default heading 0 points North, but this heading has 0 be East.
 
     # Setup plot xy limits and labels
-    axes.set_xlim(dimensions[0], dimensions[2])
-    axes.set_ylim(dimensions[1], dimensions[3])
+    axes.set_xlim(x_min, x_max)
+    axes.set_ylim(y_min, y_max)
+    axes.set_aspect('equal')
     plt.grid(True)
     axes.set_xlabel('X distance to position (km)')
     axes.set_ylabel('Y distance to position (km)')
     axes.set_title('Setup of pathfinding problem (amountObstaclesShrinked = {})'.format(amountObstaclesShrinked))
-    axes.axis('equal')
 
     # Add boats and wind speed arrow
     for ship in obstacles:
@@ -110,6 +111,18 @@ def plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, 
     plt.pause(0.001)
 
 def createLocalPathSS(state, runtimeSeconds=2, numRuns=4, plot=False):
+    def getXYLimits(start, goal, extraLengthFraction=0.2):
+        # Calculate extra length to allow wider solution space
+        width = math.fabs(goal[0] - start[0])
+        height = math.fabs(goal[1] - start[1])
+        extraKm = extraLengthFraction * max(width, height)
+
+        xMin = min(start[0], goal[0]) - extraKm
+        yMin = min(start[1], goal[1]) - extraKm
+        xMax = max(start[0], goal[0]) + extraKm
+        yMax = max(start[1], goal[1]) + extraKm
+        return [xMin, yMin, xMax, yMax]
+
     ou.setLogLevel(ou.LOG_WARN)
 
     # Get setup parameters from state for ompl plan()
@@ -117,8 +130,7 @@ def createLocalPathSS(state, runtimeSeconds=2, numRuns=4, plot=False):
     referenceLatlon = state.globalWaypoint
     start = latlonToXY(state.position, referenceLatlon)
     goal = latlonToXY(state.globalWaypoint, referenceLatlon)
-    extraKm = 10   # Extra length to allow wider solution space
-    dimensions = [min(start[0], goal[0]) - extraKm, min(start[1], goal[1]) - extraKm, max(start[0], goal[0]) + extraKm, max(start[1], goal[1]) + extraKm]
+    dimensions = getXYLimits(start, goal)
     obstacles = extendObstaclesArray(state.AISData.ships, state.position, state.speedKmph, referenceLatlon)
     globalWindSpeedKmph, globalWindDirectionDegrees = measuredWindToGlobalWind(state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
 
@@ -267,10 +279,7 @@ def obstacleOnPath(state, nextLocalWaypointIndex, localPathSS, referenceLatlon, 
     if nextLocalWaypointIndex + numLookAheadWaypoints > len(localPathSS.getSolutionPath().getStates()):
         numLookAheadWaypoints = len(localPathSS.getSolutionPath().getStates()) - nextLocalWaypointIndex
 
-    if hasObstacleOnPath(positionXY, nextLocalWaypointIndex, numLookAheadWaypoints, localPathSS, obstacles):
-        rospy.logwarn("Obstacle on path!")
-        return True
-    return False
+    return hasObstacleOnPath(positionXY, nextLocalWaypointIndex, numLookAheadWaypoints, localPathSS, obstacles)
 
 def globalWaypointReached(position, globalWaypoint):
     sailbot = (position.lat, position.lon)
