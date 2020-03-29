@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import rospy
 import math
+import json
 from utilities import PORT_RENFREW_LATLON, MAUI_LATLON
 
 import local_pathfinding.msg as msg
@@ -54,7 +55,18 @@ def MOCK_global():
     global boatLat
     global boatLon
     init = [boatLat, boatLon]
-    goal = [MAUI_LATLON.lat, MAUI_LATLON.lon]
+
+    # Create goal
+    goal_file = rospy.get_param('goal_file', default=None)
+    if goal_file:
+        with open(goal_file) as f:
+            record = json.loads(f.read())
+            lat = record[0]
+            lon = record[1]
+            goal = [lat, lon]
+    else:
+        goal = [MAUI_LATLON.lat, MAUI_LATLON.lon]
+
     path = create_path(init, goal)
 
     rospy.init_node('MOCK_global_planner', anonymous=True)

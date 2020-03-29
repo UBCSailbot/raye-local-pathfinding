@@ -8,6 +8,9 @@
     <!-- Sets gps_file, the FULL path of a JSON file containing the initial ship position -->
     <arg name="gps_file" default="" />
     <param name="gps_file" type="string" value="$(arg gps_file)" />
+    <!-- Sets goal_file, the FULL path of a JSON file containing the initial ship position -->
+    <arg name="goal_file" default="" />
+    <param name="goal_file" type="string" value="$(arg goal_file)" />
 
     <node pkg="local_pathfinding" type="MOCK_wind_sensor.py" name="MOCK_wind_sensor" />
     <node pkg="local_pathfinding" type="MOCK_controller_and_boat.py" name="MOCK_controller_and_boat" />
