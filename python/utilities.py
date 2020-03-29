@@ -109,7 +109,7 @@ def plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, 
     plt.draw()
     plt.pause(0.001)
 
-def createLocalPathSS(state, runtimeSeconds=3, numRuns=3, plot=False):
+def createLocalPathSS(state, runtimeSeconds=2, numRuns=4, plot=False):
     ou.setLogLevel(ou.LOG_WARN)
 
     # Get setup parameters from state for ompl plan()
@@ -144,42 +144,53 @@ def createLocalPathSS(state, runtimeSeconds=3, numRuns=3, plot=False):
 
     def isValidSolution(solution, referenceLatlon, state):
         if not solution.haveExactSolutionPath():
-            rospy.logwarn("Attempted solution does not have exact solution path")
             return False
         # TODO: Check if this is needed or redundant. Sometimes it seemed like exact solution paths kept having obstacles on them, so it kept re-running, but need to do more testing
         if obstacleOnPath(state=state, nextLocalWaypointIndex=1, localPathSS=solution, referenceLatlon=referenceLatlon, numLookAheadWaypoints=len(solution.getSolutionPath().getStates()) - 1):
-            rospy.logwarn("Attempted solution has obstacle on path")
             return False
+        # TODO: Investigate if we should put a max cost threshold that makes paths too convoluted to be acceptable
         return True
 
     solutions = []
+    invalidSolutions = []
     for i in range(numRuns):
         # TODO: Incorporate globalWindSpeed into pathfinding?
         rospy.loginfo("Starting path-planning run number: {}".format(i))
         solution = plan(runtimeSeconds, "RRTStar", 'WeightedLengthAndClearanceCombo', globalWindDirectionDegrees, dimensions, start, goal, obstacles)
         if isValidSolution(solution, referenceLatlon, state):
             solutions.append(solution)
+        else:
+            invalidSolutions.append(solution)
 
     # If no solutions found, re-run with larger runtime
     # TODO: Figure out if there is a better method to handle this case
     increaseRuntimeFactor = 2.0
     while len(solutions) == 0:
-        rospy.logerr("No valid solutions found in {} seconds runtime".format(runtimeSeconds))
+        rospy.logwarn("No valid solutions found in {} seconds runtime".format(runtimeSeconds))
         runtimeSeconds *= increaseRuntimeFactor
-        rospy.logerr("Attempting to rerun with longer runtime: {} seconds".format(runtimeSeconds))
 
+        # If valid solution can't be found for large runtime, then stop searching
+        if runtimeSeconds >= MAX_ALLOWABLE_PATHFINDING_RUNTIME_SECONDS:
+            rospy.logwarn("No valid solution can be found. Using invalid solution.")
+            break
+
+        rospy.logwarn("Attempting to rerun with longer runtime: {} seconds".format(runtimeSeconds))
         # TODO: Incorporate globalWindSpeed into pathfinding?
         solution = plan(runtimeSeconds, "RRTStar", 'WeightedLengthAndClearanceCombo', globalWindDirectionDegrees, dimensions, start, goal, obstacles)
 
         if isValidSolution(solution, referenceLatlon, state):
             solutions.append(solution)
+        else:
+            invalidSolutions.append(solution)
 
-        # If valid solution can't be found for large runtime, then just use the invalid solution
-        elif runtimeSeconds * increaseRuntimeFactor >= MAX_ALLOWABLE_PATHFINDING_RUNTIME_SECONDS:
-            rospy.logerr("No valid solution can be found under {} seconds. Using invalid solution.".format(MAX_ALLOWABLE_PATHFINDING_RUNTIME_SECONDS))
-            solutions.append(solution)
+    # Choose best valid solution. If no valid solutions found, use the best invalid one.
+    if len(solutions) > 0:
+        solution = min(solutions, key=lambda x: x.getSolutionPath().cost(x.getOptimizationObjective()).value())
+    else:
+        solution = min(invalidSolutions, key=lambda x: x.getSolutionPath().cost(x.getOptimizationObjective()).value())
 
-    solution = min(solutions, key=lambda x: x.getSolutionPath().cost(x.getOptimizationObjective()).value())
+    # Set the average distance between waypoints
+    localPathLengthKm = solution.getSolutionPath().length()
 
     # Set the average distance between waypoints
     localPathLengthKm = solution.getSolutionPath().length()
