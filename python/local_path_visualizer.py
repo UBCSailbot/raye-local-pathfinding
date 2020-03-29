@@ -99,7 +99,7 @@ if __name__ == '__main__':
 
     # Convert values from latlon to XY, relative to the referenceLatlon
     state = sailbot.getCurrentState()
-    referenceLatlon = nextGlobalWaypoint
+    referenceLatlon = nextGlobalWaypoint  # Ensure that this matches createLocalPathSS referenceLatlon for best results
     positionXY = latlonToXY(state.position, referenceLatlon)
     nextGlobalWaypointXY = latlonToXY(nextGlobalWaypoint, referenceLatlon)
     nextLocalWaypointXY = latlonToXY(nextLocalWaypoint, referenceLatlon)
@@ -135,7 +135,7 @@ if __name__ == '__main__':
 
     while not rospy.is_shutdown():
         state = sailbot.getCurrentState()
-        referenceLatlon = nextGlobalWaypoint
+        referenceLatlon = nextGlobalWaypoint  # Ensure that this matches createLocalPathSS referenceLatlon for best results
 
         # Convert values from latlon to XY, relative to the referenceLatlon
         positionXY = latlonToXY(state.position, referenceLatlon)
