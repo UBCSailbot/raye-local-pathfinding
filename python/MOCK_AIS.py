@@ -2,6 +2,8 @@
 import rospy
 import math
 import random
+import json
+
 from geopy.distance import distance
 from utilities import headingToBearingDegrees, PORT_RENFREW_LATLON
 from std_msgs.msg import Int32
@@ -45,13 +47,31 @@ class RandomShip:
                     self.headingDegrees,
                     self.speedKmph)
 
+    def make_json(self):
+        return [
+                self.id,
+                self.lat,
+                self.lon,
+                self.headingDegrees,
+                self.speedKmph]
+
 class Ship:
-    def __init__(self, id, boat_lat, boat_lon, heading, speed):
+    def __init__(self, id, boat_lat, boat_lon, heading, speed, publishPeriodSeconds=1.0, speedup=1.0):
         self.id = id
         self.lat = boat_lat
         self.lon = boat_lon
         self.headingDegrees = heading
         self.speedKmph = speed
+        self.speedup = speedup
+        self.publishPeriodSeconds = publishPeriodSeconds
+
+    def move(self):
+        # Travel greater distance with speedup
+        distanceTraveled = distance(kilometers=self.speedKmph * self.publishPeriodSeconds / 3600 * self.speedup)
+        boatLatlon = distanceTraveled.destination(point=(self.lat, self.lon), bearing=headingToBearingDegrees(self.headingDegrees))
+
+        self.lon = boatLatlon.longitude
+        self.lat = boatLatlon.latitude
 
     def make_ros_message(self):
         return AISShip(
@@ -64,13 +84,20 @@ class Ship:
         
 class MOCK_AISEnvironment: 
     # Just a class to keep track of the ships surrounding the sailbot
-    def __init__(self, lat, lon, speedup):
+    def __init__(self, lat, lon, speedup, ais_file):
         self.publishPeriodSeconds = AIS_PUBLISH_PERIOD_SECONDS
-        self.numShips = NUM_AIS_SHIPS
-        self.ships = []
         self.speedup = speedup
-        for i in range(self.numShips):
-            self.ships.append(RandomShip(i, lat, lon, self.publishPeriodSeconds, speedup))
+        self.ships = []
+        if ais_file:
+            f = open(ais_file, 'r')
+            ship_list = json.load(f)
+            self.numShips = len(ship_list)
+            for ship in ship_list:
+                self.ships.append(Ship(*ship, publishPeriodSeconds=self.publishPeriodSeconds, speedup=self.speedup))
+        else:
+            self.numShips = NUM_AIS_SHIPS
+            for i in range(self.numShips):
+                self.ships.append(RandomShip(i, lat, lon, self.publishPeriodSeconds, speedup))
 
         self.sailbot_lat = lat
         self.sailbot_lon = lon
@@ -83,8 +110,8 @@ class MOCK_AISEnvironment:
 
     def move_ships(self):
         for i in range(self.numShips):
+            self.ships[i].move()
             if isinstance(self.ships[i], RandomShip):
-                self.ships[i].move()
                 if distance((self.ships[i].lat, self.ships[i].lon), (self.sailbot_lat, self.sailbot_lon)).km > 60.0:
                     rospy.loginfo("MMSI " + str(self.ships[i].id) + " went out of bounds, moving it closer to the sailbot")
                     del self.ships[i]
@@ -112,8 +139,10 @@ class MOCK_AISEnvironment:
 if __name__ == '__main__':
     # Get speedup parameter
     speedup = rospy.get_param('speedup', default=1.0)
+    # Get ais_file parameter
+    ais_file = rospy.get_param('ais_file', default=None)
 
-    ais_env = MOCK_AISEnvironment(PORT_RENFREW_LATLON.lat, PORT_RENFREW_LATLON.lon, speedup)
+    ais_env = MOCK_AISEnvironment(PORT_RENFREW_LATLON.lat, PORT_RENFREW_LATLON.lon, speedup, ais_file)
     r = rospy.Rate(1.0 / ais_env.publishPeriodSeconds) #hz
 
     while not rospy.is_shutdown():
