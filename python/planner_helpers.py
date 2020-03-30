@@ -57,24 +57,6 @@ class ValidityChecker(ob.StateValidityChecker):
     # Returns the distance from the given state's position to the
     # boundary of the circular obstacle.
     def clearance(self, state):
-#        if len(self.obstacles) == 0:
-#            return 1
-#
-#        # Extract the robot's (x,y) position from its state
-#        x = state.getX()
-#        y = state.getY()
-#
-#        clearance = 0
-#        # Distance formula between two points, offset by the circle's
-#        # radius
-#        for obstacle in self.obstacles:
-#
-#            clearance += (sqrt(pow(x - obstacle.x, 2) + pow(y - obstacle.y, 2)) - obstacle.radius)
-#            if clearance <= 0:
-#                return 0
-#
-#        return clearance
-#
         return 1
 
 class ClearanceObjective(ob.StateCostIntegralObjective):
@@ -158,7 +140,6 @@ def getBalancedObjective(si):
 
     opt = ob.MultiOptimizationObjective(si)
     opt.addObjective(lengthObj, 1.0)
-    opt.addObjective(clearObj, 1.0)
     opt.addObjective(minTurnObj, 1.0)
     opt.addObjective(windObj, 1.0)
     # opt.setCostThreshold(ob.Cost(5))
