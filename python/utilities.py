@@ -23,7 +23,10 @@ MAUI_LATLON = latlon(20.0, -156.0)
 AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM = 3
 GLOBAL_WAYPOINT_REACHED_RADIUS_KM = 10
 PATH_UPDATE_TIME_LIMIT_SECONDS = 7200
-MAX_ALLOWABLE_PATHFINDING_RUNTIME_SECONDS = 30
+
+# Pathfinding constants
+MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS = 30
+INCREASE_RUNTIME_FACTOR = 2.0
 
 # Scale NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES and NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND to change based on waypoint distance
 LOOK_AHEAD_FOR_OBSTACLES_KM = 20
@@ -176,14 +179,15 @@ def createLocalPathSS(state, runtimeSeconds=2, numRuns=4, plot=False):
 
     # If no solutions found, re-run with larger runtime
     # TODO: Figure out if there is a better method to handle this case
-    increaseRuntimeFactor = 2.0
+    totalRuntimeSeconds = numRuns * runtimeSeconds
     while len(solutions) == 0:
         rospy.logwarn("No valid solutions found in {} seconds runtime".format(runtimeSeconds))
-        runtimeSeconds *= increaseRuntimeFactor
+        runtimeSeconds *= INCREASE_RUNTIME_FACTOR
+        totalRuntimeSeconds += runtimeSeconds
 
         # If valid solution can't be found for large runtime, then stop searching
-        if runtimeSeconds >= MAX_ALLOWABLE_PATHFINDING_RUNTIME_SECONDS:
-            rospy.logwarn("No valid solution can be found. Using invalid solution.")
+        if totalRuntimeSeconds >= MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS:
+            rospy.logwarn("No valid solution can be found in under {} seconds. Using invalid solution.".format(MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS))
             break
 
         rospy.logwarn("Attempting to rerun with longer runtime: {} seconds".format(runtimeSeconds))
@@ -200,9 +204,6 @@ def createLocalPathSS(state, runtimeSeconds=2, numRuns=4, plot=False):
         solution = min(solutions, key=lambda x: x.getSolutionPath().cost(x.getOptimizationObjective()).value())
     else:
         solution = min(invalidSolutions, key=lambda x: x.getSolutionPath().cost(x.getOptimizationObjective()).value())
-
-    # Set the average distance between waypoints
-    localPathLengthKm = solution.getSolutionPath().length()
 
     # Set the average distance between waypoints
     localPathLengthKm = solution.getSolutionPath().length()
