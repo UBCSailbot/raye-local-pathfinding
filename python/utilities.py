@@ -460,3 +460,17 @@ def headingToBearingDegrees(headingDegrees):
     # Bearing is defined differently. 0 degrees is North. 90 degrees is East. 180 degrees is South.
     # Heading = -Bearing + 90
     return -headingDegrees + 90
+
+def getPathCostBreakdownString(ss):
+    balancedObjective = ss.getOptimizationObjective()
+    strings = []
+    for i in range(balancedObjective.getObjectiveCount()):
+        objective = balancedObjective.getObjective(i)
+        weight = balancedObjective.getObjectiveWeight(i)
+        cost = ss.getSolutionPath().cost(objective).value()
+        strings.append("{}: Cost = {}. Weight = {}. Weighted Cost = {} |||| ".format(type(objective).__name__, cost, weight, cost * weight))
+    strings.append("--------------------------------------------------- ")
+    strings.append("{}: Total Cost = {}".format(type(balancedObjective).__name__, ss.getSolutionPath().cost(balancedObjective).value()))
+
+    output = ''.join(strings).replace(r'\n', '\n')
+    return output
