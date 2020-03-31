@@ -10,13 +10,17 @@ import planner_helpers as ph
 import matplotlib.pyplot as plt
 from matplotlib import patches
 
+VALIDITY_CHECKING_RESOLUTION = 0.005  # Default 0.01
+
 class Obstacle:
-    def __init__(self, x, y, radius):
+    def __init__(self, x, y, width, height, angle):
         self.x = x
         self.y = y
-        self.radius = radius
+        self.width = width
+        self.height = height
+        self.angle = angle
     def __str__(self):
-        return str((self.x, self.y, self.radius))
+        return str((self.x, self.y, self.height, self.width, self.angle))
 
 
 def absolute_distance_between_angles(angle1, angle2):
@@ -124,10 +128,11 @@ def plan(run_time, planner_type, objective_type, wind_direction_degrees, dimensi
 
     # Create bounds on the position
     bounds = ob.RealVectorBounds(2)
-    bounds.setLow(0, dimensions[0])
-    bounds.setLow(1, dimensions[1])
-    bounds.setHigh(0, dimensions[2])
-    bounds.setHigh(1, dimensions[3])
+    x_min, y_min, x_max, y_max = dimensions
+    bounds.setLow(0, x_min)
+    bounds.setLow(1, y_min)
+    bounds.setHigh(0, x_max)
+    bounds.setHigh(1, y_max)
     space.setBounds(bounds)
 
     # Define a simple setup class
@@ -135,8 +140,9 @@ def plan(run_time, planner_type, objective_type, wind_direction_degrees, dimensi
 
     # Construct a space information instance for this state space
     si = ss.getSpaceInformation()
+
     # Set resolution of state validity checking, which is fraction of space's extent (Default is 0.01)
-    si.setStateValidityCheckingResolution(0.05)
+    si.setStateValidityCheckingResolution(VALIDITY_CHECKING_RESOLUTION)
 
     # Set the objects used to check which states in the space are valid
     validity_checker = ph.ValidityChecker(si, obstacles)
