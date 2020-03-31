@@ -55,6 +55,9 @@ BOAT_BACKWARD = 270
 AIS_BOAT_RADIUS_KM = 0.2
 AIS_BOAT_CIRCLE_SPACING_KM = AIS_BOAT_RADIUS_KM * 1.5  # Distance between circles that make up an AIS boat
 
+# Upwind downwind detection
+UPWIND_DOWNWIND_COUNTER_LIMIT = 3
+
 def latlonToXY(latlon, referenceLatlon):
     x = distance((referenceLatlon.lat, referenceLatlon.lon), (referenceLatlon.lat, latlon.lon)).kilometers
     y = distance((referenceLatlon.lat, referenceLatlon.lon), (latlon.lat, referenceLatlon.lon)).kilometers
@@ -266,6 +269,7 @@ def upwindOrDownwindOnPath(state, nextLocalWaypointIndex, localPathSS, reference
         relevantWaypoints.append([waypoint.getX(), waypoint.getY()])
 
     # Check relevantWaypoints for upwind or downwind sailing
+    upwindOrDownwind = False
     for waypointIndex in range(1, len(relevantWaypoints)):
         # Calculate required heading between waypoints
         waypoint = relevantWaypoints[waypointIndex]
@@ -274,13 +278,33 @@ def upwindOrDownwindOnPath(state, nextLocalWaypointIndex, localPathSS, reference
 
         if isDownwind(math.radians(globalWindDirectionDegrees), math.radians(requiredHeadingDegrees)):
             rospy.logwarn("Downwind sailing on path. globalWindDirectionDegrees: {}. requiredHeadingDegrees: {}. waypointIndex: {}".format(globalWindDirectionDegrees, requiredHeadingDegrees, waypointIndex))
-            return True
+            upwindOrDownwind = True
+            break
 
         elif isUpwind(math.radians(globalWindDirectionDegrees), math.radians(requiredHeadingDegrees)):
             rospy.logwarn("Upwind sailing on path. globalWindDirectionDegrees: {}. requiredHeadingDegrees: {}. waypointIndex: {}".format(globalWindDirectionDegrees, requiredHeadingDegrees, waypointIndex))
-            return True
+            upwindOrDownwind = True
+            break
 
-    return False
+    # Set counter to 0 on first use
+    try:
+        firstTime = upwindOrDownwindOnPath.counter is None
+    except AttributeError:
+        rospy.loginfo("Handling first time case in upwindOrDownwindOnPath()")
+        upwindOrDownwindOnPath.counter = 0
+
+    # Increment or reset counter
+    if upwindOrDownwind:
+        upwindOrDownwindOnPath.counter += 1
+    else:
+        upwindOrDownwindOnPath.counter = 0
+
+    # Return true only if upwindOrDownwind for count times
+    if upwindOrDownwindOnPath.counter >= UPWIND_DOWNWIND_COUNTER_LIMIT:
+        upwindOrDownwindOnPath.counter = 0
+        return True
+    else:
+        return False
 
 def obstacleOnPath(state, nextLocalWaypointIndex, localPathSS, referenceLatlon, numLookAheadWaypoints=None):
     # Check if path will hit objects
