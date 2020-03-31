@@ -4,6 +4,7 @@ import sys
 import rospy
 from std_msgs.msg import Bool
 import local_pathfinding.msg as msg
+from std_msgs.msg import Float64, String
 from Sailbot import *
 from utilities import *
 import time
@@ -36,6 +37,8 @@ if __name__ == '__main__':
     localPathPublisher = rospy.Publisher('localPath', msg.path, queue_size=4)
     nextLocalWaypointPublisher = rospy.Publisher('nextLocalWaypoint', msg.latlon, queue_size=4)
     nextGlobalWaypointPublisher = rospy.Publisher('nextGlobalWaypoint', msg.latlon, queue_size=4)
+    pathCostPublisher = rospy.Publisher('localPathCost', Float64, queue_size=4)
+    pathCostBreakdownPublisher = rospy.Publisher('localPathCostBreakdown', String, queue_size=4)
     publishRate = rospy.Rate(1.0 / MAIN_LOOP_PERIOD_SECONDS)
 
     # Get speedup parameter
@@ -74,9 +77,11 @@ if __name__ == '__main__':
         # Publish local path
         localPathPublisher.publish(msg.path(localPath))
 
-        # Publish nextLocalWaypoint and nextGlobalWaypoint
+        # Publish nextLocalWaypoint and nextGlobalWaypoint and path cost
         nextLocalWaypointPublisher.publish(localWaypoint)
         nextGlobalWaypointPublisher.publish(state.globalWaypoint)
+        pathCostPublisher.publish(localPathSS.getSolutionPath().cost(localPathSS.getOptimizationObjective()).value())
+        pathCostBreakdownPublisher.publish(getPathCostBreakdownString(localPathSS))
 
         # If there are any plots, give some time for them to respond to requests, such as closing
         plt.pause(0.001)
@@ -90,7 +95,7 @@ if __name__ == '__main__':
         localPathIndexOutOfBounds = localPathIndex >= len(localPath)
         if hasUpwindOrDownwindOnPath or hasObstacleOnPath or isTimeLimitExceeded or isGlobalWaypointReached or newGlobalPathReceived or localPathIndexOutOfBounds or localPathUpdateRequested:
             # Log reason for local path update
-            rospy.loginfo("Updating Local Path. Reason: hasUpwindOrDownwindOnPath? {}. hasObstacleOnPath? {}. isTimeLimitExceeded? {}. isGlobalWaypointReached? {}. newGlobalPathReceived? {}. localPathIndexOutOfBounds? {}. localPathUpdateRequested? {}.".format(hasUpwindOrDownwindOnPath, hasObstacleOnPath, isTimeLimitExceeded, isGlobalWaypointReached, newGlobalPathReceived, localPathIndexOutOfBounds, localPathUpdateRequested))
+            rospy.logwarn("Updating Local Path. Reason: hasUpwindOrDownwindOnPath? {}. hasObstacleOnPath? {}. isTimeLimitExceeded? {}. isGlobalWaypointReached? {}. newGlobalPathReceived? {}. localPathIndexOutOfBounds? {}. localPathUpdateRequested? {}.".format(hasUpwindOrDownwindOnPath, hasObstacleOnPath, isTimeLimitExceeded, isGlobalWaypointReached, newGlobalPathReceived, localPathIndexOutOfBounds, localPathUpdateRequested))
 
             # Reset saiblot newGlobalPathReceived boolean
             if localPathUpdateRequested:

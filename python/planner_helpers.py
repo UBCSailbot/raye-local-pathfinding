@@ -1,5 +1,6 @@
 import math
 import sys
+import numpy as np
 
 from ompl import util as ou
 from ompl import base as ob
@@ -20,43 +21,62 @@ from math import sqrt
 UPWIND_MAX_ANGLE_DEGREES = 30.0
 DOWNWIND_MAX_ANGLE_DEGREES = 30.0
 
+# Balanced objective constants
+LENGTH_WEIGHT = 1.0
+CLEARANCE_WEIGHT = 1.0
+MIN_TURN_WEIGHT = 1.0
+WIND_WEIGHT = 1.0
+
+# Minimum turn cost multipliers
+LARGE_TURN_MULTIPLIER = 500.0
+SMALL_TURN_MULTIPLIER = 10.0
+
+# Upwind downwind cost multipliers
+UPWIND_MULTIPLIER = 1000.0
+DOWNWIND_MULTIPLIER = 1000.0
+
 class ValidityChecker(ob.StateValidityChecker):
     def __init__(self, si, obstacles):
         super(ValidityChecker, self).__init__(si)
         self.obstacles = obstacles
 
-    # Returns whether the given state's position overlaps the
-    # circular obstacle
+    # Returns whether the given state's position overlaps the ellipse
     def isValid(self, state):
-        x = state.getX()
-        y = state.getY()
+        delta = 0.001
+        xy = [state.getX(), state.getY()]
         for obstacle in self.obstacles:
-            if sqrt(pow(x - obstacle.x, 2) + pow(y - obstacle.y, 2)) - obstacle.radius <= 0:
-                return False
+            x = xy[0] - obstacle.x
+            y = xy[1] - obstacle.y
+            x_ = math.cos(math.radians(obstacle.angle)) * x + math.sin(math.radians(obstacle.angle)) * y
+            y_ = -math.sin(math.radians(obstacle.angle)) * x + math.cos(math.radians(obstacle.angle)) * y
+            distance_center_to_boat = math.sqrt(x_ ** 2 + y_ ** 2)
+            angle_center_to_boat = math.degrees(math.atan2(y_, x_))
+            angle_center_to_boat = (angle_center_to_boat + 360) % 360
+            
+            a = obstacle.width * 0.5
+            b = obstacle.height * 0.5
+            
+            t_param = math.atan2(a * y_, b * x_)
+            edge_pt = self.ellipseFormula(obstacle, t_param) 
+            distance_to_edge = math.sqrt((edge_pt[0] - obstacle.x) ** 2 +  (edge_pt[1] - obstacle.y) ** 2)
 
+            if distance_center_to_boat < distance_to_edge or math.fabs(distance_to_edge - distance_center_to_boat) <= delta: 
+                return False
         return True
+
+    def ellipseFormula(self, obstacle, t):
+        init_pt = np.array([obstacle.x, obstacle.y])
+        a = 0.5 * obstacle.width
+        b = 0.5 * obstacle.height
+        rotation_col1 = np.array([math.cos(math.radians(obstacle.angle)), math.sin(math.radians(obstacle.angle))]) 
+        rotation_col2 = np.array([-math.sin(math.radians(obstacle.angle)), math.cos(math.radians(obstacle.angle))]) 
+        edge_pt = init_pt + a * math.cos(t) * rotation_col1 + b * math.sin(t) * rotation_col2
+        return edge_pt
 
     # Returns the distance from the given state's position to the
     # boundary of the circular obstacle.
     def clearance(self, state):
-        if len(self.obstacles) == 0:
-            return 1
-
-        # Extract the robot's (x,y) position from its state
-        x = state.getX()
-        y = state.getY()
-
-        clearance = 0
-        # Distance formula between two points, offset by the circle's
-        # radius
-        for obstacle in self.obstacles:
-
-            clearance += (sqrt(pow(x - obstacle.x, 2) + pow(y - obstacle.y, 2)) - obstacle.radius)
-            if clearance <= 0:
-                return 0
-
-        return clearance
-
+        return 1
 
 class ClearanceObjective(ob.StateCostIntegralObjective):
     def __init__(self, si):
@@ -79,18 +99,24 @@ class MinTurningObjective(ob.StateCostIntegralObjective):
         self.si_ = si
 
     # This objective function punishes the boat for tacking or jibing
-    # by adding a 500 cost for large turns
+    # by adding a large cost for large turns
     def motionCost(self, s1, s2):
         direction_radians = math.atan2(s2.getY() - s1.getY(), s2.getX() - s1.getX())
+
+        # Calculate turn size
         try:
-            diff_radians = abs_angle_dist_radians(direction_radians, self.last_direction_radians)
+            turn_size_radians = abs_angle_dist_radians(direction_radians, self.last_direction_radians)
         except AttributeError:
+            # Handle edge case first angle
             self.last_direction_radians = direction_radians
-            diff_radians = abs_angle_dist_radians(direction_radians, self.last_direction_radians)
-        if diff_radians > math.radians(2 * max(UPWIND_MAX_ANGLE_DEGREES, DOWNWIND_MAX_ANGLE_DEGREES)):
-            return 500.0
+            turn_size_radians = abs_angle_dist_radians(direction_radians, self.last_direction_radians)
+
+        # Calculate cost based on size of turn. Large turn is related to tacking angles.
+        large_turn_threshold = math.radians(2 * max(UPWIND_MAX_ANGLE_DEGREES, DOWNWIND_MAX_ANGLE_DEGREES))
+        if turn_size_radians > large_turn_threshold:
+            return LARGE_TURN_MULTIPLIER * turn_size_radians
         else:
-            return diff_radians*10
+            return SMALL_TURN_MULTIPLIER * turn_size_radians
 
 
 class WindObjective(ob.StateCostIntegralObjective):
@@ -104,9 +130,12 @@ class WindObjective(ob.StateCostIntegralObjective):
         distance = ((s2.getY() - s1.getY())**2 + (s2.getX() - s1.getX())**2)**0.5
         boatDirectionRadians = math.atan2(s2.getY() - s1.getY(), s2.getX() - s1.getX())
 
-        isUpwindOrDownwind = isUpwind(math.radians(self.windDirectionDegrees), boatDirectionRadians) or isDownwind(math.radians(self.windDirectionDegrees), boatDirectionRadians)
-        return sys.maxsize * distance if isUpwindOrDownwind else 0.0
-
+        if isUpwind(math.radians(self.windDirectionDegrees), boatDirectionRadians):
+            return UPWIND_MULTIPLIER * distance
+        elif isDownwind(math.radians(self.windDirectionDegrees), boatDirectionRadians):
+            return DOWNWIND_MULTIPLIER * distance
+        else:
+            return 0.0
 
 def isUpwind(windDirectionRadians, boatDirectionRadians):
     diffRadians = abs_angle_dist_radians(windDirectionRadians, boatDirectionRadians)
@@ -120,7 +149,6 @@ def abs_angle_dist_radians(angle1_radians, angle2_radians):
     # Absolute distance between angles
     fabs = math.fabs(math.atan2(math.sin(angle1_radians - angle2_radians), math.cos(angle1_radians - angle2_radians)))
     return fabs
-
 
 def get_clearance_objective(si):
     return ClearanceObjective(si)
@@ -140,11 +168,12 @@ def getBalancedObjective(si):
     windObj = WindObjective(si)
 
     opt = ob.MultiOptimizationObjective(si)
-    opt.addObjective(lengthObj, 1.0)
-    opt.addObjective(clearObj, 1.0)
-    opt.addObjective(minTurnObj, 1.0)
-    opt.addObjective(windObj, 1.0)
-    # opt.setCostThreshold(ob.Cost(5))
+    opt.addObjective(minTurnObj, MIN_TURN_WEIGHT)
+    opt.addObjective(windObj, WIND_WEIGHT)
+
+    # REMOVING TO SAVE COMPUTATION AND SEE IF IMPROVES.
+    # opt.addObjective(lengthObj, LENGTH_WEIGHT)
+    # opt.addObjective(clearObj, CLEARANCE_WEIGHT)
 
     return opt
 
