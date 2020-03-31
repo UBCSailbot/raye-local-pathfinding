@@ -84,8 +84,9 @@ def hasObstacleOnPath(positionXY, nextLocalWaypointIndex, numLookAheadWaypoints,
         interpolatedState = spaceInformation.allocState()
 
         # Setup checking resolution
-        resolution = spaceInformation.getStateValidityCheckingResolution()
-        numPoints = int(1 / resolution)
+        resolution = spaceInformation.getStateValidityCheckingResolution() * stateSpace.getMaximumExtent()
+        distance = stateSpace.distance(prevState, nextState)
+        numPoints = int(distance / resolution)
 
         # Loop so that each fraction is in [0, 1], with bounds inclusive so interpolation checks both the first and last point
         for i in range(numPoints + 1):
