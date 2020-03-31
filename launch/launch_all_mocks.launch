@@ -11,9 +11,11 @@
     <!-- Sets gps_file, the FULL path of a JSON file to be read to set the initial ship position -->
     <arg name="gps_file" default="" />
     <param name="gps_file" type="string" value="$(arg gps_file)" />
-    <!-- Sets goal_file, the FULL path of a JSON file containing the initial goal position -->
+
+    <!-- Sets goal_file, the FULL path of a JSON file containing the goal position -->
     <arg name="goal_file" default="" />
     <param name="goal_file" type="string" value="$(arg goal_file)" />
+
     <!-- Sets wind_file, the FULL path of a JSON file containing the initial wind condition -->
     <arg name="wind_file" default="" />
     <param name="wind_file" type="string" value="$(arg wind_file)" />
