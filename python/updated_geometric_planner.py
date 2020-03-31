@@ -10,7 +10,7 @@ import planner_helpers as ph
 import matplotlib.pyplot as plt
 from matplotlib import patches
 
-VALIDITY_CHECKING_RESOLUTION = 0.05  # Default 0.01
+VALIDITY_CHECKING_RESOLUTION = 0.005  # Default 0.01
 
 class Obstacle:
     def __init__(self, x, y, width, height, angle):
