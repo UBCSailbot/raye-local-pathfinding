@@ -21,14 +21,17 @@ MAUI_LATLON = latlon(20.0, -156.0)
 
 # Constants
 AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM = 3
-GLOBAL_WAYPOINT_REACHED_RADIUS_KM = 5
+GLOBAL_WAYPOINT_REACHED_RADIUS_KM = 10
 PATH_UPDATE_TIME_LIMIT_SECONDS = 7200
-MAX_ALLOWABLE_PATHFINDING_RUNTIME_SECONDS = 30
+
+# Pathfinding constants
+MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS = 30
+INCREASE_RUNTIME_FACTOR = 2.0
 
 # Scale NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES and NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND to change based on waypoint distance
 LOOK_AHEAD_FOR_OBSTACLES_KM = 20
 NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES = int(math.ceil(LOOK_AHEAD_FOR_OBSTACLES_KM / AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM))
-LOOK_AHEAD_FOR_UPWIND_DOWNWIND_KM = 20
+LOOK_AHEAD_FOR_UPWIND_DOWNWIND_KM = 10
 NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND = int(math.ceil(LOOK_AHEAD_FOR_UPWIND_DOWNWIND_KM / AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM))
 
 # Constants for bearing and heading
@@ -104,15 +107,17 @@ def plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, 
     plt.cla()
 
     # Create plot with start and goal
-    markersize = min(dimensions[2]-dimensions[0], dimensions[3]-dimensions[1]) / 2
+    x_min, y_min, x_max, y_max = dimensions
+    markersize = min(x_max - x_min, y_max - y_min) / 2
     plt.ion()
     axes = plt.gca()
     goalPlot, = axes.plot(goal[0], goal[1], marker='*', color='y', markersize=markersize)                          # Yellow star
     startPlot, = axes.plot(start[0], start[1], marker=(3,0,headingDegrees - 90), color='r', markersize=markersize) # Red triangle with correct heading. The (-90) is because the triangle default heading 0 points North, but this heading has 0 be East.
 
     # Setup plot xy limits and labels
-    axes.set_xlim(dimensions[0], dimensions[2])
-    axes.set_ylim(dimensions[1], dimensions[3])
+    axes.set_xlim(x_min, x_max)
+    axes.set_ylim(y_min, y_max)
+    axes.set_aspect('equal')
     plt.grid(True)
     axes.set_xlabel('X distance to position (km)')
     axes.set_ylabel('Y distance to position (km)')
@@ -132,16 +137,27 @@ def plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, 
     plt.draw()
     plt.pause(0.001)
 
-def createLocalPathSS(state, runtimeSeconds=3, numRuns=3, plot=False):
+def createLocalPathSS(state, runtimeSeconds=2, numRuns=4, plot=False):
+    def getXYLimits(start, goal, extraLengthFraction=0.6):
+        # Calculate extra length to allow wider solution space
+        width = math.fabs(goal[0] - start[0])
+        height = math.fabs(goal[1] - start[1])
+        extraKm = extraLengthFraction * max(width, height)
+
+        xMin = min(start[0], goal[0]) - extraKm
+        yMin = min(start[1], goal[1]) - extraKm
+        xMax = max(start[0], goal[0]) + extraKm
+        yMax = max(start[1], goal[1]) + extraKm
+        return [xMin, yMin, xMax, yMax]
+
     ou.setLogLevel(ou.LOG_WARN)
 
     # Get setup parameters from state for ompl plan()
     # Convert all latlons to NE in km wrt referenceLatlon
-    referenceLatlon = state.position
+    referenceLatlon = state.globalWaypoint
     start = latlonToXY(state.position, referenceLatlon)
     goal = latlonToXY(state.globalWaypoint, referenceLatlon)
-    extraKm = 10   # Extra length to allow wider solution space
-    dimensions = [min(start[0], goal[0]) - extraKm, min(start[1], goal[1]) - extraKm, max(start[0], goal[0]) + extraKm, max(start[1], goal[1]) + extraKm]
+    dimensions = getXYLimits(start, goal)
     obstacles = extendObstaclesArray(state.AISData.ships, state.position, state.speedKmph, referenceLatlon)
     globalWindSpeedKmph, globalWindDirectionDegrees = measuredWindToGlobalWind(state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
 
@@ -168,42 +184,51 @@ def createLocalPathSS(state, runtimeSeconds=3, numRuns=3, plot=False):
 
     def isValidSolution(solution, referenceLatlon, state):
         if not solution.haveExactSolutionPath():
-            rospy.logwarn("Attempted solution does not have exact solution path")
             return False
         # TODO: Check if this is needed or redundant. Sometimes it seemed like exact solution paths kept having obstacles on them, so it kept re-running, but need to do more testing
         if obstacleOnPath(state=state, nextLocalWaypointIndex=1, localPathSS=solution, referenceLatlon=referenceLatlon, numLookAheadWaypoints=len(solution.getSolutionPath().getStates()) - 1):
-            rospy.logwarn("Attempted solution has obstacle on path")
             return False
+        # TODO: Investigate if we should put a max cost threshold that makes paths too convoluted to be acceptable
         return True
 
     solutions = []
+    invalidSolutions = []
     for i in range(numRuns):
         # TODO: Incorporate globalWindSpeed into pathfinding?
         rospy.loginfo("Starting path-planning run number: {}".format(i))
         solution = plan(runtimeSeconds, "RRTStar", 'WeightedLengthAndClearanceCombo', globalWindDirectionDegrees, dimensions, start, goal, obstacles)
         if isValidSolution(solution, referenceLatlon, state):
             solutions.append(solution)
+        else:
+            invalidSolutions.append(solution)
 
     # If no solutions found, re-run with larger runtime
     # TODO: Figure out if there is a better method to handle this case
-    increaseRuntimeFactor = 2.0
+    totalRuntimeSeconds = numRuns * runtimeSeconds
     while len(solutions) == 0:
-        rospy.logerr("No valid solutions found in {} seconds runtime".format(runtimeSeconds))
-        runtimeSeconds *= increaseRuntimeFactor
-        rospy.logerr("Attempting to rerun with longer runtime: {} seconds".format(runtimeSeconds))
+        rospy.logwarn("No valid solutions found in {} seconds runtime".format(runtimeSeconds))
+        runtimeSeconds *= INCREASE_RUNTIME_FACTOR
+        totalRuntimeSeconds += runtimeSeconds
 
+        # If valid solution can't be found for large runtime, then stop searching
+        if totalRuntimeSeconds >= MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS:
+            rospy.logwarn("No valid solution can be found in under {} seconds. Using invalid solution.".format(MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS))
+            break
+
+        rospy.logwarn("Attempting to rerun with longer runtime: {} seconds".format(runtimeSeconds))
         # TODO: Incorporate globalWindSpeed into pathfinding?
         solution = plan(runtimeSeconds, "RRTStar", 'WeightedLengthAndClearanceCombo', globalWindDirectionDegrees, dimensions, start, goal, obstacles)
 
         if isValidSolution(solution, referenceLatlon, state):
             solutions.append(solution)
+        else:
+            invalidSolutions.append(solution)
 
-        # If valid solution can't be found for large runtime, then just use the invalid solution
-        elif runtimeSeconds * increaseRuntimeFactor >= MAX_ALLOWABLE_PATHFINDING_RUNTIME_SECONDS:
-            rospy.logerr("No valid solution can be found under {} seconds. Using invalid solution.".format(MAX_ALLOWABLE_PATHFINDING_RUNTIME_SECONDS))
-            solutions.append(solution)
-
-    solution = min(solutions, key=lambda x: x.getSolutionPath().cost(x.getOptimizationObjective()).value())
+    # Choose best valid solution. If no valid solutions found, use the best invalid one.
+    if len(solutions) > 0:
+        solution = min(solutions, key=lambda x: x.getSolutionPath().cost(x.getOptimizationObjective()).value())
+    else:
+        solution = min(invalidSolutions, key=lambda x: x.getSolutionPath().cost(x.getOptimizationObjective()).value())
 
     # Set the average distance between waypoints
     localPathLengthKm = solution.getSolutionPath().length()
@@ -280,10 +305,7 @@ def obstacleOnPath(state, nextLocalWaypointIndex, localPathSS, referenceLatlon, 
     if nextLocalWaypointIndex + numLookAheadWaypoints > len(localPathSS.getSolutionPath().getStates()):
         numLookAheadWaypoints = len(localPathSS.getSolutionPath().getStates()) - nextLocalWaypointIndex
 
-    if hasObstacleOnPath(positionXY, nextLocalWaypointIndex, numLookAheadWaypoints, localPathSS, obstacles):
-        rospy.logwarn("Obstacle on path!")
-        return True
-    return False
+    return hasObstacleOnPath(positionXY, nextLocalWaypointIndex, numLookAheadWaypoints, localPathSS, obstacles)
 
 def globalWaypointReached(position, globalWaypoint):
     sailbot = (position.lat, position.lon)
@@ -437,3 +459,16 @@ def headingToBearingDegrees(headingDegrees):
     # Heading = -Bearing + 90
     return -headingDegrees + 90
 
+def getPathCostBreakdownString(ss):
+    balancedObjective = ss.getOptimizationObjective()
+    strings = []
+    for i in range(balancedObjective.getObjectiveCount()):
+        objective = balancedObjective.getObjective(i)
+        weight = balancedObjective.getObjectiveWeight(i)
+        cost = ss.getSolutionPath().cost(objective).value()
+        strings.append("{}: Cost = {}. Weight = {}. Weighted Cost = {} |||| ".format(type(objective).__name__, cost, weight, cost * weight))
+    strings.append("--------------------------------------------------- ")
+    strings.append("{}: Total Cost = {}".format(type(balancedObjective).__name__, ss.getSolutionPath().cost(balancedObjective).value()))
+
+    output = ''.join(strings).replace(r'\n', '\n')
+    return output
