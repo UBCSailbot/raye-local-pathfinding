@@ -85,7 +85,12 @@ def isValid(xy, obstacles):
     return True
 
 def ellipseFormula(obstacle, t):
-    edge_pt = np.array([obstacle.x, obstacle.y]) + 0.5 * obstacle.width * math.cos(t) * np.array([math.cos(math.radians(obstacle.angle)), math.sin(math.radians(obstacle.angle))]) + 0.5 * obstacle.height * math.sin(t) * np.array([-math.sin(math.radians(obstacle.angle)), math.cos(math.radians(obstacle.angle))]) 
+    init_pt = np.array([obstacle.x, obstacle.y])
+    a = 0.5 * obstacle.width
+    b = 0.5 * obstacle.height
+    rotation_col1 = np.array([math.cos(math.radians(obstacle.angle)), math.sin(math.radians(obstacle.angle))]) 
+    rotation_col2 = np.array([-math.sin(math.radians(obstacle.angle)), math.cos(math.radians(obstacle.angle))]) 
+    edge_pt = init_pt + a * math.cos(t) * rotation_col1 + b * math.sin(t) * rotation_col2
     return edge_pt
 
 def plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, obstacles, headingDegrees, amountObstaclesShrinked):
@@ -336,13 +341,13 @@ def extendObstaclesArray(aisArray, sailbotPosition, sailbotSpeedKmph, referenceL
         extendBoatLengthKm = aisData.speedKmph * timeToLocHours
 
         if extendBoatLengthKm == 0:
-            obstacles.append(Obstacle(aisX, aisY, AIS_BOAT_RADIUS_KM, AIS_BOAT_RADIUS_KM, aisData.headingDegrees))
+            width = AIS_BOAT_RADIUS_KM
         else:
             width = extendBoatLengthKm
-            height = AIS_BOAT_RADIUS_KM
-            angle = aisData.headingDegrees
-            xy = [aisX + extendBoatLengthKm * math.cos(math.radians(angle)) * 0.5, aisY + extendBoatLengthKm * math.sin(math.radians(angle)) * 0.5]
-            obstacles.append(Obstacle(xy[0], xy[1], width, height, angle))
+        height = AIS_BOAT_RADIUS_KM
+        angle = aisData.headingDegrees
+        xy = [aisX + extendBoatLengthKm * math.cos(math.radians(angle)) * 0.5, aisY + extendBoatLengthKm * math.sin(math.radians(angle)) * 0.5]
+        obstacles.append(Obstacle(xy[0], xy[1], width, height, angle))
     return obstacles
 
 

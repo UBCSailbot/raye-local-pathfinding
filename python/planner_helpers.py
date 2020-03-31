@@ -51,7 +51,12 @@ class ValidityChecker(ob.StateValidityChecker):
         return True
 
     def ellipseFormula(self, obstacle, t):
-        edge_pt = np.array([obstacle.x, obstacle.y]) + 0.5 * obstacle.width * math.cos(t) * np.array([math.cos(math.radians(obstacle.angle)), math.sin(math.radians(obstacle.angle))]) + 0.5 * obstacle.height * math.sin(t) * np.array([-math.sin(math.radians(obstacle.angle)), math.cos(math.radians(obstacle.angle))]) 
+        init_pt = np.array([obstacle.x, obstacle.y])
+        a = 0.5 * obstacle.width
+        b = 0.5 * obstacle.height
+        rotation_col1 = np.array([math.cos(math.radians(obstacle.angle)), math.sin(math.radians(obstacle.angle))]) 
+        rotation_col2 = np.array([-math.sin(math.radians(obstacle.angle)), math.cos(math.radians(obstacle.angle))]) 
+        edge_pt = init_pt + a * math.cos(t) * rotation_col1 + b * math.sin(t) * rotation_col2
         return edge_pt
 
     # Returns the distance from the given state's position to the
