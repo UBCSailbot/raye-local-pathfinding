@@ -10,7 +10,7 @@ import planner_helpers as ph
 import matplotlib.pyplot as plt
 from matplotlib import patches
 
-VALIDITY_CHECKING_RESOLUTION = 0.005  # Default 0.01
+VALIDITY_CHECKING_RESOLUTION = 0.001  # Default 0.01
 
 class Obstacle:
     def __init__(self, x, y, width, height, angle):
@@ -84,8 +84,9 @@ def hasObstacleOnPath(positionXY, nextLocalWaypointIndex, numLookAheadWaypoints,
         interpolatedState = spaceInformation.allocState()
 
         # Setup checking resolution
-        resolution = spaceInformation.getStateValidityCheckingResolution()
-        numPoints = int(1 / resolution)
+        resolution = spaceInformation.getStateValidityCheckingResolution() * stateSpace.getMaximumExtent()
+        distance = stateSpace.distance(prevState, nextState)
+        numPoints = int(distance / resolution)
 
         # Loop so that each fraction is in [0, 1], with bounds inclusive so interpolation checks both the first and last point
         for i in range(numPoints + 1):
