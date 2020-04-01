@@ -1,5 +1,8 @@
 <?xml version="1.0"?>
 <launch>
+    <!-- main_loop logs. Can be 'log' to be stored in log file or 'screen' to be printed to screen. -->
+    <arg name="main_loop_output" default="screen" />
+
     <!-- Setup mocks. View launch_all_mocks.launch for argument descriptions. -->
     <arg name="speedup" default="1.0" />
     <arg name="ais_file" default="" />
@@ -14,6 +17,6 @@
       <arg name="wind_file" value="$(arg wind_file)"/>
     </include>
 
-    <node pkg="local_pathfinding" type="main_loop.py" name="main_loop" />
+    <node pkg="local_pathfinding" type="main_loop.py" name="main_loop" output="$(arg main_loop_output)"/>
     <node pkg="local_pathfinding" type="local_path_visualizer.py" name="local_path_visualizer" />
 </launch>
