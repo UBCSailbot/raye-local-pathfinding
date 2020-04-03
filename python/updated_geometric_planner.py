@@ -90,7 +90,7 @@ def hasObstacleOnPath(positionXY, nextLocalWaypointIndex, numLookAheadWaypoints,
 
         # Loop so that each fraction is in [0, 1], with bounds inclusive so interpolation checks both the first and last point
         for i in range(numPoints + 1):
-            fraction = i * resolution
+            fraction = float(i) / numPoints
             stateSpace.interpolate(prevState, nextState, fraction, interpolatedState)
             hasObstacle = (not spaceInformation.isValid(interpolatedState))
             if hasObstacle:
