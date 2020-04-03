@@ -90,7 +90,6 @@ def indexOfObstacleOnPath(positionXY, nextLocalWaypointIndex, numLookAheadWaypoi
         # Setup checking resolution
         distance = stateSpace.distance(prevState, nextState)
         numPoints = int(distance / resolution)
-        print("NUMPOINTS: {}".format(numPoints))
 
         # Loop so that each fraction is in [0, 1], with bounds inclusive so interpolation checks both the first and last point
         for i in range(numPoints + 1):
