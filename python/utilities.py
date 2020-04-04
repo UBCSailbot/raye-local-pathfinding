@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from ompl import util as ou
+from ompl import geometric as og
 import rospy
 import time
 from plotting import plot_path, plot_path_2
@@ -228,43 +229,63 @@ def createLocalPathSS(state, runtimeSeconds=2, numRuns=4, plot=False):
         else:
             invalidSolutions.append(solution)
 
-    # Choose best valid solution. If no valid solutions found, use the best invalid one.
-    if len(solutions) > 0:
-        solution = min(solutions, key=lambda x: x.getSolutionPath().cost(x.getOptimizationObjective()).value())
-        rospy.logerr("Using valid solution: cost = {}".format(solution.getSolutionPath().cost(solution.getOptimizationObjective()).value()))
-        # if len(solutions) > 1:
-        #     solution.simplifySolution()
-        #     rospy.logerr("Simplifying valid solution: cost = {}".format(solution.getSolutionPath().cost(solution.getOptimizationObjective()).value()))
-        solution.simplifySolution()
-        rospy.logerr("Simplifying valid solution: cost = {}".format(solution.getSolutionPath().cost(solution.getOptimizationObjective()).value()))
-    else:
-        rospy.logerr("Using invalid solution")
+    # If no valid solutions found, use the best invalid one.
+    if len(solutions) == 0:
         solution = min(invalidSolutions, key=lambda x: x.getSolutionPath().cost(x.getOptimizationObjective()).value())
+        solutionPath = solution.getSolutionPath()
+    else:
+        pathSSPairs = []
+        for solution in solutions:
+            # Get unsimplified path
+            unsimplifiedPath = og.PathGeometric(solution.getSolutionPath())
+            unsimplifiedCost = unsimplifiedPath.cost(solution.getOptimizationObjective()).value()
+            pathSSPairs.append((unsimplifiedPath, solution, "unsimplified", unsimplifiedCost))
+
+            # Get simplified path
+            solution.simplifySolution()
+            simplifiedPath = solution.getSolutionPath()
+            simplifiedCost = simplifiedPath.cost(solution.getOptimizationObjective()).value()
+            rospy.loginfo("unsimplifiedCost = {}. simplifiedCost = {}".format(unsimplifiedCost, simplifiedCost))
+
+
+            if obstacleOnPath(state, 1, solution, simplifiedPath, referenceLatlon):
+                rospy.loginfo("Found obstacle on path in simplified path")
+            elif upwindOrDownwindOnPath(state, 1, simplifiedPath, referenceLatlon):
+                rospy.loginfo("Found upwind/downwind on path in simplified path")
+            else:
+                rospy.loginfo("Adding simplified path as option")
+                pathSSPairs.append((simplifiedPath, solution, "simplified", simplifiedCost))
+
+            rospy.loginfo("**************************************")
+
+
+        solution = min(solutions, key=lambda x: x.getSolutionPath().cost(x.getOptimizationObjective()).value())
+        solutionPath = solution.getSolutionPath()
 
     # Set the average distance between waypoints
-    localPathLengthKm = solution.getSolutionPath().length()
+    localPathLengthKm = solutionPath.length()
     numberOfLocalWaypoints = int(localPathLengthKm / AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM)
-    solution.getSolutionPath().interpolate(numberOfLocalWaypoints)
+    solutionPath.interpolate(numberOfLocalWaypoints)
 
     # Close any plots
     plt.close()
-    return solution, referenceLatlon
+    return solution, solutionPath, referenceLatlon
 
-def getLocalPath(localPathSS, referenceLatlon):
-    # Convert localPathSS solution path (in km WRT reference) into list of latlons
+def getLocalPathLatlons(solutionPathObject, referenceLatlon):
+    # Convert solution path (in km WRT reference) into list of latlons
     localPath = []
-    for state in localPathSS.getSolutionPath().getStates():
+    for state in solutionPathObject.getStates():
         xy = (state.getX(), state.getY())
         localPath.append(XYToLatlon(xy, referenceLatlon))
     return localPath
 
-def upwindOrDownwindOnPath(state, nextLocalWaypointIndex, localPathSS, referenceLatlon, numLookAheadWaypoints=None):
+def upwindOrDownwindOnPath(state, nextLocalWaypointIndex, solutionPathObject, referenceLatlon, numLookAheadWaypoints=None):
     # Default behavior when numLookAheadWaypoints is not given
     if numLookAheadWaypoints is None:
-        numLookAheadWaypoints = len(localPathSS.getSolutionPath().getStates()) - nextLocalWaypointIndex
+        numLookAheadWaypoints = len(solutionPathObject.getStates()) - nextLocalWaypointIndex
     # Handle bad input
-    if nextLocalWaypointIndex + numLookAheadWaypoints > len(localPathSS.getSolutionPath().getStates()):
-        numLookAheadWaypoints = len(localPathSS.getSolutionPath().getStates()) - nextLocalWaypointIndex
+    if nextLocalWaypointIndex + numLookAheadWaypoints > len(solutionPathObject.getStates()):
+        numLookAheadWaypoints = len(solutionPathObject.getStates()) - nextLocalWaypointIndex
 
     # Calculate global wind from measured wind and boat state
     globalWindSpeedKmph, globalWindDirectionDegrees = measuredWindToGlobalWind(state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
@@ -273,7 +294,7 @@ def upwindOrDownwindOnPath(state, nextLocalWaypointIndex, localPathSS, reference
     relevantWaypoints = []
     relevantWaypoints.append(latlonToXY(state.position, referenceLatlon))
     for waypointIndex in range(nextLocalWaypointIndex, nextLocalWaypointIndex + numLookAheadWaypoints):
-        waypoint = localPathSS.getSolutionPath().getState(waypointIndex)
+        waypoint = solutionPathObject.getState(waypointIndex)
         relevantWaypoints.append([waypoint.getX(), waypoint.getY()])
 
     # Check relevantWaypoints for upwind or downwind sailing
@@ -314,7 +335,7 @@ def upwindOrDownwindOnPath(state, nextLocalWaypointIndex, localPathSS, reference
     else:
         return False
 
-def obstacleOnPath(state, nextLocalWaypointIndex, localPathSS, referenceLatlon, numLookAheadWaypoints=None):
+def obstacleOnPath(state, nextLocalWaypointIndex, localPathSS, solutionPathObject, referenceLatlon, numLookAheadWaypoints=None):
     # Check if path will hit objects
     positionXY = latlonToXY(state.position, referenceLatlon)
     obstacles = extendObstaclesArray(state.AISData.ships, state.position, state.speedKmph, referenceLatlon)
@@ -333,11 +354,11 @@ def obstacleOnPath(state, nextLocalWaypointIndex, localPathSS, referenceLatlon, 
           update numLookAheadWaypoints to len(path) - nextLocalWaypointIndex = 3
     '''
     if numLookAheadWaypoints is None:
-        numLookAheadWaypoints = len(localPathSS.getSolutionPath().getStates()) - nextLocalWaypointIndex
-    if nextLocalWaypointIndex + numLookAheadWaypoints > len(localPathSS.getSolutionPath().getStates()):
-        numLookAheadWaypoints = len(localPathSS.getSolutionPath().getStates()) - nextLocalWaypointIndex
+        numLookAheadWaypoints = len(solutionPathObject.getStates()) - nextLocalWaypointIndex
+    if nextLocalWaypointIndex + numLookAheadWaypoints > len(solutionPathObject.getStates()):
+        numLookAheadWaypoints = len(solutionPathObject.getStates()) - nextLocalWaypointIndex
 
-    waypointIndexWithObstacle = indexOfObstacleOnPath(positionXY, nextLocalWaypointIndex, numLookAheadWaypoints, localPathSS, obstacles)
+    waypointIndexWithObstacle = indexOfObstacleOnPath(positionXY, nextLocalWaypointIndex, numLookAheadWaypoints, localPathSS, solutionPathObject, obstacles)
     if waypointIndexWithObstacle != -1:
         rospy.logwarn("Obstacle on path. waypointIndexWithObstacle: {}".format(waypointIndexWithObstacle))
         return True
@@ -495,25 +516,25 @@ def headingToBearingDegrees(headingDegrees):
     # Heading = -Bearing + 90
     return -headingDegrees + 90
 
-def getPathCostBreakdownString(ss):
-    balancedObjective = ss.getOptimizationObjective()
+def getPathCostBreakdownString(optimizationObjective, solutionPathObject):
+    # Assumes balanced optimization objective
     strings = []
-    for i in range(balancedObjective.getObjectiveCount()):
-        objective = balancedObjective.getObjective(i)
-        weight = balancedObjective.getObjectiveWeight(i)
-        cost = ss.getSolutionPath().cost(objective).value()
+    for i in range(optimizationObjective.getObjectiveCount()):
+        objective = optimizationObjective.getObjective(i)
+        weight = optimizationObjective.getObjectiveWeight(i)
+        cost = solutionPathObject.cost(objective).value()
         strings.append("{}: Cost = {}. Weight = {}. Weighted Cost = {} |||| ".format(type(objective).__name__, cost, weight, cost * weight))
     strings.append("--------------------------------------------------- ")
-    strings.append("{}: Total Cost = {}".format(type(balancedObjective).__name__, ss.getSolutionPath().cost(balancedObjective).value()))
+    strings.append("{}: Total Cost = {}".format(type(optimizationObjective).__name__, solutionPathObject.cost(optimizationObjective).value()))
 
-    output = ''.join(strings).replace(r'\n', '\n')
+    output = ''.join(strings)
     return output
 
 
-def pathCostThresholdExceeded(ss):
-    return ss.getSolutionPath().cost(ss.getOptimizationObjective()).value() > COST_THRESHOLD
+def pathCostThresholdExceeded(optimizationObjective, solutionPathObject):
+    return solutionPathObject.cost(optimizationObjective).value() > COST_THRESHOLD
 
-def pathDoesNotReachGoal(localPath, goal):
-    lastWaypoint = (localPath[len(localPath) - 1].lat, localPath[len(localPath) - 1].lon)
+def pathDoesNotReachGoal(localPathLatlons, goal):
+    lastWaypoint = (localPathLatlons[len(localPathLatlons) - 1].lat, localPathLatlons[len(localPathLatlons) - 1].lon)
     goal = (goal.lat, goal.lon)
     return distance(lastWaypoint, goal).kilometers > MAX_ALLOWABLE_DISTANCE_FINAL_WAYPOINT_TO_GOAL_KM

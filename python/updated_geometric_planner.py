@@ -50,7 +50,7 @@ def allocatePlanner(si, plannerType):
 # Method that looks numLookAheadWaypoints ahead on path, starting from positionXY and nextLocalWaypointIndex.
 # Returns the index of the waypoint in which there is an obstacle when going to it.
 # Returns -1 if there are no obstacles on path.
-def indexOfObstacleOnPath(positionXY, nextLocalWaypointIndex, numLookAheadWaypoints, localPathSS, obstacles):
+def indexOfObstacleOnPath(positionXY, nextLocalWaypointIndex, numLookAheadWaypoints, localPathSS, solutionPathObject, obstacles):
     # Set the objects used to check which states in the space are valid
     validity_checker = ph.ValidityChecker(localPathSS.getSpaceInformation(), obstacles)
     localPathSS.setStateValidityChecker(validity_checker)
@@ -58,7 +58,7 @@ def indexOfObstacleOnPath(positionXY, nextLocalWaypointIndex, numLookAheadWaypoi
     # Setup for obstacle-on-path checking
     localPathSS.setup()
     stateSpace = localPathSS.getStateSpace()
-    solutionPath = localPathSS.getSolutionPath()
+    solutionPath = solutionPathObject
     spaceInformation = localPathSS.getSpaceInformation()
 
     # Handle strange cases with less than 2 states
