@@ -3,9 +3,9 @@ from ompl import util as ou
 import rospy
 import time
 from plotting import plot_path, plot_path_2
-from updated_geometric_planner import plan, Obstacle, hasObstacleOnPath
+from updated_geometric_planner import plan, hasObstacleOnPath
 from planner_helpers import isUpwind, isDownwind
-from cli import parse_obstacle
+#from cli import parse_obstacle
 import math 
 from geopy.distance import distance
 import geopy.distance
@@ -74,37 +74,37 @@ def XYToLatlon(xy, referenceLatlon):
     destination = y_distance.destination(point=(destination.latitude, destination.longitude), bearing=BEARING_NORTH)
     return latlon(destination.latitude, destination.longitude)
 
-def isValid(xy, obstacles):
-    delta = 0.001
-    for obstacle in obstacles:
-        x = xy[0] - obstacle.x
-        y = xy[1] - obstacle.y
-        x_ = math.cos(math.radians(obstacle.angle)) * x + math.sin(math.radians(obstacle.angle)) * y
-        y_ = -math.sin(math.radians(obstacle.angle)) * x + math.cos(math.radians(obstacle.angle)) * y
-        distance_center_to_boat = math.sqrt(x_ ** 2 + y_ ** 2)
-        angle_center_to_boat = math.degrees(math.atan2(y_, x_))
-        angle_center_to_boat = (angle_center_to_boat + 360) % 360
-        
-        a = obstacle.width * 0.5
-        b = obstacle.height * 0.5
-        
-        t_param = math.atan2(a * y_, b * x_)
-        edge_pt = ellipseFormula(obstacle, t_param) 
-        distance_to_edge = math.sqrt((edge_pt[0] - obstacle.x) ** 2 +  (edge_pt[1] - obstacle.y) ** 2)
-
-        if distance_center_to_boat < distance_to_edge or math.fabs(distance_to_edge - distance_center_to_boat) <= delta: 
-            return False
-    return True
-
-def ellipseFormula(obstacle, t):
-    init_pt = np.array([obstacle.x, obstacle.y])
-    a = 0.5 * obstacle.width
-    b = 0.5 * obstacle.height
-    rotation_col1 = np.array([math.cos(math.radians(obstacle.angle)), math.sin(math.radians(obstacle.angle))]) 
-    rotation_col2 = np.array([-math.sin(math.radians(obstacle.angle)), math.cos(math.radians(obstacle.angle))]) 
-    edge_pt = init_pt + a * math.cos(t) * rotation_col1 + b * math.sin(t) * rotation_col2
-    return edge_pt
-
+#def isValid(xy, obstacles):
+#    delta = 0.001
+#    for obstacle in obstacles:
+#        x = xy[0] - obstacle.x
+#        y = xy[1] - obstacle.y
+#        x_ = math.cos(math.radians(obstacle.angle)) * x + math.sin(math.radians(obstacle.angle)) * y
+#        y_ = -math.sin(math.radians(obstacle.angle)) * x + math.cos(math.radians(obstacle.angle)) * y
+#        distance_center_to_boat = math.sqrt(x_ ** 2 + y_ ** 2)
+#        angle_center_to_boat = math.degrees(math.atan2(y_, x_))
+#        angle_center_to_boat = (angle_center_to_boat + 360) % 360
+#        
+#        a = obstacle.width * 0.5
+#        b = obstacle.height * 0.5
+#        
+#        t_param = math.atan2(a * y_, b * x_)
+#        edge_pt = ellipseFormula(obstacle, t_param) 
+#        distance_to_edge = math.sqrt((edge_pt[0] - obstacle.x) ** 2 +  (edge_pt[1] - obstacle.y) ** 2)
+#
+#        if distance_center_to_boat < distance_to_edge or math.fabs(distance_to_edge - distance_center_to_boat) <= delta: 
+#            return False
+#    return True
+#
+#def ellipseFormula(obstacle, t):
+#    init_pt = np.array([obstacle.x, obstacle.y])
+#    a = 0.5 * obstacle.width
+#    b = 0.5 * obstacle.height
+#    rotation_col1 = np.array([math.cos(math.radians(obstacle.angle)), math.sin(math.radians(obstacle.angle))]) 
+#    rotation_col2 = np.array([-math.sin(math.radians(obstacle.angle)), math.cos(math.radians(obstacle.angle))]) 
+#    edge_pt = init_pt + a * math.cos(t) * rotation_col1 + b * math.sin(t) * rotation_col2
+#    return edge_pt
+#
 def plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, obstacles, headingDegrees, amountObstaclesShrinked):
     # Clear plot if already there
     plt.cla()
@@ -161,7 +161,10 @@ def createLocalPathSS(state, runtimeSeconds=2, numRuns=4, plot=False):
     start = latlonToXY(state.position, referenceLatlon)
     goal = latlonToXY(state.globalWaypoint, referenceLatlon)
     dimensions = getXYLimits(start, goal)
-    obstacles = extendObstaclesArray(state.AISData.ships, state.position, state.speedKmph, referenceLatlon)
+    #obstacles = extendObstaclesArray(state.AISData.ships, state.position, state.speedKmph, referenceLatlon)
+    obstacles = []
+    for ship in state.AISData.ships:
+        obstacles.append(Ellipse(ship, state.position, state.speedKmph, referenceLatlon))
     globalWindSpeedKmph, globalWindDirectionDegrees = measuredWindToGlobalWind(state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
 
     # If start or goal is invalid, shrink objects and re-run
@@ -172,8 +175,7 @@ def createLocalPathSS(state, runtimeSeconds=2, numRuns=4, plot=False):
         rospy.logerr("start or goal state is not valid")
         rospy.logerr("Shrinking obstacles by a factor of {}".format(shrinkFactor))
         for obstacle in obstacles:
-            obstacle.width /= shrinkFactor
-            obstacle.height /= shrinkFactor
+            obstacle.shrink()
         amountShrinked *= shrinkFactor
     if amountShrinked > 1.0000001:
         rospy.logerr("Obstacles have been shrinked by factor of {}".format(amountShrinked))
@@ -309,7 +311,10 @@ def upwindOrDownwindOnPath(state, nextLocalWaypointIndex, localPathSS, reference
 def obstacleOnPath(state, nextLocalWaypointIndex, localPathSS, referenceLatlon, numLookAheadWaypoints=None):
     # Check if path will hit objects
     positionXY = latlonToXY(state.position, referenceLatlon)
-    obstacles = extendObstaclesArray(state.AISData.ships, state.position, state.speedKmph, referenceLatlon)
+    #obstacles = extendObstaclesArray(state.AISData.ships, state.position, state.speedKmph, referenceLatlon)
+    obstacles = []
+    for ship in state.AISData.ships:
+            obstacles.append(Ellipse(ship, state.position, state.speedKmph, referenceLatlon))
 
     # Ensure nextLocalWaypointIndex + numLookAheadWaypoints is in bounds
     '''
@@ -419,29 +424,29 @@ def getDesiredHeading(position, localWaypoint):
     xy = latlonToXY(localWaypoint, position)
     return math.degrees(math.atan2(xy[1], xy[0]))
 
-def extendObstaclesArray(aisArray, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
-    obstacles = []
-    for aisData in aisArray:
-        aisX, aisY = latlonToXY(latlon(aisData.lat, aisData.lon), referenceLatlon)
-
-        # Calculate length to extend boat
-        MAX_TIME_TO_LOC_HOURS = 10  # Do not extend objects more than 10 hours distance
-        distanceToBoatKm = distance((aisData.lat, aisData.lon), (sailbotPosition.lat, sailbotPosition.lon)).kilometers
-        if sailbotSpeedKmph == 0 or distanceToBoatKm / sailbotSpeedKmph > MAX_TIME_TO_LOC_HOURS:
-            timeToLocHours = MAX_TIME_TO_LOC_HOURS
-        else:
-            timeToLocHours = distanceToBoatKm / sailbotSpeedKmph
-        extendBoatLengthKm = aisData.speedKmph * timeToLocHours
-
-        if extendBoatLengthKm == 0:
-            width = AIS_BOAT_RADIUS_KM
-        else:
-            width = extendBoatLengthKm
-        height = AIS_BOAT_RADIUS_KM
-        angle = aisData.headingDegrees
-        xy = [aisX + extendBoatLengthKm * math.cos(math.radians(angle)) * 0.5, aisY + extendBoatLengthKm * math.sin(math.radians(angle)) * 0.5]
-        obstacles.append(Obstacle(xy[0], xy[1], width, height, angle))
-    return obstacles
+#def extendObstaclesArray(aisArray, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
+#    obstacles = []
+#    for aisData in aisArray:
+#        aisX, aisY = latlonToXY(latlon(aisData.lat, aisData.lon), referenceLatlon)
+#
+#        # Calculate length to extend boat
+#        MAX_TIME_TO_LOC_HOURS = 10  # Do not extend objects more than 10 hours distance
+#        distanceToBoatKm = distance((aisData.lat, aisData.lon), (sailbotPosition.lat, sailbotPosition.lon)).kilometers
+#        if sailbotSpeedKmph == 0 or distanceToBoatKm / sailbotSpeedKmph > MAX_TIME_TO_LOC_HOURS:
+#            timeToLocHours = MAX_TIME_TO_LOC_HOURS
+#        else:
+#            timeToLocHours = distanceToBoatKm / sailbotSpeedKmph
+#        extendBoatLengthKm = aisData.speedKmph * timeToLocHours
+#
+#        if extendBoatLengthKm == 0:
+#            width = AIS_BOAT_RADIUS_KM
+#        else:
+#            width = extendBoatLengthKm
+#        height = AIS_BOAT_RADIUS_KM
+#        angle = aisData.headingDegrees
+#        xy = [aisX + extendBoatLengthKm * math.cos(math.radians(angle)) * 0.5, aisY + extendBoatLengthKm * math.sin(math.radians(angle)) * 0.5]
+#        obstacles.append(Obstacle(xy[0], xy[1], width, height, angle))
+#    return obstacles
 
 
 def measuredWindToGlobalWind(measuredWindSpeed, measuredWindDirectionDegrees, boatSpeed, headingDegrees):
@@ -496,3 +501,178 @@ def getPathCostBreakdownString(ss):
 
     output = ''.join(strings).replace(r'\n', '\n')
     return output
+
+#----------------
+
+def isValid(xy, obstacles):
+    for obstacle in obstacles:
+        if not obstacle.isValid(xy):
+            return False
+    return True
+
+class ObstacleInterface:
+    def __init__(self, aisData, sailbotPosition, speedKmph, referenceLatlon):
+        self.aisData = aisData
+        self.sailbotPosition = sailbotPosition
+        self.speedKmph = speedKmph
+        self.referenceLatlon = referenceLatlon
+        pass
+
+    def __str__(self):
+        pass
+
+    def extendObstacle(self, aisData, sailbotPosition, speedKmph, referenceLatlon):
+        """ Extends obstacle based on speed and heading """
+        pass
+
+    def getPatch(self):
+        """ Return patch from matplotlib.patches """
+        pass
+
+    def isValid(self, xy):
+        """ Checks validity of xy"""
+        pass
+
+    def clearance(self, posX, posY):
+        """ Return distance from obstacle to (posX, posY)"""
+        pass
+
+    def shrink(self, shrinkFactor):
+        """ Shrinks the obstacle by the shrink factor"""
+        pass
+
+
+class Ellipse(ObstacleInterface):
+    def __init__(self, aisData, sailbotPosition, speedKmph, referenceLatlon):
+        ObstacleInterface.__init__(self, aisData, sailbotPosition, speedKmph, referenceLatlon)
+        self.extendObstacle(self.aisData, self.sailbotPosition, self.speedKmph, self.referenceLatlon)
+
+    def __str__(self):
+        return str((self.x, self.y, self.height, self.width, self.angle))
+
+    def extendObstacle(self, aisData, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
+        aisX, aisY = latlonToXY(latlon(aisData.lat, aisData.lon), referenceLatlon)
+
+        # Calculate length to extend boat
+        MAX_TIME_TO_LOC_HOURS = 10  # Do not extend objects more than 10 hours distance
+        distanceToBoatKm = distance((aisData.lat, aisData.lon), (sailbotPosition.lat, sailbotPosition.lon)).kilometers
+        if sailbotSpeedKmph == 0 or distanceToBoatKm / sailbotSpeedKmph > MAX_TIME_TO_LOC_HOURS:
+            timeToLocHours = MAX_TIME_TO_LOC_HOURS
+        else:
+            timeToLocHours = distanceToBoatKm / sailbotSpeedKmph
+        extendBoatLengthKm = aisData.speedKmph * timeToLocHours
+
+        if extendBoatLengthKm == 0:
+            width = AIS_BOAT_RADIUS_KM
+        else:
+            width = extendBoatLengthKm
+        height = AIS_BOAT_RADIUS_KM
+        angle = aisData.headingDegrees
+        xy = [aisX + extendBoatLengthKm * math.cos(math.radians(angle)) * 0.5, aisY + extendBoatLengthKm * math.sin(math.radians(angle)) * 0.5]
+        self.x, self.y = xy[0], xy[1]
+        self.width, self.height = width, height
+        self.angle = angle
+    
+    def isValid(self, xy):
+        delta = 0.001
+        x = xy[0] - self.x
+        y = xy[1] - self.y
+        x_ = math.cos(math.radians(self.angle)) * x + math.sin(math.radians(self.angle)) * y 
+        y_ = -math.sin(math.radians(self.angle)) * x + math.cos(math.radians(self.angle)) * y 
+        distance_center_to_boat = math.sqrt(x_ ** 2 + y_ ** 2)
+        angle_center_to_boat = math.degrees(math.atan2(y_, x_))
+        angle_center_to_boat = (angle_center_to_boat + 360) % 360 
+    
+        a = self.width * 0.5 
+        b = self.height * 0.5 
+    
+        t_param = math.atan2(a * y_, b * x_) 
+        edge_pt = self._ellipseFormula(t_param) 
+        distance_to_edge = math.sqrt((edge_pt[0] - self.x) ** 2 +  (edge_pt[1] - self.y) ** 2)
+
+        if distance_center_to_boat < distance_to_edge or math.fabs(distance_to_edge - distance_center_to_boat) <= delta: 
+            return False
+        return True
+        
+    def _ellipseFormula(self, t): 
+        init_pt = np.array([self.x, self.y])
+        a = 0.5 * self.width
+        b = 0.5 * self.height
+        rotation_col1 = np.array([math.cos(math.radians(self.angle)), math.sin(math.radians(self.angle))]) 
+        rotation_col2 = np.array([-math.sin(math.radians(self.angle)), math.cos(math.radians(self.angle))]) 
+        edge_pt = init_pt + a * math.cos(t) * rotation_col1 + b * math.sin(t) * rotation_col2
+        return edge_pt
+
+    def getPatch(self):
+        return patches.Ellipse((self.x, self.y), self.width, self.height, self.angle)
+
+    def shrink(self, shrinkFactor):
+        self.width /= 2
+        self.height /= 2
+
+    def clearance(self, posX, posY):
+        return 1 
+
+def Wedge(ObstacleInterface):
+    def __init__(self, aisData, sailbotPosition, speedKmph, referenceLatlon):
+            ObstacleInterface.__init__(self, aisData, sailbotPosition, speedKmph, referenceLatlon)
+            self.extendObstacle(self.aisData, self.sailbotPosition, self.speedKmph, self.referenceLatlon)
+
+    def __str__(self):
+            return str((self.xy, self.radius, self.theta1, self.theta2))
+    
+    def extendObstacle(self, aisData, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
+        EXPAND_ANGLE = 0.5 
+        MAX_TIME_TO_LOC_HOURS = 10  # Do not extend objects more than 10 hours distance
+
+        aisX, aisY = latlonToXY(latlon(aisData.lat, aisData.lon), referenceLatlon)
+
+        theta1 = aisData.headingDegrees - EXPAND_ANGLE
+        theta2 = aisData.headingDegrees + EXPAND_ANGLE
+        if theta1 < 0:
+            theta1 +=360
+        if theta2 > 360:
+            theta2 -= 360
+
+        distanceToBoatKm = distance((aisData.lat, aisData.lon), (sailbotPosition.lat, sailbotPosition.lon)).kilometers
+        if sailbotSpeedKmph == 0 or distanceToBoatKm / sailbotSpeedKmph > MAX_TIME_TO_LOC_HOURS:
+            timeToLocHours = MAX_TIME_TO_LOC_HOURS
+        else:
+            timeToLocHours = distanceToBoatKm / sailbotSpeedKmph
+
+        radius = aisData.speedKmph * timeToLocHours
+        self.x, self.y = aisX, aisY
+        self.radius = radius
+        self.theta1, self.theta2 = theta1, theta2
+
+    def getPatch(self):
+        return patches.Wedge((self.x, self.y), self.radius, self.theta1, self.theta2)
+
+    def isValid(self, xy):
+        INVALID_RADIUS_AROUND_START = 1
+        angle = math.degrees(math.atan2(xy[1] - self.y, xy[0] - self.x))
+        if angle < 0:
+            angle += 360
+        distance = math.sqrt((xy[1] - self.y) **2 + (xy[0] - self.x) ** 2)
+        if distance < INVALID_RADIUS_AROUND_START:
+            return False 
+        if (angle > self.theta1 and angle < self.theta2 and distance < self.radius):
+            return False
+        return True
+
+    def clearance(self, posX, posY):
+        return 1
+
+    def shrink(self, shrinkFactor):
+        self.radius /= 2
+
+def getObstacles(aisArray):
+    obstacle_type = rospy.get_param('obstacle_type', 'ellipse')
+    obstacles = []
+    if obstacle_type == "ellipse":
+        for ship in ships:
+            obstacles.append(Ellipse(ship, state.position, state.speedKmph, referenceLatlon))
+    elif obstacle_type == "wedge":
+        for ship in ships:
+            obstacles.append(Wedge(ship, state.position, state.speedKmph, referenceLatlon))
+    return obstacles

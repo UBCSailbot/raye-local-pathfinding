@@ -12,16 +12,68 @@ from matplotlib import patches
 
 VALIDITY_CHECKING_RESOLUTION = 0.001  # Default 0.01
 
-class Obstacle:
-    def __init__(self, x, y, width, height, angle):
-        self.x = x
-        self.y = y
-        self.width = width
-        self.height = height
-        self.angle = angle
-    def __str__(self):
-        return str((self.x, self.y, self.height, self.width, self.angle))
-
+#class ObstacleInterface:
+#    def __init__(self, aisData, sailbotPosition, speedKmph, referenceLatlon):
+#        self.aisData = aisData 
+#        self.sailbotPosition = sailbotPosition
+#        self.speedKmph = speedKmph
+#        self.referenceLatlon = referenceLatlon
+#        pass
+#
+#    def __str__(self):
+#        pass
+#
+#    def extendObstacle(self, aisData, sailbotPosition, speedKmph, referenceLatlon):
+#        """ Extends obstacle based on speed and heading """
+#        pass
+#
+#    def getPatch(self):
+#        """ Return patch from matplotlib.patches """
+#        pass
+#
+#    def isValid(self, posX, posY):
+#        """ Checks validity of (posX, posY)"""
+#        pass
+#
+#    def clearance(self, posX, posY):
+#        """ Return distance from obstacle to (posX, posY)"""
+#        pass
+#
+#    def shrink(self, shrinkFactor):
+#        """ Shrinks the obstacle by the shrink factor"""
+#        pass
+#
+#
+#class Ellipse(ObstacleInterface):
+#    def __init__(self, aisData, sailbotPosition, speedKmph, referenceLatlon):
+#        ObstacleInterface.__init__(self, self.aisData, self.sailbotPosition, self.speedKmph, self.referenceLatlon)
+#        self.extendObstacle(self.aisData, self.sailbotPosition, self.speedKmph, self.referenceLatlon)
+#
+#    def __str__(self):
+#        return str((self.x, self.y, self.height, self.width, self.angle))
+#    
+#    def extendObstacle(self, aisData, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
+#        aisX, aisY = latlonToXY(latlon(aisData.lat, aisData.lon), referenceLatlon)
+#
+#        # Calculate length to extend boat
+#        MAX_TIME_TO_LOC_HOURS = 10  # Do not extend objects more than 10 hours distance
+#        distanceToBoatKm = distance((aisData.lat, aisData.lon), (sailbotPosition.lat, sailbotPosition.lon)).kilometers
+#        if sailbotSpeedKmph == 0 or distanceToBoatKm / sailbotSpeedKmph > MAX_TIME_TO_LOC_HOURS:
+#            timeToLocHours = MAX_TIME_TO_LOC_HOURS
+#        else:
+#            timeToLocHours = distanceToBoatKm / sailbotSpeedKmph
+#        extendBoatLengthKm = aisData.speedKmph * timeToLocHours
+#
+#        if extendBoatLengthKm == 0:
+#            width = AIS_BOAT_RADIUS_KM
+#        else:
+#            width = extendBoatLengthKm
+#        height = AIS_BOAT_RADIUS_KM
+#        angle = aisData.headingDegrees
+#        xy = [aisX + extendBoatLengthKm * math.cos(math.radians(angle)) * 0.5, aisY + extendBoatLengthKm * math.sin(math.radians(angle)) * 0.5]
+#        self.x, self.y = xy[0], xy[1]
+#        self.width, self.height = width, height
+#        self.angle = angle
 
 def absolute_distance_between_angles(angle1, angle2):
     fabs = math.fabs(math.atan2(math.sin(angle1 - angle2), math.cos(angle1 - angle2)))
