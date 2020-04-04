@@ -88,6 +88,10 @@ def hasObstacleOnPath(positionXY, nextLocalWaypointIndex, numLookAheadWaypoints,
         distance = stateSpace.distance(prevState, nextState)
         numPoints = int(distance / resolution)
 
+        # If distance between waypoints is super small, still check prevState and nextState for validity. Want fraction = 0 and fraction = 1.
+        if numPoints == 0:
+            numPoints = 1
+
         # Loop so that each fraction is in [0, 1], with bounds inclusive so interpolation checks both the first and last point
         for i in range(numPoints + 1):
             fraction = float(i) / numPoints

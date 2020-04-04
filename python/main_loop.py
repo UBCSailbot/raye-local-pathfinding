@@ -4,7 +4,7 @@ import sys
 import rospy
 from std_msgs.msg import Bool
 import local_pathfinding.msg as msg
-from std_msgs.msg import Float64, String
+from std_msgs.msg import Float64, String, Bool
 from Sailbot import *
 from utilities import *
 import time
