@@ -161,10 +161,6 @@ def createLocalPathSS(state, runtimeSeconds=2, numRuns=4, plot=False):
     start = latlonToXY(state.position, referenceLatlon)
     goal = latlonToXY(state.globalWaypoint, referenceLatlon)
     dimensions = getXYLimits(start, goal)
-    #obstacles = extendObstaclesArray(state.AISData.ships, state.position, state.speedKmph, referenceLatlon)
-#    obstacles = []
-#    for ship in state.AISData.ships:
-#        obstacles.append(Ellipse(ship, state.position, state.speedKmph, referenceLatlon))
     obstacles = getObstacles(state.AISData.ships, state.position, state.speedKmph, referenceLatlon)
     globalWindSpeedKmph, globalWindDirectionDegrees = measuredWindToGlobalWind(state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
 
@@ -312,10 +308,6 @@ def upwindOrDownwindOnPath(state, nextLocalWaypointIndex, localPathSS, reference
 def obstacleOnPath(state, nextLocalWaypointIndex, localPathSS, referenceLatlon, numLookAheadWaypoints=None):
     # Check if path will hit objects
     positionXY = latlonToXY(state.position, referenceLatlon)
-    #obstacles = extendObstaclesArray(state.AISData.ships, state.position, state.speedKmph, referenceLatlon)
-#    obstacles = []
-#    for ship in state.AISData.ships:
-#            obstacles.append(Ellipse(ship, state.position, state.speedKmph, referenceLatlon))
     obstacles = getObstacles(state.AISData.ships, state.position, state.speedKmph, referenceLatlon)
 
     # Ensure nextLocalWaypointIndex + numLookAheadWaypoints is in bounds
