@@ -230,7 +230,14 @@ def createLocalPathSS(state, runtimeSeconds=2, numRuns=4, plot=False):
     # Choose best valid solution. If no valid solutions found, use the best invalid one.
     if len(solutions) > 0:
         solution = min(solutions, key=lambda x: x.getSolutionPath().cost(x.getOptimizationObjective()).value())
+        rospy.logerr("Using valid solution: cost = {}".format(solution.getSolutionPath().cost(solution.getOptimizationObjective()).value()))
+        # if len(solutions) > 1:
+        #     solution.simplifySolution()
+        #     rospy.logerr("Simplifying valid solution: cost = {}".format(solution.getSolutionPath().cost(solution.getOptimizationObjective()).value()))
+        solution.simplifySolution()
+        rospy.logerr("Simplifying valid solution: cost = {}".format(solution.getSolutionPath().cost(solution.getOptimizationObjective()).value()))
     else:
+        rospy.logerr("Using invalid solution")
         solution = min(invalidSolutions, key=lambda x: x.getSolutionPath().cost(x.getOptimizationObjective()).value())
 
     # Set the average distance between waypoints

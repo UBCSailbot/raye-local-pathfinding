@@ -64,7 +64,16 @@ if __name__ == '__main__':
     lastTimePathCreated = time.time()
     sailbot.newGlobalPathReceived = False
 
+    counter = 0
     while not rospy.is_shutdown():
+        # if counter > 5 and counter < 100:
+        #     counter = 1000
+        #     rospy.loginfo("REAL Simplifying valid solution")
+        #     localPathSS.simplifySolution()
+        #     localPath = getLocalPath(localPathSS, referenceLatlon)
+        # else:
+        #     counter += 1
+
         rospy.loginfo("sailbot.globalPathIndex: {}".format(sailbot.globalPathIndex))
         rospy.loginfo("localPathIndex: {}".format(localPathIndex))
         rospy.loginfo("desiredHeadingMsg: {}".format(desiredHeadingMsg.headingDegrees))
@@ -97,6 +106,7 @@ if __name__ == '__main__':
             # Log reason for local path update
             rospy.logwarn("Updating Local Path. Reason: hasUpwindOrDownwindOnPath? {}. hasObstacleOnPath? {}. isTimeLimitExceeded? {}. isGlobalWaypointReached? {}. newGlobalPathReceived? {}. localPathIndexOutOfBounds? {}. localPathUpdateRequested? {}.".format(hasUpwindOrDownwindOnPath, hasObstacleOnPath, isTimeLimitExceeded, isGlobalWaypointReached, newGlobalPathReceived, localPathIndexOutOfBounds, localPathUpdateRequested))
 
+            counter = 0
             # Reset saiblot newGlobalPathReceived boolean
             if localPathUpdateRequested:
                 localPathUpdateRequested = False
