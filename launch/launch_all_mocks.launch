@@ -20,6 +20,10 @@
     <arg name="wind_file" default="" />
     <param name="wind_file" type="string" value="$(arg wind_file)" />
 
+    <!-- Sets the obstacle representation type, a string one of: "ellipse", "wedge" -->
+    <arg name="obstacle_type" default="ellipse" />
+    <param name="obstacle_type" type="string" value="$(arg obstacle_type)" />
+
     <node pkg="local_pathfinding" type="MOCK_wind_sensor.py" name="MOCK_wind_sensor" />
     <node pkg="local_pathfinding" type="MOCK_controller_and_boat.py" name="MOCK_controller_and_boat" />
     <node pkg="local_pathfinding" type="MOCK_AIS.py" name="MOCK_AIS" />

@@ -127,8 +127,8 @@ def plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, 
     axes.set_title('Setup of pathfinding problem (amountObstaclesShrinked = {})'.format(amountObstaclesShrinked))
 
     # Add boats and wind speed arrow
-    for ship in obstacles:
-        axes.add_patch(patches.Ellipse((ship.x, ship.y), ship.width, ship.height, ship.angle))
+    for obstacle in obstacles:
+        axes.add_patch(obstacle.getPatch())
 
     arrowLength = min(dimensions[2]-dimensions[0], dimensions[3]-dimensions[1]) / 15
     arrowCenter = (dimensions[0] + 1.5*arrowLength, dimensions[3] - 1.5*arrowLength)
@@ -162,9 +162,10 @@ def createLocalPathSS(state, runtimeSeconds=2, numRuns=4, plot=False):
     goal = latlonToXY(state.globalWaypoint, referenceLatlon)
     dimensions = getXYLimits(start, goal)
     #obstacles = extendObstaclesArray(state.AISData.ships, state.position, state.speedKmph, referenceLatlon)
-    obstacles = []
-    for ship in state.AISData.ships:
-        obstacles.append(Ellipse(ship, state.position, state.speedKmph, referenceLatlon))
+#    obstacles = []
+#    for ship in state.AISData.ships:
+#        obstacles.append(Ellipse(ship, state.position, state.speedKmph, referenceLatlon))
+    obstacles = getObstacles(state.AISData.ships, state.position, state.speedKmph, referenceLatlon)
     globalWindSpeedKmph, globalWindDirectionDegrees = measuredWindToGlobalWind(state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
 
     # If start or goal is invalid, shrink objects and re-run
@@ -312,9 +313,10 @@ def obstacleOnPath(state, nextLocalWaypointIndex, localPathSS, referenceLatlon, 
     # Check if path will hit objects
     positionXY = latlonToXY(state.position, referenceLatlon)
     #obstacles = extendObstaclesArray(state.AISData.ships, state.position, state.speedKmph, referenceLatlon)
-    obstacles = []
-    for ship in state.AISData.ships:
-            obstacles.append(Ellipse(ship, state.position, state.speedKmph, referenceLatlon))
+#    obstacles = []
+#    for ship in state.AISData.ships:
+#            obstacles.append(Ellipse(ship, state.position, state.speedKmph, referenceLatlon))
+    obstacles = getObstacles(state.AISData.ships, state.position, state.speedKmph, referenceLatlon)
 
     # Ensure nextLocalWaypointIndex + numLookAheadWaypoints is in bounds
     '''
@@ -613,7 +615,7 @@ class Ellipse(ObstacleInterface):
     def clearance(self, posX, posY):
         return 1 
 
-def Wedge(ObstacleInterface):
+class Wedge(ObstacleInterface):
     def __init__(self, aisData, sailbotPosition, speedKmph, referenceLatlon):
             ObstacleInterface.__init__(self, aisData, sailbotPosition, speedKmph, referenceLatlon)
             self.extendObstacle(self.aisData, self.sailbotPosition, self.speedKmph, self.referenceLatlon)
@@ -666,13 +668,13 @@ def Wedge(ObstacleInterface):
     def shrink(self, shrinkFactor):
         self.radius /= 2
 
-def getObstacles(aisArray):
+def getObstacles(ships, position, speedKmph, referenceLatlon):
     obstacle_type = rospy.get_param('obstacle_type', 'ellipse')
     obstacles = []
     if obstacle_type == "ellipse":
         for ship in ships:
-            obstacles.append(Ellipse(ship, state.position, state.speedKmph, referenceLatlon))
+            obstacles.append(Ellipse(ship, position, speedKmph, referenceLatlon))
     elif obstacle_type == "wedge":
         for ship in ships:
-            obstacles.append(Wedge(ship, state.position, state.speedKmph, referenceLatlon))
+            obstacles.append(Wedge(ship, position, speedKmph, referenceLatlon))
     return obstacles
