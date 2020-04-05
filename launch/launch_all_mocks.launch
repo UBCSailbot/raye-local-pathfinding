@@ -1,9 +1,5 @@
 <?xml version="1.0"?>
 <launch>
-    <!-- Sets speedup, which increases boat speeds -->
-    <arg name="speedup" default="1.0" />
-    <param name="speedup" type="double" value="$(arg speedup)" />
-
     <!-- Sets ais_file, the FULL path of a JSON file to be read to set the initial AIS ship positions -->
     <arg name="ais_file" default="" />
     <param name="ais_file" type="string" value="$(arg ais_file)" />

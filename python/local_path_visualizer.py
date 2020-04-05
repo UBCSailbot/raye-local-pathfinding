@@ -2,6 +2,7 @@
 import sys
 import rospy
 import math
+from std_msgs.msg import Float64
 from local_pathfinding.msg import AISMsg, GPS, path, latlon, windSensor
 from utilities import *
 from Sailbot import *
@@ -30,6 +31,12 @@ def nextLocalWaypointCallback(data):
 def nextGlobalWaypointCallback(data):
     global nextGlobalWaypoint
     nextGlobalWaypoint = data
+
+# Global variable for speedup
+speedup = 1.0
+def speedupCallback(data):
+    global speedup
+    speedup = data.data
 
 # Set xy for figure
 def getXYLimits(xy0, xy1):
@@ -82,10 +89,8 @@ if __name__ == '__main__':
     rospy.Subscriber("localPath", path, localPathCallback)
     rospy.Subscriber("nextLocalWaypoint", latlon, nextLocalWaypointCallback)
     rospy.Subscriber("nextGlobalWaypoint", latlon, nextGlobalWaypointCallback)
+    rospy.Subscriber("speedup", Float64, speedupCallback)
     r = rospy.Rate(1.0 / VISUALIZER_UPDATE_PERIOD_SECONDS)
-
-    # Get speedup parameter
-    speedup = rospy.get_param('speedup', 1.0)
 
     # Wait for first messages
     while localPath is None or nextLocalWaypoint is None or nextGlobalWaypoint is None:

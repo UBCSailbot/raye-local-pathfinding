@@ -3,6 +3,7 @@ import rospy
 import math
 import json
 
+from std_msgs.msg import Float64
 from local_pathfinding.msg import windSensor, GPS, globalWind
 from utilities import globalWindToMeasuredWind
 import random
@@ -33,6 +34,12 @@ def globalWindCallback(data):
     globalWindSpeedKmph = data.speedKmph
     globalWindDirectionDegrees = data.directionDegrees
 
+# Global variable for speedup
+speedup = 1.0
+def speedupCallback(data):
+    global speedup
+    speedup = data.data
+
 def talker():
     global boatHeadingDegrees
     global boatSpeedKmph
@@ -51,9 +58,6 @@ def talker():
             record = json.loads(f.read())
             globalWindSpeedKmph = record[0]
             globalWindDirectionDegrees = record[1]
-
-    # Get speedup parameter
-    speedup = rospy.get_param('speedup', default=1.0)
 
     # Change wind periodically and
     # Change wind more often with speedup
@@ -80,6 +84,7 @@ def talker():
 if __name__ == '__main__':
     try:
         rospy.Subscriber("GPS", GPS, gpsCallback)
+        rospy.Subscriber("speedup", Float64, speedupCallback)
         rospy.Subscriber("changeGlobalWind", globalWind, globalWindCallback)
         talker()
     except rospy.ROSInterruptException: pass

@@ -146,7 +146,7 @@ def plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, 
     plt.draw()
     plt.pause(0.001)
 
-def createLocalPathSS(state, runtimeSeconds=2, numRuns=4, plot=False):
+def createLocalPathSS(state, runtimeSeconds=2, numRuns=2, plot=False):
     def getXYLimits(start, goal, extraLengthFraction=0.6):
         # Calculate extra length to allow wider solution space
         width = math.fabs(goal[0] - start[0])

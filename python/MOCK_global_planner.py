@@ -5,6 +5,7 @@ import json
 import time
 from utilities import PORT_RENFREW_LATLON, MAUI_LATLON
 
+from std_msgs.msg import Float64
 import local_pathfinding.msg as msg
 from geopy.distance import distance
 
@@ -21,6 +22,12 @@ def gpsCallback(data):
     global boatLon
     boatLat = data.lat
     boatLon = data.lon
+
+# Global variable for speedup
+speedup = 1.0
+def speedupCallback(data):
+    global speedup
+    speedup = data.data
 
 def create_path(init, goal):
     path = []
@@ -55,6 +62,7 @@ def create_path(init, goal):
 def MOCK_global():
     global boatLat
     global boatLon
+    global speedup
 
     rospy.init_node('MOCK_global_planner', anonymous=True)
     pub = rospy.Publisher("globalPath", msg.path, queue_size=4)
@@ -63,8 +71,8 @@ def MOCK_global():
     # Subscribe to GPS to publish new global paths based on boat position
     rospy.Subscriber("GPS", msg.GPS, gpsCallback)
 
-    # Get speedup parameter
-    speedup = rospy.get_param('speedup', default=1.0)
+    # Subscribe to speedup
+    rospy.Subscriber("speedup", Float64, speedupCallback)
 
     # Wait to get boat position
     while boatLat is None or boatLon is None:

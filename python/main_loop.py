@@ -19,15 +19,19 @@ def updatePathCallback(data):
     rospy.loginfo("localPathUpdateRequested message received.")
     localPathUpdateRequested = True
 
+# Global variable for speedup
+speedup = 1.0
+def speedupCallback(data):
+    global speedup
+    speedup = data.data
 
 if __name__ == '__main__':
-    global localPathUpdateRequested
-
     # Create sailbot ROS object that subscribes to relevant topics
     sailbot = Sailbot(nodeName='local_pathfinding')
 
     # Subscribe to requestLocalPathUpdate
     rospy.Subscriber('requestLocalPathUpdate', Bool, updatePathCallback)
+    rospy.Subscriber('speedup', Float64, speedupCallback)
 
     # Create ros publisher for the desired heading for the controller
     desiredHeadingPublisher = rospy.Publisher('desiredHeading', msg.heading, queue_size=4)
@@ -40,9 +44,6 @@ if __name__ == '__main__':
     pathCostPublisher = rospy.Publisher('localPathCost', Float64, queue_size=4)
     pathCostBreakdownPublisher = rospy.Publisher('localPathCostBreakdown', String, queue_size=4)
     publishRate = rospy.Rate(1.0 / MAIN_LOOP_PERIOD_SECONDS)
-
-    # Get speedup parameter
-    speedup = rospy.get_param('speedup', default=1.0)
 
     # Wait until first global path is received
     while not sailbot.newGlobalPathReceived:
@@ -70,22 +71,6 @@ if __name__ == '__main__':
         rospy.loginfo("desiredHeadingMsg: {}".format(desiredHeadingMsg.headingDegrees))
         state = sailbot.getCurrentState()
 
-        # Publish desiredHeading
-        desiredHeadingMsg.headingDegrees = getDesiredHeading(state.position, localWaypoint)
-        desiredHeadingPublisher.publish(desiredHeadingMsg)
-
-        # Publish local path
-        localPathPublisher.publish(msg.path(localPathLatlons))
-
-        # Publish nextLocalWaypoint and nextGlobalWaypoint and path cost
-        nextLocalWaypointPublisher.publish(localWaypoint)
-        nextGlobalWaypointPublisher.publish(state.globalWaypoint)
-        pathCostPublisher.publish(solutionPathObject.cost(localPathSS.getOptimizationObjective()).value())
-        pathCostBreakdownPublisher.publish(getPathCostBreakdownString(localPathSS.getOptimizationObjective(), solutionPathObject))
-
-        # If there are any plots, give some time for them to respond to requests, such as closing
-        plt.pause(0.001)
-
         # Generate new local path if needed
         hasUpwindOrDownwindOnPath = upwindOrDownwindOnPath(state, localPathIndex, solutionPathObject, referenceLatlon, numLookAheadWaypoints=NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND, showWarnings=True)
         hasObstacleOnPath = obstacleOnPath(state, localPathIndex, localPathSS, solutionPathObject, referenceLatlon, numLookAheadWaypoints=NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES, showWarnings=True)
@@ -95,9 +80,10 @@ if __name__ == '__main__':
         localPathIndexOutOfBounds = localPathIndex >= len(localPathLatlons)
         costTooHigh = pathCostThresholdExceeded(localPathSS.getOptimizationObjective(), solutionPathObject)
         pathNotReachGoal = pathDoesNotReachGoal(localPathLatlons, state.globalWaypoint)
-        if hasUpwindOrDownwindOnPath or hasObstacleOnPath or isTimeLimitExceeded or isGlobalWaypointReached or newGlobalPathReceived or localPathIndexOutOfBounds or localPathUpdateRequested or costTooHigh or pathNotReachGoal:
+        isLocalWaypointReached = localWaypointReached(state.position, localPathLatlons, localPathIndex, referenceLatlon)
+        if hasUpwindOrDownwindOnPath or hasObstacleOnPath or isTimeLimitExceeded or isGlobalWaypointReached or newGlobalPathReceived or localPathIndexOutOfBounds or localPathUpdateRequested or costTooHigh or pathNotReachGoal or isLocalWaypointReached:
             # Log reason for local path update
-            rospy.logwarn("Updating Local Path. Reason: hasUpwindOrDownwindOnPath? {}. hasObstacleOnPath? {}. isTimeLimitExceeded? {}. isGlobalWaypointReached? {}. newGlobalPathReceived? {}. localPathIndexOutOfBounds? {}. localPathUpdateRequested? {}. costTooHigh? {}. pathNotReachGoal? {}.".format(hasUpwindOrDownwindOnPath, hasObstacleOnPath, isTimeLimitExceeded, isGlobalWaypointReached, newGlobalPathReceived, localPathIndexOutOfBounds, localPathUpdateRequested, costTooHigh, pathNotReachGoal))
+            rospy.logwarn("Updating Local Path. Reason: hasUpwindOrDownwindOnPath? {}. hasObstacleOnPath? {}. isTimeLimitExceeded? {}. isGlobalWaypointReached? {}. newGlobalPathReceived? {}. localPathIndexOutOfBounds? {}. localPathUpdateRequested? {}. costTooHigh? {}. pathNotReachGoal? {}. isLocalWaypointReached? {}".format(hasUpwindOrDownwindOnPath, hasObstacleOnPath, isTimeLimitExceeded, isGlobalWaypointReached, newGlobalPathReceived, localPathIndexOutOfBounds, localPathUpdateRequested, costTooHigh, pathNotReachGoal, isLocalWaypointReached))
 
             # Reset saiblot newGlobalPathReceived boolean
             if localPathUpdateRequested:
@@ -120,10 +106,20 @@ if __name__ == '__main__':
             localWaypoint = getLocalWaypointLatLon(localPathLatlons, localPathIndex)
             lastTimePathCreated = time.time()
 
-        # If localWaypoint met, increment the index
-        elif localWaypointReached(state.position, localPathLatlons, localPathIndex, referenceLatlon):
-            rospy.loginfo("Local waypoint reached")
-            localPathIndex += 1
-            localWaypoint = getLocalWaypointLatLon(localPathLatlons, localPathIndex)
 
+        # Publish desiredHeading
+        desiredHeadingMsg.headingDegrees = getDesiredHeading(state.position, localWaypoint)
+        desiredHeadingPublisher.publish(desiredHeadingMsg)
+
+        # Publish local path
+        localPathPublisher.publish(msg.path(localPathLatlons))
+
+        # Publish nextLocalWaypoint and nextGlobalWaypoint and path cost
+        nextLocalWaypointPublisher.publish(localWaypoint)
+        nextGlobalWaypointPublisher.publish(state.globalWaypoint)
+        pathCostPublisher.publish(solutionPathObject.cost(localPathSS.getOptimizationObjective()).value())
+        pathCostBreakdownPublisher.publish(getPathCostBreakdownString(localPathSS.getOptimizationObjective(), solutionPathObject))
+
+        # If there are any plots, give some time for them to respond to requests, such as closing
+        plt.pause(0.001)
         publishRate.sleep()

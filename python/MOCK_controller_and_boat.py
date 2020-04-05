@@ -3,6 +3,7 @@ import rospy
 import math
 import random, json
 
+from std_msgs.msg import Float64
 import local_pathfinding.msg as msg
 import geopy.distance
 from utilities import headingToBearingDegrees, PORT_RENFREW_LATLON
@@ -11,10 +12,10 @@ from utilities import headingToBearingDegrees, PORT_RENFREW_LATLON
 GPS_PUBLISH_PERIOD_SECONDS = 1.0
 
 class MOCK_ControllerAndSailbot: 
-    def __init__(self, lat, lon, headingDegrees, speedKmph, speedup=1.0):
+    def __init__(self, lat, lon, headingDegrees, speedKmph):
         self.lat = lat
         self.lon = lon
-        self.speedup = speedup
+        self.speedup = 1.0
         self.headingDegrees = headingDegrees
         self.speedKmph = speedKmph
         self.publishPeriodSeconds = GPS_PUBLISH_PERIOD_SECONDS
@@ -23,6 +24,7 @@ class MOCK_ControllerAndSailbot:
         self.publisher = rospy.Publisher("GPS", msg.GPS, queue_size=4)
         rospy.Subscriber("desiredHeading", msg.heading, self.desiredHeadingCallback)
         rospy.Subscriber("changeGPS", msg.GPS, self.changeGPSCallback)
+        rospy.Subscriber('speedup', Float64, self.speedupCallback)
 
     def move(self):
         # Travel greater distances with speedup
@@ -45,10 +47,11 @@ class MOCK_ControllerAndSailbot:
         self.headingDegrees = data.headingDegrees
         self.speedKmph = data.speedKmph
 
+    def speedupCallback(self, data):
+        self.speedup = data.data
+
 
 if __name__ == '__main__':
-    # Get speedup parameter
-    speedup = rospy.get_param('speedup', default=1.0)
     # Get gps_file  parameter
     gps_file = rospy.get_param('gps_file', default=None)
 
@@ -57,10 +60,10 @@ if __name__ == '__main__':
             record = json.loads(f.read())
             lat = record[0]
             lon = record[1]
-            MOCK_ctrl_sailbot = MOCK_ControllerAndSailbot(*record, speedup=speedup)
+            MOCK_ctrl_sailbot = MOCK_ControllerAndSailbot(*record)
     else:
         # Boat should move at about 4m/s = 14.4 km/h
-        MOCK_ctrl_sailbot = MOCK_ControllerAndSailbot(PORT_RENFREW_LATLON.lat, PORT_RENFREW_LATLON.lon, 180, 14.4, speedup)
+        MOCK_ctrl_sailbot = MOCK_ControllerAndSailbot(PORT_RENFREW_LATLON.lat, PORT_RENFREW_LATLON.lon, 180, 14.4)
 
     r = rospy.Rate(float(1) / MOCK_ctrl_sailbot.publishPeriodSeconds)
 
