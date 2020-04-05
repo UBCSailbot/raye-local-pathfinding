@@ -247,7 +247,6 @@ def createLocalPathSS(state, runtimeSeconds=2, numRuns=4, plot=False):
             simplifiedCost = simplifiedPath.cost(solution.getOptimizationObjective()).value()
             rospy.loginfo("unsimplifiedCost = {}. simplifiedCost = {}".format(unsimplifiedCost, simplifiedCost))
 
-
             if obstacleOnPath(state, 1, solution, simplifiedPath, referenceLatlon):
                 rospy.loginfo("Found obstacle on path in simplified path")
             elif upwindOrDownwindOnPath(state, 1, simplifiedPath, referenceLatlon):
@@ -258,9 +257,19 @@ def createLocalPathSS(state, runtimeSeconds=2, numRuns=4, plot=False):
 
             rospy.loginfo("**************************************")
 
+        bestPair = None
+        minCost = 1000000000
+        for pair in pathSSPairs:
+            path, sol, label, cost = pair
+            if cost < minCost:
+                bestPair = pair
+                minCost = cost
 
-        solution = min(solutions, key=lambda x: x.getSolutionPath().cost(x.getOptimizationObjective()).value())
-        solutionPath = solution.getSolutionPath()
+        path, sol, label, cost = bestPair
+
+        solution = sol
+        solutionPath = path
+        rospy.loginfo("----- Min cost selected is: {}".format(cost))
 
     # Set the average distance between waypoints
     localPathLengthKm = solutionPath.length()
