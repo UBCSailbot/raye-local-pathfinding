@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+from datetime import datetime
+from datetime import date
+import pyautogui
+import os
 from ompl import util as ou
 from ompl import geometric as og
 import rospy
@@ -113,39 +117,61 @@ def ellipseFormula(obstacle, t):
     return edge_pt
 
 def plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, obstacles, headingDegrees, amountObstaclesShrinked):
+    rospy.loginfo("plotPathfindingProblem 1")
     # Clear plot if already there
     plt.cla()
+    rospy.loginfo("plotPathfindingProblem 2")
 
     # Create plot with start and goal
     x_min, y_min, x_max, y_max = dimensions
     markersize = min(x_max - x_min, y_max - y_min) / 2
+    rospy.loginfo("plotPathfindingProblem 3")
     plt.ion()
+    rospy.loginfo("plotPathfindingProblem 4")
     axes = plt.gca()
-    goalPlot, = axes.plot(goal[0], goal[1], marker='*', color='y', markersize=markersize)                          # Yellow star
-    startPlot, = axes.plot(start[0], start[1], marker=(3,0,headingDegrees - 90), color='r', markersize=markersize) # Red triangle with correct heading. The (-90) is because the triangle default heading 0 points North, but this heading has 0 be East.
+    rospy.loginfo("plotPathfindingProblem 5")
+    goalPlot, = axes.plot(goal[0], goal[6], marker='*', color='y', markersize=markersize)                          # Yellow star
+    rospy.loginfo("plotPathfindingProblem 7")
+    startPlot, = axes.plot(start[0], start[8], marker=(3,0,headingDegrees - 90), color='r', markersize=markersize) # Red triangle with correct heading. The (-90) is because the triangle default heading 0 points North, but this heading has 0 be East.
+    rospy.loginfo("plotPathfindingProblem 9")
 
     # Setup plot xy limits and labels
     axes.set_xlim(x_min, x_max)
+    rospy.loginfo("plotPathfindingProblem 10")
     axes.set_ylim(y_min, y_max)
+    rospy.loginfo("plotPathfindingProblem 11")
     axes.set_aspect('equal')
+    rospy.loginfo("plotPathfindingProblem 12")
     plt.grid(True)
+    rospy.loginfo("plotPathfindingProblem 13")
     axes.set_xlabel('X distance to position (km)')
+    rospy.loginfo("plotPathfindingProblem 14")
     axes.set_ylabel('Y distance to position (km)')
+    rospy.loginfo("plotPathfindingProblem 15")
     axes.set_title('Setup of pathfinding problem (amountObstaclesShrinked = {})'.format(amountObstaclesShrinked))
+    rospy.loginfo("plotPathfindingProblem 16")
 
     # Add boats and wind speed arrow
     for ship in obstacles:
         axes.add_patch(patches.Ellipse((ship.x, ship.y), ship.width, ship.height, ship.angle))
 
+    rospy.loginfo("plotPathfindingProblem 17")
     arrowLength = min(dimensions[2]-dimensions[0], dimensions[3]-dimensions[1]) / 15
+    rospy.loginfo("plotPathfindingProblem 18")
     arrowCenter = (dimensions[0] + 1.5*arrowLength, dimensions[3] - 1.5*arrowLength)
+    rospy.loginfo("plotPathfindingProblem 19")
     arrowStart = (arrowCenter[0] - 0.5*arrowLength*math.cos(math.radians(globalWindDirectionDegrees)), arrowCenter[1] - 0.5*arrowLength*math.sin(math.radians(globalWindDirectionDegrees)))
+    rospy.loginfo("plotPathfindingProblem 20")
     windDirection = patches.FancyArrow(arrowStart[0], arrowStart[1], arrowLength*math.cos(math.radians(globalWindDirectionDegrees)), arrowLength*math.sin(math.radians(globalWindDirectionDegrees)), width=arrowLength/4)
+    rospy.loginfo("plotPathfindingProblem 21")
     axes.add_patch(windDirection)
+    rospy.loginfo("plotPathfindingProblem 22")
 
     # Draw plot
     plt.draw()
+    rospy.loginfo("plotPathfindingProblem 23")
     plt.pause(0.001)
+    rospy.loginfo("plotPathfindingProblem 24")
 
 def createLocalPathSS(state, runtimeSeconds=2, numRuns=2, plot=False, resetSpeedupDuringPlan=False, speedupBeforePlan=1.0):
     def getXYLimits(start, goal, extraLengthFraction=0.6):
@@ -196,7 +222,23 @@ def createLocalPathSS(state, runtimeSeconds=2, numRuns=2, plot=False, resetSpeed
 
     # Create non-blocking plot showing the setup of the pathfinding problem. Useful to understand if the pathfinding problem is invalid or impossible
     if plot:
+        rospy.loginfo("** About to plot")
         plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, obstacles, state.headingDegrees, amountShrinked)
+        rospy.loginfo("** Plotted")
+
+    # Take screenshot
+    rospy.loginfo("** About to screenshot")
+    time.sleep(1)
+    myScreenshot = pyautogui.screenshot()
+    rospy.loginfo("** Screenshot taken")
+    fullPath = os.path.dirname(os.path.abspath(__file__))
+    dateString = date.today().strftime("%b-%d-%Y")
+    folder = "{}/../images/{}".format(fullPath, dateString)
+    if not os.path.exists(folder):
+        os.mkdir(folder)
+    timeString = datetime.now().strftime('%H-%M-%S')
+    myScreenshot.save("{}/{}.png".format(folder, timeString))
+    rospy.loginfo("** Screenshot saved")
 
     def isValidSolution(solution, referenceLatlon, state):
         if not solution.haveExactSolutionPath():
@@ -240,7 +282,7 @@ def createLocalPathSS(state, runtimeSeconds=2, numRuns=2, plot=False, resetSpeed
     # If no valid solutions found, use the best invalid one. Do not perform any path simplifying on invalid paths.
     if len(solutions) == 0:
         bestSolution = min(invalidSolutions, key=lambda x: x.getSolutionPath().cost(x.getOptimizationObjective()).value())
-        bestSolutionPath = solution.getSolutionPath()
+        bestSolutionPath = bestSolution.getSolutionPath()
         minCost = bestSolutionPath.cost(bestSolution.getOptimizationObjective()).value()
     else:
 
