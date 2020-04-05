@@ -4,11 +4,13 @@
     <arg name="main_loop_output" default="screen" />
 
     <!-- Setup mocks. View launch_all_mocks.launch for argument descriptions. -->
+    <arg name="initial_speedup" default="1.0" />
     <arg name="ais_file" default="" />
     <arg name="gps_file" default="" />
     <arg name="goal_file" default="" />
     <arg name="wind_file" default="" />
     <include file="$(find local_pathfinding)/launch/launch_all_mocks.launch">
+      <arg name="initial_speedup" value="$(arg initial_speedup)"/>
       <arg name="ais_file" value="$(arg ais_file)"/>
       <arg name="gps_file" value="$(arg gps_file)"/>
       <arg name="goal_file" value="$(arg goal_file)"/>

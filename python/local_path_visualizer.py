@@ -11,7 +11,7 @@ from matplotlib import patches
 import time
 
 # Constants
-VISUALIZER_UPDATE_PERIOD_SECONDS = 1.0
+VISUALIZER_UPDATE_PERIOD_SECONDS = 0.1
 LATLON_TEXT_DECIMAL_PLACES = 3
 
 # Globals for callbacks
@@ -178,6 +178,9 @@ if __name__ == '__main__':
         positionLatlonText.set_text("(Lat: {}, Lon: {})".format(round(state.position.lat, LATLON_TEXT_DECIMAL_PLACES), round(state.position.lon, LATLON_TEXT_DECIMAL_PLACES)))
         nextGlobalWaypointLatlonText.set_position((nextGlobalWaypointXY[0], nextGlobalWaypointXY[1] + 0.5*arrowLength))
         nextGlobalWaypointLatlonText.set_text("(Lat: {}, Lon: {})".format(round(nextGlobalWaypoint.lat, LATLON_TEXT_DECIMAL_PLACES), round(nextGlobalWaypoint.lon, LATLON_TEXT_DECIMAL_PLACES)))
+
+        # Update speedup text
+        axes.set_title('Local Path Visualizer (speedup = {})'.format(speedup))
 
         # Add boats and wind speed arrow
         for ship in shipsXY:

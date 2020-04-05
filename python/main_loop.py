@@ -2,7 +2,6 @@
 
 import sys
 import rospy
-from std_msgs.msg import Bool
 import local_pathfinding.msg as msg
 from std_msgs.msg import Float64, String, Bool
 from Sailbot import *
@@ -10,7 +9,7 @@ from utilities import *
 import time
 
 # Constants
-MAIN_LOOP_PERIOD_SECONDS = 1.0
+MAIN_LOOP_PERIOD_SECONDS = 0.1
 
 # Global variable to receive path update requests
 localPathUpdateRequested = False
@@ -58,7 +57,7 @@ if __name__ == '__main__':
 
     # Create first path and track time of updates
     state = sailbot.getCurrentState()
-    localPathSS, solutionPathObject, referenceLatlon = createLocalPathSS(state, plot=True)
+    localPathSS, solutionPathObject, referenceLatlon = createLocalPathSS(state, plot=True, resetSpeedupDuringPlan=True, speedupBeforePlan=speedup)
     localPathLatlons = getLocalPathLatlons(solutionPathObject, referenceLatlon)
     localPathIndex = 1  # First waypoint is the start point, so second waypoint is the next local waypoint
     localWaypoint = getLocalWaypointLatLon(localPathLatlons, localPathIndex)
@@ -100,7 +99,7 @@ if __name__ == '__main__':
 
             # Update local path
             state = sailbot.getCurrentState()
-            localPathSS, solutionPathObject, referenceLatlon = createLocalPathSS(state, plot=True)
+            localPathSS, solutionPathObject, referenceLatlon = createLocalPathSS(state, plot=True, resetSpeedupDuringPlan=True, speedupBeforePlan=speedup)
             localPathLatlons = getLocalPathLatlons(solutionPathObject, referenceLatlon)
             localPathIndex = 1  # First waypoint is the start point, so second waypoint is the next local waypoint
             localWaypoint = getLocalWaypointLatLon(localPathLatlons, localPathIndex)
