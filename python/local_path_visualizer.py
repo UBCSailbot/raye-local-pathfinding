@@ -181,7 +181,7 @@ if __name__ == '__main__':
 
         # Add boats and wind speed arrow
         for ship in shipsXY:
-            axes.add_patch(ship.getPatch())
+            ship.addPatch(axes)
         arrowStart = (arrowCenter[0] - 0.5*arrowLength*math.cos(math.radians(globalWindDirectionDegrees)), arrowCenter[1] - 0.5*arrowLength*math.sin(math.radians(globalWindDirectionDegrees)))
         windDirection = patches.FancyArrow(arrowStart[0], arrowStart[1], arrowLength*math.cos(math.radians(globalWindDirectionDegrees)), arrowLength*math.sin(math.radians(globalWindDirectionDegrees)), width=arrowLength/4)
         axes.add_patch(windDirection)
