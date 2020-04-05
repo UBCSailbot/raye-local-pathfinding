@@ -145,10 +145,6 @@ if __name__ == '__main__':
         localPathXY = [latlonToXY(localWaypoint, referenceLatlon) for localWaypoint in localPath]
         localPathX = [xy[0] for xy in localPathXY]
         localPathY = [xy[1] for xy in localPathXY]
-        #shipsXY = extendObstaclesArray(state.AISData.ships, state.position, state.speedKmph, referenceLatlon)
-       # shipsXY = []
-       # for ship in state.AISData.ships:
-       #     shipsXY.append(Ellipse(ship, state.position, state.speedKmph, referenceLatlon))
         shipsXY = getObstacles(state.AISData.ships, state.position, state.speedKmph, referenceLatlon)
             
         # Update plots

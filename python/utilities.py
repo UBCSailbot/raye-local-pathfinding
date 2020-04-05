@@ -73,37 +73,6 @@ def XYToLatlon(xy, referenceLatlon):
     destination = y_distance.destination(point=(destination.latitude, destination.longitude), bearing=BEARING_NORTH)
     return latlon(destination.latitude, destination.longitude)
 
-#def isValid(xy, obstacles):
-#    delta = 0.001
-#    for obstacle in obstacles:
-#        x = xy[0] - obstacle.x
-#        y = xy[1] - obstacle.y
-#        x_ = math.cos(math.radians(obstacle.angle)) * x + math.sin(math.radians(obstacle.angle)) * y
-#        y_ = -math.sin(math.radians(obstacle.angle)) * x + math.cos(math.radians(obstacle.angle)) * y
-#        distance_center_to_boat = math.sqrt(x_ ** 2 + y_ ** 2)
-#        angle_center_to_boat = math.degrees(math.atan2(y_, x_))
-#        angle_center_to_boat = (angle_center_to_boat + 360) % 360
-#        
-#        a = obstacle.width * 0.5
-#        b = obstacle.height * 0.5
-#        
-#        t_param = math.atan2(a * y_, b * x_)
-#        edge_pt = ellipseFormula(obstacle, t_param) 
-#        distance_to_edge = math.sqrt((edge_pt[0] - obstacle.x) ** 2 +  (edge_pt[1] - obstacle.y) ** 2)
-#
-#        if distance_center_to_boat < distance_to_edge or math.fabs(distance_to_edge - distance_center_to_boat) <= delta: 
-#            return False
-#    return True
-#
-#def ellipseFormula(obstacle, t):
-#    init_pt = np.array([obstacle.x, obstacle.y])
-#    a = 0.5 * obstacle.width
-#    b = 0.5 * obstacle.height
-#    rotation_col1 = np.array([math.cos(math.radians(obstacle.angle)), math.sin(math.radians(obstacle.angle))]) 
-#    rotation_col2 = np.array([-math.sin(math.radians(obstacle.angle)), math.cos(math.radians(obstacle.angle))]) 
-#    edge_pt = init_pt + a * math.cos(t) * rotation_col1 + b * math.sin(t) * rotation_col2
-#    return edge_pt
-#
 def plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, obstacles, headingDegrees, amountObstaclesShrinked):
     # Clear plot if already there
     plt.cla()
