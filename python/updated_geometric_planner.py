@@ -36,7 +36,10 @@ def allocatePlanner(si, plannerType):
         ou.OMPL_ERROR("Planner-type is not implemented in allocation function.")
 
 
-def hasObstacleOnPath(positionXY, nextLocalWaypointIndex, numLookAheadWaypoints, localPathSS, obstacles):
+# Method that looks numLookAheadWaypoints ahead on path, starting from positionXY and nextLocalWaypointIndex.
+# Returns the index of the waypoint in which there is an obstacle when going to it.
+# Returns -1 if there are no obstacles on path.
+def indexOfObstacleOnPath(positionXY, nextLocalWaypointIndex, numLookAheadWaypoints, localPathSS, obstacles):
     # Set the objects used to check which states in the space are valid
     validity_checker = ph.ValidityChecker(localPathSS.getSpaceInformation(), obstacles)
     localPathSS.setStateValidityChecker(validity_checker)
@@ -51,10 +54,10 @@ def hasObstacleOnPath(positionXY, nextLocalWaypointIndex, numLookAheadWaypoints,
     if len(solutionPath.getStates()) <= 1:
         print("WARNING: len(solutionPath.getStates()) = {}. Expected >1.".format(len(solutionPath.getStates())))
         if len(solutionPath.getStates()) == 0:
-            return False
+            return -1
         else:
             hasObstacle = (not spaceInformation.isValid(solutionPath.getState(0)))
-            return hasObstacle
+            return 0 if hasObstacle else -1
 
     # Get the relevant states (ignore past states and use current position as first state)
     relevantStates = []
@@ -66,6 +69,7 @@ def hasObstacleOnPath(positionXY, nextLocalWaypointIndex, numLookAheadWaypoints,
         relevantStates.append(solutionPath.getState(stateIndex))
 
     # Interpolate between states and check for validity
+    resolution = spaceInformation.getStateValidityCheckingResolution() * stateSpace.getMaximumExtent()
     for stateIndex in range(1, len(relevantStates)):
         # Check in between these points
         prevState = relevantStates[stateIndex - 1]
@@ -73,7 +77,6 @@ def hasObstacleOnPath(positionXY, nextLocalWaypointIndex, numLookAheadWaypoints,
         interpolatedState = spaceInformation.allocState()
 
         # Setup checking resolution
-        resolution = spaceInformation.getStateValidityCheckingResolution() * stateSpace.getMaximumExtent()
         distance = stateSpace.distance(prevState, nextState)
         numPoints = int(distance / resolution)
 
@@ -87,7 +90,8 @@ def hasObstacleOnPath(positionXY, nextLocalWaypointIndex, numLookAheadWaypoints,
             stateSpace.interpolate(prevState, nextState, fraction, interpolatedState)
             hasObstacle = (not spaceInformation.isValid(interpolatedState))
             if hasObstacle:
-                return True
+                print("I FOUND AN OBSTACLE stateIndex = {}. fraction {}".format(stateIndex, fraction))
+                return stateIndex
 
     '''Uncomment to visualize the obstacles, relevant states, and all states
     ax = plt.gca()
@@ -114,7 +118,7 @@ def hasObstacleOnPath(positionXY, nextLocalWaypointIndex, numLookAheadWaypoints,
     plt.cla()
     '''
 
-    return False
+    return -1
 
 def plan(run_time, planner_type, objective_type, wind_direction_degrees, dimensions, start_pos, goal_pos, obstacles):
     # Construct the robot state space in which we're planning

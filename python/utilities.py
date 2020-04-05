@@ -24,8 +24,8 @@ GLOBAL_WAYPOINT_REACHED_RADIUS_KM = 10
 PATH_UPDATE_TIME_LIMIT_SECONDS = 7200
 
 # Pathfinding constants
-MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS = 30
-INCREASE_RUNTIME_FACTOR = 2.0
+MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS = 120.0
+INCREASE_RUNTIME_FACTOR = 1.5
 
 # Scale NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES and NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND to change based on waypoint distance
 LOOK_AHEAD_FOR_OBSTACLES_KM = 20
@@ -56,6 +56,10 @@ AIS_BOAT_CIRCLE_SPACING_KM = AIS_BOAT_RADIUS_KM * 1.5  # Distance between circle
 
 # Upwind downwind detection
 UPWIND_DOWNWIND_COUNTER_LIMIT = 3
+
+# Constants for pathfinding updates
+COST_THRESHOLD = 12000
+MAX_ALLOWABLE_DISTANCE_FINAL_WAYPOINT_TO_GOAL_KM = 5
 
 def latlonToXY(latlon, referenceLatlon):
     x = distance((referenceLatlon.lat, referenceLatlon.lon), (referenceLatlon.lat, latlon.lon)).kilometers
@@ -155,10 +159,7 @@ def createLocalPathSS(state, runtimeSeconds=2, numRuns=4, plot=False):
     def isValidSolution(solution, referenceLatlon, state):
         if not solution.haveExactSolutionPath():
             return False
-        # TODO: Check if this is needed or redundant. Sometimes it seemed like exact solution paths kept having obstacles on them, so it kept re-running, but need to do more testing
-        if obstacleOnPath(state=state, nextLocalWaypointIndex=1, localPathSS=solution, referenceLatlon=referenceLatlon, numLookAheadWaypoints=len(solution.getSolutionPath().getStates()) - 1):
-            return False
-        # TODO: Investigate if we should put a max cost threshold that makes paths too convoluted to be acceptable
+        # TODO: Investigate if we should put a max cost threshold that makes convoluted paths unacceptable
         return True
 
     solutions = []
@@ -296,7 +297,11 @@ def obstacleOnPath(state, nextLocalWaypointIndex, localPathSS, referenceLatlon, 
     if nextLocalWaypointIndex + numLookAheadWaypoints > len(localPathSS.getSolutionPath().getStates()):
         numLookAheadWaypoints = len(localPathSS.getSolutionPath().getStates()) - nextLocalWaypointIndex
 
-    return hasObstacleOnPath(positionXY, nextLocalWaypointIndex, numLookAheadWaypoints, localPathSS, obstacles)
+    waypointIndexWithObstacle = indexOfObstacleOnPath(positionXY, nextLocalWaypointIndex, numLookAheadWaypoints, localPathSS, obstacles)
+    if waypointIndexWithObstacle != -1:
+        rospy.logwarn("Obstacle on path. waypointIndexWithObstacle: {}".format(waypointIndexWithObstacle))
+        return True
+    return False
 
 def globalWaypointReached(position, globalWaypoint):
     sailbot = (position.lat, position.lon)
@@ -700,3 +705,11 @@ def getObstacles(ships, position, speedKmph, referenceLatlon):
         for ship in ships:
             obstacles.append(Circles(ship, position, speedKmph, referenceLatlon))
     return obstacles
+
+def pathCostThresholdExceeded(ss):
+    return ss.getSolutionPath().cost(ss.getOptimizationObjective()).value() > COST_THRESHOLD
+
+def pathDoesNotReachGoal(localPath, goal):
+    lastWaypoint = (localPath[len(localPath) - 1].lat, localPath[len(localPath) - 1].lon)
+    goal = (goal.lat, goal.lon)
+    return distance(lastWaypoint, goal).kilometers > MAX_ALLOWABLE_DISTANCE_FINAL_WAYPOINT_TO_GOAL_KM
