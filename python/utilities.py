@@ -9,7 +9,7 @@ import rospy
 import time
 import sys
 from plotting import plot_path, plot_path_2
-from updated_geometric_planner import plan, hasObstacleOnPath
+from updated_geometric_planner import plan, indexOfObstacleOnPath
 from planner_helpers import isUpwind, isDownwind
 import math 
 from geopy.distance import distance
