@@ -3,6 +3,7 @@ from ompl import util as ou
 from ompl import geometric as og
 import rospy
 import time
+import sys
 from plotting import plot_path, plot_path_2
 from updated_geometric_planner import plan, Obstacle, indexOfObstacleOnPath
 from planner_helpers import isUpwind, isDownwind
@@ -229,56 +230,53 @@ def createLocalPathSS(state, runtimeSeconds=2, numRuns=4, plot=False):
         else:
             invalidSolutions.append(solution)
 
-    # If no valid solutions found, use the best invalid one.
+    # If no valid solutions found, use the best invalid one. Do not perform any path simplifying on invalid paths.
     if len(solutions) == 0:
-        solution = min(invalidSolutions, key=lambda x: x.getSolutionPath().cost(x.getOptimizationObjective()).value())
-        solutionPath = solution.getSolutionPath()
+        bestSolution = min(invalidSolutions, key=lambda x: x.getSolutionPath().cost(x.getOptimizationObjective()).value())
+        bestSolutionPath = solution.getSolutionPath()
     else:
-        pathSSPairs = []
+
+        # Find path with minimum cost. Can be either simplified or unsimplified path.
+        # Need to recheck that simplified paths are valid before using
+        minCost = sys.maxsize
+        bestSolution = None
+        bestSolutionPath = None
         for solution in solutions:
-            # Get unsimplified path
+            # Check unsimplified path
             unsimplifiedPath = og.PathGeometric(solution.getSolutionPath())
             unsimplifiedCost = unsimplifiedPath.cost(solution.getOptimizationObjective()).value()
-            pathSSPairs.append((unsimplifiedPath, solution, "unsimplified", unsimplifiedCost))
+            if unsimplifiedCost < minCost:
+                rospy.loginfo("Updating path from cost {} to cost {}".format(minCost, unsimplifiedCost))
+                bestSolution = solution
+                bestSolutionPath = unsimplifiedPath
+                minCost = unsimplifiedCost
 
-            # Get simplified path
+            # Check simplified path
             solution.simplifySolution()
             simplifiedPath = solution.getSolutionPath()
             simplifiedCost = simplifiedPath.cost(solution.getOptimizationObjective()).value()
-            rospy.loginfo("unsimplifiedCost = {}. simplifiedCost = {}".format(unsimplifiedCost, simplifiedCost))
+            if simplifiedCost < minCost:
+                # Double check that simplified path is valid
+                nextLocalWaypointIndex = 1  # Start at first possible waypoint (0 is boat position)
+                hasObstacleOnPath = obstacleOnPath(state, nextLocalWaypointIndex, solution, simplifiedPath, referenceLatlon)
+                hasUpwindOrDownwindOnPath = upwindOrDownwindOnPath(state, nextLocalWaypointIndex, simplifiedPath, referenceLatlon)
+                isStillValid = not hasObstacleOnPath and not hasUpwindOrDownwindOnPath
+                if isStillValid:
+                    rospy.loginfo("Updating path from cost {} to cost {}".format(minCost, simplifiedCost))
+                    bestSolution = solution
+                    bestSolutionPath = simplifiedPath
+                    minCost = simplifiedCost
 
-            if obstacleOnPath(state, 1, solution, simplifiedPath, referenceLatlon):
-                rospy.loginfo("Found obstacle on path in simplified path")
-            elif upwindOrDownwindOnPath(state, 1, simplifiedPath, referenceLatlon):
-                rospy.loginfo("Found upwind/downwind on path in simplified path")
-            else:
-                rospy.loginfo("Adding simplified path as option")
-                pathSSPairs.append((simplifiedPath, solution, "simplified", simplifiedCost))
-
-            rospy.loginfo("**************************************")
-
-        bestPair = None
-        minCost = 1000000000
-        for pair in pathSSPairs:
-            path, sol, label, cost = pair
-            if cost < minCost:
-                bestPair = pair
-                minCost = cost
-
-        path, sol, label, cost = bestPair
-
-        solution = sol
-        solutionPath = path
-        rospy.loginfo("----- Min cost selected is: {}".format(cost))
+        rospy.loginfo("Found solution with cost: {}".format(minCost))
 
     # Set the average distance between waypoints
-    localPathLengthKm = solutionPath.length()
+    localPathLengthKm = bestSolutionPath.length()
     numberOfLocalWaypoints = int(localPathLengthKm / AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM)
-    solutionPath.interpolate(numberOfLocalWaypoints)
+    bestSolutionPath.interpolate(numberOfLocalWaypoints)
 
     # Close any plots
     plt.close()
-    return solution, solutionPath, referenceLatlon
+    return bestSolution, bestSolutionPath, referenceLatlon
 
 def getLocalPathLatlons(solutionPathObject, referenceLatlon):
     # Convert solution path (in km WRT reference) into list of latlons
