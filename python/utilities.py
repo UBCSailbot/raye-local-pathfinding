@@ -234,6 +234,7 @@ def createLocalPathSS(state, runtimeSeconds=2, numRuns=4, plot=False):
     if len(solutions) == 0:
         bestSolution = min(invalidSolutions, key=lambda x: x.getSolutionPath().cost(x.getOptimizationObjective()).value())
         bestSolutionPath = solution.getSolutionPath()
+        minCost = bestSolutionPath.cost(bestSolution.getOptimizationObjective()).value()
     else:
 
         # Find path with minimum cost. Can be either simplified or unsimplified path.
@@ -246,7 +247,6 @@ def createLocalPathSS(state, runtimeSeconds=2, numRuns=4, plot=False):
             unsimplifiedPath = og.PathGeometric(solution.getSolutionPath())
             unsimplifiedCost = unsimplifiedPath.cost(solution.getOptimizationObjective()).value()
             if unsimplifiedCost < minCost:
-                rospy.loginfo("Updating path from cost {} to cost {}".format(minCost, unsimplifiedCost))
                 bestSolution = solution
                 bestSolutionPath = unsimplifiedPath
                 minCost = unsimplifiedCost
@@ -262,12 +262,11 @@ def createLocalPathSS(state, runtimeSeconds=2, numRuns=4, plot=False):
                 hasUpwindOrDownwindOnPath = upwindOrDownwindOnPath(state, nextLocalWaypointIndex, simplifiedPath, referenceLatlon)
                 isStillValid = not hasObstacleOnPath and not hasUpwindOrDownwindOnPath
                 if isStillValid:
-                    rospy.loginfo("Updating path from cost {} to cost {}".format(minCost, simplifiedCost))
                     bestSolution = solution
                     bestSolutionPath = simplifiedPath
                     minCost = simplifiedCost
 
-        rospy.loginfo("Found solution with cost: {}".format(minCost))
+    rospy.loginfo("Found solution with cost: {}".format(minCost))
 
     # Set the average distance between waypoints
     localPathLengthKm = bestSolutionPath.length()
