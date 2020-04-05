@@ -240,7 +240,7 @@ def createLocalPathSS(state, runtimeSeconds=2, numRuns=2, plot=False, resetSpeed
     # If no valid solutions found, use the best invalid one. Do not perform any path simplifying on invalid paths.
     if len(solutions) == 0:
         bestSolution = min(invalidSolutions, key=lambda x: x.getSolutionPath().cost(x.getOptimizationObjective()).value())
-        bestSolutionPath = solution.getSolutionPath()
+        bestSolutionPath = bestSolution.getSolutionPath()
         minCost = bestSolutionPath.cost(bestSolution.getOptimizationObjective()).value()
     else:
 
