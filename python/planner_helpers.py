@@ -42,36 +42,11 @@ class ValidityChecker(ob.StateValidityChecker):
 
     # Returns whether the given state's position overlaps the ellipse
     def isValid(self, state):
-        delta = 0.001
         xy = [state.getX(), state.getY()]
         for obstacle in self.obstacles:
-            x = xy[0] - obstacle.x
-            y = xy[1] - obstacle.y
-            x_ = math.cos(math.radians(obstacle.angle)) * x + math.sin(math.radians(obstacle.angle)) * y
-            y_ = -math.sin(math.radians(obstacle.angle)) * x + math.cos(math.radians(obstacle.angle)) * y
-            distance_center_to_boat = math.sqrt(x_ ** 2 + y_ ** 2)
-            angle_center_to_boat = math.degrees(math.atan2(y_, x_))
-            angle_center_to_boat = (angle_center_to_boat + 360) % 360
-            
-            a = obstacle.width * 0.5
-            b = obstacle.height * 0.5
-            
-            t_param = math.atan2(a * y_, b * x_)
-            edge_pt = self.ellipseFormula(obstacle, t_param) 
-            distance_to_edge = math.sqrt((edge_pt[0] - obstacle.x) ** 2 +  (edge_pt[1] - obstacle.y) ** 2)
-
-            if distance_center_to_boat < distance_to_edge or math.fabs(distance_to_edge - distance_center_to_boat) <= delta: 
+            if not obstacle.isValid(xy):
                 return False
         return True
-
-    def ellipseFormula(self, obstacle, t):
-        init_pt = np.array([obstacle.x, obstacle.y])
-        a = 0.5 * obstacle.width
-        b = 0.5 * obstacle.height
-        rotation_col1 = np.array([math.cos(math.radians(obstacle.angle)), math.sin(math.radians(obstacle.angle))]) 
-        rotation_col2 = np.array([-math.sin(math.radians(obstacle.angle)), math.cos(math.radians(obstacle.angle))]) 
-        edge_pt = init_pt + a * math.cos(t) * rotation_col1 + b * math.sin(t) * rotation_col2
-        return edge_pt
 
     # Returns the distance from the given state's position to the
     # boundary of the circular obstacle.
