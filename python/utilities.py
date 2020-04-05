@@ -288,7 +288,7 @@ def getLocalPathLatlons(solutionPathObject, referenceLatlon):
         localPath.append(XYToLatlon(xy, referenceLatlon))
     return localPath
 
-def upwindOrDownwindOnPath(state, nextLocalWaypointIndex, solutionPathObject, referenceLatlon, numLookAheadWaypoints=None):
+def upwindOrDownwindOnPath(state, nextLocalWaypointIndex, solutionPathObject, referenceLatlon, numLookAheadWaypoints=None, showWarnings=False):
     # Default behavior when numLookAheadWaypoints is not given
     if numLookAheadWaypoints is None:
         numLookAheadWaypoints = len(solutionPathObject.getStates()) - nextLocalWaypointIndex
@@ -315,12 +315,14 @@ def upwindOrDownwindOnPath(state, nextLocalWaypointIndex, solutionPathObject, re
         requiredHeadingDegrees = math.degrees(math.atan2(waypoint[1] - prevWaypoint[1], waypoint[0] - prevWaypoint[0]))
 
         if isDownwind(math.radians(globalWindDirectionDegrees), math.radians(requiredHeadingDegrees)):
-            rospy.logwarn("Downwind sailing on path. globalWindDirectionDegrees: {}. requiredHeadingDegrees: {}. waypointIndex: {}".format(globalWindDirectionDegrees, requiredHeadingDegrees, waypointIndex))
+            if showWarnings:
+                rospy.logwarn("Downwind sailing on path. globalWindDirectionDegrees: {}. requiredHeadingDegrees: {}. waypointIndex: {}".format(globalWindDirectionDegrees, requiredHeadingDegrees, waypointIndex))
             upwindOrDownwind = True
             break
 
         elif isUpwind(math.radians(globalWindDirectionDegrees), math.radians(requiredHeadingDegrees)):
-            rospy.logwarn("Upwind sailing on path. globalWindDirectionDegrees: {}. requiredHeadingDegrees: {}. waypointIndex: {}".format(globalWindDirectionDegrees, requiredHeadingDegrees, waypointIndex))
+            if showWarnings:
+                rospy.logwarn("Upwind sailing on path. globalWindDirectionDegrees: {}. requiredHeadingDegrees: {}. waypointIndex: {}".format(globalWindDirectionDegrees, requiredHeadingDegrees, waypointIndex))
             upwindOrDownwind = True
             break
 
@@ -344,7 +346,7 @@ def upwindOrDownwindOnPath(state, nextLocalWaypointIndex, solutionPathObject, re
     else:
         return False
 
-def obstacleOnPath(state, nextLocalWaypointIndex, localPathSS, solutionPathObject, referenceLatlon, numLookAheadWaypoints=None):
+def obstacleOnPath(state, nextLocalWaypointIndex, localPathSS, solutionPathObject, referenceLatlon, numLookAheadWaypoints=None, showWarnings=False):
     # Check if path will hit objects
     positionXY = latlonToXY(state.position, referenceLatlon)
     obstacles = extendObstaclesArray(state.AISData.ships, state.position, state.speedKmph, referenceLatlon)
@@ -369,7 +371,8 @@ def obstacleOnPath(state, nextLocalWaypointIndex, localPathSS, solutionPathObjec
 
     waypointIndexWithObstacle = indexOfObstacleOnPath(positionXY, nextLocalWaypointIndex, numLookAheadWaypoints, localPathSS, solutionPathObject, obstacles)
     if waypointIndexWithObstacle != -1:
-        rospy.logwarn("Obstacle on path. waypointIndexWithObstacle: {}".format(waypointIndexWithObstacle))
+        if showWarnings:
+            rospy.logwarn("Obstacle on path. waypointIndexWithObstacle: {}".format(waypointIndexWithObstacle))
         return True
     return False
 
