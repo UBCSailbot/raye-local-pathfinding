@@ -144,7 +144,7 @@ def createLocalPathSS(state, runtimeSeconds=2, numRuns=4, plot=False):
         rospy.logerr("start or goal state is not valid")
         rospy.logerr("Shrinking obstacles by a factor of {}".format(shrinkFactor))
         for obstacle in obstacles:
-            obstacle.shrink()
+            obstacle.shrink(shrinkFactor)
         amountShrinked *= shrinkFactor
     if amountShrinked > 1.0000001:
         rospy.logerr("Obstacles have been shrinked by factor of {}".format(amountShrinked))
