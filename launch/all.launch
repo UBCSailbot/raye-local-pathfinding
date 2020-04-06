@@ -5,6 +5,7 @@
 
     <!-- Setup mocks. View launch_all_mocks.launch for argument descriptions. -->
     <arg name="speedup" default="1.0" />
+    <arg name="obstacle_type" default="ellipse" />
     <arg name="ais_file" default="" />
     <arg name="gps_file" default="" />
     <arg name="goal_file" default="" />
@@ -15,6 +16,7 @@
       <arg name="gps_file" value="$(arg gps_file)"/>
       <arg name="goal_file" value="$(arg goal_file)"/>
       <arg name="wind_file" value="$(arg wind_file)"/>
+      <arg name="obstacle_type" value="$(arg obstacle_type)"/>
     </include>
 
     <node pkg="local_pathfinding" type="main_loop.py" name="main_loop" output="$(arg main_loop_output)"/>
