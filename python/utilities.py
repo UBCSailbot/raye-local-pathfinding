@@ -98,9 +98,9 @@ def plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, 
     rospy.loginfo("plotPathfindingProblem 4")
     axes = plt.gca()
     rospy.loginfo("plotPathfindingProblem 5")
-    goalPlot, = axes.plot(goal[0], goal[6], marker='*', color='y', markersize=markersize)                          # Yellow star
+    goalPlot, = axes.plot(goal[0], goal[1], marker='*', color='y', markersize=markersize)                          # Yellow star
     rospy.loginfo("plotPathfindingProblem 7")
-    startPlot, = axes.plot(start[0], start[8], marker=(3,0,headingDegrees - 90), color='r', markersize=markersize) # Red triangle with correct heading. The (-90) is because the triangle default heading 0 points North, but this heading has 0 be East.
+    startPlot, = axes.plot(start[0], start[1], marker=(3,0,headingDegrees - 90), color='r', markersize=markersize) # Red triangle with correct heading. The (-90) is because the triangle default heading 0 points North, but this heading has 0 be East.
     rospy.loginfo("plotPathfindingProblem 9")
 
     # Setup plot xy limits and labels
