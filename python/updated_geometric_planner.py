@@ -12,17 +12,6 @@ from matplotlib import patches
 
 VALIDITY_CHECKING_RESOLUTION = 0.001  # Default 0.01
 
-class Obstacle:
-    def __init__(self, x, y, width, height, angle):
-        self.x = x
-        self.y = y
-        self.width = width
-        self.height = height
-        self.angle = angle
-    def __str__(self):
-        return str((self.x, self.y, self.height, self.width, self.angle))
-
-
 def absolute_distance_between_angles(angle1, angle2):
     fabs = math.fabs(math.atan2(math.sin(angle1 - angle2), math.cos(angle1 - angle2)))
     return fabs
