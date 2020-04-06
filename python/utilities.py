@@ -838,11 +838,11 @@ def removePastWaypointsInSolutionPath(ss, solutionPathObject, referenceLatlon, s
     lengthBefore = solutionPathObject.getStateCount()
     solutionPathObject.keepAfter(start)
     lengthAfter = solutionPathObject.getStateCount()
-    rospy.loginfo("lengthBefore = {}. lengthAfter = {}".format(lengthBefore, lengthAfter))
-    if lengthAfter - lengthBefore == 0:
-        rospy.loginfo("No length change")
+    rospy.logerr("lengthBefore = {}. lengthAfter = {}".format(lengthBefore, lengthAfter))
+    if lengthBefore - lengthAfter <= 1:
+        rospy.logerr("No need to add current position")
     else:
-        rospy.loginfo("Length change! Adding in start")
+        rospy.logerr("Adding start")
         solutionPathObject.prepend(start)
 
     return lengthBefore - lengthAfter
