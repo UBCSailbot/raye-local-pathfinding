@@ -80,9 +80,9 @@ if __name__ == '__main__':
         costTooHigh = pathCostThresholdExceeded(localPathSS.getOptimizationObjective(), solutionPathObject)
         pathNotReachGoal = pathDoesNotReachGoal(localPathLatlons, state.globalWaypoint)
         isLocalWaypointReached = localWaypointReached(state.position, localPathLatlons, localPathIndex, referenceLatlon)
-        if hasUpwindOrDownwindOnPath or hasObstacleOnPath or isTimeLimitExceeded or isGlobalWaypointReached or newGlobalPathReceived or localPathIndexOutOfBounds or localPathUpdateRequested or costTooHigh or pathNotReachGoal or isLocalWaypointReached:
+        if hasUpwindOrDownwindOnPath or hasObstacleOnPath or isTimeLimitExceeded or isGlobalWaypointReached or newGlobalPathReceived or localPathIndexOutOfBounds or localPathUpdateRequested or costTooHigh or pathNotReachGoal:
             # Log reason for local path update
-            rospy.logwarn("Updating Local Path. Reason: hasUpwindOrDownwindOnPath? {}. hasObstacleOnPath? {}. isTimeLimitExceeded? {}. isGlobalWaypointReached? {}. newGlobalPathReceived? {}. localPathIndexOutOfBounds? {}. localPathUpdateRequested? {}. costTooHigh? {}. pathNotReachGoal? {}. isLocalWaypointReached? {}".format(hasUpwindOrDownwindOnPath, hasObstacleOnPath, isTimeLimitExceeded, isGlobalWaypointReached, newGlobalPathReceived, localPathIndexOutOfBounds, localPathUpdateRequested, costTooHigh, pathNotReachGoal, isLocalWaypointReached))
+            rospy.logwarn("Updating Local Path. Reason: hasUpwindOrDownwindOnPath? {}. hasObstacleOnPath? {}. isTimeLimitExceeded? {}. isGlobalWaypointReached? {}. newGlobalPathReceived? {}. localPathIndexOutOfBounds? {}. localPathUpdateRequested? {}. costTooHigh? {}. pathNotReachGoal? {}".format(hasUpwindOrDownwindOnPath, hasObstacleOnPath, isTimeLimitExceeded, isGlobalWaypointReached, newGlobalPathReceived, localPathIndexOutOfBounds, localPathUpdateRequested, costTooHigh, pathNotReachGoal))
 
             # Reset saiblot newGlobalPathReceived boolean
             if localPathUpdateRequested:
@@ -104,6 +104,17 @@ if __name__ == '__main__':
             localPathIndex = 1  # First waypoint is the start point, so second waypoint is the next local waypoint
             localWaypoint = getLocalWaypointLatLon(localPathLatlons, localPathIndex)
             lastTimePathCreated = time.time()
+        elif isLocalWaypointReached:
+            lengthChange = removePastWaypointsInSolutionPath(localPathSS, solutionPathObject, referenceLatlon, state)
+            if lengthChange == 0:
+                localPathLatlons = getLocalPathLatlons(solutionPathObject, referenceLatlon)
+                localPathIndex += 1
+                localWaypoint = getLocalWaypointLatLon(localPathLatlons, localPathIndex)
+            else:
+                localPathLatlons = getLocalPathLatlons(solutionPathObject, referenceLatlon)
+                localPathIndex = 1
+                localWaypoint = getLocalWaypointLatLon(localPathLatlons, localPathIndex)
+
 
 
         # Publish desiredHeading
@@ -115,6 +126,7 @@ if __name__ == '__main__':
 
         # Update wind direction of localPathSS
         updateWindDirectionInSS(localPathSS, state)
+        updateObjectsInSS(localPathSS, referenceLatlon, state)
 
         # Publish nextLocalWaypoint and nextGlobalWaypoint and path cost
         nextLocalWaypointPublisher.publish(localWaypoint)

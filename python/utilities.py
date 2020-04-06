@@ -4,6 +4,7 @@ from datetime import date
 import pyautogui
 import os
 from ompl import util as ou
+from ompl import base as ob
 from ompl import geometric as og
 import rospy
 import time
@@ -817,3 +818,31 @@ def updateWindDirectionInSS(ss, state):
             return
 
     rospy.logwarn("updateWindDirectionInSS() was unsuccessful. Wind direction was not updated")
+
+def updateObjectsInSS(ss, referenceLatlon, state):
+    # Set the objects used to check which states in the space are valid
+    obstacles = getObstacles(state.AISData.ships, state.position, state.speedKmph, referenceLatlon)
+    validity_checker = ph.ValidityChecker(ss.getSpaceInformation(), obstacles)
+    ss.setStateValidityChecker(validity_checker)
+    # ss.setup() DO WE NEED THIS?
+
+
+def removePastWaypointsInSolutionPath(ss, solutionPathObject, referenceLatlon, state):
+    # TODO Check if keepAfter method can be used here safely
+    # Or just use new path
+    # Get current position in xy coordinates
+    positionXY = latlonToXY(state.position, referenceLatlon)
+    start = ss.getSpaceInformation().allocState()
+    start.setXY(positionXY[0], positionXY[1])
+
+    lengthBefore = solutionPathObject.getStateCount()
+    solutionPathObject.keepAfter(start)
+    lengthAfter = solutionPathObject.getStateCount()
+    rospy.loginfo("lengthBefore = {}. lengthAfter = {}".format(lengthBefore, lengthAfter))
+    if lengthAfter - lengthBefore == 0:
+        rospy.loginfo("No length change")
+    else:
+        rospy.loginfo("Length change! Adding in start")
+        solutionPathObject.prepend(start)
+
+    return lengthBefore - lengthAfter
