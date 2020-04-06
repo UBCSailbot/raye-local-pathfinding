@@ -72,23 +72,14 @@ if __name__ == '__main__':
 
         # Generate new local path if needed
         hasUpwindOrDownwindOnPath = upwindOrDownwindOnPath(state, localPathIndex, solutionPathObject, referenceLatlon, numLookAheadWaypoints=NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND, showWarnings=True)
-        rospy.loginfo("1")
         hasObstacleOnPath = obstacleOnPath(state, localPathIndex, localPathSS, solutionPathObject, referenceLatlon, numLookAheadWaypoints=NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES, showWarnings=True)
-        rospy.loginfo("2")
         isTimeLimitExceeded = timeLimitExceeded(lastTimePathCreated, speedup)
-        rospy.loginfo("3")
         isGlobalWaypointReached = globalWaypointReached(state.position, state.globalWaypoint)
-        rospy.loginfo("4")
         newGlobalPathReceived = sailbot.newGlobalPathReceived
-        rospy.loginfo("5")
         localPathIndexOutOfBounds = localPathIndex >= len(localPathLatlons)
-        rospy.loginfo("6")
         costTooHigh = pathCostThresholdExceeded(localPathSS.getOptimizationObjective(), solutionPathObject)
-        rospy.loginfo("7")
         pathNotReachGoal = pathDoesNotReachGoal(localPathLatlons, state.globalWaypoint)
-        rospy.loginfo("8")
         isLocalWaypointReached = localWaypointReached(state.position, localPathLatlons, localPathIndex, referenceLatlon)
-        rospy.loginfo("9")
         if hasUpwindOrDownwindOnPath or hasObstacleOnPath or isTimeLimitExceeded or isGlobalWaypointReached or newGlobalPathReceived or localPathIndexOutOfBounds or localPathUpdateRequested or costTooHigh or pathNotReachGoal or isLocalWaypointReached:
             # Log reason for local path update
             rospy.logwarn("Updating Local Path. Reason: hasUpwindOrDownwindOnPath? {}. hasObstacleOnPath? {}. isTimeLimitExceeded? {}. isGlobalWaypointReached? {}. newGlobalPathReceived? {}. localPathIndexOutOfBounds? {}. localPathUpdateRequested? {}. costTooHigh? {}. pathNotReachGoal? {}. isLocalWaypointReached? {}".format(hasUpwindOrDownwindOnPath, hasObstacleOnPath, isTimeLimitExceeded, isGlobalWaypointReached, newGlobalPathReceived, localPathIndexOutOfBounds, localPathUpdateRequested, costTooHigh, pathNotReachGoal, isLocalWaypointReached))
@@ -109,33 +100,27 @@ if __name__ == '__main__':
             # Update local path
             state = sailbot.getCurrentState()
             localPathSS, solutionPathObject, referenceLatlon = createLocalPathSS(state, plot=True, resetSpeedupDuringPlan=True, speedupBeforePlan=speedup)
-            rospy.loginfo("Successfully ran createLocalPathSS()")
             localPathLatlons = getLocalPathLatlons(solutionPathObject, referenceLatlon)
-            rospy.loginfo("Successfully ran getLocalPathLatlons()")
             localPathIndex = 1  # First waypoint is the start point, so second waypoint is the next local waypoint
             localWaypoint = getLocalWaypointLatLon(localPathLatlons, localPathIndex)
-            rospy.loginfo("Successfully ran getLocalWaypointLatLon()")
             lastTimePathCreated = time.time()
 
 
         # Publish desiredHeading
         desiredHeadingMsg.headingDegrees = getDesiredHeading(state.position, localWaypoint)
         desiredHeadingPublisher.publish(desiredHeadingMsg)
-        rospy.loginfo("Published desiredHeading")
 
         # Publish local path
         localPathPublisher.publish(msg.path(localPathLatlons))
-        rospy.loginfo("Published localPathLatlons")
+
+        # Update wind direction of localPathSS
+        updateWindDirectionInSS(localPathSS, state)
 
         # Publish nextLocalWaypoint and nextGlobalWaypoint and path cost
         nextLocalWaypointPublisher.publish(localWaypoint)
-        rospy.loginfo("Published localWaypoint")
         nextGlobalWaypointPublisher.publish(state.globalWaypoint)
-        rospy.loginfo("Published state.globalWaypoint")
         pathCostPublisher.publish(solutionPathObject.cost(localPathSS.getOptimizationObjective()).value())
-        rospy.loginfo("Published cost")
         pathCostBreakdownPublisher.publish(getPathCostBreakdownString(localPathSS.getOptimizationObjective(), solutionPathObject))
-        rospy.loginfo("Published costBreakdown")
 
         # If there are any plots, give some time for them to respond to requests, such as closing
         plt.pause(0.001)

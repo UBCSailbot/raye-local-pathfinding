@@ -10,7 +10,7 @@ import time
 import sys
 from plotting import plot_path, plot_path_2
 from updated_geometric_planner import plan, indexOfObstacleOnPath
-from planner_helpers import isUpwind, isDownwind
+import planner_helpers as ph
 import math 
 from geopy.distance import distance
 import geopy.distance
@@ -62,7 +62,7 @@ AIS_BOAT_RADIUS_KM = 0.2
 AIS_BOAT_CIRCLE_SPACING_KM = AIS_BOAT_RADIUS_KM * 1.5  # Distance between circles that make up an AIS boat
 
 # Upwind downwind detection
-UPWIND_DOWNWIND_COUNTER_LIMIT = 3
+UPWIND_DOWNWIND_COUNTER_LIMIT = 30
 
 # Constants for pathfinding updates
 COST_THRESHOLD = 12000
@@ -333,13 +333,13 @@ def upwindOrDownwindOnPath(state, nextLocalWaypointIndex, solutionPathObject, re
         prevWaypoint = relevantWaypoints[waypointIndex - 1]
         requiredHeadingDegrees = math.degrees(math.atan2(waypoint[1] - prevWaypoint[1], waypoint[0] - prevWaypoint[0]))
 
-        if isDownwind(math.radians(globalWindDirectionDegrees), math.radians(requiredHeadingDegrees)):
+        if ph.isDownwind(math.radians(globalWindDirectionDegrees), math.radians(requiredHeadingDegrees)):
             if showWarnings:
                 rospy.logwarn("Downwind sailing on path. globalWindDirectionDegrees: {}. requiredHeadingDegrees: {}. waypointIndex: {}".format(globalWindDirectionDegrees, requiredHeadingDegrees, waypointIndex))
             upwindOrDownwind = True
             break
 
-        elif isUpwind(math.radians(globalWindDirectionDegrees), math.radians(requiredHeadingDegrees)):
+        elif ph.isUpwind(math.radians(globalWindDirectionDegrees), math.radians(requiredHeadingDegrees)):
             if showWarnings:
                 rospy.logwarn("Upwind sailing on path. globalWindDirectionDegrees: {}. requiredHeadingDegrees: {}. waypointIndex: {}".format(globalWindDirectionDegrees, requiredHeadingDegrees, waypointIndex))
             upwindOrDownwind = True
@@ -805,3 +805,15 @@ def pathDoesNotReachGoal(localPathLatlons, goal):
     lastWaypoint = (localPathLatlons[len(localPathLatlons) - 1].lat, localPathLatlons[len(localPathLatlons) - 1].lon)
     goal = (goal.lat, goal.lon)
     return distance(lastWaypoint, goal).kilometers > MAX_ALLOWABLE_DISTANCE_FINAL_WAYPOINT_TO_GOAL_KM
+
+
+def updateWindDirectionInSS(ss, state):
+    globalWindSpeedKmph, globalWindDirectionDegrees = measuredWindToGlobalWind(state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
+    objective = ss.getOptimizationObjective()  # Assumes balanced objective
+
+    for i in range(objective.getObjectiveCount()):
+        if isinstance(objective.getObjective(i), ph.WindObjective):
+            objective.getObjective(i).windDirectionDegrees = globalWindDirectionDegrees
+            return
+
+    rospy.logwarn("updateWindDirectionInSS() was unsuccessful. Wind direction was not updated")

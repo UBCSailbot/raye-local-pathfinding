@@ -151,7 +151,7 @@ def plan(run_time, planner_type, objective_type, wind_direction_degrees, dimensi
     # Create the optimization objective (helper function is simply a switch statement) and set wind direction
     objective = ph.allocate_objective(si, objective_type)
     for i in range(objective.getObjectiveCount()):
-        if type(objective.getObjective(i)) is ph.WindObjective:
+        if isinstance(objective.getObjective(i), ph.WindObjective):
             objective.getObjective(i).windDirectionDegrees = wind_direction_degrees
     ss.setOptimizationObjective(objective)
 
