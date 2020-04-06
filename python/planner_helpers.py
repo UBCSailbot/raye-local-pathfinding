@@ -23,7 +23,7 @@ DOWNWIND_MAX_ANGLE_DEGREES = 30.0
 
 # Balanced objective constants
 LENGTH_WEIGHT = 1.0
-CLEARANCE_WEIGHT = 1.0
+CLEARANCE_WEIGHT = 1000.0
 MIN_TURN_WEIGHT = 1.0
 WIND_WEIGHT = 1.0
 
@@ -51,7 +51,13 @@ class ValidityChecker(ob.StateValidityChecker):
     # Returns the distance from the given state's position to the
     # boundary of the circular obstacle.
     def clearance(self, state):
-        return 1
+        clearance = sys.maxsize
+        xy = [state.getX(), state.getY()]
+        for obstacle in self.obstacles:
+            if not obstacle.isValid(xy):
+                return 0
+            clearance = min(clearance, obstacle.clearance(xy))
+        return clearance
 
 class ClearanceObjective(ob.StateCostIntegralObjective):
     def __init__(self, si):

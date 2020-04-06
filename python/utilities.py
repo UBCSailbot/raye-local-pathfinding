@@ -32,7 +32,7 @@ GLOBAL_WAYPOINT_REACHED_RADIUS_KM = 10
 PATH_UPDATE_TIME_LIMIT_SECONDS = 7200
 
 # Pathfinding constants
-MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS = 120.0
+MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS = 20.0
 INCREASE_RUNTIME_FACTOR = 1.5
 
 # Scale NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES and NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND to change based on waypoint distance
@@ -566,8 +566,8 @@ class ObstacleInterface:
         """ Checks validity of xy"""
         pass
 
-    def clearance(self, posX, posY):
-        """ Return distance from obstacle to (posX, posY)"""
+    def clearance(self, xy):
+        """ Return distance from obstacle to xy"""
         pass
 
     def shrink(self, shrinkFactor):
@@ -643,8 +643,8 @@ class Ellipse(ObstacleInterface):
         self.width /= shrinkFactor 
         self.height /= shrinkFactor 
 
-    def clearance(self, posX, posY):
-        return 1 
+    def clearance(self, xy):
+        return (self.x - xy[0])**2 + (self.y - xy[1])**2
 
 class Wedge(ObstacleInterface):
     def __init__(self, aisData, sailbotPosition, speedKmph, referenceLatlon):
@@ -693,8 +693,8 @@ class Wedge(ObstacleInterface):
             return False
         return True
 
-    def clearance(self, posX, posY):
-        return 1
+    def clearance(self, xy):
+        return (self.x - xy[0])**2 + (self.y - xy[1])**2
 
     def shrink(self, shrinkFactor):
         self.radius /= shrinkFactor 
@@ -768,8 +768,8 @@ class Circles(ObstacleInterface):
         for obstacle in self.obstacles:
             axes.add_patch(plt.Circle((obstacle.x, obstacle.y), radius=obstacle.radius))
 
-    def clearance(self, posX, posY):
-        return 1
+    def clearance(self, xy):
+        return (self.obstacles[0].x - xy[0])**2 + (self.obstacles[0].y - xy[1])**2
 
 class Circle():
     """ Helper class for Circles representation"""
@@ -824,8 +824,6 @@ def updateObjectsInSS(ss, referenceLatlon, state):
     obstacles = getObstacles(state.AISData.ships, state.position, state.speedKmph, referenceLatlon)
     validity_checker = ph.ValidityChecker(ss.getSpaceInformation(), obstacles)
     ss.setStateValidityChecker(validity_checker)
-    # ss.setup() DO WE NEED THIS?
-
 
 def removePastWaypointsInSolutionPath(ss, solutionPathObject, referenceLatlon, state):
     # TODO Check if keepAfter method can be used here safely
@@ -838,11 +836,7 @@ def removePastWaypointsInSolutionPath(ss, solutionPathObject, referenceLatlon, s
     lengthBefore = solutionPathObject.getStateCount()
     solutionPathObject.keepAfter(start)
     lengthAfter = solutionPathObject.getStateCount()
-    rospy.logerr("lengthBefore = {}. lengthAfter = {}".format(lengthBefore, lengthAfter))
-    if lengthBefore - lengthAfter <= 1:
-        rospy.logerr("No need to add current position")
-    else:
-        rospy.logerr("Adding start")
+    if lengthBefore - lengthAfter > 1:
         solutionPathObject.prepend(start)
 
     return lengthBefore - lengthAfter
