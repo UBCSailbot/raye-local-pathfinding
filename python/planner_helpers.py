@@ -22,7 +22,7 @@ UPWIND_MAX_ANGLE_DEGREES = 30.0
 DOWNWIND_MAX_ANGLE_DEGREES = 30.0
 
 # Balanced objective constants
-LENGTH_WEIGHT = 1.0
+LENGTH_WEIGHT = 100.0
 CLEARANCE_WEIGHT = 1000.0
 MIN_TURN_WEIGHT = 1.0
 WIND_WEIGHT = 1.0
@@ -153,7 +153,7 @@ def getBalancedObjective(si):
     opt.addObjective(windObj, WIND_WEIGHT)
 
     # REMOVING TO SAVE COMPUTATION AND SEE IF IMPROVES.
-    # opt.addObjective(lengthObj, LENGTH_WEIGHT)
+    opt.addObjective(lengthObj, LENGTH_WEIGHT)
     # opt.addObjective(clearObj, CLEARANCE_WEIGHT)
 
     return opt

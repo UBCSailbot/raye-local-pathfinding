@@ -298,7 +298,7 @@ def createLocalPathSS(state, runtimeSeconds=2, numRuns=2, plot=False, resetSpeed
         publisher = rospy.Publisher('speedup', Float64, queue_size=4)
         publisher.publish(speedupBeforePlan)
 
-    return bestSolution, bestSolutionPath, referenceLatlon
+    return bestSolution, bestSolutionPath, referenceLatlon, minCost
 
 def getLocalPathLatlons(solutionPathObject, referenceLatlon):
     # Convert solution path (in km WRT reference) into list of latlons
