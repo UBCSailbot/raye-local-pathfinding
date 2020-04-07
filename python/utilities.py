@@ -458,6 +458,7 @@ def localWaypointReached(position, localPath, localPathIndex, refLatlon):
     return False
 
 def timeLimitExceeded(lastTimePathCreated, speedup):
+    # TODO: Figure out a way to make changing speedup work properly for this
     # Shorter time limit when there is speedup
     pathUpdateTimeLimitSecondsSpeedup = PATH_UPDATE_TIME_LIMIT_SECONDS / speedup
     return time.time() - lastTimePathCreated > pathUpdateTimeLimitSecondsSpeedup
@@ -799,8 +800,8 @@ def getObstacles(ships, position, speedKmph, referenceLatlon):
             obstacles.append(Circles(ship, position, speedKmph, referenceLatlon))
     return obstacles
 
-def pathCostThresholdExceeded(optimizationObjective, solutionPathObject):
-    return solutionPathObject.cost(optimizationObjective).value() > COST_THRESHOLD
+def pathCostThresholdExceeded(currentCost):
+    return currentCost > COST_THRESHOLD
 
 def pathDoesNotReachGoal(localPathLatlons, goal):
     lastWaypoint = (localPathLatlons[len(localPathLatlons) - 1].lat, localPathLatlons[len(localPathLatlons) - 1].lon)
@@ -826,17 +827,34 @@ def updateObjectsInSS(ss, referenceLatlon, state):
     ss.setStateValidityChecker(validity_checker)
 
 def removePastWaypointsInSolutionPath(ss, solutionPathObject, referenceLatlon, state):
-    # TODO Check if keepAfter method can be used here safely
-    # Or just use new path
+    # Should only be called when localWaypointReached(state.position, localPathLatlons, localPathIndex, referenceLatlon) == True
     # Get current position in xy coordinates
-    positionXY = latlonToXY(state.position, referenceLatlon)
-    start = ss.getSpaceInformation().allocState()
-    start.setXY(positionXY[0], positionXY[1])
+    x, y = latlonToXY(state.position, referenceLatlon)
+    positionXY = ss.getSpaceInformation().allocState()
+    positionXY.setXY(x, y)
 
+    # Keep waypoints only after your positionXY
     lengthBefore = solutionPathObject.getStateCount()
-    solutionPathObject.keepAfter(start)
+    solutionPathObject.keepAfter(positionXY)
     lengthAfter = solutionPathObject.getStateCount()
-    if lengthBefore - lengthAfter > 1:
-        solutionPathObject.prepend(start)
 
-    return lengthBefore - lengthAfter
+    # TODO: Ensure logic works even if boat moves rapidly, so many indices change
+    # TODO: Check if should check through all waypoints to find next waypoint
+    # TODO: Fix globalWaypointReached to not go backwards
+    if lengthBefore - lengthAfter > 1:
+        solutionPathObject.prepend(positionXY)
+
+    # Warning message
+    if lengthBefore == lengthAfter:
+        rospy.logwarn("removePastWaypointsInSolutionPath() resulted in no path length change")
+
+def waitForGlobalPath(sailbot):
+    while not sailbot.newGlobalPathReceived:
+        # Exit if shutdown
+        if rospy.is_shutdown():
+            rospy.loginfo("rospy.is_shutdown() is True. Exiting")
+            sys.exit()
+        else:
+            rospy.loginfo("Waiting for sailbot to receive first newGlobalPath")
+            time.sleep(1)
+    rospy.loginfo("newGlobalPath received")

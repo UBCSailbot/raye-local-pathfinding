@@ -45,15 +45,8 @@ if __name__ == '__main__':
     publishRate = rospy.Rate(1.0 / MAIN_LOOP_PERIOD_SECONDS)
 
     # Wait until first global path is received
-    while not sailbot.newGlobalPathReceived:
-        # Exit if shutdown
-        if rospy.is_shutdown():
-            rospy.loginfo("rospy.is_shutdown() is True. Exiting")
-            sys.exit()
-        else:
-            rospy.loginfo("Waiting for sailbot to receive first newGlobalPath")
-            time.sleep(1)
-    rospy.loginfo("newGlobalPath received. Starting main loop")
+    waitForGlobalPath(sailbot)
+    rospy.loginfo("Starting main loop")
 
     # Create first path and track time of updates
     state = sailbot.getCurrentState()
@@ -68,10 +61,8 @@ if __name__ == '__main__':
         rospy.loginfo("sailbot.globalPathIndex: {}".format(sailbot.globalPathIndex))
         rospy.loginfo("localPathIndex: {}".format(localPathIndex))
         rospy.loginfo("desiredHeadingMsg: {}".format(desiredHeadingMsg.headingDegrees))
+        rospy.loginfo("Current path cost is: {}".format(currentCost))
         state = sailbot.getCurrentState()
-
-        currentCost = solutionPathObject.cost(localPathSS.getOptimizationObjective()).value()
-        rospy.logerr("Current path cost is: {}".format(currentCost))
 
         # Check if local path MUST be updated
         hasUpwindOrDownwindOnPath = upwindOrDownwindOnPath(state, localPathIndex, solutionPathObject, referenceLatlon, numLookAheadWaypoints=NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND, showWarnings=True)
@@ -106,35 +97,32 @@ if __name__ == '__main__':
             lastTimePathCreated = time.time()
         else:
             # Check if new local path should be generated and compared to current local path
-            costTooHigh = pathCostThresholdExceeded(localPathSS.getOptimizationObjective(), solutionPathObject)
+            costTooHigh = pathCostThresholdExceeded(currentCost)
             isLocalWaypointReached = localWaypointReached(state.position, localPathLatlons, localPathIndex, referenceLatlon)
             isTimeLimitExceeded = timeLimitExceeded(lastTimePathCreated, speedup)
 
-        if costTooHigh or isLocalWaypointReached or isTimeLimitExceeded:
-            rospy.loginfo("Generating new local path to compare to current local path. Reason: costTooHigh? {}. isLocalWaypointReached? {}. isTimeLimitExceeded? {}.".format(costTooHigh, isLocalWaypointReached, isTimeLimitExceeded))
+            if costTooHigh or isLocalWaypointReached or isTimeLimitExceeded:
+                rospy.logwarn("Generating new local path to compare to current local path. Reason: costTooHigh? {}. isLocalWaypointReached? {}. isTimeLimitExceeded? {}.".format(costTooHigh, isLocalWaypointReached, isTimeLimitExceeded))
 
-            # Remove previous waypoints
-            if isLocalWaypointReached:
-                lengthChange = removePastWaypointsInSolutionPath(localPathSS, solutionPathObject, referenceLatlon, state)
-                if lengthChange == 0:
-                    localPathIndex += 1
-                else:
+                # Remove previous waypoint
+                if isLocalWaypointReached:
+                    removePastWaypointsInSolutionPath(localPathSS, solutionPathObject, referenceLatlon, state)
                     localPathIndex = 1
-                localPathLatlons = getLocalPathLatlons(solutionPathObject, referenceLatlon)
-                localWaypoint = getLocalWaypointLatLon(localPathLatlons, localPathIndex)
+                    localPathLatlons = getLocalPathLatlons(solutionPathObject, referenceLatlon)
+                    localWaypoint = getLocalWaypointLatLon(localPathLatlons, localPathIndex)
 
-            # Update local path if new one is better than old
-            _localPathSS, _solutionPathObject, _referenceLatlon, newCost = createLocalPathSS(state, plot=True, resetSpeedupDuringPlan=True, speedupBeforePlan=speedup)
-            rospy.logerr("New path cost is: {}".format(newCost))
-            lastTimePathCreated = time.time()
-            if newCost < currentCost:
-                rospy.logerr("Updating path")
-                localPathSS, solutionPathObject, referenceLatlon = _localPathSS, _solutionPathObject, _referenceLatlon
-                localPathLatlons = getLocalPathLatlons(solutionPathObject, referenceLatlon)
-                localPathIndex = 1  # First waypoint is the start point, so second waypoint is the next local waypoint
-                localWaypoint = getLocalWaypointLatLon(localPathLatlons, localPathIndex)
-            else:
-                rospy.logerr("Not updating path")
+                # Update local path if new one is better than old
+                _localPathSS, _solutionPathObject, _referenceLatlon, newCost = createLocalPathSS(state, plot=True, resetSpeedupDuringPlan=True, speedupBeforePlan=speedup)
+                rospy.logerr("New path cost is: {}".format(newCost))
+                lastTimePathCreated = time.time()
+                if newCost < currentCost:
+                    rospy.logerr("Updating path")
+                    localPathSS, solutionPathObject, referenceLatlon = _localPathSS, _solutionPathObject, _referenceLatlon
+                    localPathLatlons = getLocalPathLatlons(solutionPathObject, referenceLatlon)
+                    localPathIndex = 1  # First waypoint is the start point, so second waypoint is the next local waypoint
+                    localWaypoint = getLocalWaypointLatLon(localPathLatlons, localPathIndex)
+                else:
+                    rospy.logerr("Not updating path")
 
 
         # Publish desiredHeading
@@ -147,6 +135,7 @@ if __name__ == '__main__':
         # Update wind direction and obstacles of localPathSS
         updateWindDirectionInSS(localPathSS, state)
         updateObjectsInSS(localPathSS, referenceLatlon, state)
+        currentCost = solutionPathObject.cost(localPathSS.getOptimizationObjective()).value()
 
         # Publish nextLocalWaypoint and nextGlobalWaypoint and path cost
         nextLocalWaypointPublisher.publish(localWaypoint)
