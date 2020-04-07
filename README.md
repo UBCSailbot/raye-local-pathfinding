@@ -44,9 +44,7 @@ All of the arguments below are optional for `all.launch`.
 
 #### Run a specific saved pathfinding scenario
 
-In the terminal, run `cd json/test6_4`. Then run `roslaunch local_pathfinding all.launch ais_file:=$(pwd)/myAIS.json gps_file:=$(pwd)/myGPS.json goal_file:=$(pwd)/myGoal.json wind_file:=$(pwd)/myWind.json initial_speedup:=100 obstacle_type:="wedge"`, which will use the files in this folder to select the initial conditions for the simulation.
-
-You can create your own files by copying the json files here, or by starting a simulation and then running (in another terminal) `rosrun local_pathfinding json_dumper.py`, which will save the AIS file and GPS file in your current directory.
+Instructions to run a pathfinding unit test can be found [here](json/README.md).
 
 #### Interacting with the simulator
 
