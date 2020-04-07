@@ -683,6 +683,7 @@ class Ellipse(ObstacleInterface):
         self.height /= shrinkFactor 
 
     def clearance(self, xy):
+        # TODO: Make this clearance better
         return (self.x - xy[0])**2 + (self.y - xy[1])**2
 
 class Wedge(ObstacleInterface):
@@ -731,6 +732,7 @@ class Wedge(ObstacleInterface):
         return True
 
     def clearance(self, xy):
+        # TODO: Make this clearance better
         return (self.x - xy[0])**2 + (self.y - xy[1])**2
 
     def shrink(self, shrinkFactor):
@@ -805,6 +807,7 @@ class Circles(ObstacleInterface):
             axes.add_patch(plt.Circle((obstacle.x, obstacle.y), radius=obstacle.radius))
 
     def clearance(self, xy):
+        # TODO: Make this clearance better
         return (self.obstacles[0].x - xy[0])**2 + (self.obstacles[0].y - xy[1])**2
 
 class Circle():
