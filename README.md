@@ -28,7 +28,7 @@ The easiest way to run the local pathfinding system with ROS is to use multiple 
 
 #### Visualizing the simulation
 
-The pathfinding tries to avoid large turns, avoid sailing upwind or downwind, and minimize the path length. The cost function to create these tacking paths was developed from a sailboat reacting planning paper, which can be found [here](docs/Tacking_Paper.pdf).
+The pathfinding tries to avoid large turns, avoid sailing upwind or downwind, and minimize the path length. It prefers straight line paths if possible, but when the wind does not permit, it will generate paths with tacking maneuvers. The cost function to create these tacking paths was developed from a sailboat reactive planning paper, which can be found [here](docs/Tacking_Paper.pdf).
 
 The path can be viewed with the local path visualizer, which is shown below.
 
@@ -56,7 +56,7 @@ All of the arguments below are optional for `all.launch`.
 
 #### Run a specific saved pathfinding scenario
 
-Instructions to run a pathfinding unit test can be found [here](json/README.md).
+Instructions to run pathfinding unit tests can be found [here](json/README.md).
 
 #### Interacting with the simulator
 
