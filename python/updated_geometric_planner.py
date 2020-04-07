@@ -39,7 +39,7 @@ def allocatePlanner(si, plannerType):
 # Method that looks numLookAheadWaypoints ahead on path, starting from positionXY and nextLocalWaypointIndex.
 # Returns the index of the waypoint in which there is an obstacle when going to it.
 # Returns -1 if there are no obstacles on path.
-def indexOfObstacleOnPath(positionXY, nextLocalWaypointIndex, numLookAheadWaypoints, localPathSS, obstacles):
+def indexOfObstacleOnPath(positionXY, nextLocalWaypointIndex, numLookAheadWaypoints, localPathSS, solutionPathObject, obstacles):
     # Set the objects used to check which states in the space are valid
     validity_checker = ph.ValidityChecker(localPathSS.getSpaceInformation(), obstacles)
     localPathSS.setStateValidityChecker(validity_checker)
@@ -47,7 +47,7 @@ def indexOfObstacleOnPath(positionXY, nextLocalWaypointIndex, numLookAheadWaypoi
     # Setup for obstacle-on-path checking
     localPathSS.setup()
     stateSpace = localPathSS.getStateSpace()
-    solutionPath = localPathSS.getSolutionPath()
+    solutionPath = solutionPathObject
     spaceInformation = localPathSS.getSpaceInformation()
 
     # Handle strange cases with less than 2 states
@@ -59,39 +59,28 @@ def indexOfObstacleOnPath(positionXY, nextLocalWaypointIndex, numLookAheadWaypoi
             hasObstacle = (not spaceInformation.isValid(solutionPath.getState(0)))
             return 0 if hasObstacle else -1
 
-    # Get the relevant states (ignore past states and use current position as first state)
-    relevantStates = []
+    # Check if initial state is valid, as checkMotion can't check that
     firstState = spaceInformation.allocState()
     firstState.setXY(positionXY[0], positionXY[1])
+    if not spaceInformation.isValid(firstState):
+        return -1
+
+    # Get the relevant states (ignore past states and use current position as first state)
+    relevantStates = []
     relevantStates.append(firstState)
     for i in range(numLookAheadWaypoints):
         stateIndex = nextLocalWaypointIndex + i
         relevantStates.append(solutionPath.getState(stateIndex))
 
     # Interpolate between states and check for validity
-    resolution = spaceInformation.getStateValidityCheckingResolution() * stateSpace.getMaximumExtent()
     for stateIndex in range(1, len(relevantStates)):
         # Check in between these points
         prevState = relevantStates[stateIndex - 1]
         nextState = relevantStates[stateIndex]
-        interpolatedState = spaceInformation.allocState()
+        hasObstacle = (not spaceInformation.checkMotion(prevState, nextState))
+        if hasObstacle:
+            return stateIndex
 
-        # Setup checking resolution
-        distance = stateSpace.distance(prevState, nextState)
-        numPoints = int(distance / resolution)
-
-        # If distance between waypoints is super small, still check prevState and nextState for validity. Want fraction = 0 and fraction = 1.
-        if numPoints == 0:
-            numPoints = 1
-
-        # Loop so that each fraction is in [0, 1], with bounds inclusive so interpolation checks both the first and last point
-        for i in range(numPoints + 1):
-            fraction = float(i) / numPoints
-            stateSpace.interpolate(prevState, nextState, fraction, interpolatedState)
-            hasObstacle = (not spaceInformation.isValid(interpolatedState))
-            if hasObstacle:
-                print("I FOUND AN OBSTACLE stateIndex = {}. fraction {}".format(stateIndex, fraction))
-                return stateIndex
 
     '''Uncomment to visualize the obstacles, relevant states, and all states
     ax = plt.gca()
