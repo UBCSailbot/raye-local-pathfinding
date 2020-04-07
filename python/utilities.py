@@ -74,6 +74,35 @@ MAX_ALLOWABLE_DISTANCE_FINAL_WAYPOINT_TO_GOAL_KM = GLOBAL_WAYPOINT_REACHED_RADIU
 WEDGE_EXPAND_ANGLE_DEGREES = 10.0
 OBSTACLE_MAX_TIME_TO_LOC_HOURS = 10  # Do not extend objects more than X hours distance
 
+def takeScreenshot():
+    # Set variable for first time
+    try:
+        firstTime = (takeScreenshot.imagePath is None)
+    except AttributeError:
+        rospy.loginfo("Handling first time case in takeScreenshot()")
+        # Set imagePath on first time
+        pathToThisFile = os.path.dirname(os.path.abspath(__file__))
+        dateString = date.today().strftime("%b-%d-%Y")
+        timeString = datetime.now().strftime('%H-%M-%S')
+        pathToDateFolder = "{}/../images/{}".format(pathToThisFile, dateString)
+        pathToStartTimeFolder = "{}/{}".format(pathToDateFolder, timeString)
+        if not os.path.exists(pathToDateFolder):
+            os.mkdir(pathToDateFolder)
+        if not os.path.exists(pathToStartTimeFolder):
+            os.mkdir(pathToStartTimeFolder)
+        takeScreenshot.imagePath = pathToStartTimeFolder
+
+    # Take screenshot
+    rospy.loginfo("** About to screenshot")
+    time.sleep(1)
+    myScreenshot = pyautogui.screenshot()
+    rospy.loginfo("** Screenshot taken")
+
+    # Save screenshot
+    timeString = datetime.now().strftime('%H-%M-%S')
+    myScreenshot.save("{}/{}.png".format(takeScreenshot.imagePath, timeString))
+    rospy.loginfo("** Screenshot saved")
+
 def latlonToXY(latlon, referenceLatlon):
     x = distance((referenceLatlon.lat, referenceLatlon.lon), (referenceLatlon.lat, latlon.lon)).kilometers
     y = distance((referenceLatlon.lat, referenceLatlon.lon), (latlon.lat, referenceLatlon.lon)).kilometers
@@ -202,19 +231,7 @@ def createLocalPathSS(state, runtimeSeconds=2, numRuns=2, plot=False, resetSpeed
         plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, obstacles, state.headingDegrees, amountShrinked)
         rospy.loginfo("** Plotted")
 
-    # Take screenshot
-    rospy.loginfo("** About to screenshot")
-    time.sleep(1)
-    myScreenshot = pyautogui.screenshot()
-    rospy.loginfo("** Screenshot taken")
-    fullPath = os.path.dirname(os.path.abspath(__file__))
-    dateString = date.today().strftime("%b-%d-%Y")
-    folder = "{}/../images/{}".format(fullPath, dateString)
-    if not os.path.exists(folder):
-        os.mkdir(folder)
-    timeString = datetime.now().strftime('%H-%M-%S')
-    myScreenshot.save("{}/{}.png".format(folder, timeString))
-    rospy.loginfo("** Screenshot saved")
+    takeScreenshot()
 
     def isValidSolution(solution, referenceLatlon, state):
         if not solution.haveExactSolutionPath():
