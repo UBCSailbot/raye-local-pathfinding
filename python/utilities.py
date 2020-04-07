@@ -66,7 +66,7 @@ AIS_BOAT_CIRCLE_SPACING_KM = AIS_BOAT_RADIUS_KM * 1.5  # Distance between circle
 UPWIND_DOWNWIND_COUNTER_LIMIT = 30
 
 # Constants for pathfinding updates
-COST_THRESHOLD = 12000
+COST_THRESHOLD = 16000
 MAX_ALLOWABLE_DISTANCE_FINAL_WAYPOINT_TO_GOAL_KM = 5
 
 def latlonToXY(latlon, referenceLatlon):

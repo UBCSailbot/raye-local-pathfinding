@@ -32,8 +32,8 @@ LARGE_TURN_MULTIPLIER = 500.0
 SMALL_TURN_MULTIPLIER = 10.0
 
 # Upwind downwind cost multipliers
-UPWIND_MULTIPLIER = 1000.0
-DOWNWIND_MULTIPLIER = 1000.0
+UPWIND_MULTIPLIER = 3000.0
+DOWNWIND_MULTIPLIER = 3000.0
 
 class ValidityChecker(ob.StateValidityChecker):
     def __init__(self, si, obstacles):

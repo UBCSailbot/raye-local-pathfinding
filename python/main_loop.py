@@ -114,11 +114,16 @@ if __name__ == '__main__':
                 # Update local path if new one is better than old
                 _localPathSS, _solutionPathObject, _referenceLatlon, newCost = createLocalPathSS(state, plot=True, resetSpeedupDuringPlan=True, speedupBeforePlan=speedup, maxAllowableRuntimeSeconds=MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS)
                 lastTimePathCreated = time.time()
+                rospy.loginfo("currentCost = {}. newCost = {}".format(currentCost, newCost))
                 if newCost < currentCost:
+                    rospy.loginfo("Updating to new local path")
                     localPathSS, solutionPathObject, referenceLatlon = _localPathSS, _solutionPathObject, _referenceLatlon
                     localPathLatlons = getLocalPathLatlons(solutionPathObject, referenceLatlon)
                     localPathIndex = 1  # First waypoint is the start point, so second waypoint is the next local waypoint
                     localWaypoint = getLocalWaypointLatLon(localPathLatlons, localPathIndex)
+                    currentCost = newCost
+                else:
+                    rospy.loginfo("Keeping old local path")
 
         # Publish desiredHeading
         desiredHeadingMsg.headingDegrees = getDesiredHeading(state.position, localWaypoint)
