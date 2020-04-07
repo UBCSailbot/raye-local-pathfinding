@@ -15,7 +15,7 @@ from local_pathfinding.msg import AISShip, AISMsg, GPS
 random.seed(1)
 
 # Constants
-AIS_PUBLISH_PERIOD_SECONDS = 0.1
+AIS_PUBLISH_PERIOD_SECONDS = 0.1  # Keep below 1.0 for smoother boat motion
 NUM_AIS_SHIPS = 30
 
 class RandomShip:

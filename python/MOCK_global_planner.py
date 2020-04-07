@@ -10,7 +10,7 @@ import local_pathfinding.msg as msg
 from geopy.distance import distance
 
 # Constants for this class
-PUBLISH_PERIOD_SECONDS = 10.0
+PUBLISH_PERIOD_SECONDS = 10.0  # Can keep high to simulate real global pathfinding
 NEW_GLOBAL_PATH_PERIOD_SECONDS = 3600.0 * 24
 AVG_WAYPOINT_DISTANCE_KM = 30  # TODO: Set this to match global pathfinding
 
