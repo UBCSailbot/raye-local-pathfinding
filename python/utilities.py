@@ -63,10 +63,10 @@ AIS_BOAT_RADIUS_KM = 0.2
 AIS_BOAT_CIRCLE_SPACING_KM = AIS_BOAT_RADIUS_KM * 1.5  # Distance between circles that make up an AIS boat
 
 # Upwind downwind detection
-UPWIND_DOWNWIND_COUNTER_LIMIT = 30
+UPWIND_DOWNWIND_COUNTER_LIMIT = 6
 
 # Constants for pathfinding updates
-COST_THRESHOLD = 16000
+COST_THRESHOLD = 20000
 MAX_ALLOWABLE_DISTANCE_FINAL_WAYPOINT_TO_GOAL_KM = 5
 
 def latlonToXY(latlon, referenceLatlon):
@@ -180,7 +180,7 @@ def createLocalPathSS(state, runtimeSeconds=2, numRuns=2, plot=False, resetSpeed
         rospy.logerr("start or goal state is not valid")
         rospy.logerr("Shrinking obstacles by a factor of {}".format(shrinkFactor))
         for obstacle in obstacles:
-            obstacle.shrink()
+            obstacle.shrink(shrinkFactor)
         amountShrinked *= shrinkFactor
     if amountShrinked > 1.0000001:
         rospy.logerr("Obstacles have been shrinked by factor of {}".format(amountShrinked))

@@ -2,6 +2,7 @@
 
 import sys
 import rospy
+from std_msgs.msg import Bool
 import local_pathfinding.msg as msg
 from std_msgs.msg import Float64, String, Bool
 from Sailbot import *
@@ -9,7 +10,7 @@ from utilities import *
 import time
 
 # Constants
-MAIN_LOOP_PERIOD_SECONDS = 0.1
+MAIN_LOOP_PERIOD_SECONDS = 0.5
 
 # Global variable to receive path update requests
 localPathUpdateRequested = False
