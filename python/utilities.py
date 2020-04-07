@@ -34,7 +34,7 @@ PATH_UPDATE_TIME_LIMIT_SECONDS = 7200
 # Pathfinding constants
 MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS = 20.0
 INCREASE_RUNTIME_FACTOR = 1.5
-OBSTACLE_SHRINK_FACTOR = 2.0
+OBSTACLE_SHRINK_FACTOR = 1.2
 
 # Scale NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES and NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND to change based on waypoint distance
 LOOK_AHEAD_FOR_OBSTACLES_KM = 20
@@ -205,21 +205,32 @@ def createLocalPathSS(state, runtimeSeconds=2, numRuns=2, plot=False, resetSpeed
     obstacles = getObstacles(state.AISData.ships, state.position, state.speedKmph, referenceLatlon)
     globalWindSpeedKmph, globalWindDirectionDegrees = measuredWindToGlobalWind(state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
 
+    def obstaclesTooClose(xy, obstacles):
+        obstaclesTooCloseList = []
+        for obstacle in obstacles:
+            if not obstacle.isValid(xy):
+                obstaclesTooCloseList.append(obstacle)
+        return obstaclesTooCloseList
+
     # If start or goal is invalid, shrink objects and re-run
     # TODO: Figure out if there is a better method to handle this case
-    def shrinkObstaclesUntilValid(start, goal, obstacles):
+    def shrinkObstaclesUntilValid(xy, obstacles):
         amountShrinked = 1.0
-        while not isValid(start, obstacles) or not isValid(goal, obstacles):
+        obstaclesTooCloseList = obstaclesTooClose(xy, obstacles)
+        while len(obstaclesTooCloseList) > 0:
             rospy.logerr("start or goal state is not valid")
-            rospy.logerr("Shrinking obstacles by a factor of {}".format(OBSTACLE_SHRINK_FACTOR))
-            for obstacle in obstacles:
-                obstacle.shrink(OBSTACLE_SHRINK_FACTOR)
+            rospy.logerr("Shrinking some obstacles by a factor of {}".format(OBSTACLE_SHRINK_FACTOR))
+            for o in obstaclesTooCloseList:
+                o.shrink(OBSTACLE_SHRINK_FACTOR)
+            obstaclesTooCloseList = obstaclesTooClose(xy, obstacles)
             amountShrinked *= OBSTACLE_SHRINK_FACTOR
         return amountShrinked
 
-    amountShrinked = shrinkObstaclesUntilValid(start, goal, obstacles)
+    amountShrinkedStart = shrinkObstaclesUntilValid(start, obstacles)
+    amountShrinkedGoal = shrinkObstaclesUntilValid(goal, obstacles)
+    amountShrinked = max(amountShrinkedStart, amountShrinkedGoal)
     if amountShrinked > 1.0000001:
-        rospy.logerr("Obstacles have been shrinked by factor of {}".format(amountShrinked))
+        rospy.logerr("Obstacles have been shrinked by factor of at most {}".format(amountShrinked))
 
     # Run the planner multiple times and find the best one
     rospy.loginfo("Running createLocalPathSS. runtimeSeconds: {}. numRuns: {}. Total time: {} seconds".format(runtimeSeconds, numRuns, runtimeSeconds*numRuns))
@@ -709,6 +720,7 @@ class Wedge(ObstacleInterface):
         axes.add_patch(patches.Wedge((self.x, self.y), self.radius, self.theta1, self.theta2))
 
     def isValid(self, xy):
+        # TODO: Ensure this invalid radius can be modified if boat WAY too close
         INVALID_RADIUS_AROUND_START = 1
         angle = math.degrees(math.atan2(xy[1] - self.y, xy[0] - self.x))
         if angle < 0:
