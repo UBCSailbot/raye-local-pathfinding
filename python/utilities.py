@@ -27,13 +27,14 @@ PORT_RENFREW_LATLON = latlon(48.5, -124.8)
 MAUI_LATLON = latlon(20.0, -156.0)
 
 # Constants
-AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM = 3
-GLOBAL_WAYPOINT_REACHED_RADIUS_KM = 10
+AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM = 3.0
+GLOBAL_WAYPOINT_REACHED_RADIUS_KM = 10.0
 PATH_UPDATE_TIME_LIMIT_SECONDS = 7200
 
 # Pathfinding constants
 MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS = 20.0
 INCREASE_RUNTIME_FACTOR = 1.5
+OBSTACLE_SHRINK_FACTOR = 2.0
 
 # Scale NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES and NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND to change based on waypoint distance
 LOOK_AHEAD_FOR_OBSTACLES_KM = 20
@@ -63,11 +64,15 @@ AIS_BOAT_RADIUS_KM = 0.2
 AIS_BOAT_CIRCLE_SPACING_KM = AIS_BOAT_RADIUS_KM * 1.5  # Distance between circles that make up an AIS boat
 
 # Upwind downwind detection
-UPWIND_DOWNWIND_COUNTER_LIMIT = 6
+UPWIND_DOWNWIND_TIME_LIMIT_SECONDS = 3
 
 # Constants for pathfinding updates
 COST_THRESHOLD = 20000
-MAX_ALLOWABLE_DISTANCE_FINAL_WAYPOINT_TO_GOAL_KM = 5
+MAX_ALLOWABLE_DISTANCE_FINAL_WAYPOINT_TO_GOAL_KM = GLOBAL_WAYPOINT_REACHED_RADIUS_KM / 2
+
+# Constants for obstacle models
+WEDGE_EXPAND_ANGLE_DEGREES = 10.0
+OBSTACLE_MAX_TIME_TO_LOC_HOURS = 10  # Do not extend objects more than X hours distance
 
 def latlonToXY(latlon, referenceLatlon):
     x = distance((referenceLatlon.lat, referenceLatlon.lon), (referenceLatlon.lat, latlon.lon)).kilometers
@@ -175,13 +180,12 @@ def createLocalPathSS(state, runtimeSeconds=2, numRuns=2, plot=False, resetSpeed
     # If start or goal is invalid, shrink objects and re-run
     # TODO: Figure out if there is a better method to handle this case
     amountShrinked = 1.0
-    shrinkFactor = 2.0
     while not isValid(start, obstacles) or not isValid(goal, obstacles):
         rospy.logerr("start or goal state is not valid")
-        rospy.logerr("Shrinking obstacles by a factor of {}".format(shrinkFactor))
+        rospy.logerr("Shrinking obstacles by a factor of {}".format(OBSTACLE_SHRINK_FACTOR))
         for obstacle in obstacles:
-            obstacle.shrink(shrinkFactor)
-        amountShrinked *= shrinkFactor
+            obstacle.shrink(OBSTACLE_SHRINK_FACTOR)
+        amountShrinked *= OBSTACLE_SHRINK_FACTOR
     if amountShrinked > 1.0000001:
         rospy.logerr("Obstacles have been shrinked by factor of {}".format(amountShrinked))
 
@@ -283,12 +287,16 @@ def createLocalPathSS(state, runtimeSeconds=2, numRuns=2, plot=False, resetSpeed
                     bestSolutionPath = simplifiedPath
                     minCost = simplifiedCost
 
-    rospy.loginfo("Found solution with cost: {}".format(minCost))
+    rospy.loginfo("BEFORE interpolation solution with cost: {}".format(minCost))
 
     # Set the average distance between waypoints
     localPathLengthKm = bestSolutionPath.length()
     numberOfLocalWaypoints = int(localPathLengthKm / AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM)
     bestSolutionPath.interpolate(numberOfLocalWaypoints)
+
+    # Reprint cost after interpolation
+    minCost = bestSolutionPath.cost(bestSolution.getOptimizationObjective()).value()
+    rospy.loginfo("AFTER interpolation solution with cost: {}".format(minCost))
 
     # Close any plots
     plt.close()
@@ -348,20 +356,18 @@ def upwindOrDownwindOnPath(state, nextLocalWaypointIndex, solutionPathObject, re
 
     # Set counter to 0 on first use
     try:
-        firstTime = upwindOrDownwindOnPath.counter is None
+        firstTime = upwindOrDownwindOnPath.lastTimeNotUpwindOrDownwind is None
     except AttributeError:
         rospy.loginfo("Handling first time case in upwindOrDownwindOnPath()")
-        upwindOrDownwindOnPath.counter = 0
+        upwindOrDownwindOnPath.lastTimeNotUpwindOrDownwind = time.time()
 
-    # Increment or reset counter
-    if upwindOrDownwind:
-        upwindOrDownwindOnPath.counter += 1
-    else:
-        upwindOrDownwindOnPath.counter = 0
+    # Update time if not upwind or downwind
+    if not upwindOrDownwind:
+        upwindOrDownwindOnPath.lastTimeNotUpwindOrDownwind = time.time()
 
-    # Return true only if upwindOrDownwind for count times
-    if upwindOrDownwindOnPath.counter >= UPWIND_DOWNWIND_COUNTER_LIMIT:
-        upwindOrDownwindOnPath.counter = 0
+    # Return true only if upwindOrDownwind for enough time
+    if time.time() - upwindOrDownwindOnPath.lastTimeNotUpwindOrDownwind >= UPWIND_DOWNWIND_TIME_LIMIT_SECONDS:
+        upwindOrDownwindOnPath.lastTimeNotUpwindOrDownwind = time.time()
         return True
     else:
         return False
@@ -588,10 +594,9 @@ class Ellipse(ObstacleInterface):
         aisX, aisY = latlonToXY(latlon(aisData.lat, aisData.lon), referenceLatlon)
 
         # Calculate length to extend boat
-        MAX_TIME_TO_LOC_HOURS = 10  # Do not extend objects more than 10 hours distance
         distanceToBoatKm = distance((aisData.lat, aisData.lon), (sailbotPosition.lat, sailbotPosition.lon)).kilometers
-        if sailbotSpeedKmph == 0 or distanceToBoatKm / sailbotSpeedKmph > MAX_TIME_TO_LOC_HOURS:
-            timeToLocHours = MAX_TIME_TO_LOC_HOURS
+        if sailbotSpeedKmph == 0 or distanceToBoatKm / sailbotSpeedKmph > OBSTACLE_MAX_TIME_TO_LOC_HOURS:
+            timeToLocHours = OBSTACLE_MAX_TIME_TO_LOC_HOURS
         else:
             timeToLocHours = distanceToBoatKm / sailbotSpeedKmph
         extendBoatLengthKm = aisData.speedKmph * timeToLocHours
@@ -656,21 +661,18 @@ class Wedge(ObstacleInterface):
             return str((self.x, self.y, self.radius, self.theta1, self.theta2))
     
     def _extendObstacle(self, aisData, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
-        EXPAND_ANGLE = 0.5 
-        MAX_TIME_TO_LOC_HOURS = 10  # Do not extend objects more than 10 hours distance
-
         aisX, aisY = latlonToXY(latlon(aisData.lat, aisData.lon), referenceLatlon)
 
-        theta1 = aisData.headingDegrees - EXPAND_ANGLE
-        theta2 = aisData.headingDegrees + EXPAND_ANGLE
+        theta1 = aisData.headingDegrees - WEDGE_EXPAND_ANGLE_DEGREES / 2.0
+        theta2 = aisData.headingDegrees + WEDGE_EXPAND_ANGLE_DEGREES / 2.0
         if theta1 < 0:
-            theta1 +=360
+            theta1 += 360
         if theta2 > 360:
             theta2 -= 360
 
         distanceToBoatKm = distance((aisData.lat, aisData.lon), (sailbotPosition.lat, sailbotPosition.lon)).kilometers
-        if sailbotSpeedKmph == 0 or distanceToBoatKm / sailbotSpeedKmph > MAX_TIME_TO_LOC_HOURS:
-            timeToLocHours = MAX_TIME_TO_LOC_HOURS
+        if sailbotSpeedKmph == 0 or distanceToBoatKm / sailbotSpeedKmph > OBSTACLE_MAX_TIME_TO_LOC_HOURS:
+            timeToLocHours = OBSTACLE_MAX_TIME_TO_LOC_HOURS
         else:
             timeToLocHours = distanceToBoatKm / sailbotSpeedKmph
 
@@ -716,10 +718,9 @@ class Circles(ObstacleInterface):
         self.obstacles = []
         aisX, aisY = latlonToXY(latlon(aisData.lat, aisData.lon), referenceLatlon)
         # Calculate length to extend boat
-        MAX_TIME_TO_LOC_HOURS = 10  # Do not extend objects more than 10 hours distance
         distanceToBoatKm = distance((aisData.lat, aisData.lon), (sailbotPosition.lat, sailbotPosition.lon)).kilometers
-        if sailbotSpeedKmph == 0 or distanceToBoatKm / sailbotSpeedKmph > MAX_TIME_TO_LOC_HOURS:
-            timeToLocHours = MAX_TIME_TO_LOC_HOURS
+        if sailbotSpeedKmph == 0 or distanceToBoatKm / sailbotSpeedKmph > OBSTACLE_MAX_TIME_TO_LOC_HOURS:
+            timeToLocHours = OBSTACLE_MAX_TIME_TO_LOC_HOURS
         else:
             timeToLocHours = distanceToBoatKm / sailbotSpeedKmph
         extendBoatLengthKm = aisData.speedKmph * timeToLocHours
