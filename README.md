@@ -16,23 +16,66 @@ Outputs:
 
 Be sure to run the installation instructions below before running.
 
-### Test OMPL pathfinding 
-
-To test the OMPL pathfinding code through a simple command line interface, run `python2 python/cli.py`.
-
 ### Running Local Pathfinding Main Loop + Mock Inputs + Visualizer 
 
-The easiest way to run the local pathfinding system with ROS is to use multiple terminals. For each terminal, you will need to run `source ~/catkin_ws/devel/setup.bash` before running other commands.
+The easiest way to run the local pathfinding system with ROS is to use multiple terminals. For each terminal, you will need to run `source ~/catkin_ws/devel/setup.bash` before running other commands. To run the full pathfinding simulation, you can run: `roslaunch local_pathfinding all.launch initial_speedup:=10 obstacle_type:="wedge"`. This runs:
 
-* In a new terminal, run `roslaunch local_pathfinding launch_all_mocks.launch` to setup the mock nodes.
+* __The local pathfinding main loop__, which reads in published sensor data, decides if it needs to recalculate a new local path, and then publishes a desired heading to the MPC controller.
 
-* In a new terminal, run `rosrun local_pathfinding main_loop.py` to run the main loop.
+* __The local path visualizer__, which uses Matplotlib to visualize the boat's position and heading, the local path, the other boats, and the wind speed and direction.
 
-* In a new terminal, run `rosrun local_pathfinding local_path_visualizer.py` to run the local path visualizer. This uses Matplotlib to visualize the system. The coordinates are in km with respect to the next global waypoint.
+* __The mock inputs__, which are a placeholder for the real inputs from sensors and the controller.
+
+#### Arguments for all.launch
+
+All of the arguments below are optional for `all.launch`.
+
+* `initial_speedup` - Float value that changes the speed at which the simulation is run. Default: `1.0`
+
+* `obstacle_type` - String value that changes the obstacle representation of AIS ships. Accepted types are: `"ellipse"`, `"wedge"`, and `"circles"`. Default: `"ellipse"`
+
+* `ais_file` - String value that is the full path to a json file with a list of AIS boats. The simulator will read from this file to create its AIS boats. Examples can be found in the `json` folder.
+
+* `gps_file` - String value that is the full path to a json file with a GPS coordinate. The simulator will read from this file to place the sailbot's initial position.
+
+* `wind_file` - String value that is the full path to a json file with a wind speed and direction. The simulator will read from this file to create its initial wind.
+
+* `goal_file` - String value that is the full path to a json file with a GPS coordinate. The simulator will read from this file to select the goal location the sailbot will travel towards.
+
+#### Run a specific saved pathfinding scenario
+
+In the terminal, run `cd json/test6_4`. Then run `roslaunch local_pathfinding all.launch ais_file:=$(pwd)/myAIS.json gps_file:=$(pwd)/myGPS.json goal_file:=$(pwd)/myGoal.json wind_file:=$(pwd)/myWind.json initial_speedup:=100 obstacle_type:="wedge"`, which will use the files in this folder to select the initial conditions for the simulation.
+
+You can create your own files by copying the json files here, or by starting a simulation and then running (in another terminal) `rosrun local_pathfinding json_dumper.py`, which will save the AIS file and GPS file in your current directory.
+
+#### Interacting with the simulator
+
+During a simulation, you can run:
+
+* `rostopic pub /requestLocalPathUpdate` then press TAB repeatedly to get a default messsage. Then send it to tell the main loop to run a path regeneration.
+
+* `rostopic pub /new_boat` then press TAB repeatedly to get a default messsage. Edit the message to get the boat in the location, speed and direction you want. This will create a new AIS boat obstacle.
+
+* `rostopic pub /changeGlobalWind` then press TAB repeatedly to get a default messsage. Edit the message to get the wind speed and direction you want. This will change the global wind.
+
+* `rostopic pub /changeGPS` then press TAB repeatedly to get a default messsage. Edit the message to get sailbot position that you want. This will change the sailbot position.
+
+* `rostopic pub /delete_boats` then press TAB repeatedly to get a default messsage. Edit the message to remove the AIS boat with the given ID.
+
+* `rostopic pub /boat_on_path` then press TAB repeatedly to get a default messsage. Edit using one of the following options:
+
+1. addType = latlon will just publish a boat with the specified parameters in addBoat.ship
+2. addType = nextWaypoint will publish a boat at the next localWaypoint with the specified ID, heading, and speed in addBoat.ship (lat lon params are ignored)
+3. addType = onBoat will publish a boat at the current location of the Sailbot with the specified ID, heading, and speed in addBoat.ship (lat lon params are ignored)
+4. addType = index will publish a boat at localPath[addBoat.waypointIndex] with the specified ID, heading, and speed in addBoat.ship (lat lon params are ignored)
+
+#### Seeing more information about a simulation
+
+You can run `rostopic echo /` then press TAB repeatedly to see the available topics for listening. One of the most useful is `rostopic echo /localPathCostBreakdown` to see how the local path cost is being calculated.
 
 ![alt text](images/local_path_visualizer.png?raw=true "Local Path Visualizer")
 
-* You can also open OpenCPN to visualize the path finding progression over the entire map.
+* You can also open OpenCPN to visualize the path finding progression over the entire map. The OpenCPN set up instructions can be found below. 
 
 ![alt text](images/opencpn_visualizer.png?raw=true "OpenCPN Visualizer")
 
