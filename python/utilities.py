@@ -75,12 +75,11 @@ WEDGE_EXPAND_ANGLE_DEGREES = 10.0
 OBSTACLE_MAX_TIME_TO_LOC_HOURS = 10  # Do not extend objects more than X hours distance
 
 def takeScreenshot():
-    # Set variable for first time
+    # Set imagePath on first time
     try:
         firstTime = (takeScreenshot.imagePath is None)
     except AttributeError:
         rospy.loginfo("Handling first time case in takeScreenshot()")
-        # Set imagePath on first time
         pathToThisFile = os.path.dirname(os.path.abspath(__file__))
         dateString = date.today().strftime("%b-%d-%Y")
         timeString = datetime.now().strftime('%H-%M-%S')
@@ -251,7 +250,6 @@ def createLocalPathSS(state, runtimeSeconds=2, numRuns=2, plot=False, resetSpeed
             invalidSolutions.append(solution)
 
     # If no validSolutions found, re-run with larger runtime
-    # TODO: Use time.time() to calculate time elapsed
     totalRuntimeSeconds = numRuns * runtimeSeconds
     while len(validSolutions) == 0:
         rospy.logwarn("No valid solutions found in {} seconds runtime".format(runtimeSeconds))
