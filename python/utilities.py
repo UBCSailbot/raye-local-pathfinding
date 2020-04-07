@@ -179,13 +179,17 @@ def createLocalPathSS(state, runtimeSeconds=2, numRuns=2, plot=False, resetSpeed
 
     # If start or goal is invalid, shrink objects and re-run
     # TODO: Figure out if there is a better method to handle this case
-    amountShrinked = 1.0
-    while not isValid(start, obstacles) or not isValid(goal, obstacles):
-        rospy.logerr("start or goal state is not valid")
-        rospy.logerr("Shrinking obstacles by a factor of {}".format(OBSTACLE_SHRINK_FACTOR))
-        for obstacle in obstacles:
-            obstacle.shrink(OBSTACLE_SHRINK_FACTOR)
-        amountShrinked *= OBSTACLE_SHRINK_FACTOR
+    def shrinkObstaclesUntilValid(start, goal, obstacles):
+        amountShrinked = 1.0
+        while not isValid(start, obstacles) or not isValid(goal, obstacles):
+            rospy.logerr("start or goal state is not valid")
+            rospy.logerr("Shrinking obstacles by a factor of {}".format(OBSTACLE_SHRINK_FACTOR))
+            for obstacle in obstacles:
+                obstacle.shrink(OBSTACLE_SHRINK_FACTOR)
+            amountShrinked *= OBSTACLE_SHRINK_FACTOR
+        return amountShrinked
+
+    amountShrinked = shrinkObstaclesUntilValid(start, goal, obstacles)
     if amountShrinked > 1.0000001:
         rospy.logerr("Obstacles have been shrinked by factor of {}".format(amountShrinked))
 
@@ -218,21 +222,21 @@ def createLocalPathSS(state, runtimeSeconds=2, numRuns=2, plot=False, resetSpeed
         # TODO: Investigate if we should put a max cost threshold that makes convoluted paths unacceptable
         return True
 
-    solutions = []
+    validSolutions = []
     invalidSolutions = []
     for i in range(numRuns):
         # TODO: Incorporate globalWindSpeed into pathfinding?
         rospy.loginfo("Starting path-planning run number: {}".format(i))
         solution = plan(runtimeSeconds, "RRTStar", 'WeightedLengthAndClearanceCombo', globalWindDirectionDegrees, dimensions, start, goal, obstacles)
         if isValidSolution(solution, referenceLatlon, state):
-            solutions.append(solution)
+            validSolutions.append(solution)
         else:
             invalidSolutions.append(solution)
 
-    # If no solutions found, re-run with larger runtime
-    # TODO: Figure out if there is a better method to handle this case
+    # If no validSolutions found, re-run with larger runtime
+    # TODO: Use time.time() to calculate time elapsed
     totalRuntimeSeconds = numRuns * runtimeSeconds
-    while len(solutions) == 0:
+    while len(validSolutions) == 0:
         rospy.logwarn("No valid solutions found in {} seconds runtime".format(runtimeSeconds))
         runtimeSeconds *= INCREASE_RUNTIME_FACTOR
         totalRuntimeSeconds += runtimeSeconds
@@ -243,27 +247,39 @@ def createLocalPathSS(state, runtimeSeconds=2, numRuns=2, plot=False, resetSpeed
             break
 
         rospy.logwarn("Attempting to rerun with longer runtime: {} seconds".format(runtimeSeconds))
-        # TODO: Incorporate globalWindSpeed into pathfinding?
         solution = plan(runtimeSeconds, "RRTStar", 'WeightedLengthAndClearanceCombo', globalWindDirectionDegrees, dimensions, start, goal, obstacles)
 
         if isValidSolution(solution, referenceLatlon, state):
-            solutions.append(solution)
+            validSolutions.append(solution)
         else:
             invalidSolutions.append(solution)
 
+    def setAverageDistanceBetweenWaypoints(solutionPath):
+        # Set the average distance between waypoints
+        localPathLengthKm = solutionPath.length()
+        numberOfLocalWaypoints = int(localPathLengthKm / AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM)
+        solutionPath.interpolate(numberOfLocalWaypoints)
+
     # If no valid solutions found, use the best invalid one. Do not perform any path simplifying on invalid paths.
-    if len(solutions) == 0:
+    if len(validSolutions) == 0:
+        # Set the average distance between waypoints
+        for solution in invalidSolutions:
+            setAverageDistanceBetweenWaypoints(solution.getSolutionPath())
+
         bestSolution = min(invalidSolutions, key=lambda x: x.getSolutionPath().cost(x.getOptimizationObjective()).value())
         bestSolutionPath = bestSolution.getSolutionPath()
         minCost = bestSolutionPath.cost(bestSolution.getOptimizationObjective()).value()
     else:
+        # Set the average distance between waypoints
+        for solution in validSolutions:
+            setAverageDistanceBetweenWaypoints(solution.getSolutionPath())
 
         # Find path with minimum cost. Can be either simplified or unsimplified path.
         # Need to recheck that simplified paths are valid before using
         minCost = sys.maxsize
         bestSolution = None
         bestSolutionPath = None
-        for solution in solutions:
+        for solution in validSolutions:
             # Check unsimplified path
             unsimplifiedPath = og.PathGeometric(solution.getSolutionPath())
             unsimplifiedCost = unsimplifiedPath.cost(solution.getOptimizationObjective()).value()
@@ -286,13 +302,6 @@ def createLocalPathSS(state, runtimeSeconds=2, numRuns=2, plot=False, resetSpeed
                     bestSolution = solution
                     bestSolutionPath = simplifiedPath
                     minCost = simplifiedCost
-
-    rospy.loginfo("BEFORE interpolation solution with cost: {}".format(minCost))
-
-    # Set the average distance between waypoints
-    localPathLengthKm = bestSolutionPath.length()
-    numberOfLocalWaypoints = int(localPathLengthKm / AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM)
-    bestSolutionPath.interpolate(numberOfLocalWaypoints)
 
     # Reprint cost after interpolation
     minCost = bestSolutionPath.cost(bestSolution.getOptimizationObjective()).value()
