@@ -142,7 +142,7 @@ def plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, 
     plt.pause(0.001)
     rospy.loginfo("plotPathfindingProblem 24")
 
-def createLocalPathSS(state, runtimeSeconds=2, numRuns=2, plot=False, resetSpeedupDuringPlan=False, speedupBeforePlan=1.0):
+def createLocalPathSS(state, runtimeSeconds=2, numRuns=2, plot=False, resetSpeedupDuringPlan=False, speedupBeforePlan=1.0, maxAllowableRuntimeSeconds=MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS):
     def getXYLimits(start, goal, extraLengthFraction=0.6):
         # Calculate extra length to allow wider solution space
         width = math.fabs(goal[0] - start[0])
@@ -234,8 +234,8 @@ def createLocalPathSS(state, runtimeSeconds=2, numRuns=2, plot=False, resetSpeed
         totalRuntimeSeconds += runtimeSeconds
 
         # If valid solution can't be found for large runtime, then stop searching
-        if totalRuntimeSeconds >= MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS:
-            rospy.logwarn("No valid solution can be found in under {} seconds. Using invalid solution.".format(MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS))
+        if totalRuntimeSeconds >= maxAllowableRuntimeSeconds:
+            rospy.logwarn("No valid solution can be found in under {} seconds. Using invalid solution.".format(maxAllowableRuntimeSeconds))
             break
 
         rospy.logwarn("Attempting to rerun with longer runtime: {} seconds".format(runtimeSeconds))
