@@ -26,6 +26,18 @@ The easiest way to run the local pathfinding system with ROS is to use multiple 
 
 * __The mock inputs__, which are a placeholder for the real inputs from sensors and the controller.
 
+#### Visualizing the simulation
+
+The pathfinding tries to avoid large turns, avoid sailing upwind or downwind, and minimize the path length. The cost function to create these tacking paths was developed from a sailboat reacting planning paper, which can be found [here](docs/Tacking_Paper.pdf).
+
+The path can be viewed with the local path visualizer, which is shown below.
+
+![alt text](images/local_path_visualizer.png?raw=true "Local Path Visualizer")
+
+You can also open OpenCPN to visualize the path finding progression over the entire map. The OpenCPN set up instructions can be found below. 
+
+![alt text](images/opencpn_visualizer.png?raw=true "OpenCPN Visualizer")
+
 #### Arguments for all.launch
 
 All of the arguments below are optional for `all.launch`.
@@ -72,12 +84,6 @@ During a simulation, you can run:
 #### Seeing more information about a simulation
 
 You can run `rostopic echo /` then press TAB repeatedly to see the available topics for listening. One of the most useful is `rostopic echo /localPathCostBreakdown` to see how the local path cost is being calculated.
-
-![alt text](images/local_path_visualizer.png?raw=true "Local Path Visualizer")
-
-* You can also open OpenCPN to visualize the path finding progression over the entire map. The OpenCPN set up instructions can be found below. 
-
-![alt text](images/opencpn_visualizer.png?raw=true "OpenCPN Visualizer")
 
 ### Running tests
 
