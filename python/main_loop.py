@@ -10,7 +10,7 @@ from utilities import *
 import time
 
 # Constants
-MAIN_LOOP_PERIOD_SECONDS = 0.1
+MAIN_LOOP_PERIOD_SECONDS = 0.5
 
 # Global variable to receive path update requests
 localPathUpdateRequested = False
