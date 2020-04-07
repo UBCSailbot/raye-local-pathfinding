@@ -291,6 +291,7 @@ def createLocalPathSS(state, runtimeSeconds=2, numRuns=2, plot=False, resetSpeed
             # Check simplified path
             solution.simplifySolution()
             simplifiedPath = solution.getSolutionPath()
+            setAverageDistanceBetweenWaypoints(simplifiedPath)
             simplifiedCost = simplifiedPath.cost(solution.getOptimizationObjective()).value()
             if simplifiedCost < minCost:
                 # Double check that simplified path is valid
@@ -305,7 +306,6 @@ def createLocalPathSS(state, runtimeSeconds=2, numRuns=2, plot=False, resetSpeed
 
     # Reprint cost after interpolation
     minCost = bestSolutionPath.cost(bestSolution.getOptimizationObjective()).value()
-    rospy.loginfo("AFTER interpolation solution with cost: {}".format(minCost))
 
     # Close any plots
     plt.close()
