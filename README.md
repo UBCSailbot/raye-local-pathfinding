@@ -50,7 +50,9 @@ Instructions to run a pathfinding unit test can be found [here](json/README.md).
 
 During a simulation, you can run:
 
-* `rostopic pub /requestLocalPathUpdate` then press TAB repeatedly to get a default messsage. Then send it to tell the main loop to run a path regeneration.
+* `rostopic pub /requestLocalPathUpdate` then press TAB repeatedly to get a default messsage. Then send it to request a local path change, which will only actually change if the new path is lower cost than the current one.
+
+* `rostopic pub /forceLocalPathUpdate` then press TAB repeatedly to get a default messsage. Then send it to force a local path change, which will change the path, regardless if the new path is lower cost than the current one or not.
 
 * `rostopic pub /new_boat` then press TAB repeatedly to get a default messsage. Edit the message to get the boat in the location, speed and direction you want. This will create a new AIS boat obstacle.
 
