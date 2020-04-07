@@ -9,7 +9,7 @@ import geopy.distance
 from utilities import headingToBearingDegrees, PORT_RENFREW_LATLON
 
 # Constants
-GPS_PUBLISH_PERIOD_SECONDS = 1.0
+GPS_PUBLISH_PERIOD_SECONDS = 0.1
 
 class MOCK_ControllerAndSailbot: 
     def __init__(self, lat, lon, headingDegrees, speedKmph):
