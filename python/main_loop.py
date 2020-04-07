@@ -10,7 +10,7 @@ from utilities import *
 import time
 
 # Constants
-MAIN_LOOP_PERIOD_SECONDS = 1.0
+MAIN_LOOP_PERIOD_SECONDS = 0.5
 
 # Global variable to receive path update requests
 localPathUpdateRequested = False
@@ -19,15 +19,19 @@ def updatePathCallback(data):
     rospy.loginfo("localPathUpdateRequested message received.")
     localPathUpdateRequested = True
 
+# Global variable for speedup
+speedup = 1.0
+def speedupCallback(data):
+    global speedup
+    speedup = data.data
 
 if __name__ == '__main__':
-    global localPathUpdateRequested
-
     # Create sailbot ROS object that subscribes to relevant topics
     sailbot = Sailbot(nodeName='local_pathfinding')
 
     # Subscribe to requestLocalPathUpdate
     rospy.Subscriber('requestLocalPathUpdate', Bool, updatePathCallback)
+    rospy.Subscriber('speedup', Float64, speedupCallback)
 
     # Create ros publisher for the desired heading for the controller
     desiredHeadingPublisher = rospy.Publisher('desiredHeading', msg.heading, queue_size=4)
@@ -40,9 +44,6 @@ if __name__ == '__main__':
     pathCostPublisher = rospy.Publisher('localPathCost', Float64, queue_size=4)
     pathCostBreakdownPublisher = rospy.Publisher('localPathCostBreakdown', String, queue_size=4)
     publishRate = rospy.Rate(1.0 / MAIN_LOOP_PERIOD_SECONDS)
-
-    # Get speedup parameter
-    speedup = rospy.get_param('speedup', default=1.0)
 
     # Wait until first global path is received
     while not sailbot.newGlobalPathReceived:
@@ -57,7 +58,7 @@ if __name__ == '__main__':
 
     # Create first path and track time of updates
     state = sailbot.getCurrentState()
-    localPathSS, solutionPathObject, referenceLatlon = createLocalPathSS(state, plot=True)
+    localPathSS, solutionPathObject, referenceLatlon = createLocalPathSS(state, plot=True, resetSpeedupDuringPlan=True, speedupBeforePlan=speedup)
     localPathLatlons = getLocalPathLatlons(solutionPathObject, referenceLatlon)
     localPathIndex = 1  # First waypoint is the start point, so second waypoint is the next local waypoint
     localWaypoint = getLocalWaypointLatLon(localPathLatlons, localPathIndex)
@@ -114,7 +115,7 @@ if __name__ == '__main__':
 
             # Update local path
             state = sailbot.getCurrentState()
-            localPathSS, solutionPathObject, referenceLatlon = createLocalPathSS(state, plot=True)
+            localPathSS, solutionPathObject, referenceLatlon = createLocalPathSS(state, plot=True, resetSpeedupDuringPlan=True, speedupBeforePlan=speedup)
             localPathLatlons = getLocalPathLatlons(solutionPathObject, referenceLatlon)
             localPathIndex = 1  # First waypoint is the start point, so second waypoint is the next local waypoint
             localWaypoint = getLocalWaypointLatLon(localPathLatlons, localPathIndex)

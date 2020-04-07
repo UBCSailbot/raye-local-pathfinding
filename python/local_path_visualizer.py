@@ -2,6 +2,7 @@
 import sys
 import rospy
 import math
+from std_msgs.msg import Float64
 from local_pathfinding.msg import AISMsg, GPS, path, latlon, windSensor
 from utilities import *
 from Sailbot import *
@@ -10,7 +11,7 @@ from matplotlib import patches
 import time
 
 # Constants
-VISUALIZER_UPDATE_PERIOD_SECONDS = 1.0
+VISUALIZER_UPDATE_PERIOD_SECONDS = 0.1
 LATLON_TEXT_DECIMAL_PLACES = 3
 
 # Globals for callbacks
@@ -30,6 +31,12 @@ def nextLocalWaypointCallback(data):
 def nextGlobalWaypointCallback(data):
     global nextGlobalWaypoint
     nextGlobalWaypoint = data
+
+# Global variable for speedup
+speedup = 1.0
+def speedupCallback(data):
+    global speedup
+    speedup = data.data
 
 # Set xy for figure
 def getXYLimits(xy0, xy1):
@@ -82,10 +89,8 @@ if __name__ == '__main__':
     rospy.Subscriber("localPath", path, localPathCallback)
     rospy.Subscriber("nextLocalWaypoint", latlon, nextLocalWaypointCallback)
     rospy.Subscriber("nextGlobalWaypoint", latlon, nextGlobalWaypointCallback)
+    rospy.Subscriber("speedup", Float64, speedupCallback)
     r = rospy.Rate(1.0 / VISUALIZER_UPDATE_PERIOD_SECONDS)
-
-    # Get speedup parameter
-    speedup = rospy.get_param('speedup', 1.0)
 
     # Wait for first messages
     while localPath is None or nextLocalWaypoint is None or nextGlobalWaypoint is None:
@@ -174,6 +179,9 @@ if __name__ == '__main__':
         positionLatlonText.set_text("(Lat: {}, Lon: {})".format(round(state.position.lat, LATLON_TEXT_DECIMAL_PLACES), round(state.position.lon, LATLON_TEXT_DECIMAL_PLACES)))
         nextGlobalWaypointLatlonText.set_position((nextGlobalWaypointXY[0], nextGlobalWaypointXY[1] + 0.5*arrowLength))
         nextGlobalWaypointLatlonText.set_text("(Lat: {}, Lon: {})".format(round(nextGlobalWaypoint.lat, LATLON_TEXT_DECIMAL_PLACES), round(nextGlobalWaypoint.lon, LATLON_TEXT_DECIMAL_PLACES)))
+
+        # Update speedup text
+        axes.set_title('Local Path Visualizer (speedup = {})'.format(speedup))
 
         # Add boats and wind speed arrow
         for ship in shipsXY:

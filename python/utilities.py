@@ -10,6 +10,7 @@ from planner_helpers import isUpwind, isDownwind
 import math 
 from geopy.distance import distance
 import geopy.distance
+from std_msgs.msg import Float64
 from local_pathfinding.msg import latlon, AISShip, AISMsg
 import numpy as np
 import matplotlib.pyplot as plt
@@ -114,7 +115,7 @@ def plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, 
     plt.draw()
     plt.pause(0.001)
 
-def createLocalPathSS(state, runtimeSeconds=2, numRuns=4, plot=False):
+def createLocalPathSS(state, runtimeSeconds=2, numRuns=2, plot=False, resetSpeedupDuringPlan=False, speedupBeforePlan=1.0):
     def getXYLimits(start, goal, extraLengthFraction=0.6):
         # Calculate extra length to allow wider solution space
         width = math.fabs(goal[0] - start[0])
@@ -128,6 +129,12 @@ def createLocalPathSS(state, runtimeSeconds=2, numRuns=4, plot=False):
         return [xMin, yMin, xMax, yMax]
 
     ou.setLogLevel(ou.LOG_WARN)
+
+    if resetSpeedupDuringPlan:
+        speedupDuringPlan = 1.0
+        rospy.loginfo("Setting speedup to this value during planning = {}".format(speedupDuringPlan))
+        publisher = rospy.Publisher('speedup', Float64, queue_size=4)
+        publisher.publish(speedupDuringPlan)
 
     # Get setup parameters from state for ompl plan()
     # Convert all latlons to NE in km wrt referenceLatlon
@@ -239,6 +246,12 @@ def createLocalPathSS(state, runtimeSeconds=2, numRuns=4, plot=False):
 
     # Close any plots
     plt.close()
+
+    if resetSpeedupDuringPlan:
+        rospy.loginfo("Setting speedup back to its value before planning = {}".format(speedupBeforePlan))
+        publisher = rospy.Publisher('speedup', Float64, queue_size=4)
+        publisher.publish(speedupBeforePlan)
+
     return bestSolution, bestSolutionPath, referenceLatlon
 
 def getLocalPathLatlons(solutionPathObject, referenceLatlon):
