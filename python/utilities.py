@@ -183,7 +183,6 @@ def createLocalPathSS(state, runtimeSeconds=2, numRuns=2, plot=False, resetSpeed
             invalidSolutions.append(solution)
 
     # If no solutions found, re-run with larger runtime
-    # TODO: Figure out if there is a better method to handle this case
     totalRuntimeSeconds = numRuns * runtimeSeconds
     while len(solutions) == 0:
         rospy.logwarn("No valid solutions found in {} seconds runtime".format(runtimeSeconds))
@@ -196,9 +195,7 @@ def createLocalPathSS(state, runtimeSeconds=2, numRuns=2, plot=False, resetSpeed
             break
 
         rospy.logwarn("Attempting to rerun with longer runtime: {} seconds".format(runtimeSeconds))
-        # TODO: Incorporate globalWindSpeed into pathfinding?
         solution = plan(runtimeSeconds, "RRTStar", 'WeightedLengthAndClearanceCombo', globalWindDirectionDegrees, dimensions, start, goal, obstacles)
-
         if isValidSolution(solution, referenceLatlon, state):
             solutions.append(solution)
         else:
