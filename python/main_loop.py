@@ -12,12 +12,19 @@ import time
 # Constants
 MAIN_LOOP_PERIOD_SECONDS = 0.5
 
-# Global variable to receive path update requests
+# Global variable to receive path update request messages
 localPathUpdateRequested = False
-def updatePathCallback(data):
+def localPathUpdateRequestedCallback(data):
     global localPathUpdateRequested
     rospy.loginfo("localPathUpdateRequested message received.")
     localPathUpdateRequested = True
+
+# Global variable to receive path update force messages
+localPathUpdateForced = False
+def localPathUpdateForcedCallback(data):
+    global localPathUpdateForced
+    rospy.loginfo("localPathUpdateForced message received.")
+    localPathUpdateForced = True
 
 # Global variable for speedup
 speedup = 1.0
@@ -40,7 +47,8 @@ if __name__ == '__main__':
     sailbot = Sailbot(nodeName='local_pathfinding')
 
     # Subscribe to requestLocalPathUpdate
-    rospy.Subscriber('requestLocalPathUpdate', Bool, updatePathCallback)
+    rospy.Subscriber('requestLocalPathUpdate', Bool, localPathUpdateRequestedCallback)
+    rospy.Subscriber('forceLocalPathUpdate', Bool, localPathUpdateForcedCallback)
     rospy.Subscriber('speedup', Float64, speedupCallback)
 
     # Create ros publisher for the desired heading for the controller
@@ -76,15 +84,15 @@ if __name__ == '__main__':
         newGlobalPathReceived = sailbot.newGlobalPathReceived
         localPathIndexOutOfBounds = localPathIndex >= len(localPathLatlons)
         pathNotReachGoal = pathDoesNotReachGoal(localPathLatlons, state.globalWaypoint)
-        if hasUpwindOrDownwindOnPath or hasObstacleOnPath or isGlobalWaypointReached or newGlobalPathReceived or localPathIndexOutOfBounds or pathNotReachGoal:
+        if hasUpwindOrDownwindOnPath or hasObstacleOnPath or isGlobalWaypointReached or newGlobalPathReceived or localPathIndexOutOfBounds or pathNotReachGoal or localPathUpdateForced:
             # Log reason for local path update
-            rospy.logwarn("MUST update local Path. Reason: hasUpwindOrDownwindOnPath? {}. hasObstacleOnPath? {}. isGlobalWaypointReached? {}. newGlobalPathReceived? {}. localPathIndexOutOfBounds? {}. pathNotReachGoal? {}".format(hasUpwindOrDownwindOnPath, hasObstacleOnPath, isGlobalWaypointReached, newGlobalPathReceived, localPathIndexOutOfBounds, pathNotReachGoal))
+            rospy.logwarn("MUST update local Path. Reason: hasUpwindOrDownwindOnPath? {}. hasObstacleOnPath? {}. isGlobalWaypointReached? {}. newGlobalPathReceived? {}. localPathIndexOutOfBounds? {}. pathNotReachGoal? {}. localPathUpdateForced? {}.".format(hasUpwindOrDownwindOnPath, hasObstacleOnPath, isGlobalWaypointReached, newGlobalPathReceived, localPathIndexOutOfBounds, pathNotReachGoal, localPathUpdateForced))
 
-            # Reset saiblot newGlobalPathReceived boolean
-            if localPathUpdateRequested:
-                localPathUpdateRequested = False
+            # Reset request
+            if localPathUpdateForced:
+                localPathUpdateForced = False
 
-            # Reset saiblot newGlobalPathReceived boolean
+            # Reset sailbot newGlobalPathReceived boolean
             if newGlobalPathReceived:
                 sailbot.newGlobalPathReceived = False
 
@@ -103,8 +111,12 @@ if __name__ == '__main__':
             isLocalWaypointReached = localWaypointReached(state.position, localPathLatlons, localPathIndex, referenceLatlon)
             isTimeLimitExceeded = timeLimitExceeded(lastTimePathCreated, speedup)
 
-            if costTooHigh or isLocalWaypointReached or isTimeLimitExceeded:
-                rospy.logwarn("Generating new local path to compare to current local path. Reason: costTooHigh? {}. isLocalWaypointReached? {}. isTimeLimitExceeded? {}.".format(costTooHigh, isLocalWaypointReached, isTimeLimitExceeded))
+            if costTooHigh or isLocalWaypointReached or isTimeLimitExceeded or localPathUpdateRequested:
+                rospy.logwarn("Generating new local path to compare to current local path. Reason: costTooHigh? {}. isLocalWaypointReached? {}. isTimeLimitExceeded? {}. localPathUpdateRequested? {}.".format(costTooHigh, isLocalWaypointReached, isTimeLimitExceeded, localPathUpdateRequested))
+
+                # Reset request
+                if localPathUpdateRequested:
+                    localPathUpdateRequested = False
 
                 # Remove previous waypoint
                 if isLocalWaypointReached:
