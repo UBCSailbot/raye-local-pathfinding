@@ -65,8 +65,6 @@ if __name__ == '__main__':
     sailbot.newGlobalPathReceived = False
 
     while not rospy.is_shutdown():
-        rospy.loginfo("sailbot.globalPathIndex: {}".format(sailbot.globalPathIndex))
-        rospy.loginfo("localPathIndex: {}".format(localPathIndex))
         rospy.loginfo("desiredHeadingMsg: {}".format(desiredHeadingMsg.headingDegrees))
         rospy.loginfo("Current path cost is: {}".format(currentPathCost))
         state = sailbot.getCurrentState()
