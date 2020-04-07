@@ -205,16 +205,14 @@ def createLocalPathSS(state, runtimeSeconds=2, numRuns=2, plot=False, resetSpeed
     obstacles = getObstacles(state.AISData.ships, state.position, state.speedKmph, referenceLatlon)
     globalWindSpeedKmph, globalWindDirectionDegrees = measuredWindToGlobalWind(state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
 
-    def obstaclesTooClose(xy, obstacles):
-        obstaclesTooCloseList = []
-        for obstacle in obstacles:
-            if not obstacle.isValid(xy):
-                obstaclesTooCloseList.append(obstacle)
-        return obstaclesTooCloseList
-
     # If start or goal is invalid, shrink objects and re-run
-    # TODO: Figure out if there is a better method to handle this case
     def shrinkObstaclesUntilValid(xy, obstacles):
+        def obstaclesTooClose(xy, obstacles):
+            obstaclesTooCloseList = []
+            for obstacle in obstacles:
+                if not obstacle.isValid(xy):
+                    obstaclesTooCloseList.append(obstacle)
+            return obstaclesTooCloseList
         amountShrinked = 1.0
         obstaclesTooCloseList = obstaclesTooClose(xy, obstacles)
         while len(obstaclesTooCloseList) > 0:
@@ -246,7 +244,6 @@ def createLocalPathSS(state, runtimeSeconds=2, numRuns=2, plot=False, resetSpeed
     def isValidSolution(solution, referenceLatlon, state):
         if not solution.haveExactSolutionPath():
             return False
-        # TODO: Investigate if we should put a max cost threshold that makes convoluted paths unacceptable
         return True
 
     validSolutions = []
@@ -438,6 +435,7 @@ def obstacleOnPath(state, nextLocalWaypointIndex, localPathSS, solutionPathObjec
     return False
 
 def globalWaypointReached(position, globalWaypoint):
+    # TODO: Consider fixing globalWaypointReached to not go backwards
     sailbot = (position.lat, position.lon)
     waypt = (globalWaypoint.lat, globalWaypoint.lon)
     dist = distance(sailbot, waypt).kilometers
@@ -875,9 +873,9 @@ def removePastWaypointsInSolutionPath(ss, solutionPathObject, referenceLatlon, s
     solutionPathObject.keepAfter(positionXY)
     lengthAfter = solutionPathObject.getStateCount()
 
-    # TODO: Ensure logic works even if boat moves rapidly, so many indices change
-    # TODO: Check if should check through all waypoints to find next waypoint
-    # TODO: Fix globalWaypointReached to not go backwards
+    # Need waypoint at index 1 to be next waypoint
+    # If more than 1 waypoint removed, then need to add position at 0th index
+    # If 1 or less waypoints removed, then don't need to add position of boat
     if lengthBefore - lengthAfter > 1:
         solutionPathObject.prepend(positionXY)
 
