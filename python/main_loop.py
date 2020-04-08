@@ -112,7 +112,7 @@ if __name__ == '__main__':
             isTimeLimitExceeded = timeLimitExceeded(lastTimePathCreated, speedup)
 
             if costTooHigh or isLocalWaypointReached or isTimeLimitExceeded or localPathUpdateRequested:
-                rospy.logwarn("Generating new local path to compare to current local path. Reason: costTooHigh? {}. isLocalWaypointReached? {}. isTimeLimitExceeded? {}. localPathUpdateRequested? {}.".format(costTooHigh, isLocalWaypointReached, isTimeLimitExceeded, localPathUpdateRequested))
+                rospy.loginfo("Generating new local path to compare to current local path. Reason: costTooHigh? {}. isLocalWaypointReached? {}. isTimeLimitExceeded? {}. localPathUpdateRequested? {}.".format(costTooHigh, isLocalWaypointReached, isTimeLimitExceeded, localPathUpdateRequested))
 
                 # Reset request
                 if localPathUpdateRequested:

@@ -64,7 +64,7 @@ AIS_BOAT_RADIUS_KM = 0.2
 AIS_BOAT_CIRCLE_SPACING_KM = AIS_BOAT_RADIUS_KM * 1.5  # Distance between circles that make up an AIS boat
 
 # Upwind downwind detection
-UPWIND_DOWNWIND_TIME_LIMIT_SECONDS = 3
+UPWIND_DOWNWIND_TIME_LIMIT_SECONDS = 1.5
 
 # Constants for pathfinding updates
 COST_THRESHOLD = 20000
@@ -72,7 +72,7 @@ MAX_ALLOWABLE_DISTANCE_FINAL_WAYPOINT_TO_GOAL_KM = GLOBAL_WAYPOINT_REACHED_RADIU
 
 # Constants for obstacle models
 WEDGE_EXPAND_ANGLE_DEGREES = 10.0
-OBSTACLE_MAX_TIME_TO_LOC_HOURS = 10  # Do not extend objects more than X hours distance
+OBSTACLE_MAX_TIME_TO_LOC_HOURS = 3  # Do not extend objects more than X hours distance
 
 def takeScreenshot():
     # Set imagePath on first time
@@ -350,13 +350,13 @@ def upwindOrDownwindOnPath(state, nextLocalWaypointIndex, solutionPathObject, re
 
         if ph.isDownwind(math.radians(globalWindDirectionDegrees), math.radians(requiredHeadingDegrees)):
             if showWarnings:
-                rospy.logwarn("Downwind sailing on path. globalWindDirectionDegrees: {}. requiredHeadingDegrees: {}. waypointIndex: {}".format(globalWindDirectionDegrees, requiredHeadingDegrees, waypointIndex))
+                rospy.loginfo("Downwind sailing on path detected. globalWindDirectionDegrees: {}. requiredHeadingDegrees: {}. waypointIndex: {}".format(globalWindDirectionDegrees, requiredHeadingDegrees, waypointIndex))
             upwindOrDownwind = True
             break
 
         elif ph.isUpwind(math.radians(globalWindDirectionDegrees), math.radians(requiredHeadingDegrees)):
             if showWarnings:
-                rospy.logwarn("Upwind sailing on path. globalWindDirectionDegrees: {}. requiredHeadingDegrees: {}. waypointIndex: {}".format(globalWindDirectionDegrees, requiredHeadingDegrees, waypointIndex))
+                rospy.loginfo("Upwind sailing on path detected. globalWindDirectionDegrees: {}. requiredHeadingDegrees: {}. waypointIndex: {}".format(globalWindDirectionDegrees, requiredHeadingDegrees, waypointIndex))
             upwindOrDownwind = True
             break
 
@@ -367,15 +367,21 @@ def upwindOrDownwindOnPath(state, nextLocalWaypointIndex, solutionPathObject, re
         rospy.loginfo("Handling first time case in upwindOrDownwindOnPath()")
         upwindOrDownwindOnPath.lastTimeNotUpwindOrDownwind = time.time()
 
-    # Update time if not upwind or downwind
+    # Reset last time not upwind/downwind
     if not upwindOrDownwind:
         upwindOrDownwindOnPath.lastTimeNotUpwindOrDownwind = time.time()
+        return False
 
     # Return true only if upwindOrDownwind for enough time
-    if time.time() - upwindOrDownwindOnPath.lastTimeNotUpwindOrDownwind >= UPWIND_DOWNWIND_TIME_LIMIT_SECONDS:
+    consecutiveUpwindOrDownwindTimeSeconds = time.time() - upwindOrDownwindOnPath.lastTimeNotUpwindOrDownwind
+    if consecutiveUpwindOrDownwindTimeSeconds >= UPWIND_DOWNWIND_TIME_LIMIT_SECONDS:
+        if showWarnings:
+            rospy.logwarn("Upwind/downwind sailing detected for {} seconds consecutively, which is greater than the {} second limit. This officially counts as upwind/downwind".format(consecutiveUpwindOrDownwindTimeSeconds, UPWIND_DOWNWIND_TIME_LIMIT_SECONDS))
         upwindOrDownwindOnPath.lastTimeNotUpwindOrDownwind = time.time()
         return True
     else:
+        if showWarnings:
+            rospy.loginfo("Upwind/downwind sailing detected for only {} seconds consecutively, which is less than the {} second limit. This does not count as upwind/downwind sailing yet.".format(consecutiveUpwindOrDownwindTimeSeconds, UPWIND_DOWNWIND_TIME_LIMIT_SECONDS))
         return False
 
 def obstacleOnPath(state, nextLocalWaypointIndex, localPathSS, solutionPathObject, referenceLatlon, numLookAheadWaypoints=None, showWarnings=False):
@@ -692,14 +698,10 @@ class Wedge(ObstacleInterface):
         axes.add_patch(patches.Wedge((self.x, self.y), self.radius, self.theta1, self.theta2))
 
     def isValid(self, xy):
-        # TODO: Ensure this invalid radius can be modified if boat WAY too close
-        INVALID_RADIUS_AROUND_START = 1
         angle = math.degrees(math.atan2(xy[1] - self.y, xy[0] - self.x))
         if angle < 0:
             angle += 360
         distance = math.sqrt((xy[1] - self.y) **2 + (xy[0] - self.x) ** 2)
-        if distance < INVALID_RADIUS_AROUND_START:
-            return False 
         if (angle > self.theta1 and angle < self.theta2 and distance < self.radius):
             return False
         return True
