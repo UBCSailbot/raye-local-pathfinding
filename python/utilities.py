@@ -212,7 +212,8 @@ def createLocalPathSS(state, runtimeSeconds=2, numRuns=2, plot=False, resetSpeed
     if plot:
         plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, obstacles, state.headingDegrees, amountShrinked)
 
-    takeScreenshot()
+    # Uncomment to take screenshot of pathfinding setup
+    # takeScreenshot()
 
     def isValidSolution(solution, referenceLatlon, state):
         if not solution.haveExactSolutionPath():
