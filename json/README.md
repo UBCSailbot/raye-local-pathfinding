@@ -16,3 +16,7 @@ wind\_file - sets the initial wind speed and direction
 
 
 Each test1, test2 has a different AIS boat setup, but each test1\_1, test1\_2 has a different wind condition
+
+## How to create your own files
+
+You can create your own unit test files by copying the json files here, or by starting a simulation and then running (in another terminal) `rosrun local_pathfinding json_dumper.py`, which will save the current AIS and GPS conditions into files in your current directory.
