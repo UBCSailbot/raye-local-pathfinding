@@ -46,6 +46,8 @@ All of the arguments below are optional for `all.launch`.
 
 * `obstacle_type` - String value that changes the obstacle representation of AIS ships. Accepted types are: `"ellipse"`, `"wedge"`, and `"circles"`. Default: `"ellipse"`
 
+* `main_loop_output` - String value that changes where ros log information is output. Accepted values are: `screen` and `log`. Default: `screen`.
+
 * `ais_file` - String value that is the full path to a json file with a list of AIS boats. The simulator will read from this file to create its AIS boats. Examples can be found in the `json` folder.
 
 * `gps_file` - String value that is the full path to a json file with a GPS coordinate. The simulator will read from this file to place the sailbot's initial position.
