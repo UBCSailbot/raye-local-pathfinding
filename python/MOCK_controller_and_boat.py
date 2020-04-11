@@ -9,7 +9,8 @@ import geopy.distance
 from utilities import headingToBearingDegrees, PORT_RENFREW_LATLON
 
 # Constants
-GPS_PUBLISH_PERIOD_SECONDS = 1.0
+GPS_PUBLISH_PERIOD_SECONDS = 0.1  # Keep below 1.0 for smoother boat motion
+HEADING_DEGREES_STANDARD_DEVIATION = 1.0  # Bring this value to about 1.0 for limited deviation. 20.0 for quite large deviations.
 
 class MOCK_ControllerAndSailbot: 
     def __init__(self, lat, lon, headingDegrees, speedKmph):
@@ -38,7 +39,7 @@ class MOCK_ControllerAndSailbot:
 
     def desiredHeadingCallback(self, data):
         rospy.loginfo(data)
-        self.headingDegrees = data.headingDegrees + random.gauss(0, 1)
+        self.headingDegrees = data.headingDegrees + random.gauss(0, HEADING_DEGREES_STANDARD_DEVIATION)
 
     def changeGPSCallback(self, data):
         rospy.loginfo("Received change GPS message = {}".format(data))

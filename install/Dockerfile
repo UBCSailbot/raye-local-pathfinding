@@ -1,6 +1,6 @@
 FROM ubuntu:bionic AS builder
 
-## ROS Setup
+###################### ROS Setup ######################
 # setup timezone
 RUN echo 'Etc/UTC' > /etc/timezone && \
     ln -s /usr/share/zoneinfo/Etc/UTC /etc/localtime && \
@@ -43,7 +43,7 @@ RUN apt-get update && apt-get install -y \
     ros-melodic-ros-base=1.4.1-0* \
 && rm -rf /var/lib/apt/lists/*
 
-## OMPL Setup
+###################### OMPL Setup ######################
 RUN apt-get update && \
     apt-get install -y \
         build-essential  \
@@ -65,6 +65,7 @@ RUN apt-get update && \
         python2.7-dev \
         python2.7-numpy \
         python-pip \
+        scrot \
         wget && \
     # Install spot
     wget -q -O - https://www.lrde.epita.fr/repo/debian.gpg | apt-key add - && \
@@ -76,7 +77,7 @@ RUN apt-get update && \
     # Install pypy2:
     wget -q -O- https://bitbucket.org/pypy/pypy/downloads/pypy2-v6.0.0-linux64.tar.bz2 |tar jxf - && \
     pip2 install pygccxml pyplusplus
-    pip2 install geopy
+    pip2 install geopy pyautogui
 
 COPY . /ompl
 
@@ -88,7 +89,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y \
 
 RUN /ompl/install-ompl-ubuntu.sh --python 
 
-# Below is code from the original Dockerfile from ompl, which does not work
+####################### Below is code from the original Dockerfile from ompl, which does not work ######################
 # RUN /ompl/install-ompl-ubuntu.sh --app
 
 # WORKDIR /build

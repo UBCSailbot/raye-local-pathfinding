@@ -22,8 +22,8 @@ UPWIND_MAX_ANGLE_DEGREES = 30.0
 DOWNWIND_MAX_ANGLE_DEGREES = 30.0
 
 # Balanced objective constants
-LENGTH_WEIGHT = 1.0
-CLEARANCE_WEIGHT = 1.0
+LENGTH_WEIGHT = 100.0
+CLEARANCE_WEIGHT = 1000.0
 MIN_TURN_WEIGHT = 1.0
 WIND_WEIGHT = 1.0
 
@@ -32,13 +32,14 @@ LARGE_TURN_MULTIPLIER = 500.0
 SMALL_TURN_MULTIPLIER = 10.0
 
 # Upwind downwind cost multipliers
-UPWIND_MULTIPLIER = 1000.0
-DOWNWIND_MULTIPLIER = 1000.0
+UPWIND_MULTIPLIER = 3000.0
+DOWNWIND_MULTIPLIER = 3000.0
 
 class ValidityChecker(ob.StateValidityChecker):
     def __init__(self, si, obstacles):
         super(ValidityChecker, self).__init__(si)
         self.obstacles = obstacles
+        self.si = si
 
     # Returns whether the given state's position overlaps the ellipse
     def isValid(self, state):
@@ -51,7 +52,13 @@ class ValidityChecker(ob.StateValidityChecker):
     # Returns the distance from the given state's position to the
     # boundary of the circular obstacle.
     def clearance(self, state):
-        return 1
+        clearance = self.si.getStateSpace().getMaximumExtent()
+        xy = [state.getX(), state.getY()]
+        for obstacle in self.obstacles:
+            if not obstacle.isValid(xy):
+                return 0
+            clearance = min(clearance, obstacle.clearance(xy))
+        return clearance
 
 class ClearanceObjective(ob.StateCostIntegralObjective):
     def __init__(self, si):
@@ -147,7 +154,7 @@ def getBalancedObjective(si):
     opt.addObjective(windObj, WIND_WEIGHT)
 
     # REMOVING TO SAVE COMPUTATION AND SEE IF IMPROVES.
-    # opt.addObjective(lengthObj, LENGTH_WEIGHT)
+    opt.addObjective(lengthObj, LENGTH_WEIGHT)
     # opt.addObjective(clearObj, CLEARANCE_WEIGHT)
 
     return opt

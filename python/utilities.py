@@ -1,12 +1,17 @@
 #!/usr/bin/env python
+from datetime import datetime
+from datetime import date
+import pyautogui
+import os
 from ompl import util as ou
+from ompl import base as ob
 from ompl import geometric as og
 import rospy
 import time
 import sys
 from plotting import plot_path, plot_path_2
 from updated_geometric_planner import plan, indexOfObstacleOnPath
-from planner_helpers import isUpwind, isDownwind
+import planner_helpers as ph
 import math 
 from geopy.distance import distance
 import geopy.distance
@@ -22,13 +27,14 @@ PORT_RENFREW_LATLON = latlon(48.5, -124.8)
 MAUI_LATLON = latlon(20.0, -156.0)
 
 # Constants
-AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM = 3
-GLOBAL_WAYPOINT_REACHED_RADIUS_KM = 10
+AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM = 3.0
+GLOBAL_WAYPOINT_REACHED_RADIUS_KM = 10.0
 PATH_UPDATE_TIME_LIMIT_SECONDS = 7200
 
 # Pathfinding constants
-MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS = 120.0
+MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS = 20.0
 INCREASE_RUNTIME_FACTOR = 1.5
+OBSTACLE_SHRINK_FACTOR = 1.2
 
 # Scale NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES and NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND to change based on waypoint distance
 LOOK_AHEAD_FOR_OBSTACLES_KM = 20
@@ -58,11 +64,40 @@ AIS_BOAT_RADIUS_KM = 0.2
 AIS_BOAT_CIRCLE_SPACING_KM = AIS_BOAT_RADIUS_KM * 1.5  # Distance between circles that make up an AIS boat
 
 # Upwind downwind detection
-UPWIND_DOWNWIND_COUNTER_LIMIT = 3
+UPWIND_DOWNWIND_TIME_LIMIT_SECONDS = 1.5
 
 # Constants for pathfinding updates
-COST_THRESHOLD = 12000
-MAX_ALLOWABLE_DISTANCE_FINAL_WAYPOINT_TO_GOAL_KM = 5
+COST_THRESHOLD = 20000
+MAX_ALLOWABLE_DISTANCE_FINAL_WAYPOINT_TO_GOAL_KM = GLOBAL_WAYPOINT_REACHED_RADIUS_KM / 2
+
+# Constants for obstacle models
+WEDGE_EXPAND_ANGLE_DEGREES = 10.0
+OBSTACLE_MAX_TIME_TO_LOC_HOURS = 3  # Do not extend objects more than X hours distance
+
+def takeScreenshot():
+    # Set imagePath on first time
+    try:
+        firstTime = (takeScreenshot.imagePath is None)
+    except AttributeError:
+        rospy.loginfo("Handling first time case in takeScreenshot()")
+        pathToThisFile = os.path.dirname(os.path.abspath(__file__))
+        dateString = date.today().strftime("%b-%d-%Y")
+        timeString = datetime.now().strftime('%H-%M-%S')
+        pathToDateFolder = "{}/../images/{}".format(pathToThisFile, dateString)
+        pathToStartTimeFolder = "{}/{}".format(pathToDateFolder, timeString)
+        if not os.path.exists(pathToDateFolder):
+            os.mkdir(pathToDateFolder)
+        if not os.path.exists(pathToStartTimeFolder):
+            os.mkdir(pathToStartTimeFolder)
+        takeScreenshot.imagePath = pathToStartTimeFolder
+
+    # Take screenshot
+    time.sleep(1)
+    myScreenshot = pyautogui.screenshot()
+
+    # Save screenshot
+    timeString = datetime.now().strftime('%H-%M-%S')
+    myScreenshot.save("{}/{}.png".format(takeScreenshot.imagePath, timeString))
 
 def latlonToXY(latlon, referenceLatlon):
     x = distance((referenceLatlon.lat, referenceLatlon.lon), (referenceLatlon.lat, latlon.lon)).kilometers
@@ -115,7 +150,7 @@ def plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, 
     plt.draw()
     plt.pause(0.001)
 
-def createLocalPathSS(state, runtimeSeconds=2, numRuns=2, plot=False, resetSpeedupDuringPlan=False, speedupBeforePlan=1.0):
+def createLocalPathSS(state, runtimeSeconds=1.0, numRuns=2, plot=False, resetSpeedupDuringPlan=False, speedupBeforePlan=1.0, maxAllowableRuntimeSeconds=MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS):
     def getXYLimits(start, goal, extraLengthFraction=0.6):
         # Calculate extra length to allow wider solution space
         width = math.fabs(goal[0] - start[0])
@@ -146,17 +181,29 @@ def createLocalPathSS(state, runtimeSeconds=2, numRuns=2, plot=False, resetSpeed
     globalWindSpeedKmph, globalWindDirectionDegrees = measuredWindToGlobalWind(state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
 
     # If start or goal is invalid, shrink objects and re-run
-    # TODO: Figure out if there is a better method to handle this case
-    amountShrinked = 1.0
-    shrinkFactor = 2.0
-    while not isValid(start, obstacles) or not isValid(goal, obstacles):
-        rospy.logerr("start or goal state is not valid")
-        rospy.logerr("Shrinking obstacles by a factor of {}".format(shrinkFactor))
-        for obstacle in obstacles:
-            obstacle.shrink(shrinkFactor)
-        amountShrinked *= shrinkFactor
+    def shrinkObstaclesUntilValid(xy, obstacles):
+        def obstaclesTooClose(xy, obstacles):
+            obstaclesTooCloseList = []
+            for obstacle in obstacles:
+                if not obstacle.isValid(xy):
+                    obstaclesTooCloseList.append(obstacle)
+            return obstaclesTooCloseList
+        amountShrinked = 1.0
+        obstaclesTooCloseList = obstaclesTooClose(xy, obstacles)
+        while len(obstaclesTooCloseList) > 0:
+            rospy.logerr("start or goal state is not valid")
+            rospy.logerr("Shrinking some obstacles by a factor of {}".format(OBSTACLE_SHRINK_FACTOR))
+            for o in obstaclesTooCloseList:
+                o.shrink(OBSTACLE_SHRINK_FACTOR)
+            obstaclesTooCloseList = obstaclesTooClose(xy, obstacles)
+            amountShrinked *= OBSTACLE_SHRINK_FACTOR
+        return amountShrinked
+
+    amountShrinkedStart = shrinkObstaclesUntilValid(start, obstacles)
+    amountShrinkedGoal = shrinkObstaclesUntilValid(goal, obstacles)
+    amountShrinked = max(amountShrinkedStart, amountShrinkedGoal)
     if amountShrinked > 1.0000001:
-        rospy.logerr("Obstacles have been shrinked by factor of {}".format(amountShrinked))
+        rospy.logerr("Obstacles have been shrinked by factor of at most {}".format(amountShrinked))
 
     # Run the planner multiple times and find the best one
     rospy.loginfo("Running createLocalPathSS. runtimeSeconds: {}. numRuns: {}. Total time: {} seconds".format(runtimeSeconds, numRuns, runtimeSeconds*numRuns))
@@ -165,55 +212,71 @@ def createLocalPathSS(state, runtimeSeconds=2, numRuns=2, plot=False, resetSpeed
     if plot:
         plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, obstacles, state.headingDegrees, amountShrinked)
 
+    # Uncomment to take screenshot of pathfinding setup
+    # takeScreenshot()
+
     def isValidSolution(solution, referenceLatlon, state):
         if not solution.haveExactSolutionPath():
             return False
-        # TODO: Investigate if we should put a max cost threshold that makes convoluted paths unacceptable
         return True
 
-    solutions = []
+    validSolutions = []
     invalidSolutions = []
     for i in range(numRuns):
         # TODO: Incorporate globalWindSpeed into pathfinding?
         rospy.loginfo("Starting path-planning run number: {}".format(i))
         solution = plan(runtimeSeconds, "RRTStar", 'WeightedLengthAndClearanceCombo', globalWindDirectionDegrees, dimensions, start, goal, obstacles)
         if isValidSolution(solution, referenceLatlon, state):
-            solutions.append(solution)
+            validSolutions.append(solution)
         else:
             invalidSolutions.append(solution)
 
-    # If no solutions found, re-run with larger runtime
+    # If no validSolutions found, re-run with larger runtime
     totalRuntimeSeconds = numRuns * runtimeSeconds
-    while len(solutions) == 0:
+    while len(validSolutions) == 0:
         rospy.logwarn("No valid solutions found in {} seconds runtime".format(runtimeSeconds))
         runtimeSeconds *= INCREASE_RUNTIME_FACTOR
         totalRuntimeSeconds += runtimeSeconds
 
         # If valid solution can't be found for large runtime, then stop searching
-        if totalRuntimeSeconds >= MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS:
-            rospy.logwarn("No valid solution can be found in under {} seconds. Using invalid solution.".format(MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS))
+        if totalRuntimeSeconds >= maxAllowableRuntimeSeconds:
+            rospy.logwarn("No valid solution can be found in under {} seconds. Using invalid solution.".format(maxAllowableRuntimeSeconds))
             break
 
         rospy.logwarn("Attempting to rerun with longer runtime: {} seconds".format(runtimeSeconds))
         solution = plan(runtimeSeconds, "RRTStar", 'WeightedLengthAndClearanceCombo', globalWindDirectionDegrees, dimensions, start, goal, obstacles)
+
         if isValidSolution(solution, referenceLatlon, state):
-            solutions.append(solution)
+            validSolutions.append(solution)
         else:
             invalidSolutions.append(solution)
 
+    def setAverageDistanceBetweenWaypoints(solutionPath):
+        # Set the average distance between waypoints
+        localPathLengthKm = solutionPath.length()
+        numberOfLocalWaypoints = int(localPathLengthKm / AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM)
+        solutionPath.interpolate(numberOfLocalWaypoints)
+
     # If no valid solutions found, use the best invalid one. Do not perform any path simplifying on invalid paths.
-    if len(solutions) == 0:
+    if len(validSolutions) == 0:
+        # Set the average distance between waypoints
+        for solution in invalidSolutions:
+            setAverageDistanceBetweenWaypoints(solution.getSolutionPath())
+
         bestSolution = min(invalidSolutions, key=lambda x: x.getSolutionPath().cost(x.getOptimizationObjective()).value())
         bestSolutionPath = bestSolution.getSolutionPath()
         minCost = bestSolutionPath.cost(bestSolution.getOptimizationObjective()).value()
     else:
+        # Set the average distance between waypoints
+        for solution in validSolutions:
+            setAverageDistanceBetweenWaypoints(solution.getSolutionPath())
 
         # Find path with minimum cost. Can be either simplified or unsimplified path.
         # Need to recheck that simplified paths are valid before using
         minCost = sys.maxsize
         bestSolution = None
         bestSolutionPath = None
-        for solution in solutions:
+        for solution in validSolutions:
             # Check unsimplified path
             unsimplifiedPath = og.PathGeometric(solution.getSolutionPath())
             unsimplifiedCost = unsimplifiedPath.cost(solution.getOptimizationObjective()).value()
@@ -225,6 +288,7 @@ def createLocalPathSS(state, runtimeSeconds=2, numRuns=2, plot=False, resetSpeed
             # Check simplified path
             solution.simplifySolution()
             simplifiedPath = solution.getSolutionPath()
+            setAverageDistanceBetweenWaypoints(simplifiedPath)
             simplifiedCost = simplifiedPath.cost(solution.getOptimizationObjective()).value()
             if simplifiedCost < minCost:
                 # Double check that simplified path is valid
@@ -237,12 +301,8 @@ def createLocalPathSS(state, runtimeSeconds=2, numRuns=2, plot=False, resetSpeed
                     bestSolutionPath = simplifiedPath
                     minCost = simplifiedCost
 
-    rospy.loginfo("Found solution with cost: {}".format(minCost))
-
-    # Set the average distance between waypoints
-    localPathLengthKm = bestSolutionPath.length()
-    numberOfLocalWaypoints = int(localPathLengthKm / AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM)
-    bestSolutionPath.interpolate(numberOfLocalWaypoints)
+    # Reprint cost after interpolation
+    minCost = bestSolutionPath.cost(bestSolution.getOptimizationObjective()).value()
 
     # Close any plots
     plt.close()
@@ -252,7 +312,7 @@ def createLocalPathSS(state, runtimeSeconds=2, numRuns=2, plot=False, resetSpeed
         publisher = rospy.Publisher('speedup', Float64, queue_size=4)
         publisher.publish(speedupBeforePlan)
 
-    return bestSolution, bestSolutionPath, referenceLatlon
+    return bestSolution, bestSolutionPath, referenceLatlon, minCost
 
 def getLocalPathLatlons(solutionPathObject, referenceLatlon):
     # Convert solution path (in km WRT reference) into list of latlons
@@ -288,36 +348,40 @@ def upwindOrDownwindOnPath(state, nextLocalWaypointIndex, solutionPathObject, re
         prevWaypoint = relevantWaypoints[waypointIndex - 1]
         requiredHeadingDegrees = math.degrees(math.atan2(waypoint[1] - prevWaypoint[1], waypoint[0] - prevWaypoint[0]))
 
-        if isDownwind(math.radians(globalWindDirectionDegrees), math.radians(requiredHeadingDegrees)):
+        if ph.isDownwind(math.radians(globalWindDirectionDegrees), math.radians(requiredHeadingDegrees)):
             if showWarnings:
-                rospy.logwarn("Downwind sailing on path. globalWindDirectionDegrees: {}. requiredHeadingDegrees: {}. waypointIndex: {}".format(globalWindDirectionDegrees, requiredHeadingDegrees, waypointIndex))
+                rospy.loginfo("Downwind sailing on path detected. globalWindDirectionDegrees: {}. requiredHeadingDegrees: {}. waypointIndex: {}".format(globalWindDirectionDegrees, requiredHeadingDegrees, waypointIndex))
             upwindOrDownwind = True
             break
 
-        elif isUpwind(math.radians(globalWindDirectionDegrees), math.radians(requiredHeadingDegrees)):
+        elif ph.isUpwind(math.radians(globalWindDirectionDegrees), math.radians(requiredHeadingDegrees)):
             if showWarnings:
-                rospy.logwarn("Upwind sailing on path. globalWindDirectionDegrees: {}. requiredHeadingDegrees: {}. waypointIndex: {}".format(globalWindDirectionDegrees, requiredHeadingDegrees, waypointIndex))
+                rospy.loginfo("Upwind sailing on path detected. globalWindDirectionDegrees: {}. requiredHeadingDegrees: {}. waypointIndex: {}".format(globalWindDirectionDegrees, requiredHeadingDegrees, waypointIndex))
             upwindOrDownwind = True
             break
 
     # Set counter to 0 on first use
     try:
-        firstTime = upwindOrDownwindOnPath.counter is None
+        firstTime = upwindOrDownwindOnPath.lastTimeNotUpwindOrDownwind is None
     except AttributeError:
         rospy.loginfo("Handling first time case in upwindOrDownwindOnPath()")
-        upwindOrDownwindOnPath.counter = 0
+        upwindOrDownwindOnPath.lastTimeNotUpwindOrDownwind = time.time()
 
-    # Increment or reset counter
-    if upwindOrDownwind:
-        upwindOrDownwindOnPath.counter += 1
-    else:
-        upwindOrDownwindOnPath.counter = 0
+    # Reset last time not upwind/downwind
+    if not upwindOrDownwind:
+        upwindOrDownwindOnPath.lastTimeNotUpwindOrDownwind = time.time()
+        return False
 
-    # Return true only if upwindOrDownwind for count times
-    if upwindOrDownwindOnPath.counter >= UPWIND_DOWNWIND_COUNTER_LIMIT:
-        upwindOrDownwindOnPath.counter = 0
+    # Return true only if upwindOrDownwind for enough time
+    consecutiveUpwindOrDownwindTimeSeconds = time.time() - upwindOrDownwindOnPath.lastTimeNotUpwindOrDownwind
+    if consecutiveUpwindOrDownwindTimeSeconds >= UPWIND_DOWNWIND_TIME_LIMIT_SECONDS:
+        if showWarnings:
+            rospy.logwarn("Upwind/downwind sailing detected for {} seconds consecutively, which is greater than the {} second limit. This officially counts as upwind/downwind".format(consecutiveUpwindOrDownwindTimeSeconds, UPWIND_DOWNWIND_TIME_LIMIT_SECONDS))
+        upwindOrDownwindOnPath.lastTimeNotUpwindOrDownwind = time.time()
         return True
     else:
+        if showWarnings:
+            rospy.loginfo("Upwind/downwind sailing detected for only {} seconds consecutively, which is less than the {} second limit. This does not count as upwind/downwind sailing yet.".format(consecutiveUpwindOrDownwindTimeSeconds, UPWIND_DOWNWIND_TIME_LIMIT_SECONDS))
         return False
 
 def obstacleOnPath(state, nextLocalWaypointIndex, localPathSS, solutionPathObject, referenceLatlon, numLookAheadWaypoints=None, showWarnings=False):
@@ -351,10 +415,10 @@ def obstacleOnPath(state, nextLocalWaypointIndex, localPathSS, solutionPathObjec
     return False
 
 def globalWaypointReached(position, globalWaypoint):
+    # TODO: Consider fixing globalWaypointReached to not go backwards
     sailbot = (position.lat, position.lon)
     waypt = (globalWaypoint.lat, globalWaypoint.lon)
     dist = distance(sailbot, waypt).kilometers
-    rospy.loginfo("Distance to globalWaypoint is {}".format(dist))
     return distance(sailbot, waypt).kilometers < GLOBAL_WAYPOINT_REACHED_RADIUS_KM
 
 def localWaypointReached(position, localPath, localPathIndex, refLatlon):
@@ -412,6 +476,7 @@ def localWaypointReached(position, localPath, localPathIndex, refLatlon):
     return False
 
 def timeLimitExceeded(lastTimePathCreated, speedup):
+    # TODO: Figure out a way to make changing speedup work properly for this
     # Shorter time limit when there is speedup
     pathUpdateTimeLimitSecondsSpeedup = PATH_UPDATE_TIME_LIMIT_SECONDS / speedup
     return time.time() - lastTimePathCreated > pathUpdateTimeLimitSecondsSpeedup
@@ -520,8 +585,8 @@ class ObstacleInterface:
         """ Checks validity of xy"""
         pass
 
-    def clearance(self, posX, posY):
-        """ Return distance from obstacle to (posX, posY)"""
+    def clearance(self, xy):
+        """ Return distance from obstacle to xy"""
         pass
 
     def shrink(self, shrinkFactor):
@@ -541,10 +606,9 @@ class Ellipse(ObstacleInterface):
         aisX, aisY = latlonToXY(latlon(aisData.lat, aisData.lon), referenceLatlon)
 
         # Calculate length to extend boat
-        MAX_TIME_TO_LOC_HOURS = 10  # Do not extend objects more than 10 hours distance
         distanceToBoatKm = distance((aisData.lat, aisData.lon), (sailbotPosition.lat, sailbotPosition.lon)).kilometers
-        if sailbotSpeedKmph == 0 or distanceToBoatKm / sailbotSpeedKmph > MAX_TIME_TO_LOC_HOURS:
-            timeToLocHours = MAX_TIME_TO_LOC_HOURS
+        if sailbotSpeedKmph == 0 or distanceToBoatKm / sailbotSpeedKmph > OBSTACLE_MAX_TIME_TO_LOC_HOURS:
+            timeToLocHours = OBSTACLE_MAX_TIME_TO_LOC_HOURS
         else:
             timeToLocHours = distanceToBoatKm / sailbotSpeedKmph
         extendBoatLengthKm = aisData.speedKmph * timeToLocHours
@@ -597,8 +661,9 @@ class Ellipse(ObstacleInterface):
         self.width /= shrinkFactor 
         self.height /= shrinkFactor 
 
-    def clearance(self, posX, posY):
-        return 1 
+    def clearance(self, xy):
+        # TODO: Make this clearance better
+        return (self.x - xy[0])**2 + (self.y - xy[1])**2
 
 class Wedge(ObstacleInterface):
     def __init__(self, aisData, sailbotPosition, speedKmph, referenceLatlon):
@@ -609,21 +674,18 @@ class Wedge(ObstacleInterface):
             return str((self.x, self.y, self.radius, self.theta1, self.theta2))
     
     def _extendObstacle(self, aisData, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
-        EXPAND_ANGLE = 0.5 
-        MAX_TIME_TO_LOC_HOURS = 10  # Do not extend objects more than 10 hours distance
-
         aisX, aisY = latlonToXY(latlon(aisData.lat, aisData.lon), referenceLatlon)
 
-        theta1 = aisData.headingDegrees - EXPAND_ANGLE
-        theta2 = aisData.headingDegrees + EXPAND_ANGLE
+        theta1 = aisData.headingDegrees - WEDGE_EXPAND_ANGLE_DEGREES / 2.0
+        theta2 = aisData.headingDegrees + WEDGE_EXPAND_ANGLE_DEGREES / 2.0
         if theta1 < 0:
-            theta1 +=360
+            theta1 += 360
         if theta2 > 360:
             theta2 -= 360
 
         distanceToBoatKm = distance((aisData.lat, aisData.lon), (sailbotPosition.lat, sailbotPosition.lon)).kilometers
-        if sailbotSpeedKmph == 0 or distanceToBoatKm / sailbotSpeedKmph > MAX_TIME_TO_LOC_HOURS:
-            timeToLocHours = MAX_TIME_TO_LOC_HOURS
+        if sailbotSpeedKmph == 0 or distanceToBoatKm / sailbotSpeedKmph > OBSTACLE_MAX_TIME_TO_LOC_HOURS:
+            timeToLocHours = OBSTACLE_MAX_TIME_TO_LOC_HOURS
         else:
             timeToLocHours = distanceToBoatKm / sailbotSpeedKmph
 
@@ -636,19 +698,17 @@ class Wedge(ObstacleInterface):
         axes.add_patch(patches.Wedge((self.x, self.y), self.radius, self.theta1, self.theta2))
 
     def isValid(self, xy):
-        INVALID_RADIUS_AROUND_START = 1
         angle = math.degrees(math.atan2(xy[1] - self.y, xy[0] - self.x))
         if angle < 0:
             angle += 360
         distance = math.sqrt((xy[1] - self.y) **2 + (xy[0] - self.x) ** 2)
-        if distance < INVALID_RADIUS_AROUND_START:
-            return False 
         if (angle > self.theta1 and angle < self.theta2 and distance < self.radius):
             return False
         return True
 
-    def clearance(self, posX, posY):
-        return 1
+    def clearance(self, xy):
+        # TODO: Make this clearance better
+        return (self.x - xy[0])**2 + (self.y - xy[1])**2
 
     def shrink(self, shrinkFactor):
         self.radius /= shrinkFactor 
@@ -669,10 +729,9 @@ class Circles(ObstacleInterface):
         self.obstacles = []
         aisX, aisY = latlonToXY(latlon(aisData.lat, aisData.lon), referenceLatlon)
         # Calculate length to extend boat
-        MAX_TIME_TO_LOC_HOURS = 10  # Do not extend objects more than 10 hours distance
         distanceToBoatKm = distance((aisData.lat, aisData.lon), (sailbotPosition.lat, sailbotPosition.lon)).kilometers
-        if sailbotSpeedKmph == 0 or distanceToBoatKm / sailbotSpeedKmph > MAX_TIME_TO_LOC_HOURS:
-            timeToLocHours = MAX_TIME_TO_LOC_HOURS
+        if sailbotSpeedKmph == 0 or distanceToBoatKm / sailbotSpeedKmph > OBSTACLE_MAX_TIME_TO_LOC_HOURS:
+            timeToLocHours = OBSTACLE_MAX_TIME_TO_LOC_HOURS
         else:
             timeToLocHours = distanceToBoatKm / sailbotSpeedKmph
         extendBoatLengthKm = aisData.speedKmph * timeToLocHours
@@ -722,8 +781,9 @@ class Circles(ObstacleInterface):
         for obstacle in self.obstacles:
             axes.add_patch(plt.Circle((obstacle.x, obstacle.y), radius=obstacle.radius))
 
-    def clearance(self, posX, posY):
-        return 1
+    def clearance(self, xy):
+        # TODO: Make this clearance better
+        return (self.obstacles[0].x - xy[0])**2 + (self.obstacles[0].y - xy[1])**2
 
 class Circle():
     """ Helper class for Circles representation"""
@@ -753,10 +813,61 @@ def getObstacles(ships, position, speedKmph, referenceLatlon):
             obstacles.append(Circles(ship, position, speedKmph, referenceLatlon))
     return obstacles
 
-def pathCostThresholdExceeded(optimizationObjective, solutionPathObject):
-    return solutionPathObject.cost(optimizationObjective).value() > COST_THRESHOLD
+def pathCostThresholdExceeded(currentCost):
+    return currentCost > COST_THRESHOLD
 
 def pathDoesNotReachGoal(localPathLatlons, goal):
     lastWaypoint = (localPathLatlons[len(localPathLatlons) - 1].lat, localPathLatlons[len(localPathLatlons) - 1].lon)
     goal = (goal.lat, goal.lon)
     return distance(lastWaypoint, goal).kilometers > MAX_ALLOWABLE_DISTANCE_FINAL_WAYPOINT_TO_GOAL_KM
+
+
+def updateWindDirectionInSS(ss, state):
+    globalWindSpeedKmph, globalWindDirectionDegrees = measuredWindToGlobalWind(state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
+    objective = ss.getOptimizationObjective()  # Assumes balanced objective
+
+    for i in range(objective.getObjectiveCount()):
+        if isinstance(objective.getObjective(i), ph.WindObjective):
+            objective.getObjective(i).windDirectionDegrees = globalWindDirectionDegrees
+            return
+
+    rospy.logwarn("updateWindDirectionInSS() was unsuccessful. Wind direction was not updated")
+
+def updateObjectsInSS(ss, referenceLatlon, state):
+    # Set the objects used to check which states in the space are valid
+    obstacles = getObstacles(state.AISData.ships, state.position, state.speedKmph, referenceLatlon)
+    validity_checker = ph.ValidityChecker(ss.getSpaceInformation(), obstacles)
+    ss.setStateValidityChecker(validity_checker)
+
+def removePastWaypointsInSolutionPath(ss, solutionPathObject, referenceLatlon, state):
+    # Should only be called when localWaypointReached(state.position, localPathLatlons, localPathIndex, referenceLatlon) == True
+    # Get current position in xy coordinates
+    x, y = latlonToXY(state.position, referenceLatlon)
+    positionXY = ss.getSpaceInformation().allocState()
+    positionXY.setXY(x, y)
+
+    # Keep waypoints only after your positionXY
+    lengthBefore = solutionPathObject.getStateCount()
+    solutionPathObject.keepAfter(positionXY)
+    lengthAfter = solutionPathObject.getStateCount()
+
+    # Need waypoint at index 1 to be next waypoint
+    # If more than 1 waypoint removed, then need to add position at 0th index
+    # If 1 or less waypoints removed, then don't need to add position of boat
+    if lengthBefore - lengthAfter > 1:
+        solutionPathObject.prepend(positionXY)
+
+    # Warning message
+    if lengthBefore == lengthAfter:
+        rospy.logwarn("removePastWaypointsInSolutionPath() resulted in no path length change")
+
+def waitForGlobalPath(sailbot):
+    while not sailbot.newGlobalPathReceived:
+        # Exit if shutdown
+        if rospy.is_shutdown():
+            rospy.loginfo("rospy.is_shutdown() is True. Exiting")
+            sys.exit()
+        else:
+            rospy.loginfo("Waiting for sailbot to receive first newGlobalPath")
+            time.sleep(1)
+    rospy.loginfo("newGlobalPath received")

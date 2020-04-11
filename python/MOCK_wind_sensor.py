@@ -9,7 +9,7 @@ from utilities import globalWindToMeasuredWind
 import random
 
 # Constants
-WIND_PUBLISH_PERIOD_SECONDS = 0.1
+WIND_PUBLISH_PERIOD_SECONDS = 0.1  # Must keep well below 1.0 to ensure proper global wind direction calculation, even when the boat is turning
 MAX_GLOBAL_WIND_SPEED_KMPH = 10
 MIN_GLOBAL_WIND_SPEED_KMPH = 1
 CHANGE_WIND_DIRECTION_PERIOD_SECONDS = 3600.0 * 3

@@ -15,7 +15,7 @@ from local_pathfinding.msg import AISShip, AISMsg, GPS
 random.seed(1)
 
 # Constants
-AIS_PUBLISH_PERIOD_SECONDS = 1.0
+AIS_PUBLISH_PERIOD_SECONDS = 0.1  # Keep below 1.0 for smoother boat motion
 NUM_AIS_SHIPS = 30
 
 class RandomShip:
@@ -56,7 +56,7 @@ class RandomShip:
                 self.speedKmph]
 
 class Ship:
-    def __init__(self, id, boat_lat, boat_lon, heading, speed, publishPeriodSeconds=1.0):
+    def __init__(self, id, boat_lat, boat_lon, heading, speed, publishPeriodSeconds):
         self.id = id
         self.lat = boat_lat
         self.lon = boat_lon
@@ -125,7 +125,7 @@ class MOCK_AISEnvironment:
         return AISMsg(ship_list)
     
     def new_boat_callback(self, msg):
-        self.ships.append(Ship(msg.ID, msg.lat, msg.lon, msg.headingDegrees, msg.speedKmph))
+        self.ships.append(Ship(msg.ID, msg.lat, msg.lon, msg.headingDegrees, msg.speedKmph, self.publishPeriodSeconds))
         self.numShips += 1
         
     def remove_boat_callback(self, msg):
