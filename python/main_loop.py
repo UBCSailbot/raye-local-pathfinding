@@ -35,7 +35,7 @@ def speedupCallback(data):
 def updateToNewLocalPath(state, maxAllowableRuntimeSeconds):
     # Composition of functions used every time when updating local path
     global speedup
-    localPathSS, solutionPathObject, referenceLatlon, currentPathCost = createLocalPathSS(state, plot=True, resetSpeedupDuringPlan=True, speedupBeforePlan=speedup, maxAllowableRuntimeSeconds=maxAllowableRuntimeSeconds)
+    localPathSS, solutionPathObject, referenceLatlon, currentPathCost = createLocalPathSS(state, plot=False, resetSpeedupDuringPlan=True, speedupBeforePlan=speedup, maxAllowableRuntimeSeconds=maxAllowableRuntimeSeconds)
     localPathLatlons = getLocalPathLatlons(solutionPathObject, referenceLatlon)
     localPathIndex = 1  # First waypoint is the start point, so second waypoint is the next local waypoint
     localWaypoint = getLocalWaypointLatLon(localPathLatlons, localPathIndex)

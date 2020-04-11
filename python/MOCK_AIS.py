@@ -12,11 +12,12 @@ from std_msgs.msg import Int32
 from local_pathfinding.msg import AISShip, AISMsg, GPS
 
 # Can set random seed to get deterministic start for testing
-random.seed(1)
+random.seed(200)
 
 # Constants
 AIS_PUBLISH_PERIOD_SECONDS = 0.1  # Keep below 1.0 for smoother boat motion
 NUM_AIS_SHIPS = 30
+AIS_OUT_OF_RANGE_RADIUS_KM = 60.0
 
 class RandomShip:
     def __init__(self, id, sailbot_lat, sailbot_lon, publishPeriodSeconds):
@@ -112,7 +113,7 @@ class MOCK_AISEnvironment:
         for i in range(self.numShips):
             self.ships[i].move(self.speedup)
             if isinstance(self.ships[i], RandomShip):
-                if distance((self.ships[i].lat, self.ships[i].lon), (self.sailbot_lat, self.sailbot_lon)).km > 60.0:
+                if distance((self.ships[i].lat, self.ships[i].lon), (self.sailbot_lat, self.sailbot_lon)).km > AIS_OUT_OF_RANGE_RADIUS_KM:
                     rospy.loginfo("MMSI " + str(self.ships[i].id) + " went out of bounds, moving it closer to the sailbot")
                     del self.ships[i]
                     self.ships.insert(i, RandomShip(i, self.sailbot_lat, self.sailbot_lon, self.publishPeriodSeconds))

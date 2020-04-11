@@ -103,8 +103,9 @@ def takeScreenshot():
         myScreenshot.save("{}/{}.png".format(takeScreenshot.imagePath, timeString))
         rospy.loginfo("** Screenshot saved")
 
-    except RuntimeError:
+    except Exception as ex:
         rospy.logerr("RuntimeError caught when attempting to screenshot. Trying to continue.")
+        rospy.logerr("An exception of type {} occurred.".format(type(ex).__name__))
 
 def latlonToXY(latlon, referenceLatlon):
     x = distance((referenceLatlon.lat, referenceLatlon.lon), (referenceLatlon.lat, latlon.lon)).kilometers
@@ -179,8 +180,9 @@ def plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, 
         rospy.loginfo("plotPathfindingProblem 23")
         plt.pause(0.001)
         rospy.loginfo("plotPathfindingProblem 24")
-    except RuntimeError:
+    except Exception as ex:
         rospy.logerr("RuntimeError caught when attempting to plot pathfinding problem. Trying to continue.")
+        rospy.logerr("An exception of type {} occurred.".format(type(ex).__name__))
 
 def createLocalPathSS(state, runtimeSeconds=1.0, numRuns=2, plot=False, resetSpeedupDuringPlan=False, speedupBeforePlan=1.0, maxAllowableRuntimeSeconds=MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS):
     def getXYLimits(start, goal, extraLengthFraction=0.6):
