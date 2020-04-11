@@ -852,6 +852,9 @@ class Circles(ObstacleInterface):
         # TODO: Make this clearance better
         return (self.obstacles[0].x - xy[0])**2 + (self.obstacles[0].y - xy[1])**2
 
+    def numObstacles(self):
+        return len(self.obstacles)
+
 class Circle():
     """ Helper class for Circles representation"""
     def __init__(self, x, y, radius):
@@ -866,8 +869,8 @@ class Circle():
         return True
     
 
-def getObstacles(ships, position, speedKmph, referenceLatlon):
-    obstacle_type = rospy.get_param('obstacle_type', 'ellipse')
+def getObstacles(ships, position, speedKmph, referenceLatlon, obstacle_type='ellipse'):
+    # obstacle_type = rospy.get_param('obstacle_type', 'ellipse')
     obstacles = []
     if obstacle_type == "ellipse":
         for ship in ships:
