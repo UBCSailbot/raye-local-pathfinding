@@ -39,6 +39,7 @@ class ValidityChecker(ob.StateValidityChecker):
     def __init__(self, si, obstacles):
         super(ValidityChecker, self).__init__(si)
         self.obstacles = obstacles
+        self.si = si
 
     # Returns whether the given state's position overlaps the ellipse
     def isValid(self, state):
@@ -51,7 +52,7 @@ class ValidityChecker(ob.StateValidityChecker):
     # Returns the distance from the given state's position to the
     # boundary of the circular obstacle.
     def clearance(self, state):
-        clearance = sys.maxsize
+        clearance = self.si.getStateSpace().getMaximumExtent()
         xy = [state.getX(), state.getY()]
         for obstacle in self.obstacles:
             if not obstacle.isValid(xy):
