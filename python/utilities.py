@@ -61,6 +61,7 @@ BOAT_BACKWARD = 270
 
 # Constants for modeling AIS boats
 AIS_BOAT_RADIUS_KM = 0.2
+AIS_BOAT_LENGTH_KM = 1
 AIS_BOAT_CIRCLE_SPACING_KM = AIS_BOAT_RADIUS_KM * 1.5  # Distance between circles that make up an AIS boat
 
 # Upwind downwind detection
@@ -601,6 +602,9 @@ class Ellipse():
         self.width = width
         self.angle = angle
     
+    def __str__(self):
+        return str((self.x, self.y, self.height, self.width, self.angle))
+
     def isValid(self, xy):
         delta = 0.001
         x = xy[0] - self.x
@@ -644,7 +648,7 @@ class EllipseObstacle(ObstacleInterface, Ellipse):
         self._extendObstacle(self.aisData, self.sailbotPosition, self.speedKmph, self.referenceLatlon)
 
     def __str__(self):
-        return str((self.x, self.y, self.height, self.width, self.angle))
+        return Ellipse.__str__(self)
 
     def _extendObstacle(self, aisData, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
         aisX, aisY = latlonToXY(latlon(aisData.lat, aisData.lon), referenceLatlon)
@@ -820,18 +824,18 @@ class Hybrid(ObstacleInterface):
     def __init__(self, aisData, sailbotPosition, speedKmph, referenceLatlon):
         ObstacleInterface.__init__(self, aisData, sailbotPosition, speedKmph, referenceLatlon)
         self._extendObstacle(self.aisData, self.sailbotPosition, self.speedKmph, self.referenceLatlon)
-        self.xy = latlonToXY(aisData, referenceLatlon)
-        self.circle = Circle(self.xy[0], self.xy[1], AIS_BOAT_RADIUS_KM)
+        self.xy = latlonToXY(latlon(aisData.lat, aisData.lon), referenceLatlon)
+        self.ellipse = Ellipse(self.xy[0], self.xy[1], AIS_BOAT_RADIUS_KM, AIS_BOAT_LENGTH_KM, aisData.headingDegrees)
 
     def __str__(self):
-        return str(self.circle) + str(self.wedge)
+        return str(self.ellipse) + str(self.wedge)
 
     def _extendObstacle(self, aisData, sailbotPosition, speedKmph, referenceLatlon):
         self.wedge = Wedge(aisData, sailbotPosition, speedKmph, referenceLatlon)
 
     def addPatch(self, axes):
         self.wedge.addPatch(axes)
-        axes.add_patch(plt.Circle(self.xy, radius=AIS_BOAT_RADIUS_KM))
+        self.ellipse.addPatch(axes)
 
     def isValid(self, xy):
         return (self.wedge.isValid(xy))        
@@ -840,7 +844,7 @@ class Hybrid(ObstacleInterface):
         return (self.xy[0] - xy[0])**2 + (self.xy[1] - xy[1])**2
 
     def shrink(self, shrinkFactor):
-        self.circle.radius /= shrinkFactor
+        self.ellipse.shrink(shrinkFactor)
         self.wedge.shrink(shrinkFactor)
     
 
