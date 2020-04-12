@@ -719,7 +719,6 @@ class Circles(ObstacleInterface):
             self._extendObstacle(self.aisData, self.sailbotPosition, self.speedKmph, self.referenceLatlon)
 
     def isValid(self, xy):
-        x, y = xy
         for obstacle in self.obstacles:
             if not obstacle.isValid(xy):
                 return False
@@ -797,6 +796,33 @@ class Circle():
         if math.sqrt(pow(x - self.x, 2) + pow(y - self.y, 2)) - self.radius <= 0:
             return False
         return True
+
+class Hybrid(ObstacleInterface):
+    def __init__(self, aisData, sailbotPosition, speedKmph, referenceLatlon):
+        ObstacleInterface.__init__(self, aisData, sailbotPosition, speedKmph, referenceLatlon)
+        self._extendObstacle(self.aisData, self.sailbotPosition, self.speedKmph, self.referenceLatlon)
+        self.xy = latlonToXY(aisData, referenceLatlon)
+        self.circle = Circle(self.xy[0], self.xy[1], AIS_BOAT_RADIUS_KM)
+
+    def __str__(self):
+        return str(self.circle) + str(self.wedge)
+
+    def _extendObstacle(self, aisData, sailbotPosition, speedKmph, referenceLatlon):
+        self.wedge = Wedge(aisData, sailbotPosition, speedKmph, referenceLatlon)
+
+    def addPatch(self, axes):
+        self.wedge.addPatch(axes)
+        axes.add_patch(plt.Circle(self.xy, radius=AIS_BOAT_RADIUS_KM))
+
+    def isValid(self, xy):
+        return (self.wedge.isValid(xy))        
+
+    def clearance(self, xy):
+        return (self.xy[0] - xy[0])**2 + (self.xy[1] - xy[1])**2
+
+    def shrink(self, shrinkFactor):
+        self.circle.radius /= shrinkFactor
+        self.wedge.shrink(shrinkFactor)
     
 
 def getObstacles(ships, position, speedKmph, referenceLatlon):
@@ -811,6 +837,9 @@ def getObstacles(ships, position, speedKmph, referenceLatlon):
     elif obstacle_type == "circles":
         for ship in ships:
             obstacles.append(Circles(ship, position, speedKmph, referenceLatlon))
+    elif obstacle_type == "hybrid":
+        for ship in ships:
+            obstacles.append(Hybrid(ship, position, speedKmph, referenceLatlon))
     return obstacles
 
 def pathCostThresholdExceeded(currentCost):
