@@ -156,9 +156,6 @@ class OMPLPath:
 
 
 class Path:
-    def __init__(self, ss, solutionPath, referenceLatlon):
-        self.__init__(OMPLPath(ss, solutionPath, referenceLatlon))
-
     def __init__(self, omplPath):
         self._omplPath = omplPath
         self._latlons = self._getLatlonsFromOMPLPath(self._omplPath)
@@ -614,7 +611,7 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, plot=False, resetSpeedupDur
             simplifiedCost = simplifiedPath.cost(solution.getOptimizationObjective()).value()
             if simplifiedCost < minCost:
                 # Double check that simplified path is valid
-                simplifiedPathObject = Path(OMPLPath(solution, simplifiedPath, referenceLatlon))
+                simplifiedPathObject = Path(OMPL(solution, simplifiedPath, referenceLatlon))
                 hasObstacleOnPath = simplifiedPathObject.obstacleOnPath(state)
                 hasUpwindOrDownwindOnPath = simplifiedPathObject.upwindOrDownwindOnPath(state)
                 isStillValid = not hasObstacleOnPath and not hasUpwindOrDownwindOnPath
@@ -631,8 +628,7 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, plot=False, resetSpeedupDur
         publisher = rospy.Publisher('speedup', Float64, queue_size=4)
         publisher.publish(speedupBeforePlan)
 
-    omplPath = OMPLPath(bestSolution, bestSolutionPath, referenceLatlon)
-    return Path(omplPath)
+    return Path(OMPLPath(bestSolution, bestSolutionPath, referenceLatlon))
 
 def globalWaypointReached(position, globalWaypoint):
     # TODO: Consider fixing globalWaypointReached to not go backwards
