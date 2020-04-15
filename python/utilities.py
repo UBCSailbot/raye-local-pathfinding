@@ -74,9 +74,6 @@ MAX_ALLOWABLE_DISTANCE_FINAL_WAYPOINT_TO_GOAL_KM = GLOBAL_WAYPOINT_REACHED_RADIU
 WEDGE_EXPAND_ANGLE_DEGREES = 10.0
 OBSTACLE_MAX_TIME_TO_LOC_HOURS = 3  # Do not extend objects more than X hours distance
 
-class LatlonPath:
-
-
 class OMPLPath:
     def __init__(self, ss, solutionPath, referenceLatlon):
         self._ss = ss
@@ -135,7 +132,7 @@ class OMPLPath:
         self._ss.setStateValidityChecker(validity_checker)
 
     def removePastWaypoints(self, state):
-        # TODO: Should only be called when localWaypointReached(state.position, localPathLatlons, localPathIndex, referenceLatlon) == True. Consider doing that check here?
+        # TODO: Should only be called when waypointReached(state.position, localPathLatlons, localPathIndex, referenceLatlon) == True. Consider doing that check here?
         # Get current position in xy coordinates
         x, y = latlonToXY(state.position, self._referenceLatlon)
         positionXY = self._ss.getSpaceInformation().allocState()
@@ -160,38 +157,41 @@ class OMPLPath:
 
 class Path:
     def __init__(self, ss, solutionPath, referenceLatlon):
-        def getLocalPathLatlons(omplPath):
-            # Convert solution path (in km WRT reference) into list of latlons
-            localPath = []
-            solutionPathObject = omplPath.getSolutionPath()
-            referenceLatlon = omplPath.getReferenceLatlon()
-            for state in solutionPathObject.getStates():
-                xy = (state.getX(), state.getY())
-                localPath.append(XYToLatlon(xy, referenceLatlon))
-            return localPath
+        self.__init__(OMPLPath(ss, solutionPath, referenceLatlon))
 
-        self._omplPath = OMPLPath(ss, solutionPath, referenceLatlon)
-        self._latlons = getLocalPathLatlons(self._omplPath)
+    def __init__(self, omplPath):
+        self._omplPath = omplPath
+        self._latlons = self._getLatlonsFromOMPLPath(self._omplPath)
         self._nextWaypointIndex = 1  # Next waypoint index is always 1, as the boat should always be aiming for the next upcoming waypoint
 
+    def _getLatlonsFromOMPLPath(self, omplPath):
+        # Convert solution path (in km WRT reference) into list of latlons
+        path = []
+        solutionPathObject = omplPath.getSolutionPath()
+        referenceLatlon = omplPath.getReferenceLatlon()
+        for state in solutionPathObject.getStates():
+            xy = (state.getX(), state.getY())
+            path.append(XYToLatlon(xy, referenceLatlon))
+        return path
+
     def getNextWaypoint(self):
-        def _getNextWaypoint(localPath, localPathIndex):
-            # If local path is empty, return (0, 0)
-            if len(localPath) == 0:
-                rospy.logwarn("Local path is empty.")
-                rospy.logwarn("Setting localWaypoint to be (0, 0).")
+        def _getNextWaypoint(path, pathIndex):
+            # If path is empty, return (0, 0)
+            if len(path) == 0:
+                rospy.logwarn("Path is empty.")
+                rospy.logwarn("Setting waypoint to be (0, 0).")
                 return latlon(0, 0)
 
             # If index out of range, return last waypoint in path
-            if localPathIndex >= len(localPath):
-                rospy.logwarn("Local path index is out of range: index = {} len(localPath) = {}".format(localPathIndex, len(localPath)))
-                rospy.logwarn("Setting localWaypoint to be the last element of the localPath")
-                localPathIndex = len(localPath) - 1
-                return localPath[localPathIndex]
+            if pathIndex >= len(path):
+                rospy.logwarn("Path index is out of range: index = {} len(path) = {}".format(pathIndex, len(path)))
+                rospy.logwarn("Setting waypoint to be the last element of the path")
+                pathIndex = len(path) - 1
+                return path[pathIndex]
 
             # If index in range, return the correct waypoint
             else:
-                return localPath[localPathIndex]
+                return path[pathIndex]
 
         return _getNextWaypoint(self._latlons, self._nextWaypointIndex)
 
@@ -201,11 +201,11 @@ class Path:
     def getLatlons(self):
         return self._latlons
 
-    def getLength(self):
-        return len(self._latlons)
+    def getOMPLPath(self):
+        return self._omplPath
 
     def reachedEnd(self):
-        return len(localPathLatlons) <= 1
+        return len(self._latlons) <= self._nextWaypointIndex
 
     def reachesGoalLatlon(self, goalLatlon):
         lastWaypointLatlon = self._latlons[len(self._latlons) - 1]
@@ -213,65 +213,184 @@ class Path:
         goal = (goalLatlon.lat, goalLatlon.lon)
         return distance(lastWaypoint, goal).kilometers <= MAX_ALLOWABLE_DISTANCE_FINAL_WAYPOINT_TO_GOAL_KM
 
-    def nextLocalWaypointReached(self, positionLatlon):
-        positionX, positionY = latlonToXY(position, refLatlon)
-        previousWaypoint = localPath[localPathIndex - 1]
-        localWaypoint = localPath[localPathIndex]
-        previousWaypointX, previousWaypointY = latlonToXY(latlon(previousWaypoint.lat, previousWaypoint.lon), refLatlon)
-        localWaypointX, localWaypointY = latlonToXY(latlon(localWaypoint.lat, localWaypoint.lon), refLatlon)
-        isStartNorth = localWaypointY < previousWaypointY 
-        isStartEast = localWaypointX < previousWaypointX
-    
-        if localWaypointX == previousWaypointX:
+    def nextWaypointReached(self, positionLatlon):
+        # Convert from latlons to XY
+        refLatlon = self._omplPath.getReferenceLatlon()
+        previousWaypointLatlon = self._latlons[self._nextWaypointIndex - 1]
+        nextWaypointLatlon = self._latlons[self._nextWaypointIndex]
+
+        positionX, positionY = latlonToXY(positionLatlon, refLatlon)
+        previousWaypointX, previousWaypointY = latlonToXY(previousWaypointLatlon, refLatlon)
+        nextWaypointX, nextWaypointY = latlonToXY(nextWaypointLatlon, refLatlon)
+
+        # Handle edge cases where waypoints have the same x or y component
+        isStartNorth = nextWaypointY < previousWaypointY 
+        isStartEast = nextWaypointX < previousWaypointX
+        if nextWaypointX == previousWaypointX:
             if isStartNorth:
-                return positionY <= localWaypointY
+                return positionY <= nextWaypointY
             else:
-                return positionY >= localWaypointY
-        if localWaypointY == previousWaypointY:
+                return positionY >= nextWaypointY
+        if nextWaypointY == previousWaypointY:
             if isStartEast:
-                return positionX <= localWaypointX
+                return positionX <= nextWaypointX
             else:
-                return positionX >= localWaypointX
-                
-        tangentSlope = (localWaypointY - previousWaypointY) / (localWaypointX - previousWaypointX)
+                return positionX >= nextWaypointX
+
+        # Create line in form y = mx + b that is perpendicular to the line from previousWaypoint to nextWaypoint
+        tangentSlope = (nextWaypointY - previousWaypointY) / (nextWaypointX - previousWaypointX)
         normalSlope = -1/tangentSlope
-        
-        if localWaypointX > 0:
-            b = localWaypointY + normalSlope * -math.fabs(localWaypointX)
+
+        if nextWaypointX > 0:
+            b = nextWaypointY + normalSlope * -math.fabs(nextWaypointX)
         else:
-            b = localWaypointY + normalSlope * math.fabs(localWaypointX)
+            b = nextWaypointY + normalSlope * math.fabs(nextWaypointX)
         y = lambda x: normalSlope * x + b
         x = lambda y: (y - b) / normalSlope 
-    
+
     #    plt.xlim(-20, 20)
     #    plt.ylim(-20, 20)
     #    plt.plot([0], [0], marker = 'o', markersize=10, color="black")
     #    plt.plot([positionX], [positionY], marker = 'o', markersize=10, color="blue")
     #    plt.plot([previousWaypointX], [previousWaypointY], marker = 'o', markersize=10, color="green")
-    #    plt.plot([localWaypointX], [localWaypointY], marker="o", markersize=10, color="red")
+    #    plt.plot([nextWaypointX], [nextWaypointY], marker="o", markersize=10, color="red")
     #    x_plot = np.linspace(-200, 200, 100)
     #    plt.plot(x_plot, y(x_plot), '-r')
     #    plt.show()
-        
+
+        # Check if the line has been crossed
         if isStartNorth: 
             if positionY < y(positionX):
                 return True
         elif positionY > y(positionX):
             return True
-    
+
         if isStartEast: 
             if positionX < x(positionY):
                 return True
         elif positionX > x(positionY):
             return True
-    
+
         return False
 
+    def getCost(self):
+        return self._omplPath.getCost()
 
+    def getReferenceLatlon(self):
+        return self._omplPath.getReferenceLatlon()
 
+    def getSolutionPath(self):
+        return self._omplPath.getSolutionPath()
 
+    def getLength(self):
+        return self._omplPath.getLength()
 
+    def getStateSpace(self):
+        return self._omplPath.getStateSpace()
 
+    def getSpaceInformation(self):
+        return self._omplPath.getSpaceInformation()
+
+    def getPathCostBreakdownString(self):
+        return self._omplPath.getPathCostBreakdownString()
+
+    def updateWindDirection(self, state):
+        self._omplPath.updateWindDirection(state)
+
+    def updateObstacles(self, state):
+        self._omplPath.updateObstacles(state)
+
+    def removePastWaypoints(self, state):
+        self._omplPath.removePastWaypoints(state)
+        self._latlons = self._getLatlonsFromOMPLPath(self._omplPath)
+
+    def upwindOrDownwindOnPath(self, state, numLookAheadWaypoints=None, showWarnings=False):
+        # Default behavior when numLookAheadWaypoints is not given OR bad input: set to max
+        maxNumLookAheadWaypoints = self.getLength() - self.getNextWaypointIndex()
+        if numLookAheadWaypoints is None or numLookAheadWaypoints > maxNumLookAheadWaypoints:
+            numLookAheadWaypoints = maxNumLookAheadWaypoints
+
+        # Calculate global wind from measured wind and boat state
+        globalWindSpeedKmph, globalWindDirectionDegrees = measuredWindToGlobalWind(state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
+    
+        # Get relevant waypoints (boat position first, then the next numLookAheadWaypoints startin from nextLocalWaypoint onwards)
+        relevantWaypoints = []
+        relevantWaypoints.append(latlonToXY(state.position, self.getReferenceLatlon()))
+        for waypointIndex in range(self.getNextWaypointIndex(), self.getNextWaypointIndex() + numLookAheadWaypoints):
+            waypoint = self._omplPath.getSolutionPath().getState(waypointIndex)
+            relevantWaypoints.append([waypoint.getX(), waypoint.getY()])
+    
+        # Check relevantWaypoints for upwind or downwind sailing
+        upwindOrDownwind = False
+        for waypointIndex in range(1, len(relevantWaypoints)):
+            # Calculate required heading between waypoints
+            waypoint = relevantWaypoints[waypointIndex]
+            prevWaypoint = relevantWaypoints[waypointIndex - 1]
+            requiredHeadingDegrees = math.degrees(math.atan2(waypoint[1] - prevWaypoint[1], waypoint[0] - prevWaypoint[0]))
+    
+            if ph.isDownwind(math.radians(globalWindDirectionDegrees), math.radians(requiredHeadingDegrees)):
+                if showWarnings:
+                    rospy.loginfo("Downwind sailing on path detected. globalWindDirectionDegrees: {}. requiredHeadingDegrees: {}. waypointIndex: {}".format(globalWindDirectionDegrees, requiredHeadingDegrees, waypointIndex))
+                upwindOrDownwind = True
+                break
+    
+            elif ph.isUpwind(math.radians(globalWindDirectionDegrees), math.radians(requiredHeadingDegrees)):
+                if showWarnings:
+                    rospy.loginfo("Upwind sailing on path detected. globalWindDirectionDegrees: {}. requiredHeadingDegrees: {}. waypointIndex: {}".format(globalWindDirectionDegrees, requiredHeadingDegrees, waypointIndex))
+                upwindOrDownwind = True
+                break
+    
+        # Set counter to 0 on first use
+        try:
+            firstTime = self.lastTimeNotUpwindOrDownwind is None
+        except AttributeError:
+            rospy.loginfo("Handling first time case in upwindOrDownwindOnPath()")
+            self.lastTimeNotUpwindOrDownwind = time.time()
+    
+        # Reset last time not upwind/downwind
+        if not upwindOrDownwind:
+            self.lastTimeNotUpwindOrDownwind = time.time()
+            return False
+    
+        # Return true only if upwindOrDownwind for enough time
+        consecutiveUpwindOrDownwindTimeSeconds = time.time() - self.lastTimeNotUpwindOrDownwind
+        if consecutiveUpwindOrDownwindTimeSeconds >= UPWIND_DOWNWIND_TIME_LIMIT_SECONDS:
+            if showWarnings:
+                rospy.logwarn("Upwind/downwind sailing detected for {} seconds consecutively, which is greater than the {} second limit. This officially counts as upwind/downwind".format(consecutiveUpwindOrDownwindTimeSeconds, UPWIND_DOWNWIND_TIME_LIMIT_SECONDS))
+            self.lastTimeNotUpwindOrDownwind = time.time()
+            return True
+        else:
+            if showWarnings:
+                rospy.loginfo("Upwind/downwind sailing detected for only {} seconds consecutively, which is less than the {} second limit. This does not count as upwind/downwind sailing yet.".format(consecutiveUpwindOrDownwindTimeSeconds, UPWIND_DOWNWIND_TIME_LIMIT_SECONDS))
+            return False
+    
+    def obstacleOnPath(self, state, numLookAheadWaypoints=None, showWarnings=False):
+        # Check if path will hit objects
+        positionXY = latlonToXY(state.position, self.getReferenceLatlon())
+        obstacles = getObstacles(state.AISData.ships, state.position, state.speedKmph, self.getReferenceLatlon())
+    
+        # Ensure nextLocalWaypointIndex + numLookAheadWaypoints is in bounds
+        '''
+        Let path = [(0,0), (1,1), (2,2), (3,3), (4,4)], len(path) = 5
+
+        If: self.getNextWaypointIndex() = 2
+        maxNumLookAheadWaypoints = self.getLength() - self.getNextWaypointIndex() = 5 - 2 = 3
+
+        If numLookAheadWaypoints = 2, then care about waypoints (2,2), (3,3)
+        If numLookAheadWaypoints = 6, cuts it down to 3, then care about waypoints (2,2), (3,3), (4,4)
+        '''
+        # Default behavior when numLookAheadWaypoints is not given OR bad input: set to max
+        maxNumLookAheadWaypoints = self.getLength() - self.getNextWaypointIndex()
+        if numLookAheadWaypoints is None or numLookAheadWaypoints > maxNumLookAheadWaypoints:
+            numLookAheadWaypoints = maxNumLookAheadWaypoints
+    
+        self.updateObstacles(state)
+        waypointIndexWithObstacle = indexOfObstacleOnPath(positionXY, self.getNextWaypointIndex(), numLookAheadWaypoints, self._omplPath)
+        if waypointIndexWithObstacle != -1:
+            if showWarnings:
+                rospy.logwarn("Obstacle on path. waypointIndexWithObstacle: {}".format(waypointIndexWithObstacle))
+            return True
+        return False
 
 
 
@@ -353,7 +472,7 @@ def plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, 
     plt.draw()
     plt.pause(0.001)
 
-def createOmplPath(state, runtimeSeconds=1.0, numRuns=2, plot=False, resetSpeedupDuringPlan=False, speedupBeforePlan=1.0, maxAllowableRuntimeSeconds=MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS):
+def createPath(state, runtimeSeconds=1.0, numRuns=2, plot=False, resetSpeedupDuringPlan=False, speedupBeforePlan=1.0, maxAllowableRuntimeSeconds=MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS):
     def getXYLimits(start, goal, extraLengthFraction=0.6):
         # Calculate extra length to allow wider solution space
         width = math.fabs(goal[0] - start[0])
@@ -495,9 +614,9 @@ def createOmplPath(state, runtimeSeconds=1.0, numRuns=2, plot=False, resetSpeedu
             simplifiedCost = simplifiedPath.cost(solution.getOptimizationObjective()).value()
             if simplifiedCost < minCost:
                 # Double check that simplified path is valid
-                nextLocalWaypointIndex = 1  # Start at first possible waypoint (0 is boat position)
-                hasObstacleOnPath = obstacleOnPath(state, nextLocalWaypointIndex, OMPLPath(solution, simplifiedPath, referenceLatlon))
-                hasUpwindOrDownwindOnPath = upwindOrDownwindOnPath(state, nextLocalWaypointIndex, OMPLPath(solution, simplifiedPath, referenceLatlon))
+                simplifiedPathObject = Path(OMPLPath(solution, simplifiedPath, referenceLatlon))
+                hasObstacleOnPath = simplifiedPathObject.obstacleOnPath(state)
+                hasUpwindOrDownwindOnPath = simplifiedPathObject.upwindOrDownwindOnPath(state)
                 isStillValid = not hasObstacleOnPath and not hasUpwindOrDownwindOnPath
                 if isStillValid:
                     bestSolution = solution
@@ -512,100 +631,8 @@ def createOmplPath(state, runtimeSeconds=1.0, numRuns=2, plot=False, resetSpeedu
         publisher = rospy.Publisher('speedup', Float64, queue_size=4)
         publisher.publish(speedupBeforePlan)
 
-    return OMPLPath(bestSolution, bestSolutionPath, referenceLatlon)
-
-def upwindOrDownwindOnPath(state, nextLocalWaypointIndex, omplPath, numLookAheadWaypoints=None, showWarnings=False):
-    # Default behavior when numLookAheadWaypoints is not given
-    if numLookAheadWaypoints is None:
-        numLookAheadWaypoints = omplPath.getLength() - nextLocalWaypointIndex
-    # Handle bad input
-    if nextLocalWaypointIndex + numLookAheadWaypoints > omplPath.getLength():
-        numLookAheadWaypoints = omplPath.getLength() - nextLocalWaypointIndex
-
-    # Calculate global wind from measured wind and boat state
-    globalWindSpeedKmph, globalWindDirectionDegrees = measuredWindToGlobalWind(state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
-
-    # Get relevant waypoints (boat position first, then the next numLookAheadWaypoints startin from nextLocalWaypoint onwards)
-    relevantWaypoints = []
-    relevantWaypoints.append(latlonToXY(state.position, omplPath.getReferenceLatlon()))
-    for waypointIndex in range(nextLocalWaypointIndex, nextLocalWaypointIndex + numLookAheadWaypoints):
-        waypoint = omplPath.getSolutionPath().getState(waypointIndex)
-        relevantWaypoints.append([waypoint.getX(), waypoint.getY()])
-
-    # Check relevantWaypoints for upwind or downwind sailing
-    upwindOrDownwind = False
-    for waypointIndex in range(1, len(relevantWaypoints)):
-        # Calculate required heading between waypoints
-        waypoint = relevantWaypoints[waypointIndex]
-        prevWaypoint = relevantWaypoints[waypointIndex - 1]
-        requiredHeadingDegrees = math.degrees(math.atan2(waypoint[1] - prevWaypoint[1], waypoint[0] - prevWaypoint[0]))
-
-        if ph.isDownwind(math.radians(globalWindDirectionDegrees), math.radians(requiredHeadingDegrees)):
-            if showWarnings:
-                rospy.loginfo("Downwind sailing on path detected. globalWindDirectionDegrees: {}. requiredHeadingDegrees: {}. waypointIndex: {}".format(globalWindDirectionDegrees, requiredHeadingDegrees, waypointIndex))
-            upwindOrDownwind = True
-            break
-
-        elif ph.isUpwind(math.radians(globalWindDirectionDegrees), math.radians(requiredHeadingDegrees)):
-            if showWarnings:
-                rospy.loginfo("Upwind sailing on path detected. globalWindDirectionDegrees: {}. requiredHeadingDegrees: {}. waypointIndex: {}".format(globalWindDirectionDegrees, requiredHeadingDegrees, waypointIndex))
-            upwindOrDownwind = True
-            break
-
-    # Set counter to 0 on first use
-    try:
-        firstTime = upwindOrDownwindOnPath.lastTimeNotUpwindOrDownwind is None
-    except AttributeError:
-        rospy.loginfo("Handling first time case in upwindOrDownwindOnPath()")
-        upwindOrDownwindOnPath.lastTimeNotUpwindOrDownwind = time.time()
-
-    # Reset last time not upwind/downwind
-    if not upwindOrDownwind:
-        upwindOrDownwindOnPath.lastTimeNotUpwindOrDownwind = time.time()
-        return False
-
-    # Return true only if upwindOrDownwind for enough time
-    consecutiveUpwindOrDownwindTimeSeconds = time.time() - upwindOrDownwindOnPath.lastTimeNotUpwindOrDownwind
-    if consecutiveUpwindOrDownwindTimeSeconds >= UPWIND_DOWNWIND_TIME_LIMIT_SECONDS:
-        if showWarnings:
-            rospy.logwarn("Upwind/downwind sailing detected for {} seconds consecutively, which is greater than the {} second limit. This officially counts as upwind/downwind".format(consecutiveUpwindOrDownwindTimeSeconds, UPWIND_DOWNWIND_TIME_LIMIT_SECONDS))
-        upwindOrDownwindOnPath.lastTimeNotUpwindOrDownwind = time.time()
-        return True
-    else:
-        if showWarnings:
-            rospy.loginfo("Upwind/downwind sailing detected for only {} seconds consecutively, which is less than the {} second limit. This does not count as upwind/downwind sailing yet.".format(consecutiveUpwindOrDownwindTimeSeconds, UPWIND_DOWNWIND_TIME_LIMIT_SECONDS))
-        return False
-
-def obstacleOnPath(state, nextLocalWaypointIndex, omplPath, numLookAheadWaypoints=None, showWarnings=False):
-    # Check if path will hit objects
-    positionXY = latlonToXY(state.position, omplPath.getReferenceLatlon())
-    obstacles = getObstacles(state.AISData.ships, state.position, state.speedKmph, omplPath.getReferenceLatlon())
-
-    # Ensure nextLocalWaypointIndex + numLookAheadWaypoints is in bounds
-    '''
-    Let path = [(0,0), (1,1), (2,2), (3,3), (4,4)], len(path) = 5
-
-    If: nextLocalWaypointIndex = 2, numLookAheadWaypoints = 2
-    Then: care about waypoints (2,2), (3,3)
-          len(path) >= nextLocalWaypointIndex + numLookAheadWaypoints, so valid
-
-    If: nextLocalWaypointIndex = 2, numLookAheadWaypoints = 6
-    Then: care about waypoints (2,2), (3,3), (4,4)
-          len(path) < nextLocalWaypointIndex + numLookAheadWaypoints, so invalid
-          update numLookAheadWaypoints to len(path) - nextLocalWaypointIndex = 3
-    '''
-    if numLookAheadWaypoints is None:
-        numLookAheadWaypoints = omplPath.getLength() - nextLocalWaypointIndex
-    if nextLocalWaypointIndex + numLookAheadWaypoints > omplPath.getLength():
-        numLookAheadWaypoints = omplPath.getLength() - nextLocalWaypointIndex
-
-    omplPath.updateObstacles(state)
-    waypointIndexWithObstacle = indexOfObstacleOnPath(positionXY, nextLocalWaypointIndex, numLookAheadWaypoints, omplPath)
-    if waypointIndexWithObstacle != -1:
-        if showWarnings:
-            rospy.logwarn("Obstacle on path. waypointIndexWithObstacle: {}".format(waypointIndexWithObstacle))
-        return True
-    return False
+    omplPath = OMPLPath(bestSolution, bestSolutionPath, referenceLatlon)
+    return Path(omplPath)
 
 def globalWaypointReached(position, globalWaypoint):
     # TODO: Consider fixing globalWaypointReached to not go backwards
