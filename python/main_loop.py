@@ -36,10 +36,9 @@ def updateToNewLocalPath(state, maxAllowableRuntimeSeconds):
     # Composition of functions used every time when updating local path
     global speedup
     omplLocalPath = createOmplPath(state, plot=True, resetSpeedupDuringPlan=True, speedupBeforePlan=speedup, maxAllowableRuntimeSeconds=maxAllowableRuntimeSeconds)
-    localPathLatlons = getLocalPathLatlons(omplLocalPath)
-    localWaypoint = getLocalWaypointLatLon(localPathLatlons, 1)
+    latlonLocalPath = LatlonPath(omplLocalPath)
     lastTimePathCreated = time.time()
-    return omplLocalPath, localPathLatlons, localWaypoint, lastTimePathCreated
+    return omplLocalPath, latlonLocalPath, lastTimePathCreated
 
 if __name__ == '__main__':
     # Create sailbot ROS object that subscribes to relevant topics
@@ -68,7 +67,7 @@ if __name__ == '__main__':
 
     # Create first path and track time of updates
     state = sailbot.getCurrentState()
-    omplLocalPath, localPathLatlons, localWaypoint, lastTimePathCreated = updateToNewLocalPath(state, MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS)
+    omplLocalPath, latlonLocalPath, lastTimePathCreated = updateToNewLocalPath(state, MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS)
     sailbot.newGlobalPathReceived = False
 
     while not rospy.is_shutdown():
@@ -77,15 +76,15 @@ if __name__ == '__main__':
         state = sailbot.getCurrentState()
 
         # Check if local path MUST be updated
-        hasUpwindOrDownwindOnPath = upwindOrDownwindOnPath(state, 1, omplLocalPath, numLookAheadWaypoints=NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND, showWarnings=True)
-        hasObstacleOnPath = obstacleOnPath(state, 1, omplLocalPath, numLookAheadWaypoints=NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES, showWarnings=True)
+        hasUpwindOrDownwindOnPath = upwindOrDownwindOnPath(state, latlonLocalPath.getNextWaypointIndex(), omplLocalPath, numLookAheadWaypoints=NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND, showWarnings=True)
+        hasObstacleOnPath = obstacleOnPath(state, latlonLocalPath.getNextWaypointIndex(), omplLocalPath, numLookAheadWaypoints=NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES, showWarnings=True)
         isGlobalWaypointReached = globalWaypointReached(state.position, state.globalWaypoint)
         newGlobalPathReceived = sailbot.newGlobalPathReceived
-        localPathIndexOutOfBounds = 1 >= len(localPathLatlons)
-        pathNotReachGoal = pathDoesNotReachGoal(localPathLatlons, state.globalWaypoint)
-        if hasUpwindOrDownwindOnPath or hasObstacleOnPath or isGlobalWaypointReached or newGlobalPathReceived or localPathIndexOutOfBounds or pathNotReachGoal or localPathUpdateForced:
+        reachedEndOfLocalPath = latlonLocalPath.reachedEnd()
+        pathNotReachGoal = not latlonLocalPath.reachesGoalLatlon(state.globalWaypoint)
+        if hasUpwindOrDownwindOnPath or hasObstacleOnPath or isGlobalWaypointReached or newGlobalPathReceived or reachedEndOfLocalPath or pathNotReachGoal or localPathUpdateForced:
             # Log reason for local path update
-            rospy.logwarn("MUST update local Path. Reason: hasUpwindOrDownwindOnPath? {}. hasObstacleOnPath? {}. isGlobalWaypointReached? {}. newGlobalPathReceived? {}. localPathIndexOutOfBounds? {}. pathNotReachGoal? {}. localPathUpdateForced? {}.".format(hasUpwindOrDownwindOnPath, hasObstacleOnPath, isGlobalWaypointReached, newGlobalPathReceived, localPathIndexOutOfBounds, pathNotReachGoal, localPathUpdateForced))
+            rospy.logwarn("MUST update local Path. Reason: hasUpwindOrDownwindOnPath? {}. hasObstacleOnPath? {}. isGlobalWaypointReached? {}. newGlobalPathReceived? {}. reachedEndOfLocalPath? {}. pathNotReachGoal? {}. localPathUpdateForced? {}.".format(hasUpwindOrDownwindOnPath, hasObstacleOnPath, isGlobalWaypointReached, newGlobalPathReceived, reachedEndOfLocalPath, pathNotReachGoal, localPathUpdateForced))
 
             # Reset request
             if localPathUpdateForced:
@@ -102,12 +101,12 @@ if __name__ == '__main__':
 
             # Update local path
             state = sailbot.getCurrentState()
-            omplLocalPath, localPathLatlons, localWaypoint, lastTimePathCreated = updateToNewLocalPath(state, MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS / 2.0)
+            omplLocalPath, latlonLocalPath, lastTimePathCreated = updateToNewLocalPath(state, MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS / 2.0)
 
         else:
             # Check if new local path should be generated and compared to current local path
             costTooHigh = pathCostThresholdExceeded(omplLocalPath.getCost())
-            isLocalWaypointReached = localWaypointReached(state.position, localPathLatlons, 1, omplLocalPath.getReferenceLatlon())
+            isLocalWaypointReached = latlonLocalPath.nextLocalWaypointReached(state.position, omplLocalPath.getReferenceLatlon())
             isTimeLimitExceeded = timeLimitExceeded(lastTimePathCreated, speedup)
 
             if costTooHigh or isLocalWaypointReached or isTimeLimitExceeded or localPathUpdateRequested:
@@ -124,7 +123,7 @@ if __name__ == '__main__':
                     localWaypoint = getLocalWaypointLatLon(localPathLatlons, 1)
 
                 # Update local path if new one is better than old
-                _omplLocalPath, _localPathLatlons, _localWaypoint, _lastTimePathCreated = updateToNewLocalPath(state, MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS)
+                _omplLocalPath, _latlonLocalPath, _lastTimePathCreated = updateToNewLocalPath(state, MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS)
                 lastTimePathCreated = _lastTimePathCreated
                 currentPathCost = omplLocalPath.getCost()
                 newPathCost = _omplLocalPath.getCost()

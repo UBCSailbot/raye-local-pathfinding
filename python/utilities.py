@@ -74,6 +74,116 @@ MAX_ALLOWABLE_DISTANCE_FINAL_WAYPOINT_TO_GOAL_KM = GLOBAL_WAYPOINT_REACHED_RADIU
 WEDGE_EXPAND_ANGLE_DEGREES = 10.0
 OBSTACLE_MAX_TIME_TO_LOC_HOURS = 3  # Do not extend objects more than X hours distance
 
+class LatlonPath:
+    def __init__(self, omplPath):
+        def getLocalPathLatlons(omplPath):
+            # Convert solution path (in km WRT reference) into list of latlons
+            localPath = []
+            solutionPathObject = omplPath.getSolutionPath()
+            referenceLatlon = omplPath.getReferenceLatlon()
+            for state in solutionPathObject.getStates():
+                xy = (state.getX(), state.getY())
+                localPath.append(XYToLatlon(xy, referenceLatlon))
+            return localPath
+
+        self._latlons = getLocalPathLatlons(omplPath)
+        self._nextWaypointIndex = 1  # Next waypoint index is always 1, as the boat should always be aiming for the next upcoming waypoint
+
+    def getNextWaypoint(self):
+        def _getNextWaypoint(localPath, localPathIndex):
+            # If local path is empty, return (0, 0)
+            if len(localPath) == 0:
+                rospy.logwarn("Local path is empty.")
+                rospy.logwarn("Setting localWaypoint to be (0, 0).")
+                return latlon(0, 0)
+
+            # If index out of range, return last waypoint in path
+            if localPathIndex >= len(localPath):
+                rospy.logwarn("Local path index is out of range: index = {} len(localPath) = {}".format(localPathIndex, len(localPath)))
+                rospy.logwarn("Setting localWaypoint to be the last element of the localPath")
+                localPathIndex = len(localPath) - 1
+                return localPath[localPathIndex]
+
+            # If index in range, return the correct waypoint
+            else:
+                return localPath[localPathIndex]
+
+        return _getNextWaypoint(self._latlons, self._nextWaypointIndex)
+
+    def getNextWaypointIndex(self):
+        return self._nextWaypointIndex
+
+    def getLatlons(self):
+        return self._latlons
+
+    def getLength(self):
+        return len(self._latlons)
+
+    def reachedEnd(self):
+        return len(localPathLatlons) <= 1
+
+    def reachesGoalLatlon(self, goalLatlon):
+        lastWaypointLatlon = self._latlons[len(self._latlons) - 1]
+        lastWaypoint = (lastWaypointLatlon.lat, lastWaypointLatlon.lon)
+        goal = (goalLatlon.lat, goalLatlon.lon)
+        return distance(lastWaypoint, goal).kilometers <= MAX_ALLOWABLE_DISTANCE_FINAL_WAYPOINT_TO_GOAL_KM
+
+    def nextLocalWaypointReached(self, positionLatlon):
+        positionX, positionY = latlonToXY(position, refLatlon)
+        previousWaypoint = localPath[localPathIndex - 1]
+        localWaypoint = localPath[localPathIndex]
+        previousWaypointX, previousWaypointY = latlonToXY(latlon(previousWaypoint.lat, previousWaypoint.lon), refLatlon)
+        localWaypointX, localWaypointY = latlonToXY(latlon(localWaypoint.lat, localWaypoint.lon), refLatlon)
+        isStartNorth = localWaypointY < previousWaypointY 
+        isStartEast = localWaypointX < previousWaypointX
+    
+        if localWaypointX == previousWaypointX:
+            if isStartNorth:
+                return positionY <= localWaypointY
+            else:
+                return positionY >= localWaypointY
+        if localWaypointY == previousWaypointY:
+            if isStartEast:
+                return positionX <= localWaypointX
+            else:
+                return positionX >= localWaypointX
+                
+        tangentSlope = (localWaypointY - previousWaypointY) / (localWaypointX - previousWaypointX)
+        normalSlope = -1/tangentSlope
+        
+        if localWaypointX > 0:
+            b = localWaypointY + normalSlope * -math.fabs(localWaypointX)
+        else:
+            b = localWaypointY + normalSlope * math.fabs(localWaypointX)
+        y = lambda x: normalSlope * x + b
+        x = lambda y: (y - b) / normalSlope 
+    
+    #    plt.xlim(-20, 20)
+    #    plt.ylim(-20, 20)
+    #    plt.plot([0], [0], marker = 'o', markersize=10, color="black")
+    #    plt.plot([positionX], [positionY], marker = 'o', markersize=10, color="blue")
+    #    plt.plot([previousWaypointX], [previousWaypointY], marker = 'o', markersize=10, color="green")
+    #    plt.plot([localWaypointX], [localWaypointY], marker="o", markersize=10, color="red")
+    #    x_plot = np.linspace(-200, 200, 100)
+    #    plt.plot(x_plot, y(x_plot), '-r')
+    #    plt.show()
+        
+        if isStartNorth: 
+            if positionY < y(positionX):
+                return True
+        elif positionY > y(positionX):
+            return True
+    
+        if isStartEast: 
+            if positionX < x(positionY):
+                return True
+        elif positionX > x(positionY):
+            return True
+    
+        return False
+
+
+
 class OMPLPath:
     def __init__(self, ss, solutionPath, referenceLatlon):
         self._ss = ss
@@ -152,6 +262,13 @@ class OMPLPath:
         # Warning message
         if lengthBefore == lengthAfter:
             rospy.logwarn("removePastWaypoints() resulted in no path length change")
+
+
+
+class Path:
+    def __init__(self, ss, solutionPath, referenceLatlon):
+        self._omplPath = OMPLPath(ss, solutionPath, referenceLatlon)
+        self_
 
 
 def takeScreenshot():
@@ -391,16 +508,6 @@ def createOmplPath(state, runtimeSeconds=1.0, numRuns=2, plot=False, resetSpeedu
 
     return OMPLPath(bestSolution, bestSolutionPath, referenceLatlon)
 
-def getLocalPathLatlons(omplPath):
-    # Convert solution path (in km WRT reference) into list of latlons
-    localPath = []
-    solutionPathObject = omplPath.getSolutionPath()
-    referenceLatlon = omplPath.getReferenceLatlon()
-    for state in solutionPathObject.getStates():
-        xy = (state.getX(), state.getY())
-        localPath.append(XYToLatlon(xy, referenceLatlon))
-    return localPath
-
 def upwindOrDownwindOnPath(state, nextLocalWaypointIndex, omplPath, numLookAheadWaypoints=None, showWarnings=False):
     # Default behavior when numLookAheadWaypoints is not given
     if numLookAheadWaypoints is None:
@@ -501,83 +608,15 @@ def globalWaypointReached(position, globalWaypoint):
     dist = distance(sailbot, waypt).kilometers
     return distance(sailbot, waypt).kilometers < GLOBAL_WAYPOINT_REACHED_RADIUS_KM
 
-def localWaypointReached(position, localPath, localPathIndex, refLatlon):
-    positionX, positionY = latlonToXY(position, refLatlon)
-    previousWaypoint = localPath[localPathIndex - 1]
-    localWaypoint = localPath[localPathIndex]
-    previousWaypointX, previousWaypointY = latlonToXY(latlon(previousWaypoint.lat, previousWaypoint.lon), refLatlon)
-    localWaypointX, localWaypointY = latlonToXY(latlon(localWaypoint.lat, localWaypoint.lon), refLatlon)
-    isStartNorth = localWaypointY < previousWaypointY 
-    isStartEast = localWaypointX < previousWaypointX
-
-    if localWaypointX == previousWaypointX:
-        if isStartNorth:
-            return positionY <= localWaypointY
-        else:
-            return positionY >= localWaypointY
-    if localWaypointY == previousWaypointY:
-        if isStartEast:
-            return positionX <= localWaypointX
-        else:
-            return positionX >= localWaypointX
-            
-    tangentSlope = (localWaypointY - previousWaypointY) / (localWaypointX - previousWaypointX)
-    normalSlope = -1/tangentSlope
-    
-    if localWaypointX > 0:
-        b = localWaypointY + normalSlope * -math.fabs(localWaypointX)
-    else:
-        b = localWaypointY + normalSlope * math.fabs(localWaypointX)
-    y = lambda x: normalSlope * x + b
-    x = lambda y: (y - b) / normalSlope 
-
-#    plt.xlim(-20, 20)
-#    plt.ylim(-20, 20)
-#    plt.plot([0], [0], marker = 'o', markersize=10, color="black")
-#    plt.plot([positionX], [positionY], marker = 'o', markersize=10, color="blue")
-#    plt.plot([previousWaypointX], [previousWaypointY], marker = 'o', markersize=10, color="green")
-#    plt.plot([localWaypointX], [localWaypointY], marker="o", markersize=10, color="red")
-#    x_plot = np.linspace(-200, 200, 100)
-#    plt.plot(x_plot, y(x_plot), '-r')
-#    plt.show()
-    
-    if isStartNorth: 
-        if positionY < y(positionX):
-            return True
-    elif positionY > y(positionX):
-        return True
-
-    if isStartEast: 
-        if positionX < x(positionY):
-            return True
-    elif positionX > x(positionY):
-        return True
-
-    return False
-
 def timeLimitExceeded(lastTimePathCreated, speedup):
     # TODO: Figure out a way to make changing speedup work properly for this
     # Shorter time limit when there is speedup
     pathUpdateTimeLimitSecondsSpeedup = PATH_UPDATE_TIME_LIMIT_SECONDS / speedup
-    return time.time() - lastTimePathCreated > pathUpdateTimeLimitSecondsSpeedup
-
-def getLocalWaypointLatLon(localPath, localPathIndex):
-    # If local path is empty, return (0, 0)
-    if len(localPath) == 0:
-        rospy.logwarn("Local path is empty.")
-        rospy.logwarn("Setting localWaypoint to be (0, 0).")
-        return latlon(0, 0)
-
-    # If index out of range, return last waypoint in path
-    if localPathIndex >= len(localPath):
-        rospy.logwarn("Local path index is out of range: index = {} len(localPath) = {}".format(localPathIndex, len(localPath)))
-        rospy.logwarn("Setting localWaypoint to be the last element of the localPath")
-        localPathIndex = len(localPath) - 1
-        return localPath[localPathIndex]
-
-    # If index in range, return the correct waypoint
+    if time.time() - lastTimePathCreated > pathUpdateTimeLimitSecondsSpeedup:
+        rospy.logwarn("{} seconds elapsed. Time limit of {} seconds was exceeded.".format(pathUpdateTimeLimitSecondsSpeedup, PATH_UPDATE_TIME_LIMIT_SECONDS))
+        return True
     else:
-        return localPath[localPathIndex]
+        return False
 
 def getDesiredHeading(position, localWaypoint):
     xy = latlonToXY(localWaypoint, position)
@@ -882,12 +921,6 @@ def getObstacles(ships, position, speedKmph, referenceLatlon):
 
 def pathCostThresholdExceeded(currentCost):
     return currentCost > COST_THRESHOLD
-
-def pathDoesNotReachGoal(localPathLatlons, goal):
-    lastWaypoint = (localPathLatlons[len(localPathLatlons) - 1].lat, localPathLatlons[len(localPathLatlons) - 1].lon)
-    goal = (goal.lat, goal.lon)
-    return distance(lastWaypoint, goal).kilometers > MAX_ALLOWABLE_DISTANCE_FINAL_WAYPOINT_TO_GOAL_KM
-
 
 def waitForGlobalPath(sailbot):
     while not sailbot.newGlobalPathReceived:
