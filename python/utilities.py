@@ -416,7 +416,10 @@ def takeScreenshot():
 
     # Save screenshot
     timeString = datetime.now().strftime('%H-%M-%S')
-    myScreenshot.save("{}/{}.png".format(takeScreenshot.imagePath, timeString))
+    fullImagePath = "{}/{}.png".format(takeScreenshot.imagePath, timeString)
+    rospy.loginfo("Taking screenshot...")
+    myScreenshot.save(fullImagePath)
+    rospy.loginfo("Screenshot saved to {}".format(fullImagePath))
 
 def latlonToXY(latlon, referenceLatlon):
     x = distance((referenceLatlon.lat, referenceLatlon.lon), (referenceLatlon.lat, latlon.lon)).kilometers
@@ -531,8 +534,10 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, plot=False, resetSpeedupDur
     if plot:
         plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, obstacles, state.headingDegrees, amountShrinked)
 
-    # Uncomment to take screenshot of pathfinding setup
-    # takeScreenshot()
+    # Take screenshot
+    shouldTakeScreenshot = rospy.get_param('screenshot', False)
+    if shouldTakeScreenshot:
+        takeScreenshot()
 
     def isValidSolution(solution, referenceLatlon, state):
         if not solution.haveExactSolutionPath():
