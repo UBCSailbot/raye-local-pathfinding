@@ -139,7 +139,6 @@ if __name__ == '__main__':
         localPathPublisher.publish(msg.path(localPath.getLatlons()))
 
         # Update wind direction and obstacles of localPath for proper cost calculation
-        localPath.removePastWaypoints(state)
         localPath.updateWindDirection(state)
         localPath.updateObstacles(state)
 

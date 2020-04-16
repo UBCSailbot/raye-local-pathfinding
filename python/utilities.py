@@ -146,8 +146,9 @@ class OMPLPath:
 
     def removePastWaypoints(self, state):
         """
-        Note: Should only be called once when waypointReached() == True, not every loop.
-        Reason: keepAfter() method implementation assumes all waypoints are equally spaced
+        Removes waypoints that the boat has already passed.
+        Note: Should only be called once when waypointReached() == True, not every loop, otherwise the localWaypointReached tangent line could get messed up.
+        Additional reason: keepAfter() method implementation assumes all waypoints are equally spaced
         Algorithm:
         1. Find index of waypoint closest to state, call that closestWaypoint
         2. Check dist(waypoint before closestWaypoint, state) and dist(waypoint after closestWaypoint, state)
@@ -219,12 +220,11 @@ class OMPLPath:
         self._solutionPath.keepAfter(positionXY)
         lengthAfter = self._solutionPath.getStateCount()
 
-        # Handle edge case described above
+        # Only add in boat position as waypoint if edge case is avoided (described above)
         boatCouldGoWrongDirection = self.getStateSpace().distance(positionXY, self._solutionPath.getState(1)) < self.getStateSpace().distance(self._solutionPath.getState(0), self._solutionPath.getState(1))
         edgeCase = (lengthBefore - lengthAfter <= 1) and boatCouldGoWrongDirection
         if not edgeCase:
             self._solutionPath.prepend(positionXY)
-
 
 class Path:
     def __init__(self, omplPath):
