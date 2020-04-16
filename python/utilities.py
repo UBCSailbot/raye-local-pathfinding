@@ -145,7 +145,70 @@ class OMPLPath:
         self._ss.setStateValidityChecker(validity_checker)
 
     def removePastWaypoints(self, state):
-        # TODO: Should only be called when waypointReached(state.position, localPathLatlons, localPathIndex, referenceLatlon) == True. Consider doing that check here?
+        """
+        Note: Should only be called once when waypointReached() == True, not every loop.
+        Reason: keepAfter() method implementation assumes all waypoints are equally spaced
+        Algorithm:
+        1. Find index of waypoint closest to state, call that closestWaypoint
+        2. Check dist(waypoint before closestWaypoint, state) and dist(waypoint after closestWaypoint, state)
+            * If closer to waypoint BEFORE closestWaypoint: remove all waypoints before closestWaypoint, EXCLUDING closestWaypoint
+            * If closer to waypoint AFTER closestWaypoint: remove all waypoints before closestWaypoint, INCLUDING closestWaypoint
+        This answers the question: should we remove the closestWaypoint? Eg. Are we past the closestWaypoint or behind it?
+        Algorithm works when all waypoints have about the same distance apart. Doesn't always work when waypoints are not all equally close
+
+        Let B = Boat and numbers be waypoint numbers
+        Boat is always aiming for index = 1
+        Will replace the boat with index 0 after operation
+
+        EXAMPLE 1 when it works:
+        ------------------------
+        Before:
+        0   B  1     2     3  (B is closest to 1. Thus it compares dist(0, B) and dist(2, B). Decides to keep 1.)
+
+        KeepAfter:
+            B  0     1     2
+
+        After add in boat position as first position:
+            0  1     2     3
+
+        Example 2 when it works:
+        ------------------------
+        Before:
+        0      1B    2     3 (B is closest to 1. Thus it compares dist(0, B) and dist(2, B). Decides to remove 1.)
+
+        KeepAfter:
+                B    0     1
+
+        After add in boat position as first position:
+                0    1     2
+
+        Example 3 when it doesn't work:
+        ------------------------
+        Before:
+        0 1B    2     3 (B is closest to 1. Thus it compares dist(0, B) and dist(2, B). Decides to keep 1.)
+
+        KeepAfter:
+          0B    1     2
+
+        After add in boat position as first position:
+          10    2     3 (Boat may be told to go backwards)
+
+        Example 4 when it doesn't work:
+        ------------------------
+        Before:
+        0 B   1     2     3 (B is closest to 0. For this edge case, it just keeps everything.)
+
+        KeepAfter:
+        0 B   1     2     3
+
+        After add in boat position as first position:
+        1 0   2     3     4 (Boat may be told to go backwards)
+
+        Therefore, in this method, we will have an edge case check after the KeepAfter operation.
+        If <=1 waypoints are removed AND dist(B, 1) < dist(0,1), then dont add position B as starting waypoint.
+        Else add position B as a starting waypoint.
+        """
+
         # Get current position in xy coordinates
         x, y = latlonToXY(state.position, self._referenceLatlon)
         positionXY = self._ss.getSpaceInformation().allocState()
@@ -156,16 +219,11 @@ class OMPLPath:
         self._solutionPath.keepAfter(positionXY)
         lengthAfter = self._solutionPath.getStateCount()
 
-        # Need waypoint at index 1 to be next waypoint
-        # If more than 1 waypoint removed, then need to add position at 0th index
-        # If 1 or less waypoints removed, then don't need to add position of boat
-        if lengthBefore - lengthAfter >= 1:
+        # Handle edge case described above
+        boatCouldGoWrongDirection = self.getStateSpace().distance(positionXY, self._solutionPath.getState(1)) < self.getStateSpace().distance(self._solutionPath.getState(0), self._solutionPath.getState(1))
+        edgeCase = (lengthBefore - lengthAfter <= 1) and boatCouldGoWrongDirection:
+        if not edgeCase:
             self._solutionPath.prepend(positionXY)
-
-        # Warning message
-        if lengthBefore == lengthAfter:
-            rospy.logwarn("removePastWaypoints() resulted in no path length change")
-
 
 
 class Path:
