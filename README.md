@@ -56,6 +56,10 @@ All of the arguments below are optional for `all.launch`.
 
 * `goal_file` - String value that is the full path to a json file with a GPS coordinate. The simulator will read from this file to select the goal location the sailbot will travel towards.
 
+* `screenshot` - Bool value that sets if screenshots should be taken each time `createPath` is run. Default: `false`.
+
+* `plot_pathfinding_problem` - Bool value that sets if a plot of the pathfinding problem should shown each time `createPath` is run. Default: `false`.
+
 #### Run a specific saved pathfinding scenario
 
 Instructions to run pathfinding unit tests can be found [here](json/README.md).
@@ -82,6 +86,10 @@ During a simulation, you can run:
 2. addType = nextWaypoint will publish a boat at the next localWaypoint with the specified ID, heading, and speed in addBoat.ship (lat lon params are ignored)
 3. addType = onBoat will publish a boat at the current location of the Sailbot with the specified ID, heading, and speed in addBoat.ship (lat lon params are ignored)
 4. addType = index will publish a boat at localPath[addBoat.waypointIndex] with the specified ID, heading, and speed in addBoat.ship (lat lon params are ignored)
+
+* `rosparam set /plot_pathfinding_problem true` to start plotting the pathfinding problem at each call to `createPath`. Can change `true` to `false` to turn it off.
+
+* `rosparam set /screenshot true` to start screenshotting at each call to `createPath`. Can change `true` to `false` to turn it off.
 
 #### Seeing more information about a simulation
 
