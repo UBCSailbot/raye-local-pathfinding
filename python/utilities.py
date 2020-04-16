@@ -461,9 +461,6 @@ class Path:
         return False
 
 
-
-
-
 def takeScreenshot():
     # Set imagePath on first time
     try:
