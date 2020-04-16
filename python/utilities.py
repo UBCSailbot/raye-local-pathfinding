@@ -75,14 +75,22 @@ WEDGE_EXPAND_ANGLE_DEGREES = 10.0
 OBSTACLE_MAX_TIME_TO_LOC_HOURS = 3  # Do not extend objects more than X hours distance
 
 class OMPLPath:
+    """ Class for storing an OMPL configuration, OMPL path, and the referenceLatlon
+
+    Properties created with the ``@property`` decorator should be documented
+    in the property's getter method.
+
+    Attributes:
+        _ss (ompl.geometric._geometric.SimpleSetup): SimpleSetup object that contains information about the OMPLPath, including its state space, space information, and cost function used to generate the path.
+        _solutionPath (ompl.geometric._geometric.PathGeometric): PathGeometric object that represents the path, in XY coordinates with respect to a referenceLatlon
+        _referenceLatlon (local_pathfinding.msg._latlon.latlon): latlon object that is the reference point with which the path's XY coordinates is set.
+    """
     def __init__(self, ss, solutionPath, referenceLatlon):
         self._ss = ss
         self._solutionPath = solutionPath
         self._referenceLatlon = referenceLatlon
 
-    def getCost(self):
-        return self._solutionPath.cost(self._ss.getOptimizationObjective()).value()
-
+    ## Simple getter methods
     def getReferenceLatlon(self):
         return self._referenceLatlon
 
@@ -97,6 +105,10 @@ class OMPLPath:
 
     def getSpaceInformation(self):
         return self._ss.getSpaceInformation()
+
+    ## Longer getter methods
+    def getCost(self):
+        return self._solutionPath.cost(self._ss.getOptimizationObjective()).value()
 
     def getPathCostBreakdownString(self):
         # Assumes balanced optimization objective
@@ -113,6 +125,7 @@ class OMPLPath:
         output = ''.join(strings)
         return output
 
+    ## Methods that modify the class
     def updateWindDirection(self, state):
         # Set wind direction for cost evaluation
         globalWindSpeedKmph, globalWindDirectionDegrees = measuredWindToGlobalWind(state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
@@ -146,7 +159,7 @@ class OMPLPath:
         # Need waypoint at index 1 to be next waypoint
         # If more than 1 waypoint removed, then need to add position at 0th index
         # If 1 or less waypoints removed, then don't need to add position of boat
-        if lengthBefore - lengthAfter > 1:
+        if lengthBefore - lengthAfter >= 1:
             self._solutionPath.prepend(positionXY)
 
         # Warning message
@@ -616,7 +629,7 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, plot=False, resetSpeedupDur
             simplifiedCost = simplifiedPath.cost(solution.getOptimizationObjective()).value()
             if simplifiedCost < minCost:
                 # Double check that simplified path is valid
-                simplifiedPathObject = Path(OMPL(solution, simplifiedPath, referenceLatlon))
+                simplifiedPathObject = Path(OMPLPath(solution, simplifiedPath, referenceLatlon))
                 hasObstacleOnPath = simplifiedPathObject.obstacleOnPath(state)
                 hasUpwindOrDownwindOnPath = simplifiedPathObject.upwindOrDownwindOnPath(state)
                 isStillValid = not hasObstacleOnPath and not hasUpwindOrDownwindOnPath
@@ -652,7 +665,7 @@ def timeLimitExceeded(lastTimePathCreated, speedup):
     else:
         return False
 
-def getDesiredHeading(position, localWaypoint):
+def getDesiredHeadingDegrees(position, localWaypoint):
     xy = latlonToXY(localWaypoint, position)
     return math.degrees(math.atan2(xy[1], xy[0]))
 

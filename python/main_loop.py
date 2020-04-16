@@ -10,7 +10,7 @@ from utilities import *
 import time
 
 # Constants
-MAIN_LOOP_PERIOD_SECONDS = 0.5
+MAIN_LOOP_PERIOD_SECONDS = 2.0
 
 # Global variable to receive path update request messages
 localPathUpdateRequested = False
@@ -132,13 +132,14 @@ if __name__ == '__main__':
                     rospy.loginfo("Keeping old local path")
 
         # Publish desiredHeading
-        desiredHeadingMsg.headingDegrees = getDesiredHeading(state.position, localPath.getNextWaypoint())
+        desiredHeadingMsg.headingDegrees = getDesiredHeadingDegrees(state.position, localPath.getNextWaypoint())
         desiredHeadingPublisher.publish(desiredHeadingMsg)
 
         # Publish local path
         localPathPublisher.publish(msg.path(localPath.getLatlons()))
 
         # Update wind direction and obstacles of localPath for proper cost calculation
+        localPath.removePastWaypoints(state)
         localPath.updateWindDirection(state)
         localPath.updateObstacles(state)
 
