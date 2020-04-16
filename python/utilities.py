@@ -221,7 +221,7 @@ class OMPLPath:
 
         # Handle edge case described above
         boatCouldGoWrongDirection = self.getStateSpace().distance(positionXY, self._solutionPath.getState(1)) < self.getStateSpace().distance(self._solutionPath.getState(0), self._solutionPath.getState(1))
-        edgeCase = (lengthBefore - lengthAfter <= 1) and boatCouldGoWrongDirection:
+        edgeCase = (lengthBefore - lengthAfter <= 1) and boatCouldGoWrongDirection
         if not edgeCase:
             self._solutionPath.prepend(positionXY)
 
