@@ -35,7 +35,7 @@ def speedupCallback(data):
 def updateToNewLocalPath(state, maxAllowableRuntimeSeconds):
     # Composition of functions used every time when updating local path
     global speedup
-    localPath = createPath(state, plot=True, resetSpeedupDuringPlan=True, speedupBeforePlan=speedup, maxAllowableRuntimeSeconds=maxAllowableRuntimeSeconds)
+    localPath = createPath(state, resetSpeedupDuringPlan=True, speedupBeforePlan=speedup, maxAllowableRuntimeSeconds=maxAllowableRuntimeSeconds)
     lastTimePathCreated = time.time()
     return localPath, lastTimePathCreated
 
