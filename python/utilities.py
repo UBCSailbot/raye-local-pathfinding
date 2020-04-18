@@ -797,11 +797,11 @@ class Circles(ObstacleInterface):
 
     def shrink(self, shrinkFactor):
         for obstacle in self.obstacles:
-            obstacle.radius /= shrinkFactor 
+            obstacle.shrink(shrinkFactor)
 
     def addPatch(self, axes):
         for obstacle in self.obstacles:
-            axes.add_patch(plt.Circle((obstacle.x, obstacle.y), radius=obstacle.radius))
+            obstacle.addPatch(axes)
 
     def clearance(self, xy):
         # TODO: Make this clearance better
@@ -820,7 +820,13 @@ class Circle():
             return False
         return True
 
-class Hybrid(ObstacleInterface):
+    def addPatch(self, axes):
+        axes.add_patch(plt.Circle((self.x, self.y), radius=self.radius))
+
+    def shrink(self, shrinkFactor):
+        self.radius /= shrinkFactor 
+
+class HybridEllipse(ObstacleInterface):
     def __init__(self, aisData, sailbotPosition, speedKmph, referenceLatlon):
         ObstacleInterface.__init__(self, aisData, sailbotPosition, speedKmph, referenceLatlon)
         self._extendObstacle(self.aisData, self.sailbotPosition, self.speedKmph, self.referenceLatlon)
@@ -838,7 +844,7 @@ class Hybrid(ObstacleInterface):
         self.ellipse.addPatch(axes)
 
     def isValid(self, xy):
-        return (self.wedge.isValid(xy))        
+        return (self.wedge.isValid(xy) and self.ellipse.isValid(xy))        
 
     def clearance(self, xy):
         return (self.xy[0] - xy[0])**2 + (self.xy[1] - xy[1])**2
@@ -847,6 +853,32 @@ class Hybrid(ObstacleInterface):
         self.ellipse.shrink(shrinkFactor)
         self.wedge.shrink(shrinkFactor)
     
+class HybridCircle(ObstacleInterface):
+    def __init__(self, aisData, sailbotPosition, speedKmph, referenceLatlon):
+        ObstacleInterface.__init__(self, aisData, sailbotPosition, speedKmph, referenceLatlon)
+        self._extendObstacle(self.aisData, self.sailbotPosition, self.speedKmph, self.referenceLatlon)
+        self.xy = latlonToXY(latlon(aisData.lat, aisData.lon), referenceLatlon)
+        self.circle = Circle(self.xy[0], self.xy[1], AIS_BOAT_RADIUS_KM)
+
+    def __str__(self):
+        return str(self.circle) + str(self.wedge)
+
+    def _extendObstacle(self, aisData, sailbotPosition, speedKmph, referenceLatlon):
+        self.wedge = Wedge(aisData, sailbotPosition, speedKmph, referenceLatlon)
+
+    def addPatch(self, axes):
+        self.wedge.addPatch(axes)
+        self.circle.addPatch(axes)
+
+    def isValid(self, xy):
+        return (self.wedge.isValid(xy) and self.circle.isValid(xy))        
+
+    def clearance(self, xy):
+        return (self.xy[0] - xy[0])**2 + (self.xy[1] - xy[1])**2
+
+    def shrink(self, shrinkFactor):
+        self.circle.shrink(shrinkFactor)
+        self.wedge.shrink(shrinkFactor)
 
 def getObstacles(ships, position, speedKmph, referenceLatlon):
     obstacle_type = rospy.get_param('obstacle_type', 'ellipse')
@@ -860,9 +892,12 @@ def getObstacles(ships, position, speedKmph, referenceLatlon):
     elif obstacle_type == "circles":
         for ship in ships:
             obstacles.append(Circles(ship, position, speedKmph, referenceLatlon))
-    elif obstacle_type == "hybrid":
+    elif obstacle_type == "hybrid_ellipse":
         for ship in ships:
-            obstacles.append(Hybrid(ship, position, speedKmph, referenceLatlon))
+            obstacles.append(HybridEllipse(ship, position, speedKmph, referenceLatlon))
+    elif obstacle_type == "hybrid_circle":
+        for ship in ships:
+            obstacles.append(HybridCircle(ship, position, speedKmph, referenceLatlon))
     return obstacles
 
 def pathCostThresholdExceeded(currentCost):
