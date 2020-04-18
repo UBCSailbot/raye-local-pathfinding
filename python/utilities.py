@@ -206,7 +206,7 @@ class OMPLPath:
         1 0   2     3     4 (Boat may be told to go backwards)
 
         Therefore, in this method, we will have an edge case check after the KeepAfter operation.
-        If <=1 waypoints are removed AND dist(B, 1) < dist(0,1), then dont add position B as starting waypoint.
+        If (0 waypoints are removed) OR (1 waypoint is removed AND dist(B, 1) < dist(0,1)), then dont add position B as starting waypoint.
         Else add position B as a starting waypoint.
         """
 
@@ -222,7 +222,7 @@ class OMPLPath:
 
         # Only add in boat position as waypoint if edge case is avoided (described above)
         boatCouldGoWrongDirection = self.getStateSpace().distance(positionXY, self._solutionPath.getState(1)) < self.getStateSpace().distance(self._solutionPath.getState(0), self._solutionPath.getState(1))
-        edgeCase = (lengthBefore - lengthAfter <= 1) and boatCouldGoWrongDirection
+        edgeCase = (lengthBefore - lengthAfter == 0) or ((lengthBefore - lengthAfter == 1) and boatCouldGoWrongDirection)
         if not edgeCase:
             self._solutionPath.prepend(positionXY)
 
