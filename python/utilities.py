@@ -77,9 +77,6 @@ OBSTACLE_MAX_TIME_TO_LOC_HOURS = 3  # Do not extend objects more than X hours di
 class OMPLPath:
     """ Class for storing an OMPL configuration, OMPL path, and the referenceLatlon
 
-    Properties created with the ``@property`` decorator should be documented
-    in the property's getter method.
-
     Attributes:
         _ss (ompl.geometric._geometric.SimpleSetup): SimpleSetup object that contains information about the OMPLPath, including its state space, space information, and cost function used to generate the path.
         _solutionPath (ompl.geometric._geometric.PathGeometric): PathGeometric object that represents the path, in XY coordinates with respect to a referenceLatlon
