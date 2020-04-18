@@ -39,16 +39,11 @@ def allocatePlanner(si, plannerType):
 # Method that looks numLookAheadWaypoints ahead on path, starting from positionXY and nextLocalWaypointIndex.
 # Returns the index of the waypoint in which there is an obstacle when going to it.
 # Returns -1 if there are no obstacles on path.
-def indexOfObstacleOnPath(positionXY, nextLocalWaypointIndex, numLookAheadWaypoints, localPathSS, solutionPathObject, obstacles):
-    # Set the objects used to check which states in the space are valid
-    validity_checker = ph.ValidityChecker(localPathSS.getSpaceInformation(), obstacles)
-    localPathSS.setStateValidityChecker(validity_checker)
-
+def indexOfObstacleOnPath(positionXY, nextLocalWaypointIndex, numLookAheadWaypoints, omplPath):
     # Setup for obstacle-on-path checking
-    localPathSS.setup()
-    stateSpace = localPathSS.getStateSpace()
-    solutionPath = solutionPathObject
-    spaceInformation = localPathSS.getSpaceInformation()
+    stateSpace = omplPath.getStateSpace()
+    solutionPath = omplPath.getSolutionPath()
+    spaceInformation = omplPath.getSpaceInformation()
 
     # Handle strange cases with less than 2 states
     if len(solutionPath.getStates()) <= 1:
@@ -89,7 +84,7 @@ def indexOfObstacleOnPath(positionXY, nextLocalWaypointIndex, numLookAheadWaypoi
         c = plt.Circle((obstacle.x, obstacle.y), radius=obstacle.radius)
         c.set_color('r')
         ax.add_patch(c)
-    for s in localPathSS.getSolutionPath().getStates():
+    for s in omplPath.getSolutionPath().getStates():
         # print("SolutionPath State {}, {}".format(s.getX(), s.getY()))
         c = plt.Circle((s.getX(), s.getY()), radius=0.2)
         c.set_color('g')
