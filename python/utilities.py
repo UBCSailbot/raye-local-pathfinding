@@ -538,7 +538,7 @@ def plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, 
     plt.draw()
     plt.pause(0.001)
 
-def createPath(state, runtimeSeconds=1.0, numRuns=2, plot=False, resetSpeedupDuringPlan=False, speedupBeforePlan=1.0, maxAllowableRuntimeSeconds=MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS):
+def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=False, speedupBeforePlan=1.0, maxAllowableRuntimeSeconds=MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS):
     def getXYLimits(start, goal, extraLengthFraction=0.6):
         # Calculate extra length to allow wider solution space
         width = math.fabs(goal[0] - start[0])
@@ -597,7 +597,8 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, plot=False, resetSpeedupDur
     rospy.loginfo("Running createLocalPathSS. runtimeSeconds: {}. numRuns: {}. Total time: {} seconds".format(runtimeSeconds, numRuns, runtimeSeconds*numRuns))
 
     # Create non-blocking plot showing the setup of the pathfinding problem. Useful to understand if the pathfinding problem is invalid or impossible
-    if plot:
+    shouldPlot = rospy.get_param('plot_pathfinding_problem', False)
+    if shouldPlot:
         plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, obstacles, state.headingDegrees, amountShrinked)
 
     # Take screenshot
@@ -691,7 +692,6 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, plot=False, resetSpeedupDur
                     bestSolutionPath = simplifiedPath
                     minCost = simplifiedCost
 
-    # Reprint cost after interpolation
     plt.close()
 
     if resetSpeedupDuringPlan:
@@ -839,7 +839,7 @@ class Ellipse():
         rotation_col2 = np.array([-math.sin(math.radians(self.angle)), math.cos(math.radians(self.angle))]) 
         edge_pt = init_pt + a * math.cos(t) * rotation_col1 + b * math.sin(t) * rotation_col2
         return edge_pt
-        
+
     def addPatch(self, axes):
         axes.add_patch(patches.Ellipse((self.x, self.y), self.width, self.height, self.angle))
 
