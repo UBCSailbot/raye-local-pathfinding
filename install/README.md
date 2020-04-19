@@ -69,6 +69,6 @@ docker run -it \
 
 4. Clone the repository in the src folder: `cd src` `git clone https://github.com/UBCSailbot/local-pathfinding.git`. 
 
-5. Go back to catkin_ws and build and source. `cd ..` `catkin_make` `source devel/setup.zsh`.
+5. Go back to catkin_ws and build and source. `cd ..` `catkin_make` `source devel/setup.bash`.
 
 
