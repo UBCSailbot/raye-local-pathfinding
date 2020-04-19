@@ -92,3 +92,19 @@ You can run `rostopic echo /` then press TAB repeatedly to see the available top
 ### Running tests
 
 To run the tests, navigate to the `catkin_ws` and run `catkin_make run_tests`.
+
+### Lint
+
+To ensure that the codebase stays clean, we will be using [flake8](https://flake8.pycqa.org/en/latest/) to enforce our style guide, which is mostly based off of [pep8](https://www.python.org/dev/peps/pep-0008/). To automate most of this process, you can use [autopep8](https://github.com/hhatto/autopep8), which is a tool that automatically resolves most style issues. Example usage is shown below. Note that some style choices are still under discussion.
+
+`pip install flake8`
+
+`pip install --upgrade autopep8`
+
+`autopep8 --in-place --aggressive --max-line-length 99 --aggressive <path_to_file>`
+
+`flake8 --statistics --max-line-length 99 <path_to_file>`
+
+### Continuous Integration
+
+To ensure that the code continues to work as we make changes, we have setup continuous integration with CircleCI. It pulls the Dockerhub image for ROS and OMPL, sets up the workspace, and runs the lint and tests. View `.circleci` to see how this is done.
