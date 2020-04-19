@@ -44,7 +44,7 @@ All of the arguments below are optional for `all.launch`.
 
 * `initial_speedup` - Float value that changes the speed at which the simulation is run. Default: `1.0`
 
-* `obstacle_type` - String value that changes the obstacle representation of AIS ships. Accepted types are: `"ellipse"`, `"wedge"`, and `"circles"`. Default: `"ellipse"`
+* `obstacle_type` - String value that changes the obstacle representation of AIS ships. Accepted types are: `"ellipse"`, `"wedge"`,`"circles"`, `"hybrid_circle"`, and `"hybrid_ellipse"`. Default: `"hybrid_circle"`
 
 * `main_loop_output` - String value that changes where ros log information is output. Accepted values are: `screen` and `log`. Default: `screen`.
 
@@ -72,24 +72,18 @@ During a simulation, you can run:
 
 * `rostopic pub /forceLocalPathUpdate` then press TAB repeatedly to get a default messsage. Then send it to force a local path change, which will change the path, regardless if the new path is lower cost than the current one or not.
 
-* `rostopic pub /new_boat` then press TAB repeatedly to get a default messsage. Edit the message to get the boat in the location, speed and direction you want. This will create a new AIS boat obstacle.
-
 * `rostopic pub /changeGlobalWind` then press TAB repeatedly to get a default messsage. Edit the message to get the wind speed and direction you want. This will change the global wind.
 
 * `rostopic pub /changeGPS` then press TAB repeatedly to get a default messsage. Edit the message to get sailbot position that you want. This will change the sailbot position.
 
-* `rostopic pub /delete_boats` then press TAB repeatedly to get a default messsage. Edit the message to remove the AIS boat with the given ID.
-
-* `rostopic pub /boat_on_path` then press TAB repeatedly to get a default messsage. Edit using one of the following options:
-
-1. addType = latlon will just publish a boat with the specified parameters in addBoat.ship
-2. addType = nextWaypoint will publish a boat at the next localWaypoint with the specified ID, heading, and speed in addBoat.ship (lat lon params are ignored)
-3. addType = onBoat will publish a boat at the current location of the Sailbot with the specified ID, heading, and speed in addBoat.ship (lat lon params are ignored)
-4. addType = index will publish a boat at localPath[addBoat.waypointIndex] with the specified ID, heading, and speed in addBoat.ship (lat lon params are ignored)
-
 * `rosparam set /plot_pathfinding_problem true` to start plotting the pathfinding problem at each call to `createPath`. Can change `true` to `false` to turn it off.
 
 * `rosparam set /screenshot true` to start screenshotting at each call to `createPath`. Can change `true` to `false` to turn it off.
+
+* `rosparam set /obstacle_type <selected_obstacle_type>` (replace <selected_obstacle_type> with the one you want) to change the obstacle representation type. Accepted values are described in the arguments section above.
+
+
+* To add or remove AIS boats, you can refer to the instructions [here](python/README.md).
 
 #### Seeing more information about a simulation
 
