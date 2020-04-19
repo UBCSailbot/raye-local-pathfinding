@@ -61,6 +61,7 @@ BOAT_BACKWARD = 270
 
 # Constants for modeling AIS boats
 AIS_BOAT_RADIUS_KM = 0.2
+AIS_BOAT_LENGTH_KM = 1
 AIS_BOAT_CIRCLE_SPACING_KM = AIS_BOAT_RADIUS_KM * 1.5  # Distance between circles that make up an AIS boat
 
 # Upwind downwind detection
@@ -76,9 +77,6 @@ OBSTACLE_MAX_TIME_TO_LOC_HOURS = 3  # Do not extend objects more than X hours di
 
 class OMPLPath:
     """ Class for storing an OMPL configuration, OMPL path, and the referenceLatlon
-
-    Properties created with the ``@property`` decorator should be documented
-    in the property's getter method.
 
     Attributes:
         _ss (ompl.geometric._geometric.SimpleSetup): SimpleSetup object that contains information about the OMPLPath, including its state space, space information, and cost function used to generate the path.
@@ -206,7 +204,7 @@ class OMPLPath:
         1 0   2     3     4 (Boat may be told to go backwards)
 
         Therefore, in this method, we will have an edge case check after the KeepAfter operation.
-        If <=1 waypoints are removed AND dist(B, 1) < dist(0,1), then dont add position B as starting waypoint.
+        If (0 waypoints are removed) OR (1 waypoint is removed AND dist(B, 1) < dist(0,1)), then dont add position B as starting waypoint.
         Else add position B as a starting waypoint.
         """
 
@@ -222,7 +220,7 @@ class OMPLPath:
 
         # Only add in boat position as waypoint if edge case is avoided (described above)
         boatCouldGoWrongDirection = self.getStateSpace().distance(positionXY, self._solutionPath.getState(1)) < self.getStateSpace().distance(self._solutionPath.getState(0), self._solutionPath.getState(1))
-        edgeCase = (lengthBefore - lengthAfter <= 1) and boatCouldGoWrongDirection
+        edgeCase = (lengthBefore - lengthAfter == 0) or ((lengthBefore - lengthAfter == 1) and boatCouldGoWrongDirection)
         if not edgeCase:
             self._solutionPath.prepend(positionXY)
 
@@ -694,7 +692,6 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=Fals
                     bestSolutionPath = simplifiedPath
                     minCost = simplifiedCost
 
-    # Reprint cost after interpolation
     plt.close()
 
     if resetSpeedupDuringPlan:
@@ -802,37 +799,17 @@ class ObstacleInterface:
         """ Shrinks the obstacle by the shrink factor"""
         pass
 
-
-class Ellipse(ObstacleInterface):
-    def __init__(self, aisData, sailbotPosition, speedKmph, referenceLatlon):
-        ObstacleInterface.__init__(self, aisData, sailbotPosition, speedKmph, referenceLatlon)
-        self._extendObstacle(self.aisData, self.sailbotPosition, self.speedKmph, self.referenceLatlon)
-
+class Ellipse():
+    def __init__(self, x, y, height, width, angle):
+        self.x = x
+        self.y = y
+        self.height = height
+        self.width = width
+        self.angle = angle
+    
     def __str__(self):
         return str((self.x, self.y, self.height, self.width, self.angle))
 
-    def _extendObstacle(self, aisData, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
-        aisX, aisY = latlonToXY(latlon(aisData.lat, aisData.lon), referenceLatlon)
-
-        # Calculate length to extend boat
-        distanceToBoatKm = distance((aisData.lat, aisData.lon), (sailbotPosition.lat, sailbotPosition.lon)).kilometers
-        if sailbotSpeedKmph == 0 or distanceToBoatKm / sailbotSpeedKmph > OBSTACLE_MAX_TIME_TO_LOC_HOURS:
-            timeToLocHours = OBSTACLE_MAX_TIME_TO_LOC_HOURS
-        else:
-            timeToLocHours = distanceToBoatKm / sailbotSpeedKmph
-        extendBoatLengthKm = aisData.speedKmph * timeToLocHours
-
-        if extendBoatLengthKm == 0:
-            width = AIS_BOAT_RADIUS_KM
-        else:
-            width = extendBoatLengthKm
-        height = AIS_BOAT_RADIUS_KM
-        angle = aisData.headingDegrees
-        xy = [aisX + extendBoatLengthKm * math.cos(math.radians(angle)) * 0.5, aisY + extendBoatLengthKm * math.sin(math.radians(angle)) * 0.5]
-        self.x, self.y = xy[0], xy[1]
-        self.width, self.height = width, height
-        self.angle = angle
-    
     def isValid(self, xy):
         delta = 0.001
         x = xy[0] - self.x
@@ -869,6 +846,48 @@ class Ellipse(ObstacleInterface):
     def shrink(self, shrinkFactor):
         self.width /= shrinkFactor 
         self.height /= shrinkFactor 
+
+class EllipseObstacle(ObstacleInterface, Ellipse):
+    def __init__(self, aisData, sailbotPosition, speedKmph, referenceLatlon):
+        ObstacleInterface.__init__(self, aisData, sailbotPosition, speedKmph, referenceLatlon)
+        self._extendObstacle(self.aisData, self.sailbotPosition, self.speedKmph, self.referenceLatlon)
+
+    def __str__(self):
+        return Ellipse.__str__(self)
+
+    def _extendObstacle(self, aisData, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
+        aisX, aisY = latlonToXY(latlon(aisData.lat, aisData.lon), referenceLatlon)
+
+        # Calculate length to extend boat
+        distanceToBoatKm = distance((aisData.lat, aisData.lon), (sailbotPosition.lat, sailbotPosition.lon)).kilometers
+        if sailbotSpeedKmph == 0 or distanceToBoatKm / sailbotSpeedKmph > OBSTACLE_MAX_TIME_TO_LOC_HOURS:
+            timeToLocHours = OBSTACLE_MAX_TIME_TO_LOC_HOURS
+        else:
+            timeToLocHours = distanceToBoatKm / sailbotSpeedKmph
+        extendBoatLengthKm = aisData.speedKmph * timeToLocHours
+
+        if extendBoatLengthKm == 0:
+            width = AIS_BOAT_RADIUS_KM
+        else:
+            width = extendBoatLengthKm
+        height = AIS_BOAT_RADIUS_KM
+        angle = aisData.headingDegrees
+        xy = [aisX + extendBoatLengthKm * math.cos(math.radians(angle)) * 0.5, aisY + extendBoatLengthKm * math.sin(math.radians(angle)) * 0.5]
+        self.x, self.y = xy[0], xy[1]
+        self.width, self.height = width, height
+        self.angle = angle
+    
+    def isValid(self, xy):
+         return Ellipse.isValid(self, xy)
+        
+    def _ellipseFormula(self, t): 
+         return Ellipse._ellipseFormula(self, t)
+
+    def addPatch(self, axes):
+        Ellipse.addPatch(self, axes)
+
+    def shrink(self, shrinkFactor):
+        Ellipse.shrink(self, shrinkFactor)
 
     def clearance(self, xy):
         # TODO: Make this clearance better
@@ -928,7 +947,6 @@ class Circles(ObstacleInterface):
             self._extendObstacle(self.aisData, self.sailbotPosition, self.speedKmph, self.referenceLatlon)
 
     def isValid(self, xy):
-        x, y = xy
         for obstacle in self.obstacles:
             if not obstacle.isValid(xy):
                 return False
@@ -984,11 +1002,11 @@ class Circles(ObstacleInterface):
 
     def shrink(self, shrinkFactor):
         for obstacle in self.obstacles:
-            obstacle.radius /= shrinkFactor 
+            obstacle.shrink(shrinkFactor)
 
     def addPatch(self, axes):
         for obstacle in self.obstacles:
-            axes.add_patch(plt.Circle((obstacle.x, obstacle.y), radius=obstacle.radius))
+            obstacle.addPatch(axes)
 
     def clearance(self, xy):
         # TODO: Make this clearance better
@@ -1006,20 +1024,85 @@ class Circle():
         if math.sqrt(pow(x - self.x, 2) + pow(y - self.y, 2)) - self.radius <= 0:
             return False
         return True
+
+    def addPatch(self, axes):
+        axes.add_patch(plt.Circle((self.x, self.y), radius=self.radius))
+
+    def shrink(self, shrinkFactor):
+        self.radius /= shrinkFactor 
+
+class HybridEllipse(ObstacleInterface):
+    def __init__(self, aisData, sailbotPosition, speedKmph, referenceLatlon):
+        ObstacleInterface.__init__(self, aisData, sailbotPosition, speedKmph, referenceLatlon)
+        self._extendObstacle(self.aisData, self.sailbotPosition, self.speedKmph, self.referenceLatlon)
+        self.xy = latlonToXY(latlon(aisData.lat, aisData.lon), referenceLatlon)
+        self.ellipse = Ellipse(self.xy[0], self.xy[1], AIS_BOAT_RADIUS_KM, AIS_BOAT_LENGTH_KM, aisData.headingDegrees)
+
+    def __str__(self):
+        return str(self.ellipse) + str(self.wedge)
+
+    def _extendObstacle(self, aisData, sailbotPosition, speedKmph, referenceLatlon):
+        self.wedge = Wedge(aisData, sailbotPosition, speedKmph, referenceLatlon)
+
+    def addPatch(self, axes):
+        self.wedge.addPatch(axes)
+        self.ellipse.addPatch(axes)
+
+    def isValid(self, xy):
+        return (self.wedge.isValid(xy) and self.ellipse.isValid(xy))        
+
+    def clearance(self, xy):
+        return (self.xy[0] - xy[0])**2 + (self.xy[1] - xy[1])**2
+
+    def shrink(self, shrinkFactor):
+        self.ellipse.shrink(shrinkFactor)
+        self.wedge.shrink(shrinkFactor)
     
+class HybridCircle(ObstacleInterface):
+    def __init__(self, aisData, sailbotPosition, speedKmph, referenceLatlon):
+        ObstacleInterface.__init__(self, aisData, sailbotPosition, speedKmph, referenceLatlon)
+        self._extendObstacle(self.aisData, self.sailbotPosition, self.speedKmph, self.referenceLatlon)
+        self.xy = latlonToXY(latlon(aisData.lat, aisData.lon), referenceLatlon)
+        self.circle = Circle(self.xy[0], self.xy[1], AIS_BOAT_RADIUS_KM)
+
+    def __str__(self):
+        return str(self.circle) + str(self.wedge)
+
+    def _extendObstacle(self, aisData, sailbotPosition, speedKmph, referenceLatlon):
+        self.wedge = Wedge(aisData, sailbotPosition, speedKmph, referenceLatlon)
+
+    def addPatch(self, axes):
+        self.wedge.addPatch(axes)
+        self.circle.addPatch(axes)
+
+    def isValid(self, xy):
+        return (self.wedge.isValid(xy) and self.circle.isValid(xy))        
+
+    def clearance(self, xy):
+        return (self.xy[0] - xy[0])**2 + (self.xy[1] - xy[1])**2
+
+    def shrink(self, shrinkFactor):
+        self.circle.shrink(shrinkFactor)
+        self.wedge.shrink(shrinkFactor)
 
 def getObstacles(ships, position, speedKmph, referenceLatlon):
     obstacle_type = rospy.get_param('obstacle_type', 'ellipse')
     obstacles = []
     if obstacle_type == "ellipse":
         for ship in ships:
-            obstacles.append(Ellipse(ship, position, speedKmph, referenceLatlon))
+            obstacles.append(EllipseObstacle(ship, position, speedKmph, referenceLatlon))
     elif obstacle_type == "wedge":
         for ship in ships:
             obstacles.append(Wedge(ship, position, speedKmph, referenceLatlon))
     elif obstacle_type == "circles":
         for ship in ships:
             obstacles.append(Circles(ship, position, speedKmph, referenceLatlon))
+    elif obstacle_type == "hybrid_ellipse":
+        for ship in ships:
+            obstacles.append(HybridEllipse(ship, position, speedKmph, referenceLatlon))
+    elif obstacle_type == "hybrid_circle":
+        for ship in ships:
+            obstacles.append(HybridCircle(ship, position, speedKmph, referenceLatlon))
     return obstacles
 
 def pathCostThresholdExceeded(currentCost):
