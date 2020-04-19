@@ -24,7 +24,6 @@ sudo apt-get update && \
         python2.7-dev \
         python2.7-numpy \
         python-pip \
-        scrot \
         wget \
 
 # Install spot
@@ -37,10 +36,13 @@ wget -q -O- https://data.kitware.com/api/v1/file/5b68c2c28d777f06857c1f48/downlo
 # Install pypy2:
 wget -q -O- https://bitbucket.org/pypy/pypy/downloads/pypy2-v6.0.0-linux64.tar.bz2 |tar jxf - && \
 sudo pip2 install pygccxml pyplusplus
-sudo pip2 install geopy pyautogui
 
-# Install additional dependency for plotting
+# Install additional dependencies
 DEBIAN_FRONTEND=noninteractive sudo apt-get install -y python-matplotlib
+sudo apt-get update && \
+    apt-get install -y \
+        scrot
+sudo pip2 install geopy pyautogui
 
 # Run remaining installation script (note there are some redundant commands, but it wastes minimal amount of time) and generate Python bindings
 sudo ./install-ompl-ubuntu.sh --python
