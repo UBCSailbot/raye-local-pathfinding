@@ -5,7 +5,7 @@
 
     <!-- Setup mocks. View launch_all_mocks.launch for argument descriptions. -->
     <arg name="initial_speedup" default="1.0" />
-    <arg name="obstacle_type" default="ellipse" />
+    <arg name="obstacle_type" default="hybrid_circle" />
     <arg name="ais_file" default="" />
     <arg name="gps_file" default="" />
     <arg name="goal_file" default="" />
