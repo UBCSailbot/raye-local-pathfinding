@@ -1,0 +1,70 @@
+# CircleCi Configuration for local_pathfinding
+
+version: 2.1
+
+######### High-level workflow #########
+workflows:
+  version: 2.1
+  build-lint-test:
+    jobs:
+      - build
+      - lint:
+          requires:
+            - build
+      - test:
+          requires:
+            - build
+
+######### Mid-level jobs #########
+jobs:
+  build:
+    executor: docker_exec
+    steps:
+      - install_circleci_dependencies
+      - setup_and_build_workspace
+
+  lint:
+    executor: docker_exec
+    steps:
+      - install_circleci_dependencies
+      - setup_and_build_workspace
+      - install_and_run_flake8
+
+  test:
+    executor: docker_exec
+    steps:
+      - install_circleci_dependencies
+      - setup_and_build_workspace
+      - run_tests
+
+
+######### Low-level commands and executors #########
+commands:
+  install_circleci_dependencies:
+    description: "Install CircleCI Dependencies"
+    steps:
+      - run: apt-get update && apt-get install -y git ssh tar gzip ca-certificates
+
+  setup_and_build_workspace:
+    description: "Set Up And Build Workspace"
+    steps:
+      - run: mkdir -p /catkin_ws/src/local_pathfinding
+      - run: source /opt/ros/melodic/setup.bash && cd /catkin_ws && catkin_make
+      - checkout:
+          path: /catkin_ws/src/local_pathfinding
+      - run: source /opt/ros/melodic/setup.bash && cd /catkin_ws && catkin_make
+
+  install_and_run_flake8:
+    description: "Install And Run Flake8"
+    steps:
+      - run: pip install flake8 && flake8 --statistics --max-line-length 99 /catkin_ws/src/local_pathfinding
+
+  run_tests:
+    description: "Run Tests"
+    steps:
+      - run: source /opt/ros/melodic/setup.bash && source /catkin_ws/devel/setup.bash && cd /catkin_ws && catkin_make run_tests && catkin_test_results
+
+executors:
+  docker_exec:
+    docker:
+      - image: tylerlum/ros_ompl_python_2:04.2020.V1
