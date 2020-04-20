@@ -6,6 +6,13 @@ import local_pathfinding.msg as msg
 import rospy
 import rostest
 import unittest
+import os
+
+# Do something with local_imports to avoid lint errors
+local_imports.printMessage()
+
+# Set display environment variable to avoid CI errors
+os.environ['DISPLAY'] = ':0'
 
 
 class TestSailbot(unittest.TestCase):
