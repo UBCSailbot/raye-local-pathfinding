@@ -3,8 +3,10 @@ import rospy
 from local_pathfinding.msg import AISMsg, GPS, path, latlon, windSensor
 from geopy.distance import distance
 
+
 class BoatState:
-    def __init__(self, globalWaypoint, position, measuredWindDirectionDegrees, measuredWindSpeedKmph, AISData, headingDegrees, speedKmph):
+    def __init__(self, globalWaypoint, position, measuredWindDirectionDegrees, measuredWindSpeedKmph, AISData,
+                 headingDegrees, speedKmph):
         self.globalWaypoint = globalWaypoint
         self.position = position
         self.measuredWindDirectionDegrees = measuredWindDirectionDegrees
@@ -21,17 +23,21 @@ class BoatState:
                  "Wind speed kmph: {3}\n"
                  "AISData: {4}\n"
                  "Heading degrees: {5}\n"
-                 "Speed kmph: {6}\n")
-                 .format(self.globalWaypoint, self.position, self.measuredWindDirectionDegrees, self.measuredWindSpeedKmph, self.AISData.ships, self.headingDegrees, self.speedKmph))
+                 "Speed kmph: {6}\n") .format(self.globalWaypoint, self.position, self.measuredWindDirectionDegrees,
+                                              self.measuredWindSpeedKmph, self.AISData.ships, self.headingDegrees,
+                                              self.speedKmph))
 
 
 class Sailbot:
     def getCurrentState(self):
         if self.globalPathIndex >= len(self.globalPath):
-            rospy.logwarn("Global path index is out of range: index = {} len(globalPath) = {}".format(self.globalPathIndex, self.globalPath))
+            rospy.logwarn(
+                "Global path index is out of range: index = {} len(globalPath) = {}".format(
+                    self.globalPathIndex, self.globalPath))
             rospy.logwarn("Setting globalWaypoint to be the last element of the globalPath")
             self.globalPathIndex = len(self.globalPath) - 1
-        return BoatState(self.globalPath[self.globalPathIndex], self.position, self.measuredWindDirectionDegrees, self.measuredWindSpeedKmph, self.AISData, self.headingDegrees, self.speedKmph)
+        return BoatState(self.globalPath[self.globalPathIndex], self.position, self.measuredWindDirectionDegrees,
+                         self.measuredWindSpeedKmph, self.AISData, self.headingDegrees, self.speedKmph)
 
     def positionCallback(self, data):
         self.position.lat = data.lat
@@ -48,7 +54,7 @@ class Sailbot:
 
     def globalPathCallback(self, data):
         # Check that new path is valid
-        isValidNewPath = (not data.waypoints is None and len(data.waypoints) >= 2)
+        isValidNewPath = (data.waypoints is not None and len(data.waypoints) >= 2)
         if not isValidNewPath:
             rospy.logwarn("Invalid global path received.")
             return
@@ -59,7 +65,6 @@ class Sailbot:
         else:
             rospy.logwarn_once("New global path is the same as the current path. This warning will only show once")
             # rospy.logwarn("New global path is the same as the current path.")
-
 
     def isNewPath(self, oldPath, newPath):
         # Check if they are obviously different
@@ -76,7 +81,6 @@ class Sailbot:
 
         return False
 
-
     def updateGlobalPath(self, data):
         rospy.loginfo("New global path received.")
         self.newGlobalPathReceived = True
@@ -84,7 +88,7 @@ class Sailbot:
         self.globalPathIndex = 1
 
     def __init__(self, nodeName):
-        self.position = latlon(0, 0) 
+        self.position = latlon(0, 0)
         self.measuredWindDirectionDegrees = 0
         self.measuredWindSpeedKmph = 0
         self.AISData = AISMsg()
@@ -104,7 +108,7 @@ class Sailbot:
 # Example code of how this class works.
 if __name__ == '__main__':
     sailbot = Sailbot(nodeName='testSailbot')
-    r = rospy.Rate(1) #hz
+    r = rospy.Rate(1)  # hz
 
     while not rospy.is_shutdown():
         boatState = sailbot.getCurrentState()

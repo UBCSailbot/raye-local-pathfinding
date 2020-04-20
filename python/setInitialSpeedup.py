@@ -12,8 +12,10 @@ if __name__ == "__main__":
 
     # Wait for other nodes before publishing
     while speedupPublisher.get_num_connections() < MIN_NUM_SPEEDUP_SUBSCRIBERS_BEFORE_STARTING:
-        rospy.loginfo("Waiting for at least {} speedup subscribers before publishing initial speedup".format(MIN_NUM_SPEEDUP_SUBSCRIBERS_BEFORE_STARTING))
+        rospy.loginfo("Waiting for at least {} speedup subscribers before publishing initial speedup".format(
+            MIN_NUM_SPEEDUP_SUBSCRIBERS_BEFORE_STARTING))
         time.sleep(0.1)
-    rospy.loginfo("{} speedup subscribers found. Publishing initial speedup = {}".format(speedupPublisher.get_num_connections(), initial_speedup))
+    rospy.loginfo("{} speedup subscribers found. Publishing initial speedup = {}".format(
+        speedupPublisher.get_num_connections(), initial_speedup))
 
     speedupPublisher.publish(initial_speedup)
