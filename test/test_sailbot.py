@@ -7,8 +7,8 @@ import rospy
 import rostest
 import unittest
 
-# Set display environment variable to avoid CI errors
-local_imports.setDisplayToAvoidKeyError()
+# Do something with local_imports to avoid lint errors
+local_imports.printMessage()
 
 
 class TestSailbot(unittest.TestCase):
