@@ -6,5 +6,6 @@ srcdir = '../python'
 sys.path.insert(0, os.path.abspath(os.path.join(testdir, srcdir)))
 
 
-def printMessage():
-    print("Local imports working")
+def setDisplayToAvoidKeyError():
+    # Set display environment variable to avoid CI errors
+    os.environ['DISPLAY'] = ':0'

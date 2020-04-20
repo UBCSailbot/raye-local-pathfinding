@@ -6,13 +6,9 @@ import utilities as utils
 from local_pathfinding.msg import latlon
 import rostest
 import unittest
-import os
-
-# Do something with local_imports to avoid lint errors
-local_imports.printMessage()
 
 # Set display environment variable to avoid CI errors
-os.environ['DISPLAY'] = ':0'
+local_imports.setDisplayToAvoidKeyError()
 
 
 class TestUtilities(unittest.TestCase):
