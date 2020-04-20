@@ -1,16 +1,11 @@
 #! /usr/bin/env python
 
-# Add python directory to path
+import local_imports  # Must be first import, as it adds python directory to path
 import Sailbot as sbot
 import local_pathfinding.msg as msg
 import rospy
 import rostest
 import unittest
-import sys
-import os
-testdir = os.path.dirname(__file__)
-srcdir = '../python'
-sys.path.insert(0, os.path.abspath(os.path.join(testdir, srcdir)))
 
 
 class TestSailbot(unittest.TestCase):

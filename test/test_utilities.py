@@ -1,16 +1,11 @@
 #! /usr/bin/env python
 
-# Add python directory to path
+import local_imports  # Must be first import, as it adds python directory to path
 from geopy.distance import distance
 import utilities as utils
 from local_pathfinding.msg import latlon
 import rostest
 import unittest
-import sys
-import os
-testdir = os.path.dirname(__file__)
-srcdir = '../python'
-sys.path.insert(0, os.path.abspath(os.path.join(testdir, srcdir)))
 
 
 class TestUtilities(unittest.TestCase):
@@ -47,7 +42,7 @@ class TestUtilities(unittest.TestCase):
         self.assertAlmostEqual(calculatedLatlon.lat, testLatlon.lat, places=1)
         self.assertAlmostEqual(calculatedLatlon.lon, testLatlon.lon, places=1)
 
-    def test_getDesiredHeading_north(self):
+    def test_getDesiredHeadingDegrees_north(self):
         # Setup latlon
         position = latlon(50, -120)
 
@@ -57,10 +52,10 @@ class TestUtilities(unittest.TestCase):
         northDestination = latlon(northDestination.latitude, northDestination.longitude)
 
         # Test desiredHeading
-        desiredHeading = utils.getDesiredHeading(position=position, localWaypoint=northDestination)
+        desiredHeading = utils.getDesiredHeadingDegrees(position=position, localWaypoint=northDestination)
         self.assertAlmostEqual(desiredHeading, utils.HEADING_NORTH, places=1)
 
-    def test_getDesiredHeading_east(self):
+    def test_getDesiredHeadingDegrees_east(self):
         # Setup latlon
         position = latlon(50, -120)
 
@@ -70,7 +65,7 @@ class TestUtilities(unittest.TestCase):
         eastDestination = latlon(eastDestination.latitude, eastDestination.longitude)
 
         # Test desiredHeading
-        desiredHeading = utils.getDesiredHeading(position=position, localWaypoint=eastDestination)
+        desiredHeading = utils.getDesiredHeadingDegrees(position=position, localWaypoint=eastDestination)
         self.assertAlmostEqual(desiredHeading, utils.HEADING_EAST, places=1)
 
     def test_globalWaypointReached(self):
@@ -289,7 +284,7 @@ class TestUtilities(unittest.TestCase):
         # (Boat not moving + measured wind) => (global wind speed == measured wind speed)
         #                                      + (global wind dir == measured wind dir - 90)
         # b/c 0 measured direction = right of boat which is -90 in global when boat is pointed east)
-        measuredDirection = (2 * utils.utils.BOAT_FORWARD + 1 * utils.utils.BOAT_RIGHT) / 3  # 60 degrees
+        measuredDirection = (2 * utils.BOAT_FORWARD + 1 * utils.BOAT_RIGHT) / 3  # 60 degrees
         globalWindSpeedKmph, globalWindDirectionDegrees = utils.measuredWindToGlobalWind(
             measuredWindSpeed=1.2, measuredWindDirectionDegrees=measuredDirection, boatSpeed=0,
             headingDegrees=utils.HEADING_EAST)
