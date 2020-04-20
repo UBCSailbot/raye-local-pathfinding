@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 from datetime import datetime
 from datetime import date
-import pyautogui
 import os
 from ompl import util as ou
 from ompl import geometric as og
@@ -509,6 +508,9 @@ class Path:
 
 
 def takeScreenshot():
+    # Put import here to avoid CI issues with pyautogui
+    import pyautogui
+
     # Set imagePath on first time
     try:
         takeScreenshot.imagePath
