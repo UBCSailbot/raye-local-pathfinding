@@ -143,9 +143,9 @@ class OMPLPath:
         self._ss.setStateValidityChecker(validity_checker)
 
     def removePastWaypoints(self, state):
-        """
-        Removes waypoints that the boat has already passed.
-        Note: Should only be called once when waypointReached() == True, not every loop, otherwise the localWaypointReached tangent line could get messed up.
+        """Removes waypoints that the boat has already passed.
+
+        Note: Best used when waypointReached() == True, not every loop, otherwise the localWaypointReached tangent line could get messed up.
         Additional reason: keepAfter() method implementation assumes all waypoints are equally spaced
         Algorithm:
         1. Find index of waypoint closest to state, call that closestWaypoint
@@ -219,6 +219,18 @@ class OMPLPath:
         lengthAfter = self._solutionPath.getStateCount()
 
         def dist(state1, state2):
+            """Calculates the euclidean distance between two states.
+
+            Keyword arguments:
+                state1 (ompl.base._base.SE2StateInternal): SE2State object of first state
+                state2 (ompl.base._base.SE2StateInternal): SE2State object of second state
+
+            Note: Do not replace this method with self._ss.getStateSpace().distance(state1, state2)
+                  as this method also takes into account angle differences between these states,
+                  which is not relevant here.
+            """
+            print(type(state1))
+
             x1 = state1.getX()
             y1 = state1.getY()
             x2 = state2.getX()
