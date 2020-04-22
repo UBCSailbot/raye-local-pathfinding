@@ -117,7 +117,9 @@ if __name__ == '__main__':
 
                 # Remove previous waypoint
                 if isLocalWaypointReached:
+                    rospy.loginfo("About to remove past waypoints")
                     localPath.removePastWaypoints(state)
+                    rospy.loginfo("Removed past waypoints")
 
                 # Update local path if new one is better than old
                 _localPath, _lastTimePathCreated = updateToNewLocalPath(state, MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS)
@@ -133,6 +135,9 @@ if __name__ == '__main__':
 
         # Publish desiredHeading
         desiredHeadingMsg.headingDegrees = getDesiredHeadingDegrees(state.position, localPath.getNextWaypoint())
+        if desiredHeadingMsg.headingDegrees > 0 and desiredHeadingMsg.headingDegrees < 90:
+            rospy.logerr("desiredHeading is in bad range")
+
         desiredHeadingPublisher.publish(desiredHeadingMsg)
 
         # Publish local path
