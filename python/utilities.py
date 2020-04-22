@@ -248,7 +248,7 @@ class OMPLPath:
             rospy.loginfo("Thus edgeCase = {}, so positionXY not prepended to path.".format(edgeCase))
         else:
             self._solutionPath.prepend(positionXY)
-            rospy.loginfo("Thus edgeCase = {}, so positionXY not prepended to path.".format(edgeCase))
+            rospy.loginfo("Thus edgeCase = {}, so positionXY was prepended to path.".format(edgeCase))
 
 class Path:
     def __init__(self, omplPath):
