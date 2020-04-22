@@ -214,23 +214,11 @@ class OMPLPath:
         positionXY.setXY(x, y)
 
         # Keep waypoints only after your positionXY
-        rospy.loginfo("Path before")
-        def getPathString(states):
-            strings = ['[']
-            for state in states:
-                strings.append(" ({},{}) ".format(state.getX(), state.getY()))
-            return ''.join(strings)
-
-        rospy.loginfo(getPathString(self._solutionPath.getStates()))
         lengthBefore = self._solutionPath.getStateCount()
         self._solutionPath.keepAfter(positionXY)
         lengthAfter = self._solutionPath.getStateCount()
-        rospy.loginfo("lengthBefore = {}. lengthAfter = {}".format(lengthBefore, lengthAfter))
 
-        rospy.loginfo("Path after")
-        rospy.loginfo(getPathString(self._solutionPath.getStates()))
-
-        def calculateDistance(state1, state2):
+        def dist(state1, state2):
             x1 = state1.getX()
             y1 = state1.getY()
             x2 = state2.getX()
@@ -238,24 +226,17 @@ class OMPLPath:
             return ((x1-x2)**2 + (y1-y2)**2)**0.5
 
         # Only add in boat position as waypoint if edge case is avoided (described above)
-        rospy.loginfo("self.getStateSpace().distance(positionXY, self._solutionPath.getState(1)) = {}. self.getStateSpace().distance(self._solutionPath.getState(0), self._solutionPath.getState(1)) = {}. self.getStateSpace().distance(self._solutionPath.getState(0), positionXY) = {}".format(self.getStateSpace().distance(positionXY, self._solutionPath.getState(1)), self.getStateSpace().distance(self._solutionPath.getState(0), self._solutionPath.getState(1)), self.getStateSpace().distance(self._solutionPath.getState(0), positionXY) ))
-        rospy.loginfo("calculateDistance(positionXY, self._solutionPath.getState(1)) = {}. calculateDistance(self._solutionPath.getState(0), self._solutionPath.getState(1)) = {}. calculateDistance(positionXY, self._solutionPath.getState(0)) = {}".format(calculateDistance(positionXY, self._solutionPath.getState(1)), calculateDistance(self._solutionPath.getState(0), self._solutionPath.getState(1)), calculateDistance(positionXY, self._solutionPath.getState(0))))
-        if self.getStateSpace().distance(positionXY, self._solutionPath.getState(1)) - calculateDistance(positionXY, self._solutionPath.getState(1)) > 0.1:
-            rospy.logerr("DIFFERENCE")
-        if self.getStateSpace().distance(positionXY, self._solutionPath.getState(0)) - calculateDistance(positionXY, self._solutionPath.getState(0)) > 0.1:
-            rospy.logerr("DIFFERENCE")
-        if self.getStateSpace().distance(self._solutionPath.getState(0), self._solutionPath.getState(1)) - calculateDistance(self._solutionPath.getState(0), self._solutionPath.getState(1)) > 0.1:
-            rospy.logerr("DIFFERENCE")
+        dist_boat_to_1 = dist(positionXY, self._solutionPath.getState(1))
+        dist_0_to_1 = dist(self._solutionPath.getState(0), self._solutionPath.getState(1))
+        boatCouldGoWrongDirection = dist_boat_to_1 < dist_0_to_1
+        rospy.loginfo("dist_boat_to_1 = {}. dist_0_to_1 = {}. boatCouldGoWrongDirection = {}.".format(dist_boat_to_1, dist_0_to_1, boatCouldGoWrongDirection))
 
-        boatCouldGoWrongDirection = calculateDistance(positionXY, self._solutionPath.getState(1)) < calculateDistance(self._solutionPath.getState(0), self._solutionPath.getState(1))
-
-        oldBoatCouldGoWrongDirection = self.getStateSpace().distance(positionXY, self._solutionPath.getState(1)) < self.getStateSpace().distance(self._solutionPath.getState(0), self._solutionPath.getState(1))
         edgeCase = (lengthBefore - lengthAfter == 0) or ((lengthBefore - lengthAfter == 1) and boatCouldGoWrongDirection)
-        rospy.loginfo("oldBoatCouldGoWrongDirection = {}. boatCouldGoWrongDirection = {}. edgeCase = {}".format(oldBoatCouldGoWrongDirection, boatCouldGoWrongDirection, edgeCase))
-        if not edgeCase:
-            rospy.loginfo("Since edge case, adding position")
+        if edgeCase:
+            rospy.loginfo("Thus edgeCase = {}, so positionXY not prepended to path.".format(edgeCase))
+        else:
             self._solutionPath.prepend(positionXY)
-            rospy.loginfo(getPathString(self._solutionPath.getStates()))
+            rospy.loginfo("Thus edgeCase = {}, so positionXY not prepended to path.".format(edgeCase))
 
 class Path:
     def __init__(self, omplPath):
