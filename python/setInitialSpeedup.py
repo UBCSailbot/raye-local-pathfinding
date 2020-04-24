@@ -3,7 +3,7 @@ import rospy
 import time
 from std_msgs.msg import Float64
 
-MIN_NUM_SPEEDUP_SUBSCRIBERS_BEFORE_STARTING = 5
+MIN_NUM_SPEEDUP_SUBSCRIBERS_BEFORE_STARTING = 6
 
 if __name__ == "__main__":
     rospy.init_node('setInitialSpeedup', anonymous=True)
@@ -11,11 +11,17 @@ if __name__ == "__main__":
     speedupPublisher = rospy.Publisher('speedup', Float64, queue_size=4)
 
     # Wait for other nodes before publishing
-    while speedupPublisher.get_num_connections() < MIN_NUM_SPEEDUP_SUBSCRIBERS_BEFORE_STARTING:
-        rospy.loginfo("Waiting for at least {} speedup subscribers before publishing initial speedup".format(
-            MIN_NUM_SPEEDUP_SUBSCRIBERS_BEFORE_STARTING))
+    numConnections = speedupPublisher.get_num_connections()
+    while numConnections < MIN_NUM_SPEEDUP_SUBSCRIBERS_BEFORE_STARTING:
+        rospy.loginfo("{} speedup subscribers found. Waiting for at least {} speedup subscribers "
+                      "before publishing initial speedup"
+                      .format(numConnections, MIN_NUM_SPEEDUP_SUBSCRIBERS_BEFORE_STARTING))
         time.sleep(0.1)
-    rospy.loginfo("{} speedup subscribers found. Publishing initial speedup = {}".format(
-        speedupPublisher.get_num_connections(), initial_speedup))
 
+        # Calculate number of connections at the end of each loop
+        numConnections = speedupPublisher.get_num_connections()
+
+    rospy.loginfo("{} speedup subscribers found, which is greater than or equal to the minimum required {}. "
+                  "Publishing initial speedup of {} now."
+                  .format(numConnections, MIN_NUM_SPEEDUP_SUBSCRIBERS_BEFORE_STARTING, initial_speedup))
     speedupPublisher.publish(initial_speedup)
