@@ -14,7 +14,6 @@ MAIN_LOOP_PERIOD_SECONDS = 0.5
 # Global variable to receive path update request messages
 localPathUpdateRequested = False
 
-ten = 10  
 
 def localPathUpdateRequestedCallback(data):
     global localPathUpdateRequested
@@ -161,8 +160,7 @@ if __name__ == '__main__':
                     rospy.loginfo("Keeping old local path")
 
         # Publish desiredHeading
-        desiredHeadingMsg.headingDegrees =
-            utils.getDesiredHeadingDegrees(state.position, localPath.getNextWaypoint())
+        desiredHeadingMsg.headingDegrees = utils.getDesiredHeadingDegrees(state.position, localPath.getNextWaypoint())
         desiredHeadingPublisher.publish(desiredHeadingMsg)
 
         # Publish local path
