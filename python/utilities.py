@@ -143,9 +143,9 @@ class OMPLPath:
         self._ss.setStateValidityChecker(validity_checker)
 
     def removePastWaypoints(self, state):
-        """
-        Removes waypoints that the boat has already passed.
-        Note: Should only be called once when waypointReached() == True, not every loop, otherwise the localWaypointReached tangent line could get messed up.
+        """Removes waypoints that the boat has already passed.
+
+        Note: Best used when waypointReached() == True, not every loop, otherwise the localWaypointReached tangent line could get messed up.
         Additional reason: keepAfter() method implementation assumes all waypoints are equally spaced
         Algorithm:
         1. Find index of waypoint closest to state, call that closestWaypoint
@@ -218,11 +218,35 @@ class OMPLPath:
         self._solutionPath.keepAfter(positionXY)
         lengthAfter = self._solutionPath.getStateCount()
 
+        def dist(state1, state2):
+            """Calculates the euclidean distance between two states.
+
+            Keyword arguments:
+                state1 (ompl.base._base.SE2StateInternal): SE2State object of first state
+                state2 (ompl.base._base.SE2StateInternal): SE2State object of second state
+
+            Note: Do not replace this method with self._ss.getStateSpace().distance(state1, state2)
+                  as this method also takes into account angle differences between these states,
+                  which is not relevant here.
+            """
+            x1 = state1.getX()
+            y1 = state1.getY()
+            x2 = state2.getX()
+            y2 = state2.getY()
+            return ((x1-x2)**2 + (y1-y2)**2)**0.5
+
         # Only add in boat position as waypoint if edge case is avoided (described above)
-        boatCouldGoWrongDirection = self.getStateSpace().distance(positionXY, self._solutionPath.getState(1)) < self.getStateSpace().distance(self._solutionPath.getState(0), self._solutionPath.getState(1))
+        dist_boat_to_1 = dist(positionXY, self._solutionPath.getState(1))
+        dist_0_to_1 = dist(self._solutionPath.getState(0), self._solutionPath.getState(1))
+        boatCouldGoWrongDirection = dist_boat_to_1 < dist_0_to_1
+        rospy.loginfo("dist_boat_to_1 = {}. dist_0_to_1 = {}. boatCouldGoWrongDirection = {}.".format(dist_boat_to_1, dist_0_to_1, boatCouldGoWrongDirection))
+
         edgeCase = (lengthBefore - lengthAfter == 0) or ((lengthBefore - lengthAfter == 1) and boatCouldGoWrongDirection)
-        if not edgeCase:
+        if edgeCase:
+            rospy.loginfo("Thus edgeCase = {}, so positionXY not prepended to path.".format(edgeCase))
+        else:
             self._solutionPath.prepend(positionXY)
+            rospy.loginfo("Thus edgeCase = {}, so positionXY was prepended to path.".format(edgeCase))
 
 class Path:
     def __init__(self, omplPath):
