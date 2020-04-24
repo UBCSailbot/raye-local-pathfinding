@@ -229,8 +229,6 @@ class OMPLPath:
                   as this method also takes into account angle differences between these states,
                   which is not relevant here.
             """
-            print(type(state1))
-
             x1 = state1.getX()
             y1 = state1.getY()
             x2 = state2.getX()
