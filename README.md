@@ -1,5 +1,7 @@
 # Python planning code 
 
+[![UBCSailbot](https://circleci.com/gh/UBCSailbot/local-pathfinding.svg?style=svg)](https://circleci.com/gh/UBCSailbot/local-pathfinding)
+
 The main planning code in python can be found in the `python` directory. This code is meant to provide a baseline for the C++ implementation.
 
 Inputs:
