@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import rospy
-import math
 import json
 
 from std_msgs.msg import Float64
@@ -9,7 +8,8 @@ from utilities import globalWindToMeasuredWind
 import random
 
 # Constants
-WIND_PUBLISH_PERIOD_SECONDS = 0.1  # Must keep well below 1.0 to ensure proper global wind direction calculation, even when the boat is turning
+# Must keep well below 1.0 to ensure proper global wind direction calculation, even when the boat is turning
+WIND_PUBLISH_PERIOD_SECONDS = 0.1
 MAX_GLOBAL_WIND_SPEED_KMPH = 10
 MIN_GLOBAL_WIND_SPEED_KMPH = 1
 CHANGE_WIND_DIRECTION_PERIOD_SECONDS = 3600.0 * 3
@@ -18,15 +18,20 @@ CHANGE_WIND_DIRECTION_AMOUNT_DEGREES = 45
 # Global variables for tracking boat speed
 boatHeadingDegrees = 0
 boatSpeedKmph = 0
+
+
 def gpsCallback(data):
     global boatHeadingDegrees
     global boatSpeedKmph
     boatHeadingDegrees = data.headingDegrees
     boatSpeedKmph = data.speedKmph
 
+
 # Global variables for global wind conditions
 globalWindSpeedKmph = random.randint(MIN_GLOBAL_WIND_SPEED_KMPH, MAX_GLOBAL_WIND_SPEED_KMPH)
 globalWindDirectionDegrees = 90
+
+
 def globalWindCallback(data):
     global globalWindSpeedKmph
     global globalWindDirectionDegrees
@@ -34,11 +39,15 @@ def globalWindCallback(data):
     globalWindSpeedKmph = data.speedKmph
     globalWindDirectionDegrees = data.directionDegrees
 
+
 # Global variable for speedup
 speedup = 1.0
+
+
 def speedupCallback(data):
     global speedup
     speedup = data.data
+
 
 def talker():
     global boatHeadingDegrees
@@ -74,12 +83,14 @@ def talker():
             changeWindCounter += 1
 
         # Set windSensor message such that the global wind matches the variables
-        measuredWindSpeedKmph, measuredWindDirectionDegrees = globalWindToMeasuredWind(globalWindSpeedKmph, globalWindDirectionDegrees, boatSpeedKmph, boatHeadingDegrees)
+        measuredWindSpeedKmph, measuredWindDirectionDegrees = globalWindToMeasuredWind(
+            globalWindSpeedKmph, globalWindDirectionDegrees, boatSpeedKmph, boatHeadingDegrees)
         msg.measuredDirectionDegrees = measuredWindDirectionDegrees
         msg.measuredSpeedKmph = measuredWindSpeedKmph
         rospy.loginfo(msg)
         pub.publish(msg)
         r.sleep()
+
 
 if __name__ == '__main__':
     try:
@@ -87,4 +98,5 @@ if __name__ == '__main__':
         rospy.Subscriber("speedup", Float64, speedupCallback)
         rospy.Subscriber("changeGlobalWind", globalWind, globalWindCallback)
         talker()
-    except rospy.ROSInterruptException: pass
+    except rospy.ROSInterruptException:
+        pass

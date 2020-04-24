@@ -1,16 +1,12 @@
 import math
-import sys
 from ompl import util as ou
 from ompl import base as ob
 from ompl import geometric as og
-from ompl import control as oc
-from math import sqrt
 
 import planner_helpers as ph
-import matplotlib.pyplot as plt
-from matplotlib import patches
 
 VALIDITY_CHECKING_RESOLUTION = 0.001  # Default 0.01
+
 
 def absolute_distance_between_angles(angle1, angle2):
     fabs = math.fabs(math.atan2(math.sin(angle1 - angle2), math.cos(angle1 - angle2)))
@@ -41,7 +37,6 @@ def allocatePlanner(si, plannerType):
 # Returns -1 if there are no obstacles on path.
 def indexOfObstacleOnPath(positionXY, nextLocalWaypointIndex, numLookAheadWaypoints, omplPath):
     # Setup for obstacle-on-path checking
-    stateSpace = omplPath.getStateSpace()
     solutionPath = omplPath.getSolutionPath()
     spaceInformation = omplPath.getSpaceInformation()
 
@@ -76,7 +71,6 @@ def indexOfObstacleOnPath(positionXY, nextLocalWaypointIndex, numLookAheadWaypoi
         if hasObstacle:
             return stateIndex
 
-
     '''Uncomment to visualize the obstacles, relevant states, and all states
     ax = plt.gca()
     for obstacle in obstacles:
@@ -103,6 +97,7 @@ def indexOfObstacleOnPath(positionXY, nextLocalWaypointIndex, numLookAheadWaypoi
     '''
 
     return -1
+
 
 def plan(run_time, planner_type, objective_type, wind_direction_degrees, dimensions, start_pos, goal_pos, obstacles):
     # Construct the robot state space in which we're planning
@@ -155,7 +150,7 @@ def plan(run_time, planner_type, objective_type, wind_direction_degrees, dimensi
     ss.setPlanner(optimizing_planner)
 
     # Attempt to solve the planning problem in the given runtime
-    solved = ss.solve(run_time)
+    ss.solve(run_time)
 
     # Return the SimpleSetup object, which contains the solutionPath and spaceInformation
     # Must return ss, or else the object will be removed from memory

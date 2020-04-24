@@ -57,7 +57,7 @@ commands:
   install_and_run_flake8:
     description: "Install And Run Flake8"
     steps:
-      - run: pip install flake8 && flake8 --statistics --max-line-length 99 /catkin_ws/src/local_pathfinding
+      - run: pip install flake8 && flake8 --statistics --max-line-length 120 /catkin_ws/src/local_pathfinding
 
   run_tests:
     description: "Run Tests"

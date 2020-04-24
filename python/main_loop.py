@@ -1,47 +1,57 @@
 #!/usr/bin/env python
 
-import sys
 import rospy
-from std_msgs.msg import Bool
 import local_pathfinding.msg as msg
 from std_msgs.msg import Float64, String, Bool
-from Sailbot import *
-from utilities import *
+import Sailbot as sbot
+import utilities as utils
 import time
+import matplotlib.pyplot as plt
 
 # Constants
 MAIN_LOOP_PERIOD_SECONDS = 0.5
 
 # Global variable to receive path update request messages
 localPathUpdateRequested = False
+
+
 def localPathUpdateRequestedCallback(data):
     global localPathUpdateRequested
     rospy.loginfo("localPathUpdateRequested message received.")
     localPathUpdateRequested = True
 
+
 # Global variable to receive path update force messages
 localPathUpdateForced = False
+
+
 def localPathUpdateForcedCallback(data):
     global localPathUpdateForced
     rospy.loginfo("localPathUpdateForced message received.")
     localPathUpdateForced = True
 
+
 # Global variable for speedup
 speedup = 1.0
+
+
 def speedupCallback(data):
     global speedup
     speedup = data.data
 
+
 def updateToNewLocalPath(state, maxAllowableRuntimeSeconds):
     # Composition of functions used every time when updating local path
     global speedup
-    localPath = createPath(state, resetSpeedupDuringPlan=True, speedupBeforePlan=speedup, maxAllowableRuntimeSeconds=maxAllowableRuntimeSeconds)
+    localPath = utils.createPath(state, resetSpeedupDuringPlan=True, speedupBeforePlan=speedup,
+                                 maxAllowableRuntimeSeconds=maxAllowableRuntimeSeconds)
     lastTimePathCreated = time.time()
     return localPath, lastTimePathCreated
 
+
 if __name__ == '__main__':
     # Create sailbot ROS object that subscribes to relevant topics
-    sailbot = Sailbot(nodeName='local_pathfinding')
+    sailbot = sbot.Sailbot(nodeName='local_pathfinding')
 
     # Subscribe to requestLocalPathUpdate
     rospy.Subscriber('requestLocalPathUpdate', Bool, localPathUpdateRequestedCallback)
@@ -61,12 +71,12 @@ if __name__ == '__main__':
     publishRate = rospy.Rate(1.0 / MAIN_LOOP_PERIOD_SECONDS)
 
     # Wait until first global path is received
-    waitForGlobalPath(sailbot)
+    utils.waitForGlobalPath(sailbot)
     rospy.loginfo("Starting main loop")
 
     # Create first path and track time of updates
     state = sailbot.getCurrentState()
-    localPath, lastTimePathCreated = updateToNewLocalPath(state, MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS)
+    localPath, lastTimePathCreated = updateToNewLocalPath(state, utils.MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS)
     sailbot.newGlobalPathReceived = False
 
     while not rospy.is_shutdown():
@@ -75,15 +85,26 @@ if __name__ == '__main__':
         state = sailbot.getCurrentState()
 
         # Check if local path MUST be updated
-        hasUpwindOrDownwindOnPath = localPath.upwindOrDownwindOnPath(state, numLookAheadWaypoints=NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND, showWarnings=True)
-        hasObstacleOnPath = localPath.obstacleOnPath(state, numLookAheadWaypoints=NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES, showWarnings=True)
-        isGlobalWaypointReached = globalWaypointReached(state.position, state.globalWaypoint)
+        hasUpwindOrDownwindOnPath = localPath.upwindOrDownwindOnPath(
+            state, numLookAheadWaypoints=utils.NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND, showWarnings=True)
+        hasObstacleOnPath = localPath.obstacleOnPath(
+            state, numLookAheadWaypoints=utils.NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES, showWarnings=True)
+        isGlobalWaypointReached = utils.globalWaypointReached(state.position, state.globalWaypoint)
         newGlobalPathReceived = sailbot.newGlobalPathReceived
         reachedEndOfLocalPath = localPath.reachedEnd()
         pathNotReachGoal = not localPath.reachesGoalLatlon(state.globalWaypoint)
-        if hasUpwindOrDownwindOnPath or hasObstacleOnPath or isGlobalWaypointReached or newGlobalPathReceived or reachedEndOfLocalPath or pathNotReachGoal or localPathUpdateForced:
+
+        mustUpdateLocalPath = (hasUpwindOrDownwindOnPath or hasObstacleOnPath or isGlobalWaypointReached
+                               or newGlobalPathReceived or reachedEndOfLocalPath or pathNotReachGoal
+                               or localPathUpdateForced)
+        if mustUpdateLocalPath:
             # Log reason for local path update
-            rospy.logwarn("MUST update local Path. Reason: hasUpwindOrDownwindOnPath? {}. hasObstacleOnPath? {}. isGlobalWaypointReached? {}. newGlobalPathReceived? {}. reachedEndOfLocalPath? {}. pathNotReachGoal? {}. localPathUpdateForced? {}.".format(hasUpwindOrDownwindOnPath, hasObstacleOnPath, isGlobalWaypointReached, newGlobalPathReceived, reachedEndOfLocalPath, pathNotReachGoal, localPathUpdateForced))
+            rospy.logwarn("MUST update local Path. Reason: hasUpwindOrDownwindOnPath? {}. hasObstacleOnPath? {}. "
+                          "isGlobalWaypointReached? {}. newGlobalPathReceived? {}. reachedEndOfLocalPath? {}. "
+                          "pathNotReachGoal? {}. localPathUpdateForced? {}."
+                          .format(hasUpwindOrDownwindOnPath, hasObstacleOnPath, isGlobalWaypointReached,
+                                  newGlobalPathReceived, reachedEndOfLocalPath, pathNotReachGoal,
+                                  localPathUpdateForced))
 
             # Reset request
             if localPathUpdateForced:
@@ -100,16 +121,22 @@ if __name__ == '__main__':
 
             # Update local path
             state = sailbot.getCurrentState()
-            localPath, lastTimePathCreated = updateToNewLocalPath(state, MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS / 2.0)
+            localPath, lastTimePathCreated = updateToNewLocalPath(
+                state, utils.MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS / 2.0)
 
         else:
             # Check if new local path should be generated and compared to current local path
-            costTooHigh = pathCostThresholdExceeded(localPath.getCost())
+            costTooHigh = utils.pathCostThresholdExceeded(localPath.getCost())
             isLocalWaypointReached = localPath.nextWaypointReached(state.position)
-            isTimeLimitExceeded = timeLimitExceeded(lastTimePathCreated, speedup)
+            isTimeLimitExceeded = utils.timeLimitExceeded(lastTimePathCreated, speedup)
 
-            if costTooHigh or isLocalWaypointReached or isTimeLimitExceeded or localPathUpdateRequested:
-                rospy.loginfo("Generating new local path to compare to current local path. Reason: costTooHigh? {}. isLocalWaypointReached? {}. isTimeLimitExceeded? {}. localPathUpdateRequested? {}.".format(costTooHigh, isLocalWaypointReached, isTimeLimitExceeded, localPathUpdateRequested))
+            generateNewLocalPathToCompare = (costTooHigh or isLocalWaypointReached or isTimeLimitExceeded
+                                             or localPathUpdateRequested)
+            if generateNewLocalPathToCompare:
+                rospy.loginfo("Generating new local path to compare to current local path. Reason: costTooHigh? {}. "
+                              "isLocalWaypointReached? {}. isTimeLimitExceeded? {}. localPathUpdateRequested? {}."
+                              .format(costTooHigh, isLocalWaypointReached, isTimeLimitExceeded,
+                                      localPathUpdateRequested))
 
                 # Reset request
                 if localPathUpdateRequested:
@@ -120,7 +147,8 @@ if __name__ == '__main__':
                     localPath.removePastWaypoints(state)
 
                 # Update local path if new one is better than old
-                _localPath, _lastTimePathCreated = updateToNewLocalPath(state, MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS)
+                _localPath, _lastTimePathCreated = updateToNewLocalPath(
+                    state, utils.MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS)
                 lastTimePathCreated = _lastTimePathCreated
                 currentPathCost = localPath.getCost()
                 newPathCost = _localPath.getCost()
@@ -132,7 +160,7 @@ if __name__ == '__main__':
                     rospy.loginfo("Keeping old local path")
 
         # Publish desiredHeading
-        desiredHeadingMsg.headingDegrees = getDesiredHeadingDegrees(state.position, localPath.getNextWaypoint())
+        desiredHeadingMsg.headingDegrees = utils.getDesiredHeadingDegrees(state.position, localPath.getNextWaypoint())
         desiredHeadingPublisher.publish(desiredHeadingMsg)
 
         # Publish local path

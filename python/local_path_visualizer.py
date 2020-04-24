@@ -3,9 +3,9 @@ import sys
 import rospy
 import math
 from std_msgs.msg import Float64
-from local_pathfinding.msg import AISMsg, GPS, path, latlon, windSensor
-from utilities import *
-from Sailbot import *
+from local_pathfinding.msg import path, latlon
+import utilities as utils
+import Sailbot as sbot
 from matplotlib import pyplot as plt
 from matplotlib import patches
 import time
@@ -20,25 +20,34 @@ nextLocalWaypoint = None
 nextGlobalWaypoint = None
 
 # ROS subscribe callbacks
+
+
 def localPathCallback(data):
     global localPath
     localPath = data.waypoints
+
 
 def nextLocalWaypointCallback(data):
     global nextLocalWaypoint
     nextLocalWaypoint = data
 
+
 def nextGlobalWaypointCallback(data):
     global nextGlobalWaypoint
     nextGlobalWaypoint = data
 
+
 # Global variable for speedup
 speedup = 1.0
+
+
 def speedupCallback(data):
     global speedup
     speedup = data.data
 
 # Set xy for figure
+
+
 def getXYLimits(xy0, xy1):
     xPLim = max([xy0[0], xy1[0]])
     xNLim = min([xy0[0], xy1[0]])
@@ -49,11 +58,11 @@ def getXYLimits(xy0, xy1):
     xWidth = xPLim - xNLim
     yWidth = yPLim - yNLim
     if xWidth > yWidth:
-        yPLim = xWidth/yWidth * yPLim
-        yNLim = xWidth/yWidth * yNLim
+        yPLim = xWidth / yWidth * yPLim
+        yNLim = xWidth / yWidth * yNLim
     else:
-        xPLim = yWidth/xWidth * xPLim
-        xNLim = yWidth/xWidth * xNLim
+        xPLim = yWidth / xWidth * xPLim
+        xNLim = yWidth / xWidth * xNLim
 
     # Scale for extra space
     multiplier = 0.5
@@ -65,12 +74,16 @@ def getXYLimits(xy0, xy1):
     return xPLim, xNLim, yPLim, yNLim
 
 # Check when figure needs resizing
+
+
 def needAxesResized(positionXY, nextGlobalWaypointXY, xPLim, xNLim, yPLim, yNLim):
     def outOfBounds(xy, xPLim, xNLim, yPLim, yNLim):
         return xy[0] < xNLim or xy[1] < yNLim or xy[0] > xPLim or xy[1] > yPLim
 
     # Check if boat or goal is out of bounds
-    if outOfBounds(positionXY, xPLim, xNLim, yPLim, yNLim) or outOfBounds(nextGlobalWaypointXY, xPLim, xNLim, yPLim, yNLim):
+    positionOutOfBounds = outOfBounds(positionXY, xPLim, xNLim, yPLim, yNLim)
+    nextGlobalWaypointOutOfBounds = outOfBounds(nextGlobalWaypointXY, xPLim, xNLim, yPLim, yNLim)
+    if positionOutOfBounds or nextGlobalWaypointOutOfBounds:
         return True
 
     # Check if figure is too far zoomed out
@@ -83,9 +96,10 @@ def needAxesResized(positionXY, nextGlobalWaypointXY, xPLim, xNLim, yPLim, yNLim
 
     return False
 
+
 if __name__ == '__main__':
     # Setup ros subscribers
-    sailbot = Sailbot(nodeName='localPathVisualizer')
+    sailbot = sbot.Sailbot(nodeName='localPathVisualizer')
     rospy.Subscriber("localPath", path, localPathCallback)
     rospy.Subscriber("nextLocalWaypoint", latlon, nextLocalWaypointCallback)
     rospy.Subscriber("nextGlobalWaypoint", latlon, nextGlobalWaypointCallback)
@@ -106,10 +120,10 @@ if __name__ == '__main__':
     # Convert values from latlon to XY, relative to the referenceLatlon
     state = sailbot.getCurrentState()
     referenceLatlon = nextGlobalWaypoint  # Ensure that this matches createLocalPathSS referenceLatlon for best results
-    positionXY = latlonToXY(state.position, referenceLatlon)
-    nextGlobalWaypointXY = latlonToXY(nextGlobalWaypoint, referenceLatlon)
-    nextLocalWaypointXY = latlonToXY(nextLocalWaypoint, referenceLatlon)
-    localPathXY = [latlonToXY(localWaypoint, referenceLatlon) for localWaypoint in localPath]
+    positionXY = utils.latlonToXY(state.position, referenceLatlon)
+    nextGlobalWaypointXY = utils.latlonToXY(nextGlobalWaypoint, referenceLatlon)
+    nextLocalWaypointXY = utils.latlonToXY(nextLocalWaypoint, referenceLatlon)
+    localPathXY = [utils.latlonToXY(localWaypoint, referenceLatlon) for localWaypoint in localPath]
     localPathX = [xy[0] for xy in localPathXY]
     localPathY = [xy[1] for xy in localPathXY]
 
@@ -117,10 +131,16 @@ if __name__ == '__main__':
     xPLim, xNLim, yPLim, yNLim = getXYLimits(positionXY, nextGlobalWaypointXY)
     markersize = min(xPLim - xNLim, yPLim - yNLim) / 2
     axes = plt.gca()
-    localPathPlot, = axes.plot(localPathX, localPathY, marker='.', color='g', markersize=markersize / 2, linewidth=2)                    # Small green dots
-    nextGlobalWaypointPlot, = axes.plot(nextGlobalWaypointXY[0], nextGlobalWaypointXY[1], marker='*', color='y', markersize=markersize)  # Yellow star
-    nextLocalWaypointPlot, = axes.plot(nextLocalWaypointXY[0], nextLocalWaypointXY[1], marker='X', color='g', markersize=markersize)     # Green X
-    positionPlot, = axes.plot(positionXY[0], positionXY[1], marker=(3,0,state.headingDegrees - 90), color='r', markersize=markersize)    # Red triangle with correct heading. The (-90) is because the triangle default heading 0 points North, but this heading has 0 be East.
+    localPathPlot, = axes.plot(localPathX, localPathY,
+                               marker='.', color='g', markersize=markersize / 2, linewidth=2)  # Small green dots
+    nextGlobalWaypointPlot, = axes.plot(nextGlobalWaypointXY[0], nextGlobalWaypointXY[1],
+                                        marker='*', color='y', markersize=markersize)          # Yellow star
+    nextLocalWaypointPlot, = axes.plot(nextLocalWaypointXY[0], nextLocalWaypointXY[1],
+                                       marker='X', color='g', markersize=markersize)           # Green X
+    # Red triangle with correct heading. The (-90) is because the triangle
+    # default heading 0 points North, but this heading has 0 be East.
+    positionPlot, = axes.plot(positionXY[0], positionXY[1],
+                              marker=(3, 0, state.headingDegrees - 90), color='r', markersize=markersize)
 
     # Setup plot xy limits and labels
     axes.set_xlim(xNLim, xPLim)
@@ -133,25 +153,34 @@ if __name__ == '__main__':
 
     # Show wind speed text and position text
     arrowLength = min(xPLim - xNLim, yPLim - yNLim) / 15
-    arrowCenter = (xNLim + 1.5*arrowLength, yPLim - 1.5*arrowLength)
-    globalWindSpeedKmph, globalWindDirectionDegrees = measuredWindToGlobalWind(state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
-    windSpeedText = axes.text(arrowCenter[0], arrowCenter[1] + 1.5*arrowLength, "Global Wind Speed Kmph: {}".format(globalWindSpeedKmph), ha='center')
-    positionLatlonText = axes.text(positionXY[0], positionXY[1] + 0.5*arrowLength, "(Lat: {}, Lon: {})".format(round(state.position.lat, LATLON_TEXT_DECIMAL_PLACES), round(state.position.lon, LATLON_TEXT_DECIMAL_PLACES)), ha='center')
-    nextGlobalWaypointLatlonText = axes.text(nextGlobalWaypointXY[0], nextGlobalWaypointXY[1] + 0.5*arrowLength, "(Lat: {}, Lon: {})".format(round(nextGlobalWaypoint.lat, LATLON_TEXT_DECIMAL_PLACES), round(nextGlobalWaypoint.lon, LATLON_TEXT_DECIMAL_PLACES)), ha='center')
+    arrowCenter = (xNLim + 1.5 * arrowLength, yPLim - 1.5 * arrowLength)
+    globalWindSpeedKmph, globalWindDirectionDegrees = utils.measuredWindToGlobalWind(
+        state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
+    windSpeedText = axes.text(arrowCenter[0], arrowCenter[1] + 1.5 * arrowLength,
+                              "Global Wind Speed Kmph: {}".format(globalWindSpeedKmph), ha='center')
+    positionLatlonText = axes.text(positionXY[0], positionXY[1] + 0.5 * arrowLength,
+                                   "(Lat: {}, Lon: {})".format(round(state.position.lat, LATLON_TEXT_DECIMAL_PLACES),
+                                                               round(state.position.lon, LATLON_TEXT_DECIMAL_PLACES)),
+                                   ha='center')
+    nextGlobalWaypointLatlonText = axes.text(nextGlobalWaypointXY[0], nextGlobalWaypointXY[1] + 0.5 * arrowLength,
+                                             "(Lat: {}, Lon: {})"
+                                             .format(round(nextGlobalWaypoint.lat, LATLON_TEXT_DECIMAL_PLACES),
+                                                     round(nextGlobalWaypoint.lon, LATLON_TEXT_DECIMAL_PLACES)),
+                                             ha='center')
 
     while not rospy.is_shutdown():
         state = sailbot.getCurrentState()
-        referenceLatlon = nextGlobalWaypoint  # Ensure that this matches createLocalPathSS referenceLatlon for best results
+        referenceLatlon = nextGlobalWaypoint  # Ensure this matches createLocalPathSS referenceLatlon for best results
 
         # Convert values from latlon to XY, relative to the referenceLatlon
-        positionXY = latlonToXY(state.position, referenceLatlon)
-        nextGlobalWaypointXY = latlonToXY(nextGlobalWaypoint, referenceLatlon)
-        nextLocalWaypointXY = latlonToXY(nextLocalWaypoint, referenceLatlon)
-        localPathXY = [latlonToXY(localWaypoint, referenceLatlon) for localWaypoint in localPath]
+        positionXY = utils.latlonToXY(state.position, referenceLatlon)
+        nextGlobalWaypointXY = utils.latlonToXY(nextGlobalWaypoint, referenceLatlon)
+        nextLocalWaypointXY = utils.latlonToXY(nextLocalWaypoint, referenceLatlon)
+        localPathXY = [utils.latlonToXY(localWaypoint, referenceLatlon) for localWaypoint in localPath]
         localPathX = [xy[0] for xy in localPathXY]
         localPathY = [xy[1] for xy in localPathXY]
-        shipsXY = getObstacles(state.AISData.ships, state.position, state.speedKmph, referenceLatlon)
-            
+        shipsXY = utils.getObstacles(state.AISData.ships, state.position, state.speedKmph, referenceLatlon)
+
         # Update plots
         localPathPlot.set_xdata(localPathX)
         localPathPlot.set_ydata(localPathY)
@@ -161,7 +190,7 @@ if __name__ == '__main__':
         nextLocalWaypointPlot.set_ydata(nextLocalWaypointXY[1])
         positionPlot.set_xdata(positionXY[0])
         positionPlot.set_ydata(positionXY[1])
-        positionPlot.set_marker((3, 0, state.headingDegrees-90))  # Creates a triangle with correct 'heading'
+        positionPlot.set_marker((3, 0, state.headingDegrees - 90))  # Creates a triangle with correct 'heading'
 
         # Resize axes if needed
         if needAxesResized(positionXY, nextGlobalWaypointXY, xPLim, xNLim, yPLim, yNLim):
@@ -171,14 +200,19 @@ if __name__ == '__main__':
 
         # Update wind speed text
         arrowLength = min(xPLim - xNLim, yPLim - yNLim) / 15
-        arrowCenter = (xNLim + 1.5*arrowLength, yPLim - 1.5*arrowLength)
-        globalWindSpeedKmph, globalWindDirectionDegrees = measuredWindToGlobalWind(state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
-        windSpeedText.set_position((arrowCenter[0], arrowCenter[1] + 1.5*arrowLength))
+        arrowCenter = (xNLim + 1.5 * arrowLength, yPLim - 1.5 * arrowLength)
+        globalWindSpeedKmph, globalWindDirectionDegrees = utils.measuredWindToGlobalWind(
+            state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
+        windSpeedText.set_position((arrowCenter[0], arrowCenter[1] + 1.5 * arrowLength))
         windSpeedText.set_text("Wind Speed Kmph: {}".format(globalWindSpeedKmph))
-        positionLatlonText.set_position((positionXY[0], positionXY[1] + 0.5*arrowLength))
-        positionLatlonText.set_text("(Lat: {}, Lon: {})".format(round(state.position.lat, LATLON_TEXT_DECIMAL_PLACES), round(state.position.lon, LATLON_TEXT_DECIMAL_PLACES)))
-        nextGlobalWaypointLatlonText.set_position((nextGlobalWaypointXY[0], nextGlobalWaypointXY[1] + 0.5*arrowLength))
-        nextGlobalWaypointLatlonText.set_text("(Lat: {}, Lon: {})".format(round(nextGlobalWaypoint.lat, LATLON_TEXT_DECIMAL_PLACES), round(nextGlobalWaypoint.lon, LATLON_TEXT_DECIMAL_PLACES)))
+        positionLatlonText.set_position((positionXY[0], positionXY[1] + 0.5 * arrowLength))
+        positionLatlonText.set_text("(Lat: {}, Lon: {})".format(round(state.position.lat, LATLON_TEXT_DECIMAL_PLACES),
+                                                                round(state.position.lon, LATLON_TEXT_DECIMAL_PLACES)))
+        nextGlobalWaypointLatlonText.set_position(
+            (nextGlobalWaypointXY[0], nextGlobalWaypointXY[1] + 0.5 * arrowLength))
+        nextGlobalWaypointLatlonText.set_text("(Lat: {}, Lon: {})"
+                                              .format(round(nextGlobalWaypoint.lat, LATLON_TEXT_DECIMAL_PLACES),
+                                                      round(nextGlobalWaypoint.lon, LATLON_TEXT_DECIMAL_PLACES)))
 
         # Update speedup text
         axes.set_title('Local Path Visualizer (speedup = {})'.format(speedup))
@@ -186,8 +220,12 @@ if __name__ == '__main__':
         # Add boats and wind speed arrow
         for ship in shipsXY:
             ship.addPatch(axes)
-        arrowStart = (arrowCenter[0] - 0.5*arrowLength*math.cos(math.radians(globalWindDirectionDegrees)), arrowCenter[1] - 0.5*arrowLength*math.sin(math.radians(globalWindDirectionDegrees)))
-        windDirection = patches.FancyArrow(arrowStart[0], arrowStart[1], arrowLength*math.cos(math.radians(globalWindDirectionDegrees)), arrowLength*math.sin(math.radians(globalWindDirectionDegrees)), width=arrowLength/4)
+        arrowStart = (arrowCenter[0] - 0.5 * arrowLength * math.cos(math.radians(globalWindDirectionDegrees)),
+                      arrowCenter[1] - 0.5 * arrowLength * math.sin(math.radians(globalWindDirectionDegrees)))
+        windDirection = patches.FancyArrow(arrowStart[0], arrowStart[1],
+                                           arrowLength * math.cos(math.radians(globalWindDirectionDegrees)),
+                                           arrowLength * math.sin(math.radians(globalWindDirectionDegrees)),
+                                           width=arrowLength / 4)
         axes.add_patch(windDirection)
 
         # Draw then sleep

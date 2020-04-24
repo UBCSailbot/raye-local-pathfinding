@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import rospy
-import math
-import random, json
+import random
+import json
 
 from std_msgs.msg import Float64
 import local_pathfinding.msg as msg
@@ -10,9 +10,11 @@ from utilities import headingToBearingDegrees, PORT_RENFREW_LATLON
 
 # Constants
 GPS_PUBLISH_PERIOD_SECONDS = 0.1  # Keep below 1.0 for smoother boat motion
-HEADING_DEGREES_STANDARD_DEVIATION = 1.0  # Bring this value to about 1.0 for limited deviation. 20.0 for quite large deviations.
+# Bring this value to about 1.0 for limited deviation. 20.0 for quite large deviations.
+HEADING_DEGREES_STANDARD_DEVIATION = 1.0
 
-class MOCK_ControllerAndSailbot: 
+
+class MOCK_ControllerAndSailbot:
     def __init__(self, lat, lon, headingDegrees, speedKmph):
         self.lat = lat
         self.lon = lon
@@ -30,12 +32,12 @@ class MOCK_ControllerAndSailbot:
     def move(self):
         # Travel greater distances with speedup
         kmTraveledPerPeriod = self.speedKmph * self.publishPeriodSeconds / 3600.0 * self.speedup
-        distanceTraveled = geopy.distance.distance(kilometers = kmTraveledPerPeriod)
-        destination = distanceTraveled.destination(point=(self.lat, self.lon), bearing=headingToBearingDegrees(self.headingDegrees))
+        distanceTraveled = geopy.distance.distance(kilometers=kmTraveledPerPeriod)
+        destination = distanceTraveled.destination(point=(self.lat, self.lon),
+                                                   bearing=headingToBearingDegrees(self.headingDegrees))
 
         self.lon = destination.longitude
         self.lat = destination.latitude
-
 
     def desiredHeadingCallback(self, data):
         rospy.loginfo(data)

@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 import rospy
-import math
 import json
 import time
-from utilities import PORT_RENFREW_LATLON, MAUI_LATLON
+from utilities import MAUI_LATLON
 
 from std_msgs.msg import Float64
 import local_pathfinding.msg as msg
@@ -17,17 +16,23 @@ AVG_WAYPOINT_DISTANCE_KM = 30  # TODO: Set this to match global pathfinding
 # Global variables for tracking boat position
 boatLat = None
 boatLon = None
+
+
 def gpsCallback(data):
     global boatLat
     global boatLon
     boatLat = data.lat
     boatLon = data.lon
 
+
 # Global variable for speedup
 speedup = 1.0
+
+
 def speedupCallback(data):
     global speedup
     speedup = data.data
+
 
 def create_path(init, goal):
     path = []
@@ -43,9 +48,9 @@ def create_path(init, goal):
     num_global_waypoints = int(round(total_distance_km / AVG_WAYPOINT_DISTANCE_KM))
 
     for i in range(1, num_global_waypoints):
-        coeff = float(i)/(num_global_waypoints)
-        lat = (1 - coeff)*init[0] + coeff*goal[0]
-        lon = (1 - coeff)*init[1] + coeff*goal[1]
+        coeff = float(i) / (num_global_waypoints)
+        lat = (1 - coeff) * init[0] + coeff * goal[0]
+        lon = (1 - coeff) * init[1] + coeff * goal[1]
         print(lat, lon)
         wp = msg.latlon()
         wp.lat = lat
@@ -58,6 +63,7 @@ def create_path(init, goal):
     last_wp.lon = goal[1]
     path.append(last_wp)
     return path
+
 
 def MOCK_global():
     global boatLat
@@ -98,7 +104,7 @@ def MOCK_global():
     # Publish new global path more often with speedup
     republish_counter = 0
     newGlobalPathPeriodSecondsSpeedup = NEW_GLOBAL_PATH_PERIOD_SECONDS / speedup
-    numPublishPeriodsPerUpdate = int(NEW_GLOBAL_PATH_PERIOD_SECONDS / PUBLISH_PERIOD_SECONDS)
+    numPublishPeriodsPerUpdate = int(newGlobalPathPeriodSecondsSpeedup / PUBLISH_PERIOD_SECONDS)
     while not rospy.is_shutdown():
         # Send updated global path
         if republish_counter >= numPublishPeriodsPerUpdate:
@@ -110,6 +116,7 @@ def MOCK_global():
 
         pub.publish(msg.path(path))
         r.sleep()
+
 
 if __name__ == '__main__':
     MOCK_global()
