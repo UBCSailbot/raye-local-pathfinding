@@ -33,10 +33,8 @@ class MOCK_ControllerAndSailbot:
         # Travel greater distances with speedup
         kmTraveledPerPeriod = self.speedKmph * self.publishPeriodSeconds / 3600.0 * self.speedup
         distanceTraveled = geopy.distance.distance(kilometers=kmTraveledPerPeriod)
-        destination = distanceTraveled.destination(
-            point=(
-                self.lat, self.lon), bearing=headingToBearingDegrees(
-                self.headingDegrees))
+        destination = distanceTraveled.destination(point=(self.lat, self.lon),
+                                                   bearing=headingToBearingDegrees(self.headingDegrees))
 
         self.lon = destination.longitude
         self.lat = destination.latitude

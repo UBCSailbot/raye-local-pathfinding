@@ -25,13 +25,9 @@ class RandomShip:
         self.speedKmph = random.randint(0, 15)
 
         # Set AIS boat position to be in about 50km radius around sailbot
-        boatLatlon = distance(
-            kilometers=abs(
-                random.randint(
-                    5, 50))).destination(
-            point=(
-                sailbot_lat, sailbot_lon), bearing=random.randint(
-                0, 360))
+        distanceFromSailbotKm = distance(kilometers=abs(random.randint(5, 50)))
+        boatLatlon = distanceFromSailbotKm.destination(point=(sailbot_lat, sailbot_lon),
+                                                       bearing=random.randint(0, 360))
         self.lat = boatLatlon.latitude
         self.lon = boatLatlon.longitude
 
@@ -39,30 +35,18 @@ class RandomShip:
 
     def move(self, speedup):
         # Travel greater distance with speedup
-        distanceTraveled = distance(kilometers=self.speedKmph * self.publishPeriodSeconds / 3600 * speedup)
-        boatLatlon = distanceTraveled.destination(
-            point=(
-                self.lat, self.lon), bearing=headingToBearingDegrees(
-                self.headingDegrees))
+        distanceTraveledKm = distance(kilometers=self.speedKmph * self.publishPeriodSeconds / 3600 * speedup)
+        boatLatlon = distanceTraveledKm.destination(point=(self.lat, self.lon),
+                                                    bearing=headingToBearingDegrees(self.headingDegrees))
 
         self.lon = boatLatlon.longitude
         self.lat = boatLatlon.latitude
 
     def make_ros_message(self):
-        return AISShip(
-            self.id,
-            self.lat,
-            self.lon,
-            self.headingDegrees,
-            self.speedKmph)
+        return AISShip(self.id, self.lat, self.lon, self.headingDegrees, self.speedKmph)
 
     def make_json(self):
-        return [
-            self.id,
-            self.lat,
-            self.lon,
-            self.headingDegrees,
-            self.speedKmph]
+        return [self.id, self.lat, self.lon, self.headingDegrees, self.speedKmph]
 
 
 class Ship:
@@ -76,11 +60,9 @@ class Ship:
 
     def move(self, speedup):
         # Travel greater distance with speedup
-        distanceTraveled = distance(kilometers=self.speedKmph * self.publishPeriodSeconds / 3600 * speedup)
-        boatLatlon = distanceTraveled.destination(
-            point=(
-                self.lat, self.lon), bearing=headingToBearingDegrees(
-                self.headingDegrees))
+        distanceTraveledKm = distance(kilometers=self.speedKmph * self.publishPeriodSeconds / 3600 * speedup)
+        boatLatlon = distanceTraveledKm.destination(point=(self.lat, self.lon),
+                                                    bearing=headingToBearingDegrees(self.headingDegrees))
 
         self.lon = boatLatlon.longitude
         self.lat = boatLatlon.latitude

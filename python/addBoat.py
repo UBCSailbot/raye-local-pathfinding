@@ -12,8 +12,8 @@ def command_callback(msg):
     if msg.addType == "latlon":
         add_pub.publish(msg.ship)
     if msg.addType == "nextWaypoint":
-        add_pub.publish(
-            AISShip(msg.ship.ID, localWaypoint.lat, localWaypoint.lon, msg.ship.headingDegrees, msg.ship.speedKmph))
+        add_pub.publish(AISShip(msg.ship.ID, localWaypoint.lat, localWaypoint.lon, msg.ship.headingDegrees,
+                                msg.ship.speedKmph))
     if msg.addType == "onBoat":
         add_pub.publish(AISShip(msg.ship.ID, gps.lat, gps.lon, msg.ship.headingDegrees, msg.ship.speedKmph))
     if msg.addType == "index":

@@ -36,15 +36,11 @@ OBSTACLE_SHRINK_FACTOR = 1.2
 # NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND to change based on waypoint
 # distance
 LOOK_AHEAD_FOR_OBSTACLES_KM = 20
-NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES = int(
-    math.ceil(
-        LOOK_AHEAD_FOR_OBSTACLES_KM /
-        AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM))
+NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES = int(math.ceil(LOOK_AHEAD_FOR_OBSTACLES_KM /
+                                                       AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM))
 LOOK_AHEAD_FOR_UPWIND_DOWNWIND_KM = 10
-NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND = int(
-    math.ceil(
-        LOOK_AHEAD_FOR_UPWIND_DOWNWIND_KM /
-        AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM))
+NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND = int(math.ceil(LOOK_AHEAD_FOR_UPWIND_DOWNWIND_KM /
+                                                             AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM))
 
 # Constants for bearing and heading
 BEARING_NORTH = 0
@@ -126,14 +122,11 @@ class OMPLPath:
             objective = optimizationObjective.getObjective(i)
             weight = optimizationObjective.getObjectiveWeight(i)
             cost = self._solutionPath.cost(objective).value()
-            strings.append(
-                "{}: Cost = {}. Weight = {}. Weighted Cost = {} |||| ".format(
-                    type(objective).__name__, cost, weight, cost * weight))
+            strings.append("{}: Cost = {}. Weight = {}. Weighted Cost = {} |||| "
+                           .format(type(objective).__name__, cost, weight, cost * weight))
         strings.append("--------------------------------------------------- ")
-        strings.append(
-            "{}: Total Cost = {}".format(
-                type(optimizationObjective).__name__,
-                self._solutionPath.cost(optimizationObjective).value()))
+        strings.append("{}: Total Cost = {}".format(type(optimizationObjective).__name__,
+                                                    self._solutionPath.cost(optimizationObjective).value()))
 
         output = ''.join(strings)
         return output
@@ -427,12 +420,8 @@ class Path:
             # Calculate required heading between waypoints
             waypoint = relevantWaypoints[waypointIndex]
             prevWaypoint = relevantWaypoints[waypointIndex - 1]
-            requiredHeadingDegrees = math.degrees(
-                math.atan2(
-                    waypoint[1] -
-                    prevWaypoint[1],
-                    waypoint[0] -
-                    prevWaypoint[0]))
+            requiredHeadingDegrees = math.degrees(math.atan2(waypoint[1] - prevWaypoint[1],
+                                                             waypoint[0] - prevWaypoint[0]))
 
             if ph.isDownwind(math.radians(globalWindDirectionDegrees), math.radians(requiredHeadingDegrees)):
                 if showWarnings:
@@ -557,14 +546,8 @@ def XYToLatlon(xy, referenceLatlon):
     return latlon(destination.latitude, destination.longitude)
 
 
-def plotPathfindingProblem(
-        globalWindDirectionDegrees,
-        dimensions,
-        start,
-        goal,
-        obstacles,
-        headingDegrees,
-        amountObstaclesShrinked):
+def plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, obstacles, headingDegrees,
+                           amountObstaclesShrinked):
     # Clear plot if already there
     plt.cla()
 
@@ -594,28 +577,12 @@ def plotPathfindingProblem(
 
     arrowLength = min(dimensions[2] - dimensions[0], dimensions[3] - dimensions[1]) / 15
     arrowCenter = (dimensions[0] + 1.5 * arrowLength, dimensions[3] - 1.5 * arrowLength)
-    arrowStart = (
-        arrowCenter[0] -
-        0.5 *
-        arrowLength *
-        math.cos(
-            math.radians(globalWindDirectionDegrees)),
-        arrowCenter[1] -
-        0.5 *
-        arrowLength *
-        math.sin(
-            math.radians(globalWindDirectionDegrees)))
-    windDirection = patches.FancyArrow(
-        arrowStart[0],
-        arrowStart[1],
-        arrowLength *
-        math.cos(
-            math.radians(globalWindDirectionDegrees)),
-        arrowLength *
-        math.sin(
-            math.radians(globalWindDirectionDegrees)),
-        width=arrowLength /
-        4)
+    arrowStart = (arrowCenter[0] - 0.5 * arrowLength * math.cos(math.radians(globalWindDirectionDegrees)),
+                  arrowCenter[1] - 0.5 * arrowLength * math.sin(math.radians(globalWindDirectionDegrees)))
+    windDirection = patches.FancyArrow(arrowStart[0], arrowStart[1],
+                                       arrowLength * math.cos(math.radians(globalWindDirectionDegrees)),
+                                       arrowLength * math.sin(math.radians(globalWindDirectionDegrees)),
+                                       width=arrowLength / 4)
     axes.add_patch(windDirection)
 
     # Draw plot
@@ -692,14 +659,8 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=Fals
     # Useful to understand if the pathfinding problem is invalid or impossible
     shouldPlot = rospy.get_param('plot_pathfinding_problem', False)
     if shouldPlot:
-        plotPathfindingProblem(
-            globalWindDirectionDegrees,
-            dimensions,
-            start,
-            goal,
-            obstacles,
-            state.headingDegrees,
-            amountShrinked)
+        plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, obstacles,
+                               state.headingDegrees, amountShrinked)
 
     # Take screenshot
     shouldTakeScreenshot = rospy.get_param('screenshot', False)
@@ -732,8 +693,8 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=Fals
 
         # If valid solution can't be found for large runtime, then stop searching
         if totalRuntimeSeconds >= maxAllowableRuntimeSeconds:
-            rospy.logwarn("No valid solution can be found in under {} seconds. Using invalid solution.".format(
-                maxAllowableRuntimeSeconds))
+            rospy.logwarn("No valid solution can be found in under {} seconds. Using invalid solution."
+                          .format(maxAllowableRuntimeSeconds))
             break
 
         rospy.logwarn("Attempting to rerun with longer runtime: {} seconds".format(runtimeSeconds))
@@ -757,10 +718,8 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=Fals
         for solution in invalidSolutions:
             setAverageDistanceBetweenWaypoints(solution.getSolutionPath())
 
-        bestSolution = min(
-            invalidSolutions,
-            key=lambda x: x.getSolutionPath().cost(
-                x.getOptimizationObjective()).value())
+        bestSolution = min(invalidSolutions,
+                           key=lambda x: x.getSolutionPath().cost(x.getOptimizationObjective()).value())
         bestSolutionPath = bestSolution.getSolutionPath()
         minCost = bestSolutionPath.cost(bestSolution.getOptimizationObjective()).value()
     else:

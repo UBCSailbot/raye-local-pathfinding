@@ -31,9 +31,8 @@ class BoatState:
 class Sailbot:
     def getCurrentState(self):
         if self.globalPathIndex >= len(self.globalPath):
-            rospy.logwarn(
-                "Global path index is out of range: index = {} len(globalPath) = {}".format(
-                    self.globalPathIndex, self.globalPath))
+            rospy.logwarn("Global path index is out of range: index = {} len(globalPath) = {}"
+                          .format(self.globalPathIndex, len(self.globalPath)))
             rospy.logwarn("Setting globalWaypoint to be the last element of the globalPath")
             self.globalPathIndex = len(self.globalPath) - 1
         return BoatState(self.globalPath[self.globalPathIndex], self.position, self.measuredWindDirectionDegrees,
