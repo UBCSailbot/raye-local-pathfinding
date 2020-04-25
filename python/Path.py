@@ -9,6 +9,7 @@ from geopy.distance import distance
 
 # Constants
 UPWIND_DOWNWIND_TIME_LIMIT_SECONDS = 1.5
+MAX_ALLOWABLE_DISTANCE_FINAL_WAYPOINT_TO_GOAL_KM = 5
 
 
 class OMPLPath:
@@ -264,7 +265,7 @@ class Path:
         lastWaypointLatlon = self._latlons[len(self._latlons) - 1]
         lastWaypoint = (lastWaypointLatlon.lat, lastWaypointLatlon.lon)
         goal = (goalLatlon.lat, goalLatlon.lon)
-        return distance(lastWaypoint, goal).kilometers <= utils.MAX_ALLOWABLE_DISTANCE_FINAL_WAYPOINT_TO_GOAL_KM
+        return distance(lastWaypoint, goal).kilometers <= MAX_ALLOWABLE_DISTANCE_FINAL_WAYPOINT_TO_GOAL_KM
 
     def nextWaypointReached(self, positionLatlon):
         # Convert from latlons to XY
