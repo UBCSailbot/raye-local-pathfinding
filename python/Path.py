@@ -7,6 +7,9 @@ import utilities as utils
 from local_pathfinding.msg import latlon
 from geopy.distance import distance
 
+# Constants
+UPWIND_DOWNWIND_TIME_LIMIT_SECONDS = 1.5
+
 
 class OMPLPath:
     """ Class for storing an OMPL configuration, OMPL path, and the referenceLatlon
@@ -203,13 +206,9 @@ class Path:
     """ Class for storing and interacting with a path in both latlon and NE (xy) coordinates
 
     Attributes:
-        _omplPath (OMPLPath): SimpleSetup object that contains information about the OMPLPath,
-                                                     including its state space, space information, and cost function
-                                                     used to generate the path.
-        _latlons (): PathGeometric object that represents the path, in XY
-                                                                 coordinates with respect to a referenceLatlon.
-        _nextWaypointIndex (int): latlon object that is the reference point with which
-                                                                 the path's XY coordinates is set.
+        _omplPath (OMPLPath): OMPLPath object represents the path in NE (xy) coordinates
+        _latlons (list of latlons): List of latlons that corresponds with _omplPath's waypoints
+        _nextWaypointIndex (int): index of the next waypoint in _latlons that the boat should be going towards
     """
     def __init__(self, omplPath):
         self._omplPath = omplPath
@@ -217,9 +216,6 @@ class Path:
 
         # Next waypoint index is always 1, as the boat should always be aiming for the next upcoming waypoint
         self._nextWaypointIndex = 1
-        print(type(self._omplPath))
-        print(type(self._latlons))
-        print(type(self._nextWaypointIndex))
 
     def _getLatlonsFromOMPLPath(self, omplPath):
         # Convert solution path (in km WRT reference) into list of latlons
@@ -419,18 +415,18 @@ class Path:
 
         # Return true only if upwindOrDownwind for enough time
         consecutiveUpwindOrDownwindTimeSeconds = time.time() - self.lastTimeNotUpwindOrDownwind
-        if consecutiveUpwindOrDownwindTimeSeconds >= utils.UPWIND_DOWNWIND_TIME_LIMIT_SECONDS:
+        if consecutiveUpwindOrDownwindTimeSeconds >= UPWIND_DOWNWIND_TIME_LIMIT_SECONDS:
             if showWarnings:
                 rospy.logwarn("Upwind/downwind sailing detected for {} seconds consecutively, which is greater than"
                               "the {} second limit. This officially counts as upwind/downwind"
-                              .format(consecutiveUpwindOrDownwindTimeSeconds, utils.UPWIND_DOWNWIND_TIME_LIMIT_SECONDS))
+                              .format(consecutiveUpwindOrDownwindTimeSeconds, UPWIND_DOWNWIND_TIME_LIMIT_SECONDS))
             self.lastTimeNotUpwindOrDownwind = time.time()
             return True
         else:
             if showWarnings:
                 rospy.loginfo("Upwind/downwind sailing detected for only {} seconds consecutively, which is less than"
                               "the {} second limit. This does not count as upwind/downwind sailing yet."
-                              .format(consecutiveUpwindOrDownwindTimeSeconds, utils.UPWIND_DOWNWIND_TIME_LIMIT_SECONDS))
+                              .format(consecutiveUpwindOrDownwindTimeSeconds, UPWIND_DOWNWIND_TIME_LIMIT_SECONDS))
             return False
 
     def obstacleOnPath(self, state, numLookAheadWaypoints=None, showWarnings=False):
