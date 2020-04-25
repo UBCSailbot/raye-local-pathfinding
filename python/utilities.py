@@ -202,6 +202,54 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=Fals
         numberOfLocalWaypoints = int(localPathLengthKm / AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM)
         solutionPath.interpolate(numberOfLocalWaypoints)
 
+    def findBestSolution(validSolutions, invalidSolutions):
+        # If no valid solutions found, use the best invalid one. Do not perform any path simplifying on invalid paths.
+        if len(validSolutions) == 0:
+            # Set the average distance between waypoints. Must be done before cost calculation and comparison
+            for solution in invalidSolutions:
+                setAverageDistanceBetweenWaypoints(solution.getSolutionPath())
+
+            bestSolution = min(invalidSolutions,
+                               key=lambda x: x.getSolutionPath().cost(x.getOptimizationObjective()).value())
+            bestSolutionPath = bestSolution.getSolutionPath()
+            minCost = bestSolutionPath.cost(bestSolution.getOptimizationObjective()).value()
+        else:
+            # Set the average distance between waypoints. Must be done before cost calculation and comparison
+            for solution in validSolutions:
+                setAverageDistanceBetweenWaypoints(solution.getSolutionPath())
+
+            # Find path with minimum cost. Can be either simplified or unsimplified path.
+            # Need to recheck that simplified paths are valid before using
+            minCost = sys.maxsize
+            bestSolution = None
+            bestSolutionPath = None
+            for solution in validSolutions:
+                # Check unsimplified path
+                unsimplifiedPath = og.PathGeometric(solution.getSolutionPath())
+                unsimplifiedCost = unsimplifiedPath.cost(solution.getOptimizationObjective()).value()
+                if unsimplifiedCost < minCost:
+                    bestSolution = solution
+                    bestSolutionPath = unsimplifiedPath
+                    minCost = unsimplifiedCost
+
+                # Check simplified path
+                solution.simplifySolution()
+                simplifiedPath = solution.getSolutionPath()
+                setAverageDistanceBetweenWaypoints(simplifiedPath)
+                simplifiedCost = simplifiedPath.cost(solution.getOptimizationObjective()).value()
+                if simplifiedCost < minCost:
+                    # Double check that simplified path is valid
+                    simplifiedPathObject = Path(OMPLPath(solution, simplifiedPath, referenceLatlon))
+                    hasObstacleOnPath = simplifiedPathObject.obstacleOnPath(state)
+                    hasUpwindOrDownwindOnPath = simplifiedPathObject.upwindOrDownwindOnPath(state)
+                    isStillValid = not hasObstacleOnPath and not hasUpwindOrDownwindOnPath
+                    if isStillValid:
+                        bestSolution = solution
+                        bestSolutionPath = simplifiedPath
+                        minCost = simplifiedCost
+        return bestSolution, bestSolutionPath, minCost
+
+    # Set speedup to 1.0 during planning
     if resetSpeedupDuringPlan:
         speedupDuringPlan = 1.0
         rospy.loginfo("Setting speedup to this value during planning = {}".format(speedupDuringPlan))
@@ -275,53 +323,13 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=Fals
         else:
             invalidSolutions.append(solution)
 
-    # If no valid solutions found, use the best invalid one. Do not perform any path simplifying on invalid paths.
-    if len(validSolutions) == 0:
-        # Set the average distance between waypoints. Must be done before cost calculation and comparison
-        for solution in invalidSolutions:
-            setAverageDistanceBetweenWaypoints(solution.getSolutionPath())
+    # Find best solution
+    bestSolution, bestSolutionPath, minCost = findBestSolution(validSolutions, invalidSolutions)
 
-        bestSolution = min(invalidSolutions,
-                           key=lambda x: x.getSolutionPath().cost(x.getOptimizationObjective()).value())
-        bestSolutionPath = bestSolution.getSolutionPath()
-        minCost = bestSolutionPath.cost(bestSolution.getOptimizationObjective()).value()
-    else:
-        # Set the average distance between waypoints. Must be done before cost calculation and comparison
-        for solution in validSolutions:
-            setAverageDistanceBetweenWaypoints(solution.getSolutionPath())
-
-        # Find path with minimum cost. Can be either simplified or unsimplified path.
-        # Need to recheck that simplified paths are valid before using
-        minCost = sys.maxsize
-        bestSolution = None
-        bestSolutionPath = None
-        for solution in validSolutions:
-            # Check unsimplified path
-            unsimplifiedPath = og.PathGeometric(solution.getSolutionPath())
-            unsimplifiedCost = unsimplifiedPath.cost(solution.getOptimizationObjective()).value()
-            if unsimplifiedCost < minCost:
-                bestSolution = solution
-                bestSolutionPath = unsimplifiedPath
-                minCost = unsimplifiedCost
-
-            # Check simplified path
-            solution.simplifySolution()
-            simplifiedPath = solution.getSolutionPath()
-            setAverageDistanceBetweenWaypoints(simplifiedPath)
-            simplifiedCost = simplifiedPath.cost(solution.getOptimizationObjective()).value()
-            if simplifiedCost < minCost:
-                # Double check that simplified path is valid
-                simplifiedPathObject = Path(OMPLPath(solution, simplifiedPath, referenceLatlon))
-                hasObstacleOnPath = simplifiedPathObject.obstacleOnPath(state)
-                hasUpwindOrDownwindOnPath = simplifiedPathObject.upwindOrDownwindOnPath(state)
-                isStillValid = not hasObstacleOnPath and not hasUpwindOrDownwindOnPath
-                if isStillValid:
-                    bestSolution = solution
-                    bestSolutionPath = simplifiedPath
-                    minCost = simplifiedCost
-
+    # Close plot if it was started
     plt.close()
 
+    # Reset speedup back to original value
     if resetSpeedupDuringPlan:
         rospy.loginfo("Setting speedup back to its value before planning = {}".format(speedupBeforePlan))
         publisher = rospy.Publisher('speedup', Float64, queue_size=4)
