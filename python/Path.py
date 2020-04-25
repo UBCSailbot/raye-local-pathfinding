@@ -228,7 +228,21 @@ class Path:
             path.append(utils.XYToLatlon(xy, referenceLatlon))
         return path
 
+    # Simple methods
+    def getNextWaypointIndex(self):
+        return self._nextWaypointIndex
+
+    def getLatlons(self):
+        return self._latlons
+
+    def getOMPLPath(self):
+        return self._omplPath
+
+    def reachedEnd(self):
+        return len(self._latlons) <= self._nextWaypointIndex
+
     def getNextWaypoint(self):
+        # Gets the next waypoint, but performs bounds and edge case checks
         def _getNextWaypoint(path, pathIndex):
             # If path is empty, return (0, 0)
             if len(path) == 0:
@@ -249,18 +263,39 @@ class Path:
 
         return _getNextWaypoint(self._latlons, self._nextWaypointIndex)
 
-    def getNextWaypointIndex(self):
-        return self._nextWaypointIndex
+    # Simple methods that directly call _omplPath methods
+    def getCost(self):
+        return self._omplPath.getCost()
 
-    def getLatlons(self):
-        return self._latlons
+    def getReferenceLatlon(self):
+        return self._omplPath.getReferenceLatlon()
 
-    def getOMPLPath(self):
-        return self._omplPath
+    def getSolutionPath(self):
+        return self._omplPath.getSolutionPath()
 
-    def reachedEnd(self):
-        return len(self._latlons) <= self._nextWaypointIndex
+    def getLength(self):
+        return self._omplPath.getLength()
 
+    def getStateSpace(self):
+        return self._omplPath.getStateSpace()
+
+    def getSpaceInformation(self):
+        return self._omplPath.getSpaceInformation()
+
+    def getPathCostBreakdownString(self):
+        return self._omplPath.getPathCostBreakdownString()
+
+    def updateWindDirection(self, state):
+        self._omplPath.updateWindDirection(state)
+
+    def updateObstacles(self, state):
+        self._omplPath.updateObstacles(state)
+
+    def removePastWaypoints(self, state):
+        self._omplPath.removePastWaypoints(state)
+        self._latlons = self._getLatlonsFromOMPLPath(self._omplPath)
+
+    # More complex methods
     def reachesGoalLatlon(self, goalLatlon):
         lastWaypointLatlon = self._latlons[len(self._latlons) - 1]
         lastWaypoint = (lastWaypointLatlon.lat, lastWaypointLatlon.lon)
@@ -327,37 +362,6 @@ class Path:
             return True
 
         return False
-
-    def getCost(self):
-        return self._omplPath.getCost()
-
-    def getReferenceLatlon(self):
-        return self._omplPath.getReferenceLatlon()
-
-    def getSolutionPath(self):
-        return self._omplPath.getSolutionPath()
-
-    def getLength(self):
-        return self._omplPath.getLength()
-
-    def getStateSpace(self):
-        return self._omplPath.getStateSpace()
-
-    def getSpaceInformation(self):
-        return self._omplPath.getSpaceInformation()
-
-    def getPathCostBreakdownString(self):
-        return self._omplPath.getPathCostBreakdownString()
-
-    def updateWindDirection(self, state):
-        self._omplPath.updateWindDirection(state)
-
-    def updateObstacles(self, state):
-        self._omplPath.updateObstacles(state)
-
-    def removePastWaypoints(self, state):
-        self._omplPath.removePastWaypoints(state)
-        self._latlons = self._getLatlonsFromOMPLPath(self._omplPath)
 
     def upwindOrDownwindOnPath(self, state, numLookAheadWaypoints=None, showWarnings=False):
         # Default behavior when numLookAheadWaypoints is not given OR bad input: set to max
