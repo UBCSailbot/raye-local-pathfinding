@@ -62,6 +62,13 @@ COST_THRESHOLD = 20000
 
 
 def takeScreenshot():
+    '''Take a screenshot and save it to a png file.
+
+    Note: The first time this is called, it will create the following folder structure if it does not already exist:
+          images/(%b-%d-%Y)/(%H-%M-%S) where %b-%d-%Y is a date string and %H-%M-%S is a time string.
+
+          Then it will save all image files into this folder with a filename that is time of the screenshot.
+    '''
     # Put import here to avoid CI issues with pyautogui
     import pyautogui
 
@@ -94,6 +101,15 @@ def takeScreenshot():
 
 
 def latlonToXY(latlon, referenceLatlon):
+    '''Calculate the xy (km) coordinates of the given latlon, given the referenceLatlon located at (0,0)
+
+    Args:
+       latlon (local_pathfinding.msg._latlon.latlon): The latlon whose xy coordinates will be calculated.
+       referenceLatlon (local_pathfinding.msg._latlon.latlon): The latlon that will be located at (0,0).
+
+    Returns:
+       list [x,y] representing the position of latlon in xy (km) coordinates
+    '''
     x = distance((referenceLatlon.lat, referenceLatlon.lon), (referenceLatlon.lat, latlon.lon)).kilometers
     y = distance((referenceLatlon.lat, referenceLatlon.lon), (latlon.lat, referenceLatlon.lon)).kilometers
     if referenceLatlon.lon > latlon.lon:
@@ -104,55 +120,20 @@ def latlonToXY(latlon, referenceLatlon):
 
 
 def XYToLatlon(xy, referenceLatlon):
+    '''Calculate the latlon coordinates of the given xy, given the referenceLatlon located at (0,0)
+
+    Args:
+       xy (list of two floats): The xy (km) coordinates whose latlon coordinates will be calculated.
+       referenceLatlon (local_pathfinding.msg._latlon.latlon): The latlon that will be located at (0,0) wrt xy.
+
+    Returns:
+       local_pathfinding.msg._latlon.latlon representing the position of xy in latlon coordinates
+    '''
     x_distance = distance(kilometers=xy[0])
     y_distance = distance(kilometers=xy[1])
     destination = x_distance.destination(point=(referenceLatlon.lat, referenceLatlon.lon), bearing=BEARING_EAST)
     destination = y_distance.destination(point=(destination.latitude, destination.longitude), bearing=BEARING_NORTH)
     return latlon(destination.latitude, destination.longitude)
-
-
-def plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, obstacles, headingDegrees,
-                           amountObstaclesShrinked):
-    # Clear plot if already there
-    plt.cla()
-
-    # Create plot with start and goal
-    x_min, y_min, x_max, y_max = dimensions
-    markersize = min(x_max - x_min, y_max - y_min) / 2
-    plt.ion()
-    axes = plt.gca()
-    goalPlot, = axes.plot(goal[0], goal[1], marker='*', color='y',
-                          markersize=markersize)                          # Yellow star
-    # Red triangle with correct heading. The (-90) is because the triangle
-    # default heading 0 points North, but this heading has 0 be East.
-    startPlot, = axes.plot(start[0], start[1], marker=(3, 0, headingDegrees - 90), color='r', markersize=markersize)
-
-    # Setup plot xy limits and labels
-    axes.set_xlim(x_min, x_max)
-    axes.set_ylim(y_min, y_max)
-    axes.set_aspect('equal')
-    plt.grid(True)
-    axes.set_xlabel('X distance to position (km)')
-    axes.set_ylabel('Y distance to position (km)')
-    axes.set_title('Setup of pathfinding problem (amountObstaclesShrinked = {})'.format(amountObstaclesShrinked))
-
-    # Add boats and wind speed arrow
-    for obstacle in obstacles:
-        obstacle.addPatch(axes)
-
-    arrowLength = min(dimensions[2] - dimensions[0], dimensions[3] - dimensions[1]) / 15
-    arrowCenter = (dimensions[0] + 1.5 * arrowLength, dimensions[3] - 1.5 * arrowLength)
-    arrowStart = (arrowCenter[0] - 0.5 * arrowLength * math.cos(math.radians(globalWindDirectionDegrees)),
-                  arrowCenter[1] - 0.5 * arrowLength * math.sin(math.radians(globalWindDirectionDegrees)))
-    windDirection = patches.FancyArrow(arrowStart[0], arrowStart[1],
-                                       arrowLength * math.cos(math.radians(globalWindDirectionDegrees)),
-                                       arrowLength * math.sin(math.radians(globalWindDirectionDegrees)),
-                                       width=arrowLength / 4)
-    axes.add_patch(windDirection)
-
-    # Draw plot
-    plt.draw()
-    plt.pause(0.001)
 
 
 def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=False, speedupBeforePlan=1.0,
@@ -193,6 +174,49 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=Fals
         if not solution.haveExactSolutionPath():
             return False
         return True
+
+    def plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, obstacles, headingDegrees,
+                               amountObstaclesShrinked):
+        # Clear plot if already there
+        plt.cla()
+
+        # Create plot with start and goal
+        x_min, y_min, x_max, y_max = dimensions
+        markersize = min(x_max - x_min, y_max - y_min) / 2
+        plt.ion()
+        axes = plt.gca()
+        goalPlot, = axes.plot(goal[0], goal[1], marker='*', color='y',
+                              markersize=markersize)                          # Yellow star
+        # Red triangle with correct heading. The (-90) is because the triangle
+        # default heading 0 points North, but this heading has 0 be East.
+        startPlot, = axes.plot(start[0], start[1], marker=(3, 0, headingDegrees - 90), color='r', markersize=markersize)
+
+        # Setup plot xy limits and labels
+        axes.set_xlim(x_min, x_max)
+        axes.set_ylim(y_min, y_max)
+        axes.set_aspect('equal')
+        plt.grid(True)
+        axes.set_xlabel('X distance to position (km)')
+        axes.set_ylabel('Y distance to position (km)')
+        axes.set_title('Setup of pathfinding problem (amountObstaclesShrinked = {})'.format(amountObstaclesShrinked))
+
+        # Add boats and wind speed arrow
+        for obstacle in obstacles:
+            obstacle.addPatch(axes)
+
+        arrowLength = min(dimensions[2] - dimensions[0], dimensions[3] - dimensions[1]) / 15
+        arrowCenter = (dimensions[0] + 1.5 * arrowLength, dimensions[3] - 1.5 * arrowLength)
+        arrowStart = (arrowCenter[0] - 0.5 * arrowLength * math.cos(math.radians(globalWindDirectionDegrees)),
+                      arrowCenter[1] - 0.5 * arrowLength * math.sin(math.radians(globalWindDirectionDegrees)))
+        windDirection = patches.FancyArrow(arrowStart[0], arrowStart[1],
+                                           arrowLength * math.cos(math.radians(globalWindDirectionDegrees)),
+                                           arrowLength * math.sin(math.radians(globalWindDirectionDegrees)),
+                                           width=arrowLength / 4)
+        axes.add_patch(windDirection)
+
+        # Draw plot
+        plt.draw()
+        plt.pause(0.001)
 
     def setAverageDistanceBetweenWaypoints(solutionPath):
         # Set the average distance between waypoints
@@ -362,50 +386,61 @@ def getDesiredHeadingDegrees(position, localWaypoint):
 
 
 def measuredWindToGlobalWind(measuredWindSpeed, measuredWindDirectionDegrees, boatSpeed, headingDegrees):
+    measuredWindRadians, headingRadians = math.radians(measuredWindDirectionDegrees), math.radians(headingDegrees)
+
+    # GF = global frame. BF = boat frame
     # Calculate wind speed in boat frame. X is right. Y is forward.
-    measuredWindSpeedXBoatFrame = measuredWindSpeed * math.cos(math.radians(measuredWindDirectionDegrees))
-    measuredWindSpeedYBoatFrame = measuredWindSpeed * math.sin(math.radians(measuredWindDirectionDegrees))
+    measuredWindSpeedXBF = measuredWindSpeed * math.cos(measuredWindRadians)
+    measuredWindSpeedYBF = measuredWindSpeed * math.sin(measuredWindRadians)
 
     # Assume boat is moving entirely in heading direction, so all boat speed is in boat frame Y direction
-    trueWindSpeedXBoatFrame = measuredWindSpeedXBoatFrame
-    trueWindSpeedYBoatFrame = measuredWindSpeedYBoatFrame + boatSpeed
+    trueWindSpeedXBF = measuredWindSpeedXBF
+    trueWindSpeedYBF = measuredWindSpeedYBF + boatSpeed
 
     # Calculate wind speed in global frame. X is EAST. Y is NORTH.
-    trueWindSpeedXGlobalFrame = trueWindSpeedXBoatFrame * \
-        math.sin(math.radians(headingDegrees)) + trueWindSpeedYBoatFrame * math.cos(math.radians(headingDegrees))
-    trueWindSpeedYGlobalFrame = trueWindSpeedYBoatFrame * \
-        math.sin(math.radians(headingDegrees)) - trueWindSpeedXBoatFrame * math.cos(math.radians(headingDegrees))
+    trueWindSpeedXGF = trueWindSpeedXBF * math.sin(headingRadians)) + trueWindSpeedYBF * math.cos(headingRadians))
+    trueWindSpeedYGF = trueWindSpeedYBF * math.sin(headingRadians)) - trueWindSpeedXBF * math.cos(headingRadians))
 
     # Calculate global wind speed and direction
-    globalWindSpeed = (trueWindSpeedXGlobalFrame**2 + trueWindSpeedYGlobalFrame**2)**0.5
-    globalWindDirectionDegrees = math.degrees(math.atan2(trueWindSpeedYGlobalFrame, trueWindSpeedXGlobalFrame))
+    globalWindSpeed = (trueWindSpeedXGF**2 + trueWindSpeedYGF**2)**0.5
+    globalWindDirectionDegrees = math.degrees(math.atan2(trueWindSpeedYGF, trueWindSpeedXGF))
 
     return globalWindSpeed, globalWindDirectionDegrees
 
 
 def globalWindToMeasuredWind(globalWindSpeed, globalWindDirectionDegrees, boatSpeed, headingDegrees):
+    globalWindRadians, headingRadians = math.radians(globalWindDirectionDegrees), math.radians(headingDegrees)
+
+    # GF = global frame. BF = boat frame
     # Calculate the measuredWindSpeed in the global frame
-    measuredWindSpeedXGlobalFrame = globalWindSpeed * \
-        math.cos(math.radians(globalWindDirectionDegrees)) - boatSpeed * math.cos(math.radians(headingDegrees))
-    measuredWindSpeedYGlobalFrame = globalWindSpeed * \
-        math.sin(math.radians(globalWindDirectionDegrees)) - boatSpeed * math.sin(math.radians(headingDegrees))
+    measuredWindXGF = globalWindSpeed * math.cos(globalWindDirectionRadians)- boatSpeed * math.cos(headingRadians)
+    measuredWindYGF = globalWindSpeed * math.sin(globalWindDirectionRadians) - boatSpeed * math.sin(headingRadians)
 
     # Calculated the measuredWindSpeed in the boat frame
-    measuredWindSpeedXBoatFrame = measuredWindSpeedXGlobalFrame * \
-        math.sin(math.radians(headingDegrees)) - measuredWindSpeedYGlobalFrame * math.cos(math.radians(headingDegrees))
-    measuredWindSpeedYBoatFrame = measuredWindSpeedXGlobalFrame * \
-        math.cos(math.radians(headingDegrees)) + measuredWindSpeedYGlobalFrame * math.sin(math.radians(headingDegrees))
+    measuredWindXBF = measuredWindXGF * math.sin(headingRadians) - measuredWindYGF * math.cos(headingRadians)
+    measuredWindYBF = measuredWindXGF * math.cos(headingRadians) + measuredWindYGF * math.sin(headingRadians)
 
-    measuredWindDirectionDegrees = math.degrees(math.atan2(measuredWindSpeedYBoatFrame, measuredWindSpeedXBoatFrame))
-    measuredWindSpeed = (measuredWindSpeedYBoatFrame**2 + measuredWindSpeedXBoatFrame**2)**0.5
+    # Convert to speed and direction
+    measuredWindDirectionDegrees = math.degrees(math.atan2(measuredWindYBF, measuredWindXBF))
+    measuredWindSpeed = (measuredWindYBF**2 + measuredWindXBF**2)**0.5
 
     return measuredWindSpeed, measuredWindDirectionDegrees
 
 
 def headingToBearingDegrees(headingDegrees):
-    # Heading is defined using cartesian coordinates. 0 degrees is East. 90 degrees in North. 270 degrees is South.
-    # Bearing is defined differently. 0 degrees is North. 90 degrees is East. 180 degrees is South.
-    # Heading = -Bearing + 90
+    '''Calculates the bearing angle given the heading angle.
+
+    Note: Heading is defined using cartesian coordinates. 0 degrees is East. 90 degrees in North. 270 degrees is South.
+          Bearing is defined differently. 0 degrees is North. 90 degrees is East. 180 degrees is South.
+          Heading is used for most of this code-based, but bearing is used for interfacing with the geopy module.
+
+    Args:
+       xy (list of two floats): The xy (km) coordinates whose latlon coordinates will be calculated.
+       referenceLatlon (local_pathfinding.msg._latlon.latlon): The latlon that will be located at (0,0) wrt xy.
+
+    Returns:
+       local_pathfinding.msg._latlon.latlon representing the position of xy in latlon coordinates
+    '''
     return -headingDegrees + 90
 
 
@@ -438,10 +473,16 @@ def getObstacles(ships, position, speedKmph, referenceLatlon):
 
 
 def pathCostThresholdExceeded(currentCost):
+    # TODO: Extend this method to scale based on path length or distance to goal
     return currentCost > COST_THRESHOLD
 
 
 def waitForGlobalPath(sailbot):
+    '''Wait until the sailbot object receives a global path message. Outputs log messages with updates.
+
+    Args:
+       sailbot (Sailbot): Sailbot object with which the checking for global path message will happen.
+    '''
     while not sailbot.newGlobalPathReceived:
         # Exit if shutdown
         if rospy.is_shutdown():
