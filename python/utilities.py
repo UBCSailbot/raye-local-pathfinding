@@ -514,6 +514,15 @@ def headingToBearingDegrees(headingDegrees):
 
 
 def isValid(xy, obstacles):
+    '''Checks if the given xy is a valid position, given obstacles
+
+    Args:
+       xy (list of two floats): xy position of the boat
+       obstacles (list of obstacles): List of obstacles that the boat must not be contacting
+
+    Returns:
+       bool True iff the boat's xy position does not overlap with any obstacle
+    '''
     for obstacle in obstacles:
         if not obstacle.isValid(xy):
             return False
@@ -521,6 +530,17 @@ def isValid(xy, obstacles):
 
 
 def getObstacles(ships, position, speedKmph, referenceLatlon):
+    '''Creates a list of obstacles in xy coordinates. Uses the obstacle type from the rosparam "obstacle_type"
+
+    Args:
+       ships (list of AISShips): List of ships in latlon coordinates to be converted into xy obstacles
+       position (local_pathfinding.msg._latlon.latlon): Position of the sailbot
+       speedKmph (float): Speed of the sailbot
+       referenceLatlon (local_pathfinding.msg._latlon.latlon): Position of the reference point that will be at (0,0)
+
+    Returns:
+       list of obstacles that implement the obstacle interface
+    '''
     obstacle_type = rospy.get_param('obstacle_type', 'ellipse')
     obstacles = []
     if obstacle_type == "ellipse":
@@ -542,6 +562,14 @@ def getObstacles(ships, position, speedKmph, referenceLatlon):
 
 
 def pathCostThresholdExceeded(currentCost):
+    '''Checks if the path cost is above the cost threshold
+
+    Args:
+       currentCost (float): Cost of the current path
+
+    Returns:
+       bool True iff currentCost is greater than the cost threshold
+    '''
     # TODO: Extend this method to scale based on path length or distance to goal
     return currentCost > COST_THRESHOLD
 
