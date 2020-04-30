@@ -138,6 +138,22 @@ def XYToLatlon(xy, referenceLatlon):
 
 def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=False, speedupBeforePlan=1.0,
                maxAllowableRuntimeSeconds=MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS):
+    '''Create a Path from state.position to state.globalWaypoint. Runs OMPL pathfinding multiple times and returns
+    the best path.
+
+    Args:
+       state (BoatState): Current state of the boat, which contains all necessary information to perform pathfinding
+       runtimeSeconds (float): Number of seconds that the each pathfinding attempt should run
+       numRuns (int): Number of pathfinding attempts that are run in normal case
+       resetSpeedupDuringPlan (bool): Decides if pathfinding should set the speedup value to 1.0 during the pathfinding
+       speedupBeforePlan (double): Only used if resetSpeedupDuringPlan is True. At the end of pathfinding,
+                                   publishes this speedup value
+       maxAllowableRuntimeSeconds (double): Maximum total time that this method should take to run. Will take longer
+                                            than runtimeSeconds*numRuns only if pathfinding is unable to find a path.
+
+    Returns:
+       Path object representing the path from state.position to state.globalWaypoint
+    '''
     # Helper methods
     def getXYLimits(start, goal, extraLengthFraction=0.6):
         # Calculate extra length to allow wider solution space
@@ -361,6 +377,15 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=Fals
 
 
 def globalWaypointReached(position, globalWaypoint):
+    '''Checks if the position has reached the global waypoint.
+
+    Args:
+       position (local_pathfinding.msg._latlon.latlon): Latlon of the position
+       globalWaypoint (local_pathfinding.msg._latlon.latlon): Latlon of the globalWaypoint
+
+    Returns:
+       bool True iff the distance between the position and globalWaypoint is below a threshold
+    '''
     # TODO: Consider fixing globalWaypointReached to not go backwards
     sailbot = (position.lat, position.lon)
     waypt = (globalWaypoint.lat, globalWaypoint.lon)
@@ -369,6 +394,16 @@ def globalWaypointReached(position, globalWaypoint):
 
 
 def timeLimitExceeded(lastTimePathCreated, speedup):
+    '''Checks the time since last path was created has been too long. Ensures the boat is
+    not stuck to a poor, stagnant path
+
+    Args:
+       lastTimePathCreated (float): Time that the last path was created
+       speedup (float): Current speedup value
+
+    Returns:
+       bool True iff the time difference between now and lastTimePathCreated exceeds a time limit
+    '''
     # TODO: Figure out a way to make changing speedup work properly for this
     # Shorter time limit when there is speedup
     pathUpdateTimeLimitSecondsSpeedup = PATH_UPDATE_TIME_LIMIT_SECONDS / speedup
@@ -381,11 +416,32 @@ def timeLimitExceeded(lastTimePathCreated, speedup):
 
 
 def getDesiredHeadingDegrees(position, localWaypoint):
+    '''Calculate the heading that the boat should aim towards to reach the local waypoint.
+
+    Args:
+       position (local_pathfinding.msg._latlon.latlon): Current position of the boat
+       localWaypoint (local_pathfinding.msg._latlon.latlon): Current local waypoint that the boat is aiming towards
+
+    Returns:
+       float that is the heading (degrees) that the boat should be aiming towards to reach the local waypoint
+    '''
     xy = latlonToXY(localWaypoint, position)
     return math.degrees(math.atan2(xy[1], xy[0]))
 
 
 def measuredWindToGlobalWind(measuredWindSpeed, measuredWindDirectionDegrees, boatSpeed, headingDegrees):
+    '''Calculate the global wind based on the measured wind and the boat velocity
+
+    Args:
+       measuredWindSpeed (float): speed of the wind measured from the boat. All speed values must be in the same units.
+       measuredWindDirectionDegrees (float): angle of the measured with wrt the boat.
+                                             0 degrees is wind blowing to the right. 90 degrees is wind blowing forward.
+       boatSpeed (float): speed of the boat
+       headingDegrees (float): angle of the boat in global frame. 0 degrees is East. 90 degrees is North.
+
+    Returns:
+       float, float pair representing the globalWindSpeed (same units as input speed), globalWindDirectionDegrees respectively
+    '''
     measuredWindRadians, headingRadians = math.radians(measuredWindDirectionDegrees), math.radians(headingDegrees)
 
     # GF = global frame. BF = boat frame
@@ -398,8 +454,8 @@ def measuredWindToGlobalWind(measuredWindSpeed, measuredWindDirectionDegrees, bo
     trueWindSpeedYBF = measuredWindSpeedYBF + boatSpeed
 
     # Calculate wind speed in global frame. X is EAST. Y is NORTH.
-    trueWindSpeedXGF = trueWindSpeedXBF * math.sin(headingRadians)) + trueWindSpeedYBF * math.cos(headingRadians))
-    trueWindSpeedYGF = trueWindSpeedYBF * math.sin(headingRadians)) - trueWindSpeedXBF * math.cos(headingRadians))
+    trueWindSpeedXGF = trueWindSpeedXBF * math.sin(headingRadians) + trueWindSpeedYBF * math.cos(headingRadians)
+    trueWindSpeedYGF = trueWindSpeedYBF * math.sin(headingRadians) - trueWindSpeedXBF * math.cos(headingRadians)
 
     # Calculate global wind speed and direction
     globalWindSpeed = (trueWindSpeedXGF**2 + trueWindSpeedYGF**2)**0.5
@@ -409,12 +465,102 @@ def measuredWindToGlobalWind(measuredWindSpeed, measuredWindDirectionDegrees, bo
 
 
 def globalWindToMeasuredWind(globalWindSpeed, globalWindDirectionDegrees, boatSpeed, headingDegrees):
+    '''Calculate the measured wind based on the global wind and the boat velocity
+
+    Args:
+       globalWindSpeed (float): speed of the global wind. All speed values should be in the same units.
+       globalWindDirectionDegrees (float): angle of the global wind in the global frame.
+                                           0 degrees is East. 90 degrees is North.
+       boatSpeed (float): speed of the boat
+       headingDegrees (float): angle of the boat in global frame. 0 degrees is East. 90 degrees is North.
+
+    Returns:
+       float, float pair representing the measuredWindSpeed (same units as input speed), measuredWindDirectionDegrees
+       (0 degrees is wind blowing to the right. 90 degrees is wind blowing forward)
+    '''
     globalWindRadians, headingRadians = math.radians(globalWindDirectionDegrees), math.radians(headingDegrees)
 
     # GF = global frame. BF = boat frame
     # Calculate the measuredWindSpeed in the global frame
-    measuredWindXGF = globalWindSpeed * math.cos(globalWindDirectionRadians)- boatSpeed * math.cos(headingRadians)
-    measuredWindYGF = globalWindSpeed * math.sin(globalWindDirectionRadians) - boatSpeed * math.sin(headingRadians)
+    measuredWindXGF = globalWindSpeed * math.cos(globalWindRadians) - boatSpeed * math.cos(headingRadians)
+    measuredWindYGF = globalWindSpeed * math.sin(globalWindRadians) - boatSpeed * math.sin(headingRadians)
+
+    # Calculated the measuredWindSpeed in the boat frame
+    measuredWindXBF = measuredWindXGF * math.sin(headingRadians) - measuredWindYGF * math.cos(headingRadians)
+    measuredWindYBF = measuredWindXGF * math.cos(headingRadians) + measuredWindYGF * math.sin(headingRadians)
+
+    # Convert to speed and direction
+    measuredWindDirectionDegrees = math.degrees(math.atan2(measuredWindYBF, measuredWindXBF))
+    measuredWindSpeed = (measuredWindYBF**2 + measuredWindXBF**2)**0.5
+
+    return measuredWindSpeed, measuredWindDirectionDegrees
+
+
+def headingToBearingDegrees(headingDegrees):
+    '''Calculates the bearing angle given the heading angle.
+
+    Note: Heading is defined using cartesian coordinates. 0 degrees is East. 90 degrees in North. 270 degrees is South.
+          Bearing is defined differently. 0 degrees is North. 90 degrees is East. 180 degrees is South.
+          Heading is used for most of this code-based, but bearing is used for interfacing with the geopy module.
+
+    Args:
+       xy (list of two floats): The xy (km) coordinates whose latlon coordinates will be calculated.
+       referenceLatlon (local_pathfinding.msg._latlon.latlon): The latlon that will be located at (0,0) wrt xy.
+
+    Returns:
+       local_pathfinding.msg._latlon.latlon representing the position of xy in latlon coordinates
+    '''
+    return -headingDegrees + 90
+
+
+def isValid(xy, obstacles):
+    for obstacle in obstacles:
+        if not obstacle.isValid(xy):
+            return False
+    return True
+
+
+def getObstacles(ships, position, speedKmph, referenceLatlon):
+    obstacle_type = rospy.get_param('obstacle_type', 'ellipse')
+    obstacles = []
+    if obstacle_type == "ellipse":
+        for ship in ships:
+            obstacles.append(EllipseObstacle(ship, position, speedKmph, referenceLatlon))
+    elif obstacle_type == "wedge":
+        for ship in ships:
+            obstacles.append(Wedge(ship, position, speedKmph, referenceLatlon))
+    elif obstacle_type == "circles":
+        for ship in ships:
+            obstacles.append(Circles(ship, position, speedKmph, referenceLatlon))
+    elif obstacle_type == "hybrid_ellipse":
+        for ship in ships:
+            obstacles.append(HybridEllipse(ship, position, speedKmph, referenceLatlon))
+    elif obstacle_type == "hybrid_circle":
+        for ship in ships:
+            obstacles.append(HybridCircle(ship, position, speedKmph, referenceLatlon))
+    return obstacles
+
+
+def pathCostThresholdExceeded(currentCost):
+    # TODO: Extend this method to scale based on path length or distance to goal
+    return currentCost > COST_THRESHOLD
+
+
+def waitForGlobalPath(sailbot):
+    '''Wait until the sailbot object receives a global path message. Outputs log messages with updates.
+
+    Args:
+       sailbot (Sailbot): Sailbot object with which the checking for global path message will happen.
+    '''
+    while not sailbot.newGlobalPathReceived:
+        # Exit if shutdown
+        if rospy.is_shutdown():
+    globalWindRadians, headingRadians = math.radians(globalWindDirectionDegrees), math.radians(headingDegrees)
+
+    # GF = global frame. BF = boat frame
+    # Calculate the measuredWindSpeed in the global frame
+    measuredWindXGF = globalWindSpeed * math.cos(globalWindRadians) - boatSpeed * math.cos(headingRadians)
+    measuredWindYGF = globalWindSpeed * math.sin(globalWindRadians) - boatSpeed * math.sin(headingRadians)
 
     # Calculated the measuredWindSpeed in the boat frame
     measuredWindXBF = measuredWindXGF * math.sin(headingRadians) - measuredWindYGF * math.cos(headingRadians)
