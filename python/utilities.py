@@ -440,7 +440,7 @@ def measuredWindToGlobalWind(measuredWindSpeed, measuredWindDirectionDegrees, bo
        headingDegrees (float): angle of the boat in global frame. 0 degrees is East. 90 degrees is North.
 
     Returns:
-       float, float pair representing the globalWindSpeed (same units as input speed), globalWindDirectionDegrees respectively
+       float, float pair representing the globalWindSpeed (same units as input speed), globalWindDirectionDegrees
     '''
     measuredWindRadians, headingRadians = math.radians(measuredWindDirectionDegrees), math.radians(headingDegrees)
 
