@@ -363,11 +363,26 @@ class Path:
 
         return False
 
-    def upwindOrDownwindOnPath(self, state, numLookAheadWaypoints=None, showWarnings=False):
-        # Default behavior when numLookAheadWaypoints is not given OR bad input: set to max
+    def _cleanNumLookAheadWaypoints(self, numLookAheadWaypoints):
+        '''Ensure nextLocalWaypointIndex + numLookAheadWaypoints is in bounds
+        Default behavior when numLookAheadWaypoints is not given OR bad input: set to max
+
+        Let path = [(0,0), (1,1), (2,2), (3,3), (4,4)], len(path) = 5
+
+        If: self.getNextWaypointIndex() = 2
+        maxNumLookAheadWaypoints = self.getLength() - self.getNextWaypointIndex() = 5 - 2 = 3
+
+        If numLookAheadWaypoints = 2, then care about waypoints (2,2), (3,3)
+        If numLookAheadWaypoints = 6, cuts it down to 3, then care about waypoints (2,2), (3,3), (4,4)
+        '''
         maxNumLookAheadWaypoints = self.getLength() - self.getNextWaypointIndex()
         if numLookAheadWaypoints is None or numLookAheadWaypoints > maxNumLookAheadWaypoints:
-            numLookAheadWaypoints = maxNumLookAheadWaypoints
+            return maxNumLookAheadWaypoints
+        return numLookAheadWaypoints
+
+    def upwindOrDownwindOnPath(self, state, numLookAheadWaypoints=None, showWarnings=False):
+        # Default behavior when numLookAheadWaypoints is not given OR bad input: set to max
+        numLookAheadWaypoints = self._cleanNumLookAheadWaypoints(numLookAheadWaypoints):
 
         # Calculate global wind from measured wind and boat state
         globalWindSpeedKmph, globalWindDirectionDegrees = utils.measuredWindToGlobalWind(
@@ -435,23 +450,11 @@ class Path:
             return False
 
     def obstacleOnPath(self, state, numLookAheadWaypoints=None, showWarnings=False):
+        # Default behavior when numLookAheadWaypoints is not given OR bad input: set to max
+        numLookAheadWaypoints = self._cleanNumLookAheadWaypoints(numLookAheadWaypoints):
+
         # Check if path will hit objects
         positionXY = utils.latlonToXY(state.position, self.getReferenceLatlon())
-
-        # Ensure nextLocalWaypointIndex + numLookAheadWaypoints is in bounds
-        '''
-        Let path = [(0,0), (1,1), (2,2), (3,3), (4,4)], len(path) = 5
-
-        If: self.getNextWaypointIndex() = 2
-        maxNumLookAheadWaypoints = self.getLength() - self.getNextWaypointIndex() = 5 - 2 = 3
-
-        If numLookAheadWaypoints = 2, then care about waypoints (2,2), (3,3)
-        If numLookAheadWaypoints = 6, cuts it down to 3, then care about waypoints (2,2), (3,3), (4,4)
-        '''
-        # Default behavior when numLookAheadWaypoints is not given OR bad input: set to max
-        maxNumLookAheadWaypoints = self.getLength() - self.getNextWaypointIndex()
-        if numLookAheadWaypoints is None or numLookAheadWaypoints > maxNumLookAheadWaypoints:
-            numLookAheadWaypoints = maxNumLookAheadWaypoints
 
         self.updateObstacles(state)
         waypointIndexWithObstacle = indexOfObstacleOnPath(
