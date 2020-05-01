@@ -51,6 +51,7 @@ class OMPLPath:
         return self._solutionPath.cost(self._ss.getOptimizationObjective()).value()
 
     def getPathCostBreakdownString(self):
+        '''Return a string showing the breakdown of how the path cost was calculated.'''
         # Assumes balanced optimization objective
         strings = []
         optimizationObjective = self._ss.getOptimizationObjective()
@@ -69,7 +70,7 @@ class OMPLPath:
 
     # Methods that modify the class
     def updateWindDirection(self, state):
-        # Set wind direction for cost evaluation
+        '''Change the wind direction of the OMPL objective function, which changes subsequent path cost calculations.'''
         globalWindSpeedKmph, globalWindDirectionDegrees = utils.measuredWindToGlobalWind(
             state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
         objective = self._ss.getOptimizationObjective()  # Assumes balanced objective
@@ -82,7 +83,7 @@ class OMPLPath:
         rospy.logwarn("updateWindDirection() was unsuccessful. Wind direction was not updated")
 
     def updateObstacles(self, state):
-        # Set the objects used to check which states in the space are valid
+        '''Update the obstacles of the OMPL validation checker'''
         obstacles = utils.getObstacles(state.AISData.ships, state.position, state.speedKmph, self._referenceLatlon)
         validity_checker = ph.ValidityChecker(self._ss.getSpaceInformation(), obstacles)
         self._ss.setStateValidityChecker(validity_checker)
@@ -219,7 +220,7 @@ class Path:
         self._nextWaypointIndex = 1
 
     def _getLatlonsFromOMPLPath(self, omplPath):
-        # Convert solution path (in km WRT reference) into list of latlons
+        '''Convert solution path (in km WRT reference) into list of latlons'''
         path = []
         solutionPathObject = omplPath.getSolutionPath()
         referenceLatlon = omplPath.getReferenceLatlon()
@@ -242,7 +243,7 @@ class Path:
         return len(self._latlons) <= self._nextWaypointIndex
 
     def getNextWaypoint(self):
-        # Gets the next waypoint, but performs bounds and edge case checks
+        '''Gets the next waypoint, but performs bounds and edge case checks'''
         def _getNextWaypoint(path, pathIndex):
             # If path is empty, return (0, 0)
             if len(path) == 0:
@@ -297,12 +298,48 @@ class Path:
 
     # More complex methods
     def reachesGoalLatlon(self, goalLatlon):
+        '''Checks if the given path reaches the given goalLatlon
+
+        Args:
+           goalLatlon (local_pathfinding.msg._latlon.latlon): Latlon that this path should be ending at
+
+        Returns:
+           bool True iff the distance between the goalLatlon and the last path waypoint is below a threshold
+        '''
         lastWaypointLatlon = self._latlons[len(self._latlons) - 1]
         lastWaypoint = (lastWaypointLatlon.lat, lastWaypointLatlon.lon)
         goal = (goalLatlon.lat, goalLatlon.lon)
         return distance(lastWaypoint, goal).kilometers <= MAX_ALLOWABLE_DISTANCE_FINAL_WAYPOINT_TO_GOAL_KM
 
     def nextWaypointReached(self, positionLatlon):
+        '''Check if the given positionLatlon has reached the next waypoint.
+        This is done by drawing a line from the waypoint at (self._nextWaypointIndex - 1) to (self._nextWaypointIndex)
+        Then drawing a line perpendicular to the previous line that
+        intersects with the waypoint at self._nextWaypointIndex
+        Then checks if the positionLatlon is past the perpendicular line or not
+
+        Examples: B is boat. 0 is (self._nextWaypointIndex - 1). 1 is (self._nextWaypointIndex).
+
+        Example 1 Waypoint not reached:
+                |
+                |
+        0  B    1
+                |
+                |
+
+        Example 2 Waypoint reached:
+                |
+                |
+        0       1
+                |
+                |B
+
+        Args:
+           positionLatlon (local_pathfinding.msg._latlon.latlon): Latlon of the current boat position
+
+        Returns:
+           bool True iff the positionLatlon has reached the next waypoint
+        '''
         # Convert from latlons to XY
         refLatlon = self._omplPath.getReferenceLatlon()
         previousWaypointLatlon = self._latlons[self._nextWaypointIndex - 1]
@@ -381,8 +418,25 @@ class Path:
         return numLookAheadWaypoints
 
     def upwindOrDownwindOnPath(self, state, numLookAheadWaypoints=None, showWarnings=False):
+        '''Checks if there exists any upwind or downwind sailing on the path starting
+        from state.position to the next numLookAheadWaypoints
+
+        Note: Requires that upwind/downwind sailing be detected consistently for a certain time interval to return True
+              This prevents upwind/downwind to be detected from wind sensor noise or poor measurements while turning
+              But will still catch real upwind/downwind sailing when called repeatedly
+
+        Args:
+           state (BoatState): state of the boat, which defines the boat position and the global wind
+           numLookAheadWaypoints (int): number of waypoints to look ahead at from state.position
+                                        (ignores upwind/downwind very far ahead)
+           showWarnings (bool): display ros warnings if upwind/downwind is detected
+
+        Returns:
+           bool True iff this method detects upwind/downwind sailing on the path within the first numLookAheadWaypoints
+           starting from state.position CONSISTENTLY for a certain time interval
+        '''
         # Default behavior when numLookAheadWaypoints is not given OR bad input: set to max
-        numLookAheadWaypoints = self._cleanNumLookAheadWaypoints(numLookAheadWaypoints):
+        numLookAheadWaypoints = self._cleanNumLookAheadWaypoints(numLookAheadWaypoints)
 
         # Calculate global wind from measured wind and boat state
         globalWindSpeedKmph, globalWindDirectionDegrees = utils.measuredWindToGlobalWind(
@@ -450,8 +504,20 @@ class Path:
             return False
 
     def obstacleOnPath(self, state, numLookAheadWaypoints=None, showWarnings=False):
+        '''Checks if there any obstacles on the path starting from state.position to the next numLookAheadWaypoints
+
+        Args:
+           state (BoatState): state of the boat, which defines the boat position and obstacle positions
+           numLookAheadWaypoints (int): number of waypoints to look ahead at from state.position
+                                        (ignores obstacles very far ahead)
+           showWarnings (bool): display ros warnings if obstacles are detected
+
+        Returns:
+           bool True iff there exists an obstacle on the path within the first numLookAheadWaypoints
+           starting from state.position
+        '''
         # Default behavior when numLookAheadWaypoints is not given OR bad input: set to max
-        numLookAheadWaypoints = self._cleanNumLookAheadWaypoints(numLookAheadWaypoints):
+        numLookAheadWaypoints = self._cleanNumLookAheadWaypoints(numLookAheadWaypoints)
 
         # Check if path will hit objects
         positionXY = utils.latlonToXY(state.position, self.getReferenceLatlon())
