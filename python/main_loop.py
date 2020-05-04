@@ -126,7 +126,7 @@ if __name__ == '__main__':
 
         else:
             # Check if new local path should be generated and compared to current local path
-            costTooHigh = utils.pathCostThresholdExceeded(localPath.getCost())
+            costTooHigh = utils.pathCostThresholdExceeded(localPath)
             isLocalWaypointReached = localPath.nextWaypointReached(state.position)
             isTimeLimitExceeded = utils.timeLimitExceeded(lastTimePathCreated, speedup)
 

@@ -68,7 +68,7 @@ AIS_BOAT_CIRCLE_SPACING_KM = AIS_BOAT_RADIUS_KM * 1.5  # Distance between circle
 UPWIND_DOWNWIND_TIME_LIMIT_SECONDS = 1.5
 
 # Constants for pathfinding updates
-COST_THRESHOLD = 20000
+COST_THRESHOLD_PER_KM = 650
 MAX_ALLOWABLE_DISTANCE_FINAL_WAYPOINT_TO_GOAL_KM = GLOBAL_WAYPOINT_REACHED_RADIUS_KM / 2
 
 # Constants for obstacle models
@@ -1223,8 +1223,14 @@ def getObstacles(ships, position, speedKmph, referenceLatlon):
     return obstacles
 
 
-def pathCostThresholdExceeded(currentCost):
-    return currentCost > COST_THRESHOLD
+def pathCostThresholdExceeded(path):
+    latlons = path.getLatlons()
+    startLatlon = latlons[0]
+    endLatlon = latlons[len(latlons)-1]
+    distanceApartKm = distance((startLatlon.lat, startLatlon.lon), (endLatlon.lat, endLatlon.lon)).kilometers
+    rospy.loginfo("path.getCost() = {}. Cost threshold for this length = {}"
+                  .format(path.getCost(), COST_THRESHOLD_PER_KM * distanceApartKm))
+    return path.getCost() > COST_THRESHOLD_PER_KM * distanceApartKm
 
 
 def waitForGlobalPath(sailbot):
