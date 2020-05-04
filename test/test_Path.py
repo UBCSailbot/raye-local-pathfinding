@@ -163,7 +163,7 @@ class TestPath(unittest.TestCase):
 
     def test_obstacleOnPath(self):
         '''To visualize the obstacleOnPath check, go to updated_geometric_planner.py
-           and uncomment the plotting in hasObstacleOnPath()'''
+           and uncomment the plotting in indexOfObstacleOnPath()'''
         # Create simple path from latlon(0,0) to latlon(0.2,0.2)
         measuredWindSpeedKmph, measuredWindDirectionDegrees = utils.globalWindToMeasuredWind(
             globalWindSpeed=10, globalWindDirectionDegrees=90, boatSpeed=0, headingDegrees=0)
