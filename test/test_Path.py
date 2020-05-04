@@ -10,6 +10,7 @@ from Path import UPWIND_DOWNWIND_TIME_LIMIT_SECONDS
 import rostest
 import unittest
 import time
+from ompl import geometric as og
 
 # Do something with local_imports to avoid lint errors
 local_imports.printMessage()
@@ -17,84 +18,89 @@ local_imports.printMessage()
 
 class TestPath(unittest.TestCase):
 
-#     def test_localWaypointReached(self):
-#         # Setup path from (0,0) to (1,1)
-#         refLatlon = latlon(0, 0)
-#         start = utils.XYToLatlon(xy=(0, 0), referenceLatlon=refLatlon)
-#         waypoint = utils.XYToLatlon(xy=(1, 1), referenceLatlon=refLatlon)
-#         path = [start, waypoint]
-#         index = 1
-#
-#         # Test reachedPos
-#         reachedPos = utils.XYToLatlon(xy=(2, 2), referenceLatlon=refLatlon)
-#         self.assertTrue(
-#             utils.localWaypointReached(
-#                 position=reachedPos,
-#                 localPath=path,
-#                 localPathIndex=index,
-#                 refLatlon=refLatlon))
-#
-#         # Test notReachedPos
-#         notReachedPos = utils.XYToLatlon(xy=(1, 0.5), referenceLatlon=refLatlon)
-#         self.assertFalse(
-#             utils.localWaypointReached(
-#                 position=notReachedPos,
-#                 localPath=path,
-#                 localPathIndex=index,
-#                 refLatlon=refLatlon))
-#
-#     # testing cases where start and LWP have same lat or same lon
-#     def test_localWaypointReached_sameLat(self):
-#         # Setup path from (1,1) to (1,2)
-#         refLatlon = latlon(0, 0)
-#         start = utils.XYToLatlon(xy=(1, 1), referenceLatlon=refLatlon)
-#         waypoint = utils.XYToLatlon(xy=(1, 2), referenceLatlon=refLatlon)
-#         path = [start, waypoint]
-#         index = 1
-#
-#         # Test reachedPos
-#         reachedPos = utils.XYToLatlon(xy=(100, 2.1), referenceLatlon=refLatlon)
-#         self.assertTrue(
-#             utils.localWaypointReached(
-#                 position=reachedPos,
-#                 localPath=path,
-#                 localPathIndex=index,
-#                 refLatlon=refLatlon))
-#
-#         # Test notReachedPos
-#         notReachedPos = utils.XYToLatlon(xy=(-100, 1.9), referenceLatlon=refLatlon)
-#         self.assertFalse(
-#             utils.localWaypointReached(
-#                 position=notReachedPos,
-#                 localPath=path,
-#                 localPathIndex=index,
-#                 refLatlon=refLatlon))
-#
-#     def test_localWaypointReached_sameLon(self):
-#         # Setup path from (2,1) to (1,1)
-#         refLatlon = latlon(0, 0)
-#         start = utils.XYToLatlon(xy=(2, 1), referenceLatlon=refLatlon)
-#         waypoint = utils.XYToLatlon(xy=(1, 1), referenceLatlon=refLatlon)
-#         path = [start, waypoint]
-#         index = 1
-#
-#         # Test reachedPos
-#         reachedPos = utils.XYToLatlon(xy=(0.9, -100), referenceLatlon=refLatlon)
-#         self.assertTrue(
-#             utils.localWaypointReached(
-#                 position=reachedPos,
-#                 localPath=path,
-#                 localPathIndex=index,
-#                 refLatlon=refLatlon))
-#
-#         # Test notReachedPos
-#         notReachedPos = utils.XYToLatlon(xy=(1.1, 100), referenceLatlon=refLatlon)
-#         self.assertFalse(
-#             utils.localWaypointReached(
-#                 position=notReachedPos,
-#                 localPath=path,
-#                 localPathIndex=index,
-#                 refLatlon=refLatlon))
+    def test_localWaypointReached(self):
+        def createState(spaceInformation, xy):
+            state = spaceInformation.allocState()
+            state.setXY(xy[0], xy[1])
+            return state
+
+        # Create dummy path and change private variables directly
+        measuredWindSpeedKmph, measuredWindDirectionDegrees = utils.globalWindToMeasuredWind(
+            globalWindSpeed=10, globalWindDirectionDegrees=90, boatSpeed=0, headingDegrees=0)
+        state = sbot.BoatState(globalWaypoint=latlon(0.2, 0.2), position=latlon(0, 0),
+                               measuredWindDirectionDegrees=measuredWindDirectionDegrees,
+                               measuredWindSpeedKmph=measuredWindSpeedKmph,
+                               AISData=AISMsg(), headingDegrees=0, speedKmph=0)
+        path = utils.createPath(state, runtimeSeconds=1, numRuns=2)
+        spaceInformation = path.getSpaceInformation()
+
+        # Create acutal path
+        actualPath = og.PathGeometric(spaceInformation)
+        actualPath.append(createState(spaceInformation, [0, 0]))
+        actualPath.append(createState(spaceInformation, [1, 1]))
+        path.getOMPLPath()._solutionPath = actualPath
+        path._latlons = path._getLatlonsFromOMPLPath(path._omplPath)
+
+        # Test reachedPos
+        reachedPos = utils.XYToLatlon(xy=(2, 2), referenceLatlon=path.getReferenceLatlon())
+        self.assertTrue(path.nextWaypointReached(reachedPos))
+
+        # Test notReachedPos
+        notReachedPos = utils.XYToLatlon(xy=(1, 0.5), referenceLatlon=path.getReferenceLatlon())
+        self.assertFalse(path.nextWaypointReached(notReachedPos))
+
+    # testing cases where start and LWP have same lat or same lon
+    def test_localWaypointReached_sameLat(self):
+        # Setup path from (1,1) to (1,2)
+        refLatlon = latlon(0, 0)
+        start = utils.XYToLatlon(xy=(1, 1), referenceLatlon=refLatlon)
+        waypoint = utils.XYToLatlon(xy=(1, 2), referenceLatlon=refLatlon)
+        path = [start, waypoint]
+        index = 1
+
+        # Test reachedPos
+        reachedPos = utils.XYToLatlon(xy=(100, 2.1), referenceLatlon=refLatlon)
+        self.assertTrue(
+            utils.localWaypointReached(
+                position=reachedPos,
+                localPath=path,
+                localPathIndex=index,
+                refLatlon=refLatlon))
+
+        # Test notReachedPos
+        notReachedPos = utils.XYToLatlon(xy=(-100, 1.9), referenceLatlon=refLatlon)
+        self.assertFalse(
+            utils.localWaypointReached(
+                position=notReachedPos,
+                localPath=path,
+                localPathIndex=index,
+                refLatlon=refLatlon))
+
+    def test_localWaypointReached_sameLon(self):
+        # Setup path from (2,1) to (1,1)
+        refLatlon = latlon(0, 0)
+        start = utils.XYToLatlon(xy=(2, 1), referenceLatlon=refLatlon)
+        waypoint = utils.XYToLatlon(xy=(1, 1), referenceLatlon=refLatlon)
+        path = [start, waypoint]
+        index = 1
+
+        # Test reachedPos
+        reachedPos = utils.XYToLatlon(xy=(0.9, -100), referenceLatlon=refLatlon)
+        self.assertTrue(
+            utils.localWaypointReached(
+                position=reachedPos,
+                localPath=path,
+                localPathIndex=index,
+                refLatlon=refLatlon))
+
+        # Test notReachedPos
+        notReachedPos = utils.XYToLatlon(xy=(1.1, 100), referenceLatlon=refLatlon)
+        self.assertFalse(
+            utils.localWaypointReached(
+                position=notReachedPos,
+                localPath=path,
+                localPathIndex=index,
+                refLatlon=refLatlon))
 
     def test_upwindOrDownwindOnPath(self):
         # Create simple path from latlon(0,0) to latlon(0.2,0.2)
