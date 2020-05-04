@@ -309,10 +309,6 @@ class TestPath(unittest.TestCase):
         # Obstacle on path
         self.assertTrue(path.obstacleOnPath(state))
 
-        # Move boat position, but still have obstacle on path
-        state.position = latlon(-0.1, -0.1)
-        self.assertTrue(path.obstacleOnPath(state))
-
         # Only look ahead 1 waypoint, but still has obstacle on path
         # (defaults to all waypoints if numLookAheadWaypoints not given)
         self.assertTrue(path.obstacleOnPath(state, numLookAheadWaypoints=1))

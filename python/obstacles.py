@@ -167,8 +167,8 @@ class Wedge(ObstacleInterface):
         theta2 = aisData.headingDegrees + WEDGE_EXPAND_ANGLE_DEGREES / 2.0
         if theta1 < 0:
             theta1 += 360
-        if theta2 > 360:
-            theta2 -= 360
+        if theta2 < theta1:
+            theta2 += 360
 
         distanceToBoatKm = distance((aisData.lat, aisData.lon), (sailbotPosition.lat, sailbotPosition.lon)).kilometers
         if sailbotSpeedKmph == 0 or distanceToBoatKm / sailbotSpeedKmph > OBSTACLE_MAX_TIME_TO_LOC_HOURS:
@@ -180,16 +180,21 @@ class Wedge(ObstacleInterface):
         self.x, self.y = aisX, aisY
         self.radius = radius
         self.theta1, self.theta2 = theta1, theta2
+        print("Theta1 = {}".format(theta1))
+        print("Theta2 = {}".format(theta2))
+        print("radius = {}".format(radius))
 
     def addPatch(self, axes):
         axes.add_patch(patches.Wedge((self.x, self.y), self.radius, self.theta1, self.theta2))
 
     def isValid(self, xy):
         angle = math.degrees(math.atan2(xy[1] - self.y, xy[0] - self.x))
-        if angle < 0:
+        if angle < self.theta1:
             angle += 360
         distance = math.sqrt((xy[1] - self.y) ** 2 + (xy[0] - self.x) ** 2)
-        if (angle > self.theta1 and angle < self.theta2 and distance < self.radius):
+        print("angle = {}".format(angle))
+        print("distance = {}".format(distance))
+        if (angle > self.theta1 and angle < self.theta2 and distance <= self.radius):
             return False
         return True
 
