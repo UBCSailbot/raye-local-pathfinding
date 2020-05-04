@@ -31,14 +31,12 @@ class CollisionChecker:
         for ship in self.ships:
             dist = distance((ship.lat, ship.lon), (self.lat, self.lon)).km
             if dist < self.collision_radius:
-                rospy.logfatal(
-                    "Boat has collided with obstacle. Collision radius {}km. Actual distance to boat: {}km".format(
-                        self.collision_radius, dist))
+                rospy.logfatal("Boat has collided with obstacle. Collision radius {}km. Actual distance to boat: {}km"
+                               .format(self.collision_radius, dist))
 
             elif dist < self.warn_radius:
-                rospy.logwarn(
-                    "Close to collision. Within {}km of boat. Actual distance to boat: {}km".format(
-                        self.warn_radius, dist))
+                rospy.logwarn("Close to collision. Within {}km of boat. Actual distance to boat: {}km"
+                              .format(self.warn_radius, dist))
 
 
 if __name__ == '__main__':
