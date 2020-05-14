@@ -1,6 +1,6 @@
 # Python planning code 
 
-<!-- Try to add CircleCI badge [![UBCSailbot](https://circleci.com/github/UBCSailbot/local-pathfinding.svg?style=svg&circle-token=	d1bf596ed78d6a5d3744417a589e9ea71128364b)](https://circleci.com/github/UBCSailbot/local-pathfinding) -->
+[![CircleCI](https://circleci.com/gh/UBCSailbot/local-pathfinding.svg?style=shield&circle-token=d1bf596ed78d6a5d3744417a589e9ea71128364b)](https://circleci.com/gh/UBCSailbot/local-pathfinding)
 
 The main planning code in python can be found in the `python` directory. This code is meant to provide a baseline for the C++ implementation.
 

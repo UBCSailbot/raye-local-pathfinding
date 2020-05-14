@@ -14,6 +14,12 @@ MAIN_LOOP_PERIOD_SECONDS = 0.5
 # Global variable to receive path update request messages
 localPathUpdateRequested = False
 
+# Global variable to receive path update force messages
+localPathUpdateForced = False
+
+# Global variable for speedup
+speedup = 1.0
+
 
 def localPathUpdateRequestedCallback(data):
     global localPathUpdateRequested
@@ -21,18 +27,10 @@ def localPathUpdateRequestedCallback(data):
     localPathUpdateRequested = True
 
 
-# Global variable to receive path update force messages
-localPathUpdateForced = False
-
-
 def localPathUpdateForcedCallback(data):
     global localPathUpdateForced
     rospy.loginfo("localPathUpdateForced message received.")
     localPathUpdateForced = True
-
-
-# Global variable for speedup
-speedup = 1.0
 
 
 def speedupCallback(data):
