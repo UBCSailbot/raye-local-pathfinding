@@ -301,8 +301,7 @@ def getObstacles(ships, position, speedKmph, referenceLatlon):
     Returns:
        list of obstacles that implement the obstacle interface
     '''
-    # obstacle_type = rospy.get_param('obstacle_type', 'hybrid_circle')
-    obstacle_type = 'hybrid_circle'
+    obstacle_type = rospy.get_param('obstacle_type', 'hybrid_circle')
     obstacles = []
     if obstacle_type == "ellipse":
         for ship in ships:
