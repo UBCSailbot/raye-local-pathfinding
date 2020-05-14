@@ -58,7 +58,7 @@ BOAT_LEFT = 180
 BOAT_BACKWARD = 270
 
 # Constants for pathfinding updates
-COST_THRESHOLD = 20000
+COST_THRESHOLD_PER_KM = 650
 
 
 def takeScreenshot():
@@ -383,6 +383,7 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=Fals
         yMax = max(start[1], goal[1]) + extraKm
         return [xMin, yMin, xMax, yMax]
 
+    # If start or goal is invalid, shrink objects and re-run
     def shrinkObstaclesUntilValid(xy, obstacles):
         def obstaclesTooClose(xy, obstacles):
             obstaclesTooCloseList = []
@@ -400,7 +401,6 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=Fals
             obstaclesTooCloseList = obstaclesTooClose(xy, obstacles)
             amountShrinked *= OBSTACLE_SHRINK_FACTOR
         return amountShrinked
-    ou.setLogLevel(ou.LOG_WARN)
 
     def isValidSolution(solution, referenceLatlon, state):
         if not solution.haveExactSolutionPath():
@@ -503,6 +503,7 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=Fals
                         minCost = simplifiedCost
         return bestSolution, bestSolutionPath, minCost
 
+    ou.setLogLevel(ou.LOG_WARN)
     # Set speedup to 1.0 during planning
     if resetSpeedupDuringPlan:
         speedupDuringPlan = 1.0
@@ -547,6 +548,7 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=Fals
     validSolutions = []
     invalidSolutions = []
     for i in range(numRuns):
+        # TODO: Incorporate globalWindSpeed into pathfinding?
         rospy.loginfo("Starting path-planning run number: {}".format(i))
         solution = plan(runtimeSeconds, "RRTStar", 'WeightedLengthAndClearanceCombo',
                         globalWindDirectionDegrees, dimensions, start, goal, obstacles)
