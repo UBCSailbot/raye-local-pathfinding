@@ -5,7 +5,7 @@ from ompl import geometric as og
 
 import planner_helpers as ph
 
-VALIDITY_CHECKING_RESOLUTION = 0.001  # Default 0.01
+VALIDITY_CHECKING_RESOLUTION_KM = 0.05
 
 
 def absolute_distance_between_angles(angle1, angle2):
@@ -119,7 +119,8 @@ def plan(run_time, planner_type, objective_type, wind_direction_degrees, dimensi
     si = ss.getSpaceInformation()
 
     # Set resolution of state validity checking, which is fraction of space's extent (Default is 0.01)
-    si.setStateValidityCheckingResolution(VALIDITY_CHECKING_RESOLUTION)
+    desiredResolution = VALIDITY_CHECKING_RESOLUTION_KM / ss.getStateSpace().getMaximumExtent()
+    si.setStateValidityCheckingResolution(desiredResolution)
 
     # Set the objects used to check which states in the space are valid
     validity_checker = ph.ValidityChecker(si, obstacles)
