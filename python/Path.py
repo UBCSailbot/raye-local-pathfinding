@@ -8,7 +8,7 @@ from local_pathfinding.msg import latlon
 from geopy.distance import distance
 
 # Constants
-UPWIND_DOWNWIND_TIME_LIMIT_SECONDS = 1.5
+UPWIND_DOWNWIND_TIME_LIMIT_SECONDS = 0.5
 MAX_ALLOWABLE_DISTANCE_FINAL_WAYPOINT_TO_GOAL_KM = 5
 
 

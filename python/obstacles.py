@@ -165,10 +165,12 @@ class Wedge(ObstacleInterface):
 
         theta1 = aisData.headingDegrees - WEDGE_EXPAND_ANGLE_DEGREES / 2.0
         theta2 = aisData.headingDegrees + WEDGE_EXPAND_ANGLE_DEGREES / 2.0
+
+        # Ensure theta1 >= 0 and theta2 >= theta1
         if theta1 < 0:
             theta1 += 360
-        if theta2 > 360:
-            theta2 -= 360
+        while theta2 < theta1:
+            theta2 += 360
 
         distanceToBoatKm = distance((aisData.lat, aisData.lon), (sailbotPosition.lat, sailbotPosition.lon)).kilometers
         if sailbotSpeedKmph == 0 or distanceToBoatKm / sailbotSpeedKmph > OBSTACLE_MAX_TIME_TO_LOC_HOURS:
@@ -186,10 +188,13 @@ class Wedge(ObstacleInterface):
 
     def isValid(self, xy):
         angle = math.degrees(math.atan2(xy[1] - self.y, xy[0] - self.x))
-        if angle < 0:
+
+        # Ensure that angle >= theta1
+        while angle < self.theta1:
             angle += 360
+
         distance = math.sqrt((xy[1] - self.y) ** 2 + (xy[0] - self.x) ** 2)
-        if (angle > self.theta1 and angle < self.theta2 and distance < self.radius):
+        if (angle > self.theta1 and angle < self.theta2 and distance <= self.radius):
             return False
         return True
 

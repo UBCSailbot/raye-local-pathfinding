@@ -72,19 +72,15 @@ def indexOfObstacleOnPath(positionXY, nextLocalWaypointIndex, numLookAheadWaypoi
             return stateIndex
 
     '''Uncomment to visualize the obstacles, relevant states, and all states
+    import matplotlib.pyplot as plt
     ax = plt.gca()
-    for obstacle in obstacles:
-        # print("Obstacle {}, {}, {}".format(obstacle.x, obstacle.y, obstacle.radius))
-        c = plt.Circle((obstacle.x, obstacle.y), radius=obstacle.radius)
-        c.set_color('r')
-        ax.add_patch(c)
+    for obstacle in omplPath._ss.getStateValidityChecker().obstacles:
+        obstacle.addPatch(ax)
     for s in omplPath.getSolutionPath().getStates():
-        # print("SolutionPath State {}, {}".format(s.getX(), s.getY()))
         c = plt.Circle((s.getX(), s.getY()), radius=0.2)
         c.set_color('g')
         ax.add_patch(c)
     for s in relevantStates:
-        # print("Relevant State {}, {}".format(s.getX(), s.getY()))
         c = plt.Circle((s.getX(), s.getY()), radius=0.1)
         c.set_color('b')
         ax.add_patch(c)
