@@ -58,7 +58,7 @@ BOAT_LEFT = 180
 BOAT_BACKWARD = 270
 
 # Constants for pathfinding updates
-COST_THRESHOLD = 20000
+COST_THRESHOLD_PER_KM = 650
 
 
 def takeScreenshot():
@@ -561,17 +561,23 @@ def getObstacles(ships, position, speedKmph, referenceLatlon):
     return obstacles
 
 
-def pathCostThresholdExceeded(currentCost):
-    '''Checks if the path cost is above the cost threshold
+def pathCostThresholdExceeded(path):
+    '''Checks if the given path's cost is above the cost threshold for its length
 
     Args:
-       currentCost (float): Cost of the current path
+       path (Path): Path object whose cost will be evaluated
 
     Returns:
-       bool True iff currentCost is greater than the cost threshold
+       bool True iff the path's cost per km between its start and goal is greater than the threshold
     '''
-    # TODO: Extend this method to scale based on path length or distance to goal
-    return currentCost > COST_THRESHOLD
+    latlons = path.getLatlons()
+    startLatlon, endLatlon = latlons[0], latlons[len(latlons) - 1]
+    distanceApartKm = distance((startLatlon.lat, startLatlon.lon), (endLatlon.lat, endLatlon.lon)).kilometers
+    costThreshold = COST_THRESHOLD_PER_KM * distanceApartKm
+    pathCost = path.getCost()
+    rospy.loginfo("pathCost = {}. Cost threshold for this length = {}"
+                  .format(pathCost, costThreshold))
+    return pathCost > costThreshold
 
 
 def waitForGlobalPath(sailbot):
