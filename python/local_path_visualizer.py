@@ -179,7 +179,7 @@ if __name__ == '__main__':
         localPathXY = [utils.latlonToXY(localWaypoint, referenceLatlon) for localWaypoint in localPath]
         localPathX = [xy[0] for xy in localPathXY]
         localPathY = [xy[1] for xy in localPathXY]
-        shipsXY = utils.getObstacles(state.AISData.ships, state.position, state.speedKmph, referenceLatlon)
+        shipsXY = utils.getObstacles(state, referenceLatlon)
 
         # Update plots
         localPathPlot.set_xdata(localPathX)

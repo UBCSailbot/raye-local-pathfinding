@@ -84,7 +84,7 @@ class OMPLPath:
 
     def updateObstacles(self, state):
         '''Update the obstacles of the OMPL validation checker'''
-        obstacles = utils.getObstacles(state.AISData.ships, state.position, state.speedKmph, self._referenceLatlon)
+        obstacles = utils.getObstacles(state, self._referenceLatlon)
         validity_checker = ph.ValidityChecker(self._ss.getSpaceInformation(), obstacles)
         self._ss.setStateValidityChecker(validity_checker)
 

@@ -289,18 +289,17 @@ def isValid(xy, obstacles):
     return True
 
 
-def getObstacles(ships, position, speedKmph, referenceLatlon):
+def getObstacles(state, referenceLatlon):
     '''Creates a list of obstacles in xy coordinates. Uses the obstacle type from the rosparam "obstacle_type"
 
     Args:
-       ships (list of AISShips): List of ships in latlon coordinates to be converted into xy obstacles
-       position (local_pathfinding.msg._latlon.latlon): Position of the sailbot
-       speedKmph (float): Speed of the sailbot
+       state (BoatState): State of the sailbot
        referenceLatlon (local_pathfinding.msg._latlon.latlon): Position of the reference point that will be at (0,0)
 
     Returns:
        list of obstacles that implement the obstacle interface
     '''
+    ships, position, speedKmph = state.AISData.ships, state.position, state.speedKmph
     obstacle_type = rospy.get_param('obstacle_type', 'hybrid_circle')
     obstacles = []
     if obstacle_type == "ellipse":
@@ -520,7 +519,7 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=Fals
     start = latlonToXY(state.position, referenceLatlon)
     goal = latlonToXY(state.globalWaypoint, referenceLatlon)
     dimensions = getXYLimits(start, goal)
-    obstacles = getObstacles(state.AISData.ships, state.position, state.speedKmph, referenceLatlon)
+    obstacles = getObstacles(state, referenceLatlon)
     globalWindSpeedKmph, globalWindDirectionDegrees = measuredWindToGlobalWind(
         state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
 
