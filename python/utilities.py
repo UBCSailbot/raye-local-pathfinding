@@ -60,6 +60,8 @@ BOAT_BACKWARD = 270
 # Constants for pathfinding updates
 COST_THRESHOLD_PER_KM = 650
 
+# Constant for number of speedup subscribers needed before publishing initial_speedup
+MIN_NUM_SPEEDUP_SUBS_BEFORE_PUBLISHING = 6
 
 def takeScreenshot():
     '''Take a screenshot and save it to a png file.
@@ -354,6 +356,31 @@ def waitForGlobalPath(sailbot):
             time.sleep(1)
     rospy.loginfo("newGlobalPath received")
 
+
+def setInitialSpeedup():
+    '''Wait until there are enough speedup subscribers before publishing initial speedup.
+    Assumes 1.0 if "initial_speedup" parameter not set.
+
+    Note: Expects that rospy.init_node() has already been called before.
+    '''
+    initial_speedup = rospy.get_param('initial_speedup', default=1.0)
+    speedupPublisher = rospy.Publisher('speedup', Float64, queue_size=4)
+
+    # Wait for other nodes before publishing
+    numConnections = speedupPublisher.get_num_connections()
+    while numConnections < MIN_NUM_SPEEDUP_SUBS_BEFORE_PUBLISHING:
+        rospy.logerr("{} speedup subscribers found. Waiting for at least {} speedup subscribers "
+                      "before publishing initial speedup"
+                      .format(numConnections, MIN_NUM_SPEEDUP_SUBS_BEFORE_PUBLISHING))
+        time.sleep(1)
+
+        # Calculate number of connections at the end of each loop
+        numConnections = speedupPublisher.get_num_connections()
+
+    # Publish message, then must wait to ensure other nodes receive the message before continuing
+    rospy.logerr("Publishing initial_speedup = {}".format(initial_speedup))
+    speedupPublisher.publish(initial_speedup)
+    time.sleep(1)
 
 def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=False, speedupBeforePlan=1.0,
                maxAllowableRuntimeSeconds=MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS):
