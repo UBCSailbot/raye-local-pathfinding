@@ -10,9 +10,6 @@ from std_msgs.msg import Int32
 
 from local_pathfinding.msg import AISShip, AISMsg, GPS
 
-# Can set random seed to get deterministic start for testing
-random.seed(1)
-
 # Constants
 AIS_PUBLISH_PERIOD_SECONDS = 0.1  # Keep below 1.0 for smoother boat motion
 NUM_AIS_SHIPS = 30
@@ -79,6 +76,18 @@ class Ship:
 class MOCK_AISEnvironment:
     # Just a class to keep track of the ships surrounding the sailbot
     def __init__(self, lat, lon, ais_file):
+        # Setup ros objects
+        rospy.init_node('MOCK_AIS', anonymous=True)
+        self.publisher = rospy.Publisher("AIS", AISMsg, queue_size=4)
+        rospy.Subscriber('/new_boats', AISShip, self.new_boat_callback)
+        rospy.Subscriber('/delete_boats', Int32, self.remove_boat_callback)
+        rospy.Subscriber('/GPS', GPS, self.gps_callback)
+        rospy.Subscriber('speedup', Float64, self.speedup_callback)
+
+        # Set random seed. Must be called AFTER rospy.init_node and BEFORE making random ships
+        self.set_random_seed()
+
+        # Create ships
         self.publishPeriodSeconds = AIS_PUBLISH_PERIOD_SECONDS
         self.speedup = 1.0
         self.ships = []
@@ -96,12 +105,14 @@ class MOCK_AISEnvironment:
         self.sailbot_lat = lat
         self.sailbot_lon = lon
 
-        rospy.init_node('MOCK_AIS', anonymous=True)
-        self.publisher = rospy.Publisher("AIS", AISMsg, queue_size=4)
-        rospy.Subscriber('/new_boats', AISShip, self.new_boat_callback)
-        rospy.Subscriber('/delete_boats', Int32, self.remove_boat_callback)
-        rospy.Subscriber('/GPS', GPS, self.gps_callback)
-        rospy.Subscriber('speedup', Float64, self.speedup_callback)
+    def set_random_seed(self):
+        randomSeed = rospy.get_param('random_seed', "")
+        try:
+            randomSeed = int(randomSeed)
+            random.seed(randomSeed)
+            rospy.loginfo("randomSeed = {}. Setting seed".format(randomSeed))
+        except ValueError:
+            rospy.loginfo("randomSeed = {}. Not setting seed".format(randomSeed))
 
     def move_ships(self):
         for i in range(self.numShips):
