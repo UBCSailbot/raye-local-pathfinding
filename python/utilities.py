@@ -371,8 +371,8 @@ def setInitialSpeedup():
     numConnections = speedupPublisher.get_num_connections()
     while numConnections < MIN_NUM_SPEEDUP_SUBS_BEFORE_PUBLISHING:
         rospy.loginfo("{} speedup subscribers found. Waiting for at least {} speedup subscribers "
-                     "before publishing initial speedup"
-                     .format(numConnections, MIN_NUM_SPEEDUP_SUBS_BEFORE_PUBLISHING))
+                      "before publishing initial speedup"
+                      .format(numConnections, MIN_NUM_SPEEDUP_SUBS_BEFORE_PUBLISHING))
         time.sleep(1)
 
         # Calculate number of connections at the end of each loop

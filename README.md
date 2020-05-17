@@ -62,6 +62,8 @@ All of the arguments below are optional for `all.launch`.
 
 * `plot_pathfinding_problem` - Bool value that sets if a plot of the pathfinding problem should shown each time `createPath` is run. Default: `false`.
 
+* `random_seed` - Int value that we set the random seed to. Default: `""`, which results in the random seed being set by time.
+
 #### Run a specific saved pathfinding scenario
 
 Instructions to run pathfinding unit tests can be found [here](json/README.md).
