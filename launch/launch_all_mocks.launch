@@ -32,6 +32,10 @@
     <arg name="plot_pathfinding_problem" default="false" />
     <param name="plot_pathfinding_problem" type="bool" value="$(arg plot_pathfinding_problem)" />
 
+    <!-- Sets random seed. Will only set seed if it is an integer. -->
+    <arg name="random_seed" default="" />
+    <param name="random_seed" type="string" value="$(arg random_seed)" />
+
     <node pkg="local_pathfinding" type="MOCK_wind_sensor.py" name="MOCK_wind_sensor" />
     <node pkg="local_pathfinding" type="MOCK_controller_and_boat.py" name="MOCK_controller_and_boat" />
     <node pkg="local_pathfinding" type="MOCK_AIS.py" name="MOCK_AIS" />
