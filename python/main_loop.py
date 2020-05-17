@@ -39,7 +39,7 @@ def speedupCallback(data):
     rospy.loginfo("speedup message of {} received.".format(speedup))
 
 
-def updateToNewLocalPath(state, maxAllowableRuntimeSeconds):
+def createNewLocalPath(state, maxAllowableRuntimeSeconds):
     # Composition of functions used every time when updating local path
     global speedup
     localPath = utils.createPath(state, resetSpeedupDuringPlan=True, speedupBeforePlan=speedup,
@@ -80,7 +80,7 @@ if __name__ == '__main__':
 
     # Create first path and track time of updates
     state = sailbot.getCurrentState()
-    localPath, lastTimePathCreated = updateToNewLocalPath(state, utils.MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS)
+    localPath, lastTimePathCreated = createNewLocalPath(state, utils.MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS)
     sailbot.newGlobalPathReceived = False
 
     while not rospy.is_shutdown():
@@ -125,7 +125,7 @@ if __name__ == '__main__':
 
             # Update local path
             state = sailbot.getCurrentState()
-            localPath, lastTimePathCreated = updateToNewLocalPath(
+            localPath, lastTimePathCreated = createNewLocalPath(
                 state, utils.MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS / 2.0)
 
         else:
@@ -150,14 +150,18 @@ if __name__ == '__main__':
                 if isLocalWaypointReached:
                     localPath.removePastWaypoints(state)
 
-                # Update local path if new one is better than old
-                _localPath, _lastTimePathCreated = updateToNewLocalPath(
+                # Create new local path to compare
+                _localPath, _lastTimePathCreated = createNewLocalPath(
                     state, utils.MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS)
                 lastTimePathCreated = _lastTimePathCreated
+
+                # Update local path if new one is better than old AND it reaches the goal
                 currentPathCost = localPath.getCost()
                 newPathCost = _localPath.getCost()
-                rospy.loginfo("currentPathCost = {}. newPathCost = {}".format(currentPathCost, newPathCost))
-                if newPathCost < currentPathCost:
+                newPathReachesGoal = _localPath.reachesGoalLatlon(state.globalWaypoint)
+                rospy.loginfo("currentPathCost = {}. newPathCost = {}. newPathReachesGoal = {}."
+                              .format(currentPathCost, newPathCost, newPathReachesGoal))
+                if newPathCost < currentPathCost and newPathReachesGoal:
                     rospy.loginfo("Updating to new local path")
                     localPath = _localPath
                 else:
