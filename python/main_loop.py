@@ -36,6 +36,7 @@ def localPathUpdateForcedCallback(data):
 def speedupCallback(data):
     global speedup
     speedup = data.data
+    rospy.loginfo("speedup message of {} received.".format(speedup))
 
 
 def createNewLocalPath(state, maxAllowableRuntimeSeconds):
@@ -70,6 +71,11 @@ if __name__ == '__main__':
 
     # Wait until first global path is received
     utils.waitForGlobalPath(sailbot)
+
+    # Set the initial speedup value. Best done here in main_loop to ensure the timing.
+    # Should be published before loop begins.
+    utils.setInitialSpeedup()
+
     rospy.loginfo("Starting main loop")
 
     # Create first path and track time of updates

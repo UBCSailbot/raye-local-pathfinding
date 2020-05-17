@@ -38,5 +38,4 @@
     <node pkg="local_pathfinding" type="MOCK_global_planner.py" name="MOCK_global_planner" />
     <node pkg="local_pathfinding" type="MOCK_UDP_bridge.py" name="MOCK_UDP_bridge" />
     <node pkg="local_pathfinding" type="addBoat.py" name="addBoat" />
-    <node pkg="local_pathfinding" type="setInitialSpeedup.py" name="setInitialSpeedup" />
 </launch>
