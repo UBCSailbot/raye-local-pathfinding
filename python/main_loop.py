@@ -72,7 +72,8 @@ if __name__ == '__main__':
     # Wait until first global path is received
     utils.waitForGlobalPath(sailbot)
 
-    # Set the initial speedup value. Best done here in main_loop to ensure the timing. Should be published before loop begins.
+    # Set the initial speedup value. Best done here in main_loop to ensure the timing.
+    # Should be published before loop begins.
     utils.setInitialSpeedup()
 
     rospy.loginfo("Starting main loop")

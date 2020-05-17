@@ -63,6 +63,7 @@ COST_THRESHOLD_PER_KM = 650
 # Constant for number of speedup subscribers needed before publishing initial_speedup
 MIN_NUM_SPEEDUP_SUBS_BEFORE_PUBLISHING = 6
 
+
 def takeScreenshot():
     '''Take a screenshot and save it to a png file.
 
@@ -370,8 +371,8 @@ def setInitialSpeedup():
     numConnections = speedupPublisher.get_num_connections()
     while numConnections < MIN_NUM_SPEEDUP_SUBS_BEFORE_PUBLISHING:
         rospy.logerr("{} speedup subscribers found. Waiting for at least {} speedup subscribers "
-                      "before publishing initial speedup"
-                      .format(numConnections, MIN_NUM_SPEEDUP_SUBS_BEFORE_PUBLISHING))
+                     "before publishing initial speedup"
+                     .format(numConnections, MIN_NUM_SPEEDUP_SUBS_BEFORE_PUBLISHING))
         time.sleep(1)
 
         # Calculate number of connections at the end of each loop
@@ -381,6 +382,7 @@ def setInitialSpeedup():
     rospy.logerr("Publishing initial_speedup = {}".format(initial_speedup))
     speedupPublisher.publish(initial_speedup)
     time.sleep(1)
+
 
 def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=False, speedupBeforePlan=1.0,
                maxAllowableRuntimeSeconds=MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS):
