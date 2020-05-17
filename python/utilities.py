@@ -370,7 +370,7 @@ def setInitialSpeedup():
     # Wait for other nodes before publishing
     numConnections = speedupPublisher.get_num_connections()
     while numConnections < MIN_NUM_SPEEDUP_SUBS_BEFORE_PUBLISHING:
-        rospy.logerr("{} speedup subscribers found. Waiting for at least {} speedup subscribers "
+        rospy.loginfo("{} speedup subscribers found. Waiting for at least {} speedup subscribers "
                      "before publishing initial speedup"
                      .format(numConnections, MIN_NUM_SPEEDUP_SUBS_BEFORE_PUBLISHING))
         time.sleep(1)
@@ -379,7 +379,9 @@ def setInitialSpeedup():
         numConnections = speedupPublisher.get_num_connections()
 
     # Publish message, then must wait to ensure other nodes receive the message before continuing
-    rospy.logerr("Publishing initial_speedup = {}".format(initial_speedup))
+    rospy.loginfo("{} speedup subscribers found, which is greater than or equal to the required {} speedup subscribers"
+                  .format(numConnections, MIN_NUM_SPEEDUP_SUBS_BEFORE_PUBLISHING))
+    rospy.loginfo("Publishing initial_speedup = {}".format(initial_speedup))
     speedupPublisher.publish(initial_speedup)
     time.sleep(1)
 
