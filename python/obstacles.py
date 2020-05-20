@@ -162,7 +162,8 @@ class Wedge(ObstacleInterface):
 
     def _extendObstacle(self, aisData, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
         aisX, aisY = utils.latlonToXY(latlon(aisData.lat, aisData.lon), referenceLatlon)
-        sailbotPositionX, sailbotPositionY = utils.latlonToXY(latlon(sailbotPosition.lat, sailbotPosition.lon), referenceLatlon)
+        sailbotPositionX, sailbotPositionY = utils.latlonToXY(latlon(sailbotPosition.lat, sailbotPosition.lon),
+                                                              referenceLatlon)
 
         theta1 = aisData.headingDegrees - WEDGE_EXPAND_ANGLE_DEGREES / 2.0
         theta2 = aisData.headingDegrees + WEDGE_EXPAND_ANGLE_DEGREES / 2.0
@@ -175,16 +176,18 @@ class Wedge(ObstacleInterface):
 
         distanceToBoatKm = distance((aisData.lat, aisData.lon), (sailbotPosition.lat, sailbotPosition.lon)).kilometers
         angleBoatToSailbotDegrees = math.atan2(aisY - sailbotPositionY, aisX - sailbotPositionX)
-        boatSpeedInDirectionToSailbotKmph = aisData.speedKmph * math.cos(math.radians(aisData.headingDegrees - angleBoatToSailbotDegrees))
-        if sailbotSpeedKmph + boatSpeedInDirectionToSailbotKmph == 0:
+        boatSpeedInDirToSailbotKmph = (aisData.speedKmph *
+                                       math.cos(math.radians(aisData.headingDegrees - angleBoatToSailbotDegrees)))
+        if sailbotSpeedKmph + boatSpeedInDirToSailbotKmph == 0:
             smallestTimeToLocHours = 0
         else:
-            smallestTimeToLocHours = distanceToBoatKm / (sailbotSpeedKmph + boatSpeedInDirectionToSailbotKmph)
+            smallestTimeToLocHours = distanceToBoatKm / (sailbotSpeedKmph + boatSpeedInDirToSailbotKmph)
         distanceTravelledKm = smallestTimeToLocHours * aisData.speedKmph
 
         timeExtendLengthHours = 0.2
         radius = aisData.speedKmph * timeExtendLengthHours
-        self.x, self.y = aisX + distanceTravelledKm * math.cos(math.radians(aisData.headingDegrees)), aisY + distanceTravelledKm * math.sin(math.radians(aisData.headingDegrees))
+        self.x = aisX + distanceTravelledKm * math.cos(math.radians(aisData.headingDegrees))
+        self.y = aisY + distanceTravelledKm * math.sin(math.radians(aisData.headingDegrees))
         self.origx, self.origy = aisX, aisY
         self.radius = radius
         self.theta1, self.theta2 = theta1, theta2
