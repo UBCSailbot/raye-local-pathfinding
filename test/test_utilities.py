@@ -248,7 +248,7 @@ class TestUtilities(unittest.TestCase):
     def test_createPath_basic(self):
         # Create simple straight line path (no need for tacking because of wind is 90 degrees, goal is 0 degrees)
         start = latlon(0, 0)
-        goal = latlon(0, 2)
+        goal = latlon(0, 0.2)
         measuredWindSpeedKmph, measuredWindDegrees = utils.globalWindToMeasuredWind(
             globalWindSpeed=10, globalWindDirectionDegrees=90, boatSpeed=0, headingDegrees=0)
         state = sbot.BoatState(globalWaypoint=goal, position=start, measuredWindDirectionDegrees=measuredWindDegrees,
@@ -269,10 +269,13 @@ class TestUtilities(unittest.TestCase):
         maxAcceptablePathLength = 2 * distance((start.lat, start.lon), (goal.lat, goal.lon)).kilometers
         self.assertLessEqual(path.getLength(), maxAcceptablePathLength)
 
+        # Check that path cost is acceptable
+        self.assertFalse(utils.pathCostThresholdExceeded(path))
+
     def test_createPath_advanced(self):
         # Create tacking path (requires tacking because of wind is 45 degrees, goal is 45 degrees)
         start = latlon(0, 0)
-        goal = latlon(2, 2)
+        goal = latlon(0.2, 0.2)
         measuredWindSpeedKmph, measuredWindDegrees = utils.globalWindToMeasuredWind(
             globalWindSpeed=10, globalWindDirectionDegrees=45, boatSpeed=0, headingDegrees=0)
         state = sbot.BoatState(globalWaypoint=goal, position=start, measuredWindDirectionDegrees=measuredWindDegrees,
@@ -292,6 +295,9 @@ class TestUtilities(unittest.TestCase):
         # Check that total path length is reasonable
         maxAcceptablePathLength = 2 * distance((start.lat, start.lon), (goal.lat, goal.lon)).kilometers
         self.assertLessEqual(path.getLength(), maxAcceptablePathLength)
+
+        # Check that path cost is acceptable
+        self.assertFalse(utils.pathCostThresholdExceeded(path))
 
 
 if __name__ == '__main__':
