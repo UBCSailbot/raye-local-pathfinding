@@ -28,6 +28,10 @@ def allocatePlanner(si, plannerType):
         return og.RRTstar(si)
     elif plannerType.lower() == "sorrtstar":
         return og.SORRTstar(si)
+    elif plannerType.lower() == "rrtxstatic":
+        return og.RRTXstatic(si)
+    elif plannerType.lower() == "rrtsharp":
+        return og.RRTsharp(si)
     else:
         ou.OMPL_ERROR("Planner-type is not implemented in allocation function.")
 
