@@ -190,10 +190,9 @@ class Wedge(ObstacleInterface):
         angle = math.degrees(math.atan2(xy[1] - self.y, xy[0] - self.x))
 
         # Ensure that angle >= theta1
-        # while angle < self.theta1:
-        #     angle += 360
-        if angle < 0:
+        while angle < self.theta1:
             angle += 360
+
 
         distance = math.sqrt((xy[1] - self.y) ** 2 + (xy[0] - self.x) ** 2)
         if (angle > self.theta1 and angle < self.theta2 and distance <= self.radius):
