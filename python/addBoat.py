@@ -29,7 +29,7 @@ def command_callback(msg):
             rospy.loginfo("invalid index passed")
     if msg.addType == "trailing":
         coords = getTrailingBoatLatlon(gps)
-        add_pub.publish(AISShip(msg.ship.ID, coords.lat, coords.lon, gps.headingDegrees, gps.speedKmph + 10))
+        add_pub.publish(AISShip(msg.ship.ID, coords.lat, coords.lon, gps.headingDegrees, gps.speedKmph + 20))
 
 
 
@@ -52,12 +52,12 @@ def getTrailingBoatLatlon(GPS):
     headingRad = math.radians(GPS.headingDegrees)
     m = math.tan(headingRad)
     dx = trailingDistance / (1 + m**2)**0.5
-    dy = m * dx
 
-    if math.sin(headingRad) > 0:
-        dy = -dy
     if math.cos(headingRad) > 0:
         dx = -dx
+    dy = m * dx
+    # if math.sin(headingRad) > 0:
+    #     dy = -dy
 
     return util.XYToLatlon([dx, dy], latlon(GPS.lat, GPS.lon))
     
