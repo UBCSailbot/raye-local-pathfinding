@@ -240,7 +240,6 @@ class TestPath(unittest.TestCase):
         path = utils.createPath(state, runtimeSeconds=1, numRuns=2)
         omplPath = path.getOMPLPath()
 
-
         '''
         Test the following:
         Let positionXY be between index 2 and 3 in the omplPath
@@ -251,6 +250,7 @@ class TestPath(unittest.TestCase):
         Scenario 1: 0     1     2  B  3  X  4     5     6     7  => Returns 4  (2 indices forward from B)
         Scenario 2: 0     1     2  B  3     4  X  5     6     7  => Returns -1 (Nothing btwn B->3->4, look ahead 2)
         Scenario 3: 0     1     2X B  3     4     5     6     7  => Returns -1 (Nothing btwn B->3->4, not look behind)
+        Scenario 4: 0     1     2 XBX 3     4     5     6     7  => Returns 0 (B invalidState)
         '''
         # Get waypoints setup
         waypoint2 = path.getOMPLPath().getSolutionPath().getState(2)
@@ -301,9 +301,9 @@ class TestPath(unittest.TestCase):
                                         headingDegrees=utils.HEADING_EAST, speedKmph=30)])
         omplPath.updateObstacles(state)
         self.assertEqual(-1, indexOfObstacleOnPath(positionXY=sailbotPositionXY,
-                                                  nextLocalWaypointIndex=nextLocalWaypointIndex,
-                                                  numLookAheadWaypoints=numLookAheadWaypoints,
-                                                  omplPath=path.getOMPLPath()))
+                                                   nextLocalWaypointIndex=nextLocalWaypointIndex,
+                                                   numLookAheadWaypoints=numLookAheadWaypoints,
+                                                   omplPath=path.getOMPLPath()))
 
         # Scenario 3
         closeTo2Latlon = utils.XYToLatlon(closeTo2XY, path.getReferenceLatlon())
@@ -311,6 +311,16 @@ class TestPath(unittest.TestCase):
                                         headingDegrees=utils.HEADING_EAST, speedKmph=30)])
         omplPath.updateObstacles(state)
         self.assertEqual(-1, indexOfObstacleOnPath(positionXY=sailbotPositionXY,
+                                                   nextLocalWaypointIndex=nextLocalWaypointIndex,
+                                                   numLookAheadWaypoints=numLookAheadWaypoints,
+                                                   omplPath=path.getOMPLPath()))
+
+        # Scenario 4
+        between2and3Latlon = utils.XYToLatlon(between2and3XY, path.getReferenceLatlon())
+        state.AISData = AISMsg([AISShip(ID=0, lat=between2and3Latlon.lat, lon=between2and3Latlon.lon,
+                                        headingDegrees=utils.HEADING_EAST, speedKmph=30)])
+        omplPath.updateObstacles(state)
+        self.assertEqual(0, indexOfObstacleOnPath(positionXY=sailbotPositionXY,
                                                   nextLocalWaypointIndex=nextLocalWaypointIndex,
                                                   numLookAheadWaypoints=numLookAheadWaypoints,
                                                   omplPath=path.getOMPLPath()))

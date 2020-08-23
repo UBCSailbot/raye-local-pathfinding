@@ -46,8 +46,9 @@ def indexOfObstacleOnPath(positionXY, nextLocalWaypointIndex, numLookAheadWaypoi
        Let B = sailbot. X = obstacle. Numbers = waypoint indices in omplPath.
        Scenario 0: 0     1     2  B X3     4     5     6     7  => Returns 3  (1 index forward from B)
        Scenario 1: 0     1     2  B  3  X  4     5     6     7  => Returns 4  (2 indices forward from B)
-       Scenario 2: 0     1     2  B  3     4  X  5     6     7  => Returns -1 (Nothing between B->3->4, look ahead 2)
-       Scenario 3: 0     1     2X B  3     4     5     6     7  => Returns -1 (Nothing between B->3->4, not look behind)
+       Scenario 2: 0     1     2  B  3     4  X  5     6     7  => Returns -1 (Nothing btwn B->3->4, look ahead 2)
+       Scenario 3: 0     1     2X B  3     4     5     6     7  => Returns -1 (Nothing btwn B->3->4, not look behind)
+       Scenario 4: 0     1     2 XBX 3     4     5     6     7  => Returns 0 (B invalidState)
 
     Args:
        positionXY list [x,y]: the sailbot position in xy (km) coordinates in the omplPath coordinate system
