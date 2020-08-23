@@ -36,44 +36,64 @@ def allocatePlanner(si, plannerType):
         ou.OMPL_ERROR("Planner-type is not implemented in allocation function.")
 
 
-# Method that looks numLookAheadWaypoints ahead on path, starting from positionXY and nextLocalWaypointIndex.
-# Returns the index of the waypoint in which there is an obstacle when going to it.
-# Returns -1 if there are no obstacles on path.
 def indexOfObstacleOnPath(positionXY, nextLocalWaypointIndex, numLookAheadWaypoints, omplPath):
+    '''Look numLookAheadWaypoints ahead on path, returns the waypoint index that has an obstacle when approaching it.
+
+    Example:
+       Let positionXY be between index 2 and 3 in the omplPath
+       Thus, nextLocalWaypointIndex = 3
+       Let numLookAheadWaypoints = 2
+       Let B = sailbot. X = obstacle. Numbers = waypoint indices in omplPath.
+       Scenario 0: 0     1     2  B X3     4     5     6     7  => Returns 3  (1 index forward from B)
+       Scenario 1: 0     1     2  B  3  X  4     5     6     7  => Returns 4  (2 indices forward from B)
+       Scenario 2: 0     1     2  B  3     4  X  5     6     7  => Returns -1 (Nothing between B->3->4, look ahead 2)
+       Scenario 3: 0     1     2X B  3     4     5     6     7  => Returns -1 (Nothing between B->3->4, not look behind)
+
+    Args:
+       positionXY list [x,y]: the sailbot position in xy (km) coordinates in the omplPath coordinate system
+       nextLocalWaypointIndex (int): The index in omplPath that the sailbot is currently going towards
+       numLookAheadWaypoints (int): Number of waypoints to look ahead for obstacles. Must ensure that:
+                                    numLookAheadWaypoints <= (omplPath.getLength() - nextLocalWaypointIndex)
+       omplPath (OmplPath): Path that the sailbot is currently following
+
+    Returns:
+       int representing the waypoint index that has an obstacle when approaching it.
+       -1 if there are no obstacles on path
+       0 if positionXY starts at invalid position
+    '''
     # Setup for obstacle-on-path checking
     solutionPath = omplPath.getSolutionPath()
     spaceInformation = omplPath.getSpaceInformation()
-
-    # Handle strange cases with less than 2 states
-    if len(solutionPath.getStates()) <= 1:
-        print("WARNING: len(solutionPath.getStates()) = {}. Expected >1.".format(len(solutionPath.getStates())))
-        if len(solutionPath.getStates()) == 0:
-            return -1
-        else:
-            hasObstacle = (not spaceInformation.isValid(solutionPath.getState(0)))
-            return 0 if hasObstacle else -1
-
-    # Check if initial state is valid, as checkMotion can't check that
     firstState = spaceInformation.allocState()
     firstState.setXY(positionXY[0], positionXY[1])
+
+    # Edge case: Boat is in an invalid state
     if not spaceInformation.isValid(firstState):
+        print("WARNING: not spaceInformation.isValid(firstState)")
+        return 0
+
+    # Edge case: Empty path
+    if len(solutionPath.getStates()) == 0:
+        print("WARNING: len(solutionPath.getStates()) = 0. Expected >=1.")
         return -1
 
     # Get the relevant states (ignore past states and use current position as first state)
     relevantStates = []
-    relevantStates.append(firstState)
+    relevantStates.append((0, firstState))
     for i in range(numLookAheadWaypoints):
         stateIndex = nextLocalWaypointIndex + i
-        relevantStates.append(solutionPath.getState(stateIndex))
+        relevantStates.append((stateIndex, solutionPath.getState(stateIndex)))
 
     # Interpolate between states and check for validity
-    for stateIndex in range(1, len(relevantStates)):
+    for i in range(1, len(relevantStates)):
         # Check in between these points
-        prevState = relevantStates[stateIndex - 1]
-        nextState = relevantStates[stateIndex]
+        x, prevState = relevantStates[i - 1]
+        nextStateIndex, nextState = relevantStates[i]
         hasObstacle = (not spaceInformation.checkMotion(prevState, nextState))
         if hasObstacle:
-            return stateIndex
+            # Return nextStateIndex, not i. In the example from docstring scenario 1, waypoint 4 refers to
+            # i = 2 (2 away from B), but we want to return nextStateIndex = 4
+            return nextStateIndex
 
     '''Uncomment to visualize the obstacles, relevant states, and all states
     import matplotlib.pyplot as plt
@@ -96,6 +116,7 @@ def indexOfObstacleOnPath(positionXY, nextLocalWaypointIndex, numLookAheadWaypoi
     plt.cla()
     '''
 
+    # No obstacle on path found
     return -1
 
 
