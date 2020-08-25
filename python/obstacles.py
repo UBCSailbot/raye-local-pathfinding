@@ -193,7 +193,6 @@ class Wedge(ObstacleInterface):
         while angle < self.theta1:
             angle += 360
 
-
         distance = math.sqrt((xy[1] - self.y) ** 2 + (xy[0] - self.x) ** 2)
         if (angle > self.theta1 and angle < self.theta2 and distance <= self.radius):
             return False
