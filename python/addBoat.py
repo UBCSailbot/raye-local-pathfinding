@@ -9,7 +9,8 @@ localWaypoint = latlon()
 gps = latlon()
 localPath = []
 
-trailingDistance = 5
+TRAILING_DISTANCE_KM = 5
+TRAILING_ADDITIONAL_SPEED = 20
 
 
 def command_callback(msg):
@@ -29,7 +30,7 @@ def command_callback(msg):
             rospy.loginfo("invalid index passed")
     if msg.addType == "trailing":
         coords = getTrailingBoatLatlon(gps)
-        add_pub.publish(AISShip(msg.ship.ID, coords.lat, coords.lon, gps.headingDegrees, gps.speedKmph + 20))
+        add_pub.publish(AISShip(msg.ship.ID, coords.lat, coords.lon, gps.headingDegrees, gps.speedKmph + TRAILING_ADDITIONAL_SPEED))
 
 
 
@@ -40,7 +41,6 @@ def lwp_callback(coordinates):
 
 def gps_callback(msg):
     global gps
-    # gps = latlon(msg.lat, msg.lon)
     gps = msg
 
 
@@ -51,13 +51,11 @@ def localPath_callback(msg):
 def getTrailingBoatLatlon(GPS):
     headingRad = math.radians(GPS.headingDegrees)
     m = math.tan(headingRad)
-    dx = trailingDistance / (1 + m**2)**0.5
+    dx = TRAILING_DISTANCE_KM / (1 + m**2)**0.5
 
     if math.cos(headingRad) > 0:
         dx = -dx
     dy = m * dx
-    # if math.sin(headingRad) > 0:
-    #     dy = -dy
 
     return util.XYToLatlon([dx, dy], latlon(GPS.lat, GPS.lon))
     
