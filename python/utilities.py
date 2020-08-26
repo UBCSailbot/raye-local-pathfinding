@@ -537,6 +537,16 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=Fals
                         minCost = simplifiedCost
         return bestSolution, bestSolutionPath, minCost
 
+    def checkPointValidity(xy, obstacles):
+        for obstacle in obstacles:
+            if not obstacle.isValid(xy):
+                return False
+        return True
+
+    # def moveGoalBack():
+    #     OMPLPath
+        
+
     ou.setLogLevel(ou.LOG_WARN)
     # Set speedup to 1.0 during planning
     if resetSpeedupDuringPlan:
@@ -556,11 +566,21 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=Fals
         state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
 
     # If start or goal is invalid, shrink objects and re-run
-    amountShrinkedStart = shrinkObstaclesUntilValid(start, obstacles)
-    amountShrinkedGoal = shrinkObstaclesUntilValid(goal, obstacles)
-    amountShrinked = max(amountShrinkedStart, amountShrinkedGoal)
-    if amountShrinked > 1.0000001:
-        rospy.logerr("Obstacles have been shrinked by factor of at most {}".format(amountShrinked))
+    startValid = checkPointValidity(start, obstacles)
+    goalValid = checkPointValidity(goal, obstacles)
+
+    if not startValid:
+        rospy.logerr("Start state invalid")
+        # goToValid()
+    if not goalValid:
+        rospy.logerr("Goal state invalid")
+        # moveGoalBack()
+
+#    amountShrinkedStart = shrinkObstaclesUntilValid(start, obstacles)
+#    amountShrinkedGoal = shrinkObstaclesUntilValid(goal, obstacles)
+#    amountShrinked = max(amountShrinkedStart, amountShrinkedGoal)
+#    if amountShrinked > 1.0000001:
+#        rospy.logerr("Obstacles have been shrinked by factor of at most {}".format(amountShrinked))
 
     # Run the planner multiple times and find the best one
     rospy.loginfo("Running createLocalPathSS. runtimeSeconds: {}. numRuns: {}. Total time: {} seconds"
