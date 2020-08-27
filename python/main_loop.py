@@ -97,6 +97,13 @@ if __name__ == '__main__':
         newGlobalPathReceived = sailbot.newGlobalPathReceived
         reachedEndOfLocalPath = localPath.reachedEnd()
         pathNotReachGoal = not localPath.reachesGoalLatlon(state.globalWaypoint)
+        startValid = localPath.checkStartValidity(sailbot, state)
+        goalValid = localPath.checkGoalValidity(state)
+        
+        if not startValid:
+            rospy.logerr("invalid start")
+        if not goalValid:
+            rospy.logerr("invalid goal")
 
         mustUpdateLocalPath = (hasUpwindOrDownwindOnPath or hasObstacleOnPath or isGlobalWaypointReached
                                or newGlobalPathReceived or reachedEndOfLocalPath or pathNotReachGoal

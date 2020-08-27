@@ -50,6 +50,10 @@ class OMPLPath:
     def getCost(self):
         return self._solutionPath.cost(self._ss.getOptimizationObjective()).value()
 
+    def getObstacles(self, state):
+        self.updateObstacles(state)
+        return self._obstacles
+
     def getPathCostBreakdownString(self):
         '''Return a string showing the breakdown of how the path cost was calculated.'''
         # Assumes balanced optimization objective
@@ -84,8 +88,8 @@ class OMPLPath:
 
     def updateObstacles(self, state):
         '''Update the obstacles of the OMPL validation checker'''
-        obstacles = utils.getObstacles(state.AISData.ships, state.position, state.speedKmph, self._referenceLatlon)
-        validity_checker = ph.ValidityChecker(self._ss.getSpaceInformation(), obstacles)
+        self._obstacles = utils.getObstacles(state.AISData.ships, state.position, state.speedKmph, self._referenceLatlon)
+        validity_checker = ph.ValidityChecker(self._ss.getSpaceInformation(), self._obstacles)
         self._ss.setStateValidityChecker(validity_checker)
 
     def removePastWaypoints(self, state):
@@ -285,6 +289,9 @@ class Path:
 
     def getPathCostBreakdownString(self):
         return self._omplPath.getPathCostBreakdownString()
+
+    def getObstacles(self, state):
+        return self._omplPath.getObstacles(state)
 
     def updateWindDirection(self, state):
         self._omplPath.updateWindDirection(state)
@@ -530,3 +537,28 @@ class Path:
                 rospy.logwarn("Obstacle on path. waypointIndexWithObstacle: {}".format(waypointIndexWithObstacle))
             return True
         return False
+
+
+    def checkStartValidity(self, sbot, state):
+        rospy.logerr("Checking start validity")
+        obstacles = self.getObstacles(state)
+        for obstacle in obstacles:
+            xy = utils.latlonToXY(latlon(sbot.position.lat, sbot.position.lon), obstacle.referenceLatlon)
+            if not obstacle.isValid(xy):
+                return False
+        return True
+
+
+    def checkGoalValidity(self, state):
+        rospy.logerr("Checking goal validity")
+        obstacles = self.getObstacles(state)
+        latlonPath = self.getLatlons()
+        goalLatlon = latlonPath[len(latlonPath) - 1]
+        for obstacle in obstacles:
+            goalXY = utils.latlonToXY(latlon(goalLatlon.lat, goalLatlon.lon), obstacle.referenceLatlon)
+            if not obstacle.isValid(goalXY):
+                return False
+        return True
+
+
+
