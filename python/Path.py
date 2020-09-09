@@ -31,6 +31,9 @@ class OMPLPath:
         self._referenceLatlon = referenceLatlon
 
     # Simple getter methods
+    def getSS(self):
+        return self._ss
+
     def getReferenceLatlon(self):
         return self._referenceLatlon
 
@@ -559,6 +562,25 @@ class Path:
             if not obstacle.isValid(goalXY):
                 return False
         return True
+
+    def moveGoalBack(self):
+        path = self.getSolutionPath()
+        # path = self.getOMPLPath()
+        rospy.logerr(path)
+        length = len(path.getStates())
+        rospy.logerr(length)
+        rospy.logwarn(self._latlons)
+        # length = path.length()
+        last = path.getState(length)
+        path.keepBefore(last)
+        # self._latlons.pop()
+        # rospy.logwarn(self._latlons)
+        rospy.logerr(len(path.getStates()))
+        omplPath = self.getOMPLPath()
+        self.__init__(OMPLPath(omplPath.getSS(), path, omplPath.getReferenceLatlon()))
+        rospy.logwarn(self._latlons)
+
+
 
 
 

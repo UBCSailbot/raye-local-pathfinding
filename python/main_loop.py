@@ -104,6 +104,8 @@ if __name__ == '__main__':
             rospy.logerr("invalid start")
         if not goalValid:
             rospy.logerr("invalid goal")
+            # localPath.moveGoalBack()
+            isGlobalWaypointReached = True
 
         mustUpdateLocalPath = (hasUpwindOrDownwindOnPath or hasObstacleOnPath or isGlobalWaypointReached
                                or newGlobalPathReceived or reachedEndOfLocalPath or pathNotReachGoal
