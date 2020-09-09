@@ -101,9 +101,8 @@ if __name__ == '__main__':
         goalValid = localPath.checkGoalValidity(state)
         
         if not startValid:
-            rospy.logerr("invalid start")
+            pass
         if not goalValid:
-            rospy.logerr("invalid goal")
             # localPath.moveGoalBack()
             #TODO: don't skip if global waypoint is destination
             isGlobalWaypointReached = True
