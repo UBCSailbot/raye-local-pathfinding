@@ -97,13 +97,13 @@ if __name__ == '__main__':
         newGlobalPathReceived = sailbot.newGlobalPathReceived
         reachedEndOfLocalPath = localPath.reachedEnd()
         pathNotReachGoal = not localPath.reachesGoalLatlon(state.globalWaypoint)
-        startValid = localPath.checkStartValidity(sailbot, state)
+        # startValid = localPath.checkStartValidity(sailbot, state)
         goalValid = localPath.checkGoalValidity(state)
         
-        if not startValid:
-            pass
+        # if not startValid:
+        #     moveToValid()
+        #     pass
         if not goalValid:
-            # localPath.moveGoalBack()
             #TODO: don't skip if global waypoint is destination
             isGlobalWaypointReached = True
 

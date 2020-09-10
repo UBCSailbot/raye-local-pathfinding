@@ -543,9 +543,6 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=Fals
                 return False
         return True
 
-    # def moveGoalBack():
-    #     pat
-        
 
     ou.setLogLevel(ou.LOG_WARN)
     # Set speedup to 1.0 during planning
@@ -566,12 +563,22 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=Fals
         state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
 
     # If start or goal is invalid, shrink objects and re-run
-    # startValid = checkPointValidity(start, obstacles)
+    startValid = checkPointValidity(start, obstacles)
     # goalValid = checkPointValidity(goal, obstacles)
 
-    # if not startValid:
-    #     rospy.logerr("Start state invalid")
-    #     # goToValid()
+    if not startValid:
+        rospy.logerr("Start state invalid")
+
+        #ignore obstacle
+        rospy.logwarn(len(obstacles))
+        obstacles = [obstacle for obstacle in obstacles if obstacle.isValid(start)]
+        rospy.logwarn(len(obstacles))
+            
+        #set new goal temporarily by weighing which of possible points on circle is good
+
+
+
+
     # if not goalValid:
     #     rospy.logerr("Goal state invalid")
     #     # moveGoalBack()
