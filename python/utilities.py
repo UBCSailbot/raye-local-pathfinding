@@ -543,6 +543,24 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=Fals
                 return False
         return True
 
+    def generatePotentialGoals(xy):
+        angle_increment = 45
+        steps = 360 / angle_increment
+        angles = [math.radians(angle_increment * i) for i in range(steps)]
+        rospy.logerr(angles)
+        r_km = 1
+        x = xy[0]
+        y = xy[1]
+        pts = []
+
+        while len(pts) < 5:
+            for angle in angles:
+                pts.append([x + r_km * math.cos(angle), y + r_km * math.sin(angle)])
+            r_km += 1
+        return pts
+        
+
+
 
     ou.setLogLevel(ou.LOG_WARN)
     # Set speedup to 1.0 during planning
@@ -575,6 +593,9 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=Fals
         rospy.logwarn(len(obstacles))
             
         #set new goal temporarily by weighing which of possible points on circle is good
+        potentialTempGoals = generatePotentialGoals(start)
+        #set to first from potential goals for now
+        goal = potentialTempGoals[0]
 
 
 
