@@ -101,10 +101,6 @@ if __name__ == '__main__':
                 state = sailbot.getCurrentState()
             rospy.logwarn("Start state OK")
 
-        if not goalValid:
-            # TODO: don't skip if global waypoint is destination
-            isGlobalWaypointReached = True
-
         hasUpwindOrDownwindOnPath = localPath.upwindOrDownwindOnPath(
             state, numLookAheadWaypoints=utils.NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND, showWarnings=True)
         hasObstacleOnPath = localPath.obstacleOnPath(
@@ -113,6 +109,11 @@ if __name__ == '__main__':
         newGlobalPathReceived = sailbot.newGlobalPathReceived
         reachedEndOfLocalPath = localPath.reachedEnd()
         pathNotReachGoal = not localPath.reachesGoalLatlon(state.globalWaypoint)
+
+        if not goalValid:
+            # TODO: don't skip if global waypoint is destination
+            rospy.logwarn("Goal state invalid, skipping global waypoint")
+            isGlobalWaypointReached = True
 
         mustUpdateLocalPath = (hasUpwindOrDownwindOnPath or hasObstacleOnPath or isGlobalWaypointReached
                                or newGlobalPathReceived or reachedEndOfLocalPath or pathNotReachGoal

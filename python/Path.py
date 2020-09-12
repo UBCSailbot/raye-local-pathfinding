@@ -528,7 +528,7 @@ class Path:
            showWarnings (bool): display ros warnings if obstacles are detected
 
         Returns:
-           bool True iff there exists an obstacle on the path within the first numLookAheadWaypoints
+           bool True if there exists an obstacle on the path within the first numLookAheadWaypoints
            starting from state.position
         '''
         # Default behavior when numLookAheadWaypoints is not given OR bad input: set to max
