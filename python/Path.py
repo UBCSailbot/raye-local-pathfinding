@@ -574,6 +574,7 @@ class Path:
         for heading in potentialHeadingsRad:
             globalWindSpeedKmph, globalWindDirectionDegrees = utils.measuredWindToGlobalWind(
                 state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
+            rospy.logwarn("Global Wind Direction:{}".format(globalWindDirectionDegrees))
             if not ph.isUpwind(globalWindDirectionDegrees, heading):
                 return math.degrees(heading)
 

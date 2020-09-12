@@ -97,6 +97,7 @@ if __name__ == '__main__':
             while not localPath.checkStartValidity(sailbot, state):
                 headingToSafety = localPath.generateSafeHeading(state)
                 desiredHeadingMsg.headingDegrees = headingToSafety
+                rospy.logwarn("Publishing Heading: {}".format(headingToSafety))
                 desiredHeadingPublisher.publish(desiredHeadingMsg)
                 state = sailbot.getCurrentState()
             rospy.logwarn("Start state OK")
