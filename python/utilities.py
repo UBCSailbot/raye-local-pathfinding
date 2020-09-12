@@ -581,21 +581,23 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=Fals
         state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
 
     # If start or goal is invalid, shrink objects and re-run
-    startValid = checkPointValidity(start, obstacles)
+    # startValid = checkPointValidity(start, obstacles)
     # goalValid = checkPointValidity(goal, obstacles)
 
-    if not startValid:
-        rospy.logerr("Start state invalid")
+    # if not startValid:
+    # if invalidStart:
+    #     rospy.logerr("Start state invalid")
 
-        #ignore obstacle
-        rospy.logwarn(len(obstacles))
-        obstacles = [obstacle for obstacle in obstacles if obstacle.isValid(start)]
-        rospy.logwarn(len(obstacles))
+    #     #ignore obstacle
+    #     badObstacles = [obstacle for obstacle in obstacles if not obstacle.isValid(start)]
+    #     rospy.logwarn(len(obstacles))
+    #     goodObstacles = [obstacle for obstacle in obstacles if obstacle.isValid(start)]
+    #     rospy.logwarn(len(obstacles))
             
-        #set new goal temporarily by weighing which of possible points on circle is good
-        potentialTempGoals = generatePotentialGoals(start)
-        #set to first from potential goals for now
-        goal = potentialTempGoals[0]
+    #     #set new goal temporarily by weighing which of possible points on circle is good
+    #     potentialTempGoals = generatePotentialGoals(start)
+    #     #set to first from potential goals for now
+    #     goal = potentialTempGoals[0]
 
 
 

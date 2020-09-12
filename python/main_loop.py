@@ -39,7 +39,7 @@ def speedupCallback(data):
     rospy.loginfo("speedup message of {} received.".format(speedup))
 
 
-def createNewLocalPath(state, maxAllowableRuntimeSeconds):
+def createNewLocalPath(state, maxAllowableRuntimeSeconds, invalidStart=False):
     # Composition of functions used every time when updating local path
     global speedup
     localPath = utils.createPath(state, resetSpeedupDuringPlan=True, speedupBeforePlan=speedup,
@@ -89,6 +89,27 @@ if __name__ == '__main__':
         state = sailbot.getCurrentState()
 
         # Check if local path MUST be updated
+        startValid = localPath.checkStartValidity(sailbot, state)
+        goalValid = localPath.checkGoalValidity(state)
+
+        if not startValid:
+            # blocking while loop until free
+            while not localPath.checkStartValidity(sailbot, state):
+
+                headingToSafety = localPath.generateSafeHeading(state)
+                desiredHeadingMsg.headingDegrees = headingToSafety
+                desiredHeadingPublisher.publish(desiredHeadingMsg)
+
+                # update state
+                state = sailbot.getCurrentState()
+
+
+
+
+        if not goalValid:
+            #TODO: don't skip if global waypoint is destination
+            isGlobalWaypointReached = True
+
         hasUpwindOrDownwindOnPath = localPath.upwindOrDownwindOnPath(
             state, numLookAheadWaypoints=utils.NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND, showWarnings=True)
         hasObstacleOnPath = localPath.obstacleOnPath(
@@ -97,16 +118,7 @@ if __name__ == '__main__':
         newGlobalPathReceived = sailbot.newGlobalPathReceived
         reachedEndOfLocalPath = localPath.reachedEnd()
         pathNotReachGoal = not localPath.reachesGoalLatlon(state.globalWaypoint)
-        # startValid = localPath.checkStartValidity(sailbot, state)
-        goalValid = localPath.checkGoalValidity(state)
         
-        # if not startValid:
-        #     moveToValid()
-        #     pass
-        if not goalValid:
-            #TODO: don't skip if global waypoint is destination
-            isGlobalWaypointReached = True
-
         mustUpdateLocalPath = (hasUpwindOrDownwindOnPath or hasObstacleOnPath or isGlobalWaypointReached
                                or newGlobalPathReceived or reachedEndOfLocalPath or pathNotReachGoal
                                or localPathUpdateForced)

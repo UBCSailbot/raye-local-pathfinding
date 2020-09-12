@@ -548,6 +548,7 @@ class Path:
         for obstacle in obstacles:
             xy = utils.latlonToXY(latlon(sbot.position.lat, sbot.position.lon), obstacle.referenceLatlon)
             if not obstacle.isValid(xy):
+                self._invalidObstacle = obstacle
                 return False
         return True
 
@@ -562,3 +563,24 @@ class Path:
             if not obstacle.isValid(goalXY):
                 return False
         return True
+
+    def generateSafeHeading(self, state):
+        obstacleHeadingRad = math.radians(self._invalidObstacle.aisData.headingDegrees)
+        potentialHeadings = []
+        potentialHeadings.append(obstacleHeadingRad + math.pi * 0.5)
+        potentialHeadings.append(obstacleHeadingRad - math.pi * 0.5)
+
+        for heading in potentialHeadings:
+            globalWindSpeedKmph, globalWindDirectionDegrees = utils.measuredWindToGlobalWind(
+                state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
+            if not ph.isUpwind(globalWindDirectionDegrees, heading):
+                return math.degrees(heading)
+
+        #if all else fails, go downwind
+        return globalWindDirectionDegrees
+
+
+
+
+
+
