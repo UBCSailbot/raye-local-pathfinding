@@ -41,10 +41,6 @@ class ObstacleInterface:
         """ Return distance from obstacle to xy"""
         pass
 
-    def shrink(self, shrinkFactor):
-        """ Shrinks the obstacle by the shrink factor"""
-        pass
-
 
 class Ellipse():
     def __init__(self, x, y, height, width, angle):
@@ -89,10 +85,6 @@ class Ellipse():
 
     def addPatch(self, axes):
         axes.add_patch(patches.Ellipse((self.x, self.y), self.width, self.height, self.angle))
-
-    def shrink(self, shrinkFactor):
-        self.width /= shrinkFactor
-        self.height /= shrinkFactor
 
 
 class EllipseObstacle(ObstacleInterface, Ellipse):
@@ -143,9 +135,6 @@ class EllipseObstacle(ObstacleInterface, Ellipse):
 
     def addPatch(self, axes):
         Ellipse.addPatch(self, axes)
-
-    def shrink(self, shrinkFactor):
-        Ellipse.shrink(self, shrinkFactor)
 
     def clearance(self, xy):
         # TODO: Make this clearance better
@@ -201,9 +190,6 @@ class Wedge(ObstacleInterface):
     def clearance(self, xy):
         # TODO: Make this clearance better
         return (self.x - xy[0])**2 + (self.y - xy[1])**2
-
-    def shrink(self, shrinkFactor):
-        self.radius /= shrinkFactor
 
 
 class Circles(ObstacleInterface):
@@ -264,16 +250,11 @@ class Circles(ObstacleInterface):
                 multiplier = 1 + abs(float(x - aisX) / (endX - aisX))
                 self.obstacles.append(Circle(x, y(x), AIS_BOAT_RADIUS_KM * multiplier))
 
-    def shrink(self, shrinkFactor):
-        for obstacle in self.obstacles:
-            obstacle.shrink(shrinkFactor)
-
     def addPatch(self, axes):
         for obstacle in self.obstacles:
             obstacle.addPatch(axes)
 
     def clearance(self, xy):
-        # TODO: Make this clearance better
         return (self.obstacles[0].x - xy[0])**2 + (self.obstacles[0].y - xy[1])**2
 
 
@@ -293,9 +274,6 @@ class Circle():
 
     def addPatch(self, axes):
         axes.add_patch(plt.Circle((self.x, self.y), radius=self.radius))
-
-    def shrink(self, shrinkFactor):
-        self.radius /= shrinkFactor
 
 
 class HybridEllipse(ObstacleInterface):
@@ -322,10 +300,6 @@ class HybridEllipse(ObstacleInterface):
     def clearance(self, xy):
         return (self.xy[0] - xy[0])**2 + (self.xy[1] - xy[1])**2
 
-    def shrink(self, shrinkFactor):
-        self.ellipse.shrink(shrinkFactor)
-        self.wedge.shrink(shrinkFactor)
-
 
 class HybridCircle(ObstacleInterface):
     def __init__(self, aisData, sailbotPosition, speedKmph, referenceLatlon):
@@ -349,7 +323,3 @@ class HybridCircle(ObstacleInterface):
 
     def clearance(self, xy):
         return (self.xy[0] - xy[0])**2 + (self.xy[1] - xy[1])**2
-
-    def shrink(self, shrinkFactor):
-        self.circle.shrink(shrinkFactor)
-        self.wedge.shrink(shrinkFactor)

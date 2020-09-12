@@ -91,7 +91,11 @@ class OMPLPath:
 
     def updateObstacles(self, state):
         '''Update the obstacles of the OMPL validation checker'''
-        self._obstacles = utils.getObstacles(state.AISData.ships, state.position, state.speedKmph, self._referenceLatlon)
+        self._obstacles = utils.getObstacles(
+            state.AISData.ships,
+            state.position,
+            state.speedKmph,
+            self._referenceLatlon)
         validity_checker = ph.ValidityChecker(self._ss.getSpaceInformation(), self._obstacles)
         self._ss.setStateValidityChecker(validity_checker)
 
@@ -193,7 +197,7 @@ class OMPLPath:
             y1 = state1.getY()
             x2 = state2.getX()
             y2 = state2.getY()
-            return ((x1-x2)**2 + (y1-y2)**2)**0.5
+            return ((x1 - x2)**2 + (y1 - y2)**2)**0.5
 
         # Only add in boat position as waypoint if edge case is avoided (described above)
         dist_boat_to_1 = dist(positionXY, self._solutionPath.getState(1))
@@ -219,6 +223,7 @@ class Path:
         _latlons (list of latlons): List of latlons that corresponds with _omplPath's waypoints
         _nextWaypointIndex (int): index of the next waypoint in _latlons that the boat should be going towards
     """
+
     def __init__(self, omplPath):
         self._omplPath = omplPath
         self._latlons = self._getLatlonsFromOMPLPath(self._omplPath)
@@ -541,7 +546,6 @@ class Path:
             return True
         return False
 
-
     def checkStartValidity(self, sbot, state):
         obstacles = self.getObstacles(state)
         for obstacle in obstacles:
@@ -550,7 +554,6 @@ class Path:
                 self._invalidObstacle = obstacle
                 return False
         return True
-
 
     def checkGoalValidity(self, state):
         obstacles = self.getObstacles(state)
@@ -574,11 +577,5 @@ class Path:
             if not ph.isUpwind(globalWindDirectionDegrees, heading):
                 return math.degrees(heading)
 
-        #if all else fails, go downwind
+        # if all else fails, go downwind
         return globalWindDirectionDegrees
-
-
-
-
-
-

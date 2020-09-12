@@ -103,7 +103,7 @@ if __name__ == '__main__':
                 state = sailbot.getCurrentState()
 
         if not goalValid:
-            #TODO: don't skip if global waypoint is destination
+            # TODO: don't skip if global waypoint is destination
             isGlobalWaypointReached = True
 
         hasUpwindOrDownwindOnPath = localPath.upwindOrDownwindOnPath(
@@ -114,7 +114,7 @@ if __name__ == '__main__':
         newGlobalPathReceived = sailbot.newGlobalPathReceived
         reachedEndOfLocalPath = localPath.reachedEnd()
         pathNotReachGoal = not localPath.reachesGoalLatlon(state.globalWaypoint)
-        
+
         mustUpdateLocalPath = (hasUpwindOrDownwindOnPath or hasObstacleOnPath or isGlobalWaypointReached
                                or newGlobalPathReceived or reachedEndOfLocalPath or pathNotReachGoal
                                or localPathUpdateForced)

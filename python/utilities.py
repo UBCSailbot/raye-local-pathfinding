@@ -443,7 +443,7 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=Fals
         plt.grid(True)
         axes.set_xlabel('X distance to position (km)')
         axes.set_ylabel('Y distance to position (km)')
-        axes.set_title('Setup of pathfinding problem') 
+        axes.set_title('Setup of pathfinding problem')
 
         # Add boats and wind speed arrow
         for obstacle in obstacles:
