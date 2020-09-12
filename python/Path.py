@@ -543,7 +543,6 @@ class Path:
 
 
     def checkStartValidity(self, sbot, state):
-        rospy.logerr("Checking start validity")
         obstacles = self.getObstacles(state)
         for obstacle in obstacles:
             xy = utils.latlonToXY(latlon(sbot.position.lat, sbot.position.lon), obstacle.referenceLatlon)
@@ -554,7 +553,6 @@ class Path:
 
 
     def checkGoalValidity(self, state):
-        rospy.logerr("Checking goal validity")
         obstacles = self.getObstacles(state)
         latlonPath = self.getLatlons()
         goalLatlon = latlonPath[len(latlonPath) - 1]

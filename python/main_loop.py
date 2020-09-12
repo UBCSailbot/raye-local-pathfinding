@@ -93,7 +93,6 @@ if __name__ == '__main__':
         goalValid = localPath.checkGoalValidity(state)
 
         if not startValid:
-            # blocking while loop until free
             while not localPath.checkStartValidity(sailbot, state):
 
                 headingToSafety = localPath.generateSafeHeading(state)
@@ -102,9 +101,6 @@ if __name__ == '__main__':
 
                 # update state
                 state = sailbot.getCurrentState()
-
-
-
 
         if not goalValid:
             #TODO: don't skip if global waypoint is destination
