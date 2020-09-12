@@ -39,7 +39,7 @@ def speedupCallback(data):
     rospy.loginfo("speedup message of {} received.".format(speedup))
 
 
-def createNewLocalPath(state, maxAllowableRuntimeSeconds, invalidStart=False):
+def createNewLocalPath(state, maxAllowableRuntimeSeconds):
     # Composition of functions used every time when updating local path
     global speedup
     localPath = utils.createPath(state, resetSpeedupDuringPlan=True, speedupBeforePlan=speedup,
@@ -93,14 +93,13 @@ if __name__ == '__main__':
         goalValid = localPath.checkGoalValidity(state)
 
         if not startValid:
+            rospy.logwarn("Start state invalid")
             while not localPath.checkStartValidity(sailbot, state):
-
                 headingToSafety = localPath.generateSafeHeading(state)
                 desiredHeadingMsg.headingDegrees = headingToSafety
                 desiredHeadingPublisher.publish(desiredHeadingMsg)
-
-                # update state
                 state = sailbot.getCurrentState()
+            rospy.logwarn("Start state OK")
 
         if not goalValid:
             # TODO: don't skip if global waypoint is destination

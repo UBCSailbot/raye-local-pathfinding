@@ -567,11 +567,11 @@ class Path:
 
     def generateSafeHeading(self, state):
         obstacleHeadingRad = math.radians(self._invalidObstacle.aisData.headingDegrees)
-        potentialHeadings = []
-        potentialHeadings.append(obstacleHeadingRad + math.pi * 0.5)
-        potentialHeadings.append(obstacleHeadingRad - math.pi * 0.5)
+        potentialHeadingsRad = []
+        potentialHeadingsRad.append(obstacleHeadingRad + math.pi * 0.5)
+        potentialHeadingsRad.append(obstacleHeadingRad - math.pi * 0.5)
 
-        for heading in potentialHeadings:
+        for heading in potentialHeadingsRad:
             globalWindSpeedKmph, globalWindDirectionDegrees = utils.measuredWindToGlobalWind(
                 state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
             if not ph.isUpwind(globalWindDirectionDegrees, heading):

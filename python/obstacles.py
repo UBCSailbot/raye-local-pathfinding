@@ -255,6 +255,7 @@ class Circles(ObstacleInterface):
             obstacle.addPatch(axes)
 
     def clearance(self, xy):
+        # TODO: Make this clearance better
         return (self.obstacles[0].x - xy[0])**2 + (self.obstacles[0].y - xy[1])**2
 
 
