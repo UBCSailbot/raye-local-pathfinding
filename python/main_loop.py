@@ -93,11 +93,10 @@ if __name__ == '__main__':
         goalValid = localPath.checkGoalValidity(state)
 
         if not startValid:
-            rospy.logwarn("Start state invalid")
-            while not localPath.checkStartValidity(sailbot, state):
+            while not localPath.checkStartValidity(sailbot, state) and not rospy.is_shutdown():
                 headingToSafety = localPath.generateSafeHeading(state)
                 desiredHeadingMsg.headingDegrees = headingToSafety
-                rospy.logwarn("Publishing Heading: {}".format(headingToSafety))
+                rospy.logwarn("INVALID START STATE! Publishing Heading: {}".format(headingToSafety))
                 desiredHeadingPublisher.publish(desiredHeadingMsg)
                 state = sailbot.getCurrentState()
             rospy.logwarn("Start state OK")
