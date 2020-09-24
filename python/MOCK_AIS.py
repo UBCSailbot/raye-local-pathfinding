@@ -46,11 +46,14 @@ class RealShip(Ship):
 class MOCK_AISEnvironment: 
     # Just a class to keep track of the ships surrounding the sailbot
     def __init__(self, lat, lon):
-        self.last_real_ship_pull = time.time() # The timestamp for the last time we downloaded new ship positions
-        self.ships = []
-        self.get_real_ships()
-        for i in range(10):
-            self.ships.append(Ship(i, lat, lon))
+        self.use_real_ships = rospy.get_param('use_real_ships', default=False)
+        if self.use_real_ships:
+            self.last_real_ship_pull = time.time() # The timestamp for the last time we downloaded new ship positions
+            self.get_real_ships()
+        else:
+            self.ships = []
+            for i in range(10):
+                self.ships.append(Ship(i, lat, lon))
 
         rospy.init_node('MOCK_AIS', anonymous=True)
         self.publisher = rospy.Publisher("AIS", msg.AISMsg, queue_size=4)
@@ -61,14 +64,13 @@ class MOCK_AISEnvironment:
 
     def make_ros_message(self):
         ship_list = []
-        '''
-        # Mocked ships
-        for i in range(10):
-            ship_list.append(self.ships[i].make_ros_message())
-        '''
-        # Real ships
-        for ship in self.real_ships:
-            ship_list.append(ship.make_ros_message())
+
+        if self.use_real_ships:
+            for ship in self.real_ships:
+                ship_list.append(ship.make_ros_message())
+        else:
+            for i in range(10):
+                ship_list.append(self.ships[i].make_ros_message())
        
         return msg.AISMsg(ship_list)
 
@@ -99,14 +101,16 @@ if __name__ == '__main__':
     r = rospy.Rate(1) #hz
 
     while not rospy.is_shutdown():
-        timestamp = time.time()
-        # If it's been more than two minutes since last time we downloaded real ship
-        # positions, do it again
-        if timestamp - ais_env.last_real_ship_pull > 120:
-            ais_env.last_real_ship_pull = timestamp
-            ais_env.get_real_ships()
+        if self.use_real_ships:
+            timestamp = time.time()
+            # If it's been more than two minutes since last time we downloaded real ship
+            # positions, do it again
+            if timestamp - ais_env.last_real_ship_pull > 120:
+                ais_env.last_real_ship_pull = timestamp
+                ais_env.get_real_ships()
+        else:
+            ais_env.move_ships()
 
-        ais_env.move_ships()
         data = ais_env.make_ros_message()
         ais_env.publisher.publish(data)
         r.sleep()
