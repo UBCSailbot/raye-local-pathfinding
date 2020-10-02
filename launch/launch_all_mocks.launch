@@ -20,7 +20,7 @@
     <arg name="wind_file" default="" />
     <param name="wind_file" type="string" value="$(arg wind_file)" />
 
-    <!-- Sets the obstacle representation type, accepted types are: "ellipse", "wedge","circles", "hybrid_circle", and "hybrid_ellipse" -->
+    <!-- Sets the obstacle representation type, accepted types are: "ellipse", "wedge","circles", "hybrid_circle", and "hybrid_ellipse" (full list in getObstacles())-->
     <arg name="obstacle_type" default="hybrid_circle" />
     <param name="obstacle_type" type="string" value="$(arg obstacle_type)" />
 
@@ -35,6 +35,10 @@
     <!-- Sets random seed. Will only set seed if it is an integer. -->
     <arg name="random_seed" default="" />
     <param name="random_seed" type="string" value="$(arg random_seed)" />
+
+    <!-- Sets planner type, accepted types include: "RRTStar", "RRTSharp","RRTXStatic" (full list in allocatePlanner()) -->
+    <arg name="planner_type" default="RRTStar" />
+    <param name="planner_type" type="string" value="$(arg planner_type)" />
 
     <node pkg="local_pathfinding" type="MOCK_wind_sensor.py" name="MOCK_wind_sensor" />
     <node pkg="local_pathfinding" type="MOCK_controller_and_boat.py" name="MOCK_controller_and_boat" />

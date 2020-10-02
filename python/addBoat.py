@@ -1,11 +1,16 @@
 #!/usr/bin/env python
 import rospy
+import math
+import utilities as util
 from local_pathfinding.msg import AISShip, latlon, addBoat, GPS, path
 
 # Globals for callbacks
 localWaypoint = latlon()
 gps = latlon()
 localPath = []
+
+TRAILING_ADDED_KMPH = 20
+TRAILING_DISTANCE_KM = 5
 
 
 def command_callback(msg):
@@ -23,6 +28,10 @@ def command_callback(msg):
             rospy.loginfo("new ship generated at index {} of local path".format(msg.waypointIndex))
         else:
             rospy.loginfo("invalid index passed")
+    if msg.addType == "trailing":
+        coords = getTrailingBoatLatlon(gps)
+        ship = AISShip(msg.ship.ID, coords.lat, coords.lon, gps.headingDegrees, gps.speedKmph + TRAILING_ADDED_KMPH)
+        add_pub.publish(ship)
 
 
 def lwp_callback(coordinates):
@@ -32,12 +41,24 @@ def lwp_callback(coordinates):
 
 def gps_callback(msg):
     global gps
-    gps = latlon(msg.lat, msg.lon)
+    gps = msg
 
 
 def localPath_callback(msg):
     global localPath
     localPath = msg.waypoints
+
+
+def getTrailingBoatLatlon(GPS):
+    headingRad = math.radians(GPS.headingDegrees)
+    m = math.tan(headingRad)
+    dx = TRAILING_DISTANCE_KM / (1 + m**2)**0.5
+
+    if math.cos(headingRad) > 0:
+        dx = -dx
+    dy = m * dx
+
+    return util.XYToLatlon([dx, dy], latlon(GPS.lat, GPS.lon))
 
 
 if __name__ == "__main__":

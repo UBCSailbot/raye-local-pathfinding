@@ -29,7 +29,6 @@ PATH_UPDATE_TIME_LIMIT_SECONDS = 7200
 # Pathfinding constants
 MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS = 20.0
 INCREASE_RUNTIME_FACTOR = 1.5
-OBSTACLE_SHRINK_FACTOR = 1.2
 
 # Scale NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES and NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND to change based on
 # waypoint distance
@@ -416,32 +415,12 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=Fals
         yMax = max(start[1], goal[1]) + extraKm
         return [xMin, yMin, xMax, yMax]
 
-    # If start or goal is invalid, shrink objects and re-run
-    def shrinkObstaclesUntilValid(xy, obstacles):
-        def obstaclesTooClose(xy, obstacles):
-            obstaclesTooCloseList = []
-            for obstacle in obstacles:
-                if not obstacle.isValid(xy):
-                    obstaclesTooCloseList.append(obstacle)
-            return obstaclesTooCloseList
-        amountShrinked = 1.0
-        obstaclesTooCloseList = obstaclesTooClose(xy, obstacles)
-        while len(obstaclesTooCloseList) > 0:
-            rospy.logerr("start or goal state is not valid")
-            rospy.logerr("Shrinking some obstacles by a factor of {}".format(OBSTACLE_SHRINK_FACTOR))
-            for o in obstaclesTooCloseList:
-                o.shrink(OBSTACLE_SHRINK_FACTOR)
-            obstaclesTooCloseList = obstaclesTooClose(xy, obstacles)
-            amountShrinked *= OBSTACLE_SHRINK_FACTOR
-        return amountShrinked
-
     def isValidSolution(solution, referenceLatlon, state):
         if not solution.haveExactSolutionPath():
             return False
         return True
 
-    def plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, obstacles, headingDegrees,
-                               amountObstaclesShrinked):
+    def plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, obstacles, headingDegrees):
         # Clear plot if already there
         plt.cla()
 
@@ -463,7 +442,7 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=Fals
         plt.grid(True)
         axes.set_xlabel('X distance to position (km)')
         axes.set_ylabel('Y distance to position (km)')
-        axes.set_title('Setup of pathfinding problem (amountObstaclesShrinked = {})'.format(amountObstaclesShrinked))
+        axes.set_title('Setup of pathfinding problem')
 
         # Add boats and wind speed arrow
         for obstacle in obstacles:
@@ -554,13 +533,6 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=Fals
     globalWindSpeedKmph, globalWindDirectionDegrees = measuredWindToGlobalWind(
         state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
 
-    # If start or goal is invalid, shrink objects and re-run
-    amountShrinkedStart = shrinkObstaclesUntilValid(start, obstacles)
-    amountShrinkedGoal = shrinkObstaclesUntilValid(goal, obstacles)
-    amountShrinked = max(amountShrinkedStart, amountShrinkedGoal)
-    if amountShrinked > 1.0000001:
-        rospy.logerr("Obstacles have been shrinked by factor of at most {}".format(amountShrinked))
-
     # Run the planner multiple times and find the best one
     rospy.loginfo("Running createLocalPathSS. runtimeSeconds: {}. numRuns: {}. Total time: {} seconds"
                   .format(runtimeSeconds, numRuns, runtimeSeconds * numRuns))
@@ -570,7 +542,7 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=Fals
     shouldPlot = rospy.get_param('plot_pathfinding_problem', False)
     if shouldPlot:
         plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, obstacles,
-                               state.headingDegrees, amountShrinked)
+                               state.headingDegrees)
 
     # Take screenshot
     shouldTakeScreenshot = rospy.get_param('screenshot', False)
@@ -580,10 +552,11 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=Fals
     # Look for solutions
     validSolutions = []
     invalidSolutions = []
+    plannerType = rospy.get_param('planner_type', 'RRTStar')
     for i in range(numRuns):
         # TODO: Incorporate globalWindSpeed into pathfinding?
         rospy.loginfo("Starting path-planning run number: {}".format(i))
-        solution = plan(runtimeSeconds, "RRTStar", 'WeightedLengthAndClearanceCombo',
+        solution = plan(runtimeSeconds, plannerType, 'WeightedLengthAndClearanceCombo',
                         globalWindDirectionDegrees, dimensions, start, goal, obstacles)
         if isValidSolution(solution, referenceLatlon, state):
             validSolutions.append(solution)

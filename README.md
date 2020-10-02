@@ -99,7 +99,7 @@ To run the tests, navigate to the `catkin_ws` and run `catkin_make run_tests`.
 
 ### Lint
 
-To ensure that the codebase stays clean, we will be using [flake8](https://flake8.pycqa.org/en/latest/) to enforce our style guide, which is mostly based off of [pep8](https://www.python.org/dev/peps/pep-0008/). To automate most of this process, you can use [autopep8](https://github.com/hhatto/autopep8), which is a tool that automatically resolves most style issues. Example usage is shown below. Our team has agreed upon a 120 character line limit. Note that some style choices are still under discussion.
+To ensure that the codebase stays clean, we will be using [flake8](https://flake8.pycqa.org/en/latest/) to enforce our style guide, which is mostly based off of [pep8](https://www.python.org/dev/peps/pep-0008/). To automate most of this process, you can use [autopep8](https://github.com/hhatto/autopep8), which is a tool that automatically resolves most style issues. Example usage is shown below. Our team has agreed upon a 120 character line limit.
 
 `pip install flake8`
 

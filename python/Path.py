@@ -31,6 +31,9 @@ class OMPLPath:
         self._referenceLatlon = referenceLatlon
 
     # Simple getter methods
+    def getSS(self):
+        return self._ss
+
     def getReferenceLatlon(self):
         return self._referenceLatlon
 
@@ -49,6 +52,10 @@ class OMPLPath:
     # Longer getter methods
     def getCost(self):
         return self._solutionPath.cost(self._ss.getOptimizationObjective()).value()
+
+    def getObstacles(self, state):
+        self.updateObstacles(state)
+        return self._obstacles
 
     def getPathCostBreakdownString(self):
         '''Return a string showing the breakdown of how the path cost was calculated.'''
@@ -84,8 +91,8 @@ class OMPLPath:
 
     def updateObstacles(self, state):
         '''Update the obstacles of the OMPL validation checker'''
-        obstacles = utils.getObstacles(state, self._referenceLatlon)
-        validity_checker = ph.ValidityChecker(self._ss.getSpaceInformation(), obstacles)
+        self._obstacles = utils.getObstacles(state, self._referenceLatlon)
+        validity_checker = ph.ValidityChecker(self._ss.getSpaceInformation(), self._obstacles)
         self._ss.setStateValidityChecker(validity_checker)
 
     def removePastWaypoints(self, state):
@@ -186,7 +193,7 @@ class OMPLPath:
             y1 = state1.getY()
             x2 = state2.getX()
             y2 = state2.getY()
-            return ((x1-x2)**2 + (y1-y2)**2)**0.5
+            return ((x1 - x2)**2 + (y1 - y2)**2)**0.5
 
         # Only add in boat position as waypoint if edge case is avoided (described above)
         dist_boat_to_1 = dist(positionXY, self._solutionPath.getState(1))
@@ -212,6 +219,7 @@ class Path:
         _latlons (list of latlons): List of latlons that corresponds with _omplPath's waypoints
         _nextWaypointIndex (int): index of the next waypoint in _latlons that the boat should be going towards
     """
+
     def __init__(self, omplPath):
         self._omplPath = omplPath
         self._latlons = self._getLatlonsFromOMPLPath(self._omplPath)
@@ -285,6 +293,9 @@ class Path:
 
     def getPathCostBreakdownString(self):
         return self._omplPath.getPathCostBreakdownString()
+
+    def getObstacles(self, state):
+        return self._omplPath.getObstacles(state)
 
     def updateWindDirection(self, state):
         self._omplPath.updateWindDirection(state)
@@ -530,3 +541,38 @@ class Path:
                 rospy.logwarn("Obstacle on path. waypointIndexWithObstacle: {}".format(waypointIndexWithObstacle))
             return True
         return False
+
+    def checkStartValidity(self, sbot, state):
+        obstacles = self.getObstacles(state)
+        for obstacle in obstacles:
+            xy = utils.latlonToXY(latlon(sbot.position.lat, sbot.position.lon), obstacle.referenceLatlon)
+            if not obstacle.isValid(xy):
+                self._invalidObstacle = obstacle
+                return False
+        return True
+
+    def checkGoalValidity(self, state):
+        obstacles = self.getObstacles(state)
+        latlonPath = self.getLatlons()
+        goalLatlon = latlonPath[len(latlonPath) - 1]
+        for obstacle in obstacles:
+            goalXY = utils.latlonToXY(latlon(goalLatlon.lat, goalLatlon.lon), obstacle.referenceLatlon)
+            if not obstacle.isValid(goalXY):
+                return False
+        return True
+
+    def generateSafeHeading(self, state):
+        obstacleHeadingRad = math.radians(self._invalidObstacle.aisData.headingDegrees)
+        potentialHeadingsRad = []
+        potentialHeadingsRad.append(obstacleHeadingRad + math.pi * 0.5)
+        potentialHeadingsRad.append(obstacleHeadingRad - math.pi * 0.5)
+
+        for heading in potentialHeadingsRad:
+            globalWindSpeedKmph, globalWindDirectionDegrees = utils.measuredWindToGlobalWind(
+                state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
+            rospy.logwarn("Global Wind Direction:{}".format(globalWindDirectionDegrees))
+            if not ph.isUpwind(math.radians(globalWindDirectionDegrees), math.radians(heading)):
+                return math.degrees(heading)
+
+        # if all else fails, go downwind
+        return globalWindDirectionDegrees
