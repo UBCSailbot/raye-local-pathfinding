@@ -23,7 +23,6 @@ class ObstacleInterface:
         self.currentX, self.currentY = utils.latlonToXY(latlon(aisData.lat, aisData.lon), referenceLatlon)
         self.projectedX, self.projectedY = self._getProjectedPosition(aisData, sailbotPosition,
                                                                       sailbotSpeedKmph, referenceLatlon)
-        pass
 
     def __str__(self):
         pass
@@ -280,10 +279,11 @@ class Circles(ObstacleInterface):
 class Circle():
     """ Helper class for Circles representation"""
 
-    def __init__(self, x, y, radius):
+    def __init__(self, x, y, radius, color="blue"):
         self.x = x
         self.y = y
         self.radius = radius
+        self.color = color
 
     def isValid(self, xy):
         x, y = xy
@@ -292,8 +292,9 @@ class Circle():
         return True
 
     def addPatch(self, axes):
-        axes.add_patch(plt.Circle((self.x, self.y), radius=self.radius))
-
+        circlePatch = plt.Circle((self.x, self.y), radius=self.radius)
+        circlePatch.set_color(self.color)
+        axes.add_patch(circlePatch)
 
 class HybridEllipse(ObstacleInterface):
     def __init__(self, aisData, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
@@ -330,8 +331,8 @@ class HybridCircle(ObstacleInterface):
 
     def _extendObstacle(self, aisData, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
         self.wedge = Wedge(aisData, sailbotPosition, sailbotSpeedKmph, referenceLatlon)
-        self.origCircle = Circle(self.currentX, self.currentY, AIS_BOAT_RADIUS_KM)
-        self.circle = Circle(self.projectedX, self.projectedY, AIS_BOAT_RADIUS_KM)
+        self.origCircle = Circle(self.currentX, self.currentY, AIS_BOAT_RADIUS_KM, "red")
+        self.circle = Circle(self.projectedX, self.projectedY, AIS_BOAT_RADIUS_KM, "blue")
 
     def addPatch(self, axes):
         self.wedge.addPatch(axes)
@@ -342,4 +343,4 @@ class HybridCircle(ObstacleInterface):
         return (self.wedge.isValid(xy) and self.circle.isValid(xy))
 
     def clearance(self, xy):
-        return (self.xy[0] - xy[0])**2 + (self.xy[1] - xy[1])**2
+        return (self.projectedX - xy[0])**2 + (self.projectedY - xy[1])**2
