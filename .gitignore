@@ -8,6 +8,8 @@ extra
 .idea
 python/.idea/
 
+.vscode
+
 ### C++ ###
 # Compiled Object files
 *.slo
