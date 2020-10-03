@@ -139,11 +139,17 @@ if __name__ == '__main__':
                                        marker='X', color='g', markersize=markersize)           # Green X
     # Red triangle with correct heading. The (-90) is because the triangle
     # default heading 0 points North, but this heading has 0 be East.
-    positionPlot1, = axes.plot(positionXY[0] + .8 * (positionXY[0] - nextLocalWaypointXY[0]), 
-                            positionXY[1] + .8 * (positionXY[1] - nextLocalWaypointXY[1]),
-                            marker=(3, 0, state.headingDegrees + 90), color='r', markersize=markersize)
-    positionPlot2, = axes.plot(positionXY[0], positionXY[1],
+    positionPlot, = axes.plot(positionXY[0], positionXY[1],
                             marker=(3, 0, state.headingDegrees - 90), color='r', markersize=markersize)
+    
+    # Making the tail half of the visualizer
+    directionX = positionXY[0] - nextLocalWaypointXY[0]
+    directionY = positionXY[1] - nextLocalWaypointXY[1]
+    magnitude = math.sqrt(math.pow(directionX, 2) + math.pow(directionY, 2))
+    positionPlotTail, = axes.plot(positionXY[0] + 2 * (directionX / magnitude), 
+                            positionXY[1] + 2 * (directionY / magnitude),
+                            marker=(3, 0, state.headingDegrees + 90), color='r', markersize=markersize)
+    
 
     # Setup plot xy limits and labels
     axes.set_xlim(xNLim, xPLim)
@@ -191,12 +197,13 @@ if __name__ == '__main__':
         nextGlobalWaypointPlot.set_ydata(nextGlobalWaypointXY[1])
         nextLocalWaypointPlot.set_xdata(nextLocalWaypointXY[0])
         nextLocalWaypointPlot.set_ydata(nextLocalWaypointXY[1])
-        positionPlot1.set_xdata(positionXY[0] + .8 * (positionXY[0] - nextLocalWaypointXY[0]))
-        positionPlot1.set_ydata(positionXY[1] + .8 * (positionXY[1] - nextLocalWaypointXY[1]))
-        positionPlot1.set_marker((3, 0, state.headingDegrees + 90))  # Creates a triangle with correct 'heading'
-        positionPlot2.set_xdata(positionXY[0])
-        positionPlot2.set_ydata(positionXY[1])
-        positionPlot2.set_marker((3, 0, state.headingDegrees - 90))
+        positionPlot.set_xdata(positionXY[0])
+        positionPlot.set_ydata(positionXY[1])
+        positionPlot.set_marker((3, 0, state.headingDegrees - 90)) # Creates a triangle with correct 'heading'
+        positionPlotTail.set_xdata(positionXY[0] + 2 * (directionX / magnitude))
+        positionPlotTail.set_ydata(positionXY[1] + 2 * (directionY / magnitude))
+        positionPlotTail.set_marker((3, 0, state.headingDegrees + 90))  # Creates a tail for the visualizer
+        
 
         # Resize axes if needed
         if needAxesResized(positionXY, nextGlobalWaypointXY, xPLim, xNLim, yPLim, yNLim):
