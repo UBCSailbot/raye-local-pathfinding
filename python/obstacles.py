@@ -14,53 +14,80 @@ AIS_BOAT_LENGTH_KM = 1
 AIS_BOAT_CIRCLE_SPACING_KM = AIS_BOAT_RADIUS_KM * 1.5  # Distance between circles that make up an AIS boat
 
 
+def getProjectedPosition(aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
+    """ Calculate position where we project the boat to be if the sailbot moves directly towards it """
+    # Get positions of ais boat and sailbot
+    aisX, aisY = utils.latlonToXY(latlon(aisShip.lat, aisShip.lon), referenceLatlon)
+    sailbotPositionX, sailbotPositionY = utils.latlonToXY(latlon(sailbotPosition.lat, sailbotPosition.lon),
+                                                          referenceLatlon)
+
+    # Project ais boat's velocity vector onto the line between the boats.
+    # Will be +ve if moving towards sailbot, -ve if moving away form sailbot
+    angleBoatToSailbotDegrees = math.degrees(math.atan2(sailbotPositionY - aisY, sailbotPositionX - aisX))
+    boatSpeedInDirToSailbotKmph = (aisShip.speedKmph *
+                                   math.cos(math.radians(aisShip.headingDegrees - angleBoatToSailbotDegrees)))
+
+    # Calculate MINIMUM time it would take for the boats to collide, but have an upper bound
+    MAX_TIME_TO_LOC_HOURS = 3
+    distanceBetweenBoatsKm = distance((aisShip.lat, aisShip.lon), (sailbotPosition.lat, sailbotPosition.lon)).kilometers
+    if sailbotSpeedKmph + boatSpeedInDirToSailbotKmph == 0:
+        smallestTimeToLocHours = MAX_TIME_TO_LOC_HOURS
+    else:
+        smallestTimeToLocHours = distanceBetweenBoatsKm / (sailbotSpeedKmph + boatSpeedInDirToSailbotKmph)
+        smallestTimeToLocHours = smallestTimeToLocHours if smallestTimeToLocHours < MAX_TIME_TO_LOC_HOURS
+                                                        else MAX_TIME_TO_LOC_HOURS
+    minimumBoatDistanceTravelledKm = smallestTimeToLocHours * aisShip.speedKmph
+
+    # Calculate projected position
+    projectedX = aisX + minimumBoatDistanceTravelledKm * math.cos(math.radians(aisShip.headingDegrees))
+    projectedY = aisY + minimumBoatDistanceTravelledKm * math.sin(math.radians(aisShip.headingDegrees))
+    projectedPosition = [projectedX, projectedY]
+    return projectedPosition
+
+
+def getObstacles(state, referenceLatlon):
+    '''Creates a list of obstacles in xy coordinates. Uses the obstacle type from the rosparam "obstacle_type"
+
+    Args:
+       state (BoatState): State of the sailbot
+       referenceLatlon (local_pathfinding.msg._latlon.latlon): Position of the reference point that will be at (0,0)
+
+    Returns:
+       list of obstacles that implement the obstacle interface
+    '''
+    ships, position, speedKmph = state.aisShip.ships, state.position, state.speedKmph
+    obstacle_type = rospy.get_param('obstacle_type', 'hybrid_circle')
+    obstacles = []
+    if obstacle_type == "ellipse":
+        for ship in ships:
+            obstacles.append(EllipseObstacle(ship, position, speedKmph, referenceLatlon))
+    elif obstacle_type == "wedge":
+        for ship in ships:
+            obstacles.append(Wedge(ship, position, speedKmph, referenceLatlon))
+    elif obstacle_type == "circles":
+        for ship in ships:
+            obstacles.append(Circles(ship, position, speedKmph, referenceLatlon))
+    elif obstacle_type == "hybrid_ellipse":
+        for ship in ships:
+            obstacles.append(HybridEllipse(ship, position, speedKmph, referenceLatlon))
+    elif obstacle_type == "hybrid_circle":
+        for ship in ships:
+            obstacles.append(HybridCircle(ship, position, speedKmph, referenceLatlon))
+    return obstacles
+
+
 class ObstacleInterface:
-    def __init__(self, aisData, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
-        self.aisData = aisData
-        self.sailbotPosition = sailbotPosition
-        self.sailbotSpeedKmph = sailbotSpeedKmph
-        self.referenceLatlon = referenceLatlon
-        self.currentX, self.currentY = utils.latlonToXY(latlon(aisData.lat, aisData.lon), referenceLatlon)
-        self.projectedX, self.projectedY = self._getProjectedPosition(aisData, sailbotPosition,
-                                                                      sailbotSpeedKmph, referenceLatlon)
+    def __init__(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
 
     def __str__(self):
         pass
 
-    def _getProjectedPosition(self, aisData, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
-        """ Calculate position where we project the boat to be if the sailbot moves directly towards it """
-        # Get positions of ais boat and sailbot
-        aisX, aisY = utils.latlonToXY(latlon(aisData.lat, aisData.lon), referenceLatlon)
-        sailbotPositionX, sailbotPositionY = utils.latlonToXY(latlon(sailbotPosition.lat, sailbotPosition.lon),
-                                                              referenceLatlon)
-
-        # Project ais boat's velocity vector onto the line between the boats.
-        # Will be +ve if moving towards sailbot, -ve if moving away form sailbot
-        angleBoatToSailbotDegrees = math.atan2(sailbotPositionY - aisY, sailbotPositionX - aisX)
-        boatSpeedInDirToSailbotKmph = (aisData.speedKmph *
-                                       math.cos(math.radians(aisData.headingDegrees - angleBoatToSailbotDegrees)))
-
-        # Calculate MINIMUM time it would take for the boats to collide, but have an upper bound
-        MAX_TIME_TO_LOC_HOURS = 3
-        distanceToBoatKm = distance((aisData.lat, aisData.lon), (sailbotPosition.lat, sailbotPosition.lon)).kilometers
-        if sailbotSpeedKmph + boatSpeedInDirToSailbotKmph == 0:
-            smallestTimeToLocHours = MAX_TIME_TO_LOC_HOURS
-        else:
-            smallestTimeToLocHours = distanceToBoatKm / (sailbotSpeedKmph + boatSpeedInDirToSailbotKmph)
-        distanceTravelledKm = smallestTimeToLocHours * aisData.speedKmph
-
-        # Calculate projected position
-        projectedX = aisX + distanceTravelledKm * math.cos(math.radians(aisData.headingDegrees))
-        projectedY = aisY + distanceTravelledKm * math.sin(math.radians(aisData.headingDegrees))
-        projectedPosition = [projectedX, projectedY]
-        return projectedPosition
-
-    def _extendObstacle(self, aisData, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
+    def _extendObstacle(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
         """ Extends obstacle based on speed and heading """
         pass
 
-    def addPatch(self, axes):
-        """ Return patch from matplotlib.patches """
+    def getPatch(self, color):
+        """ Add matplotlib.patches to axes """
         pass
 
     def isValid(self, xy):
@@ -84,7 +111,6 @@ class Ellipse():
         return str((self.x, self.y, self.height, self.width, self.angle))
 
     def isValid(self, xy):
-        delta = 0.001
         x = xy[0] - self.x
         y = xy[1] - self.y
         x_ = math.cos(math.radians(self.angle)) * x + math.sin(math.radians(self.angle)) * y
@@ -100,6 +126,7 @@ class Ellipse():
         edge_pt = self._ellipseFormula(t_param)
         distance_to_edge = math.sqrt((edge_pt[0] - self.x) ** 2 + (edge_pt[1] - self.y) ** 2)
 
+        delta = 0.001
         if distance_center_to_boat < distance_to_edge or math.fabs(distance_to_edge - distance_center_to_boat) <= delta:
             return False
         return True
@@ -118,24 +145,24 @@ class Ellipse():
 
 
 class EllipseObstacle(ObstacleInterface, Ellipse):
-    def __init__(self, aisData, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
-        ObstacleInterface.__init__(self, aisData, sailbotPosition, sailbotSpeedKmph, referenceLatlon)
-        self._extendObstacle(self.aisData, self.sailbotPosition, self.sailbotSpeedKmph, self.referenceLatlon)
+    def __init__(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
+        ObstacleInterface.__init__(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon)
+        self._extendObstacle(self.aisShip, self.sailbotPosition, self.sailbotSpeedKmph, self.referenceLatlon)
 
     def __str__(self):
         return Ellipse.__str__(self)
 
-    def _extendObstacle(self, aisData, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
+    def _extendObstacle(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
         # Calculate width and height of ellipse
         timeExtendLengthHours = 0.4
-        extendBoatLengthKm = aisData.speedKmph * timeExtendLengthHours
+        extendBoatLengthKm = aisShip.speedKmph * timeExtendLengthHours
 
         if extendBoatLengthKm == 0:
             width = AIS_BOAT_RADIUS_KM
         else:
             width = extendBoatLengthKm
         height = AIS_BOAT_RADIUS_KM
-        angle = aisData.headingDegrees
+        angle = aisShip.headingDegrees
 
         # Calculate xy center of ellipse, which is has its tip at the projected position
         xy = [self.projectedX + extendBoatLengthKm * math.cos(math.radians(angle)) * 0.5,
@@ -160,16 +187,16 @@ class EllipseObstacle(ObstacleInterface, Ellipse):
 
 
 class Wedge(ObstacleInterface):
-    def __init__(self, aisData, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
-        ObstacleInterface.__init__(self, aisData, sailbotPosition, sailbotSpeedKmph, referenceLatlon)
-        self._extendObstacle(self.aisData, self.sailbotPosition, self.sailbotSpeedKmph, self.referenceLatlon)
+    def __init__(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
+        ObstacleInterface.__init__(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon)
+        self._extendObstacle(self.aisShip, self.sailbotPosition, self.sailbotSpeedKmph, self.referenceLatlon)
 
     def __str__(self):
         return str((self.x, self.y, self.radius, self.theta1, self.theta2))
 
-    def _extendObstacle(self, aisData, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
-        theta1 = aisData.headingDegrees - WEDGE_EXPAND_ANGLE_DEGREES / 2.0
-        theta2 = aisData.headingDegrees + WEDGE_EXPAND_ANGLE_DEGREES / 2.0
+    def _extendObstacle(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
+        theta1 = aisShip.headingDegrees - WEDGE_EXPAND_ANGLE_DEGREES / 2.0
+        theta2 = aisShip.headingDegrees + WEDGE_EXPAND_ANGLE_DEGREES / 2.0
 
         # Ensure theta1 >= 0 and theta2 >= theta1
         if theta1 < 0:
@@ -179,7 +206,7 @@ class Wedge(ObstacleInterface):
 
         # Defines how long the wedge should be
         timeExtendLengthHours = 1
-        radius = aisData.speedKmph * timeExtendLengthHours
+        radius = aisShip.speedKmph * timeExtendLengthHours
         self.x, self.y = self.projectedX, self.projectedY
         self.radius = radius
         self.theta1, self.theta2 = theta1, theta2
@@ -210,9 +237,9 @@ class Wedge(ObstacleInterface):
 
 
 class Circles(ObstacleInterface):
-    def __init__(self, aisData, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
-        ObstacleInterface.__init__(self, aisData, sailbotPosition, sailbotSpeedKmph, referenceLatlon)
-        self._extendObstacle(self.aisData, self.sailbotPosition, self.sailbotSpeedKmph, self.referenceLatlon)
+    def __init__(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
+        ObstacleInterface.__init__(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon)
+        self._extendObstacle(self.aisShip, self.sailbotPosition, self.sailbotSpeedKmph, self.referenceLatlon)
 
     def isValid(self, xy):
         for obstacle in self.obstacles:
@@ -220,25 +247,25 @@ class Circles(ObstacleInterface):
                 return False
         return True
 
-    def _extendObstacle(self, aisData, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
+    def _extendObstacle(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
         self.obstacles = []
-        aisX, aisY = utils.latlonToXY(latlon(aisData.lat, aisData.lon), referenceLatlon)
+        aisX, aisY = utils.latlonToXY(latlon(aisShip.lat, aisShip.lon), referenceLatlon)
         # Calculate length to extend boat
-        distanceToBoatKm = distance((aisData.lat, aisData.lon), (sailbotPosition.lat, sailbotPosition.lon)).kilometers
+        distanceToBoatKm = distance((aisShip.lat, aisShip.lon), (sailbotPosition.lat, sailbotPosition.lon)).kilometers
         if sailbotSpeedKmph == 0 or distanceToBoatKm / sailbotSpeedKmph > OBSTACLE_MAX_TIME_TO_LOC_HOURS:
             timeToLocHours = OBSTACLE_MAX_TIME_TO_LOC_HOURS
         else:
             timeToLocHours = distanceToBoatKm / sailbotSpeedKmph
-        extendBoatLengthKm = aisData.speedKmph * timeToLocHours
+        extendBoatLengthKm = aisShip.speedKmph * timeToLocHours
 
         if extendBoatLengthKm == 0:
             self.obstacles.append(Circle(aisX, aisY, AIS_BOAT_RADIUS_KM))
 
-        if aisData.headingDegrees == 90 or aisData.headingDegrees == 270:
-            if aisData.headingDegrees == 90:
+        if aisShip.headingDegrees == 90 or aisShip.headingDegrees == 270:
+            if aisShip.headingDegrees == 90:
                 endY = aisY + extendBoatLengthKm
                 yRange = np.arange(aisY, endY, AIS_BOAT_CIRCLE_SPACING_KM)
-            if aisData.headingDegrees == 270:
+            if aisShip.headingDegrees == 270:
                 endY = aisY - extendBoatLengthKm
                 yRange = np.arange(endY, aisY, AIS_BOAT_CIRCLE_SPACING_KM)
             for y in yRange:
@@ -246,15 +273,15 @@ class Circles(ObstacleInterface):
                 multiplier = 1 + abs(float(y - aisY) / (endY - aisY))
                 self.obstacles.append(Circle(aisX, y, AIS_BOAT_RADIUS_KM * multiplier))
         else:
-            isHeadingWest = aisData.headingDegrees < 270 and aisData.headingDegrees > 90
-            slope = math.tan(math.radians(aisData.headingDegrees))
+            isHeadingWest = aisShip.headingDegrees < 270 and aisShip.headingDegrees > 90
+            slope = math.tan(math.radians(aisShip.headingDegrees))
             dx = AIS_BOAT_CIRCLE_SPACING_KM / math.sqrt(1 + slope**2)
 
             if aisX > 0:
                 b = aisY + slope * -math.fabs(aisX)
             else:
                 b = aisY + slope * math.fabs(aisX)
-            xDistTravelled = math.fabs(extendBoatLengthKm * math.cos(math.radians(aisData.headingDegrees)))
+            xDistTravelled = math.fabs(extendBoatLengthKm * math.cos(math.radians(aisShip.headingDegrees)))
             def y(x): return slope * x + b
             if isHeadingWest:
                 endX = aisX - xDistTravelled
@@ -297,18 +324,18 @@ class Circle():
         axes.add_patch(circlePatch)
 
 class HybridEllipse(ObstacleInterface):
-    def __init__(self, aisData, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
-        ObstacleInterface.__init__(self, aisData, sailbotPosition, sailbotSpeedKmph, referenceLatlon)
-        self._extendObstacle(self.aisData, self.sailbotPosition, self.sailbotSpeedKmph, self.referenceLatlon)
-        self.xy = utils.latlonToXY(latlon(aisData.lat, aisData.lon), referenceLatlon)
+    def __init__(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
+        ObstacleInterface.__init__(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon)
+        self._extendObstacle(self.aisShip, self.sailbotPosition, self.sailbotSpeedKmph, self.referenceLatlon)
+        self.xy = utils.latlonToXY(latlon(aisShip.lat, aisShip.lon), referenceLatlon)
         self.ellipse = Ellipse(self.xy[0], self.xy[1], AIS_BOAT_RADIUS_KM, AIS_BOAT_LENGTH_KM,
-                               aisData.headingDegrees)
+                               aisShip.headingDegrees)
 
     def __str__(self):
         return str(self.ellipse) + str(self.wedge)
 
-    def _extendObstacle(self, aisData, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
-        self.wedge = Wedge(aisData, sailbotPosition, sailbotSpeedKmph, referenceLatlon)
+    def _extendObstacle(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
+        self.wedge = Wedge(aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon)
 
     def addPatch(self, axes):
         self.wedge.addPatch(axes)
@@ -322,15 +349,23 @@ class HybridEllipse(ObstacleInterface):
 
 
 class HybridCircle(ObstacleInterface):
-    def __init__(self, aisData, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
-        ObstacleInterface.__init__(self, aisData, sailbotPosition, sailbotSpeedKmph, referenceLatlon)
-        self._extendObstacle(self.aisData, self.sailbotPosition, self.sailbotSpeedKmph, self.referenceLatlon)
+    def __init__(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
+        # Store member variables
+        self.aisShip = aisShip
+        self.sailbotPosition = sailbotPosition
+        self.sailbotSpeedKmph = sailbotSpeedKmph
+        self.referenceLatlon = referenceLatlon
+        self.currentX, self.currentY = utils.latlonToXY(latlon(aisShip.lat, aisShip.lon), referenceLatlon)
+        self.projectedX, self.projectedY = getProjectedPosition(aisShip, sailbotPosition,
+                                                                sailbotSpeedKmph, referenceLatlon)
+        self._extendObstacle(self.aisShip, self.sailbotPosition, self.sailbotSpeedKmph, self.referenceLatlon)
 
     def __str__(self):
         return str(self.circle) + str(self.wedge)
 
-    def _extendObstacle(self, aisData, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
-        self.wedge = Wedge(aisData, sailbotPosition, sailbotSpeedKmph, referenceLatlon)
+    def _extendObstacle(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
+        self.origWedge = Wedge(aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon)
+        self.wedge = Wedge(aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon)
         self.origCircle = Circle(self.currentX, self.currentY, AIS_BOAT_RADIUS_KM, "red")
         self.circle = Circle(self.projectedX, self.projectedY, AIS_BOAT_RADIUS_KM, "blue")
 
