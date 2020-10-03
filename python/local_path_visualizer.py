@@ -143,12 +143,9 @@ if __name__ == '__main__':
                               marker=(3, 0, state.headingDegrees - 90), color='r', markersize=markersize)
 
     # Making the tail half of the visualizer
-    directionX = positionXY[0] - nextLocalWaypointXY[0]
-    directionY = positionXY[1] - nextLocalWaypointXY[1]
-    magnitude = math.sqrt(math.pow(directionX, 2) + math.pow(directionY, 2))
-    positionPlotTail, = axes.plot(positionXY[0] + 2 * (directionX / magnitude),
-                                  positionXY[1] + 2 * (directionY / magnitude),
-                                  marker=(5, 0, state.headingDegrees - 90), color='r', markersize=.8 * markersize)
+    positionPlotTail, = axes.plot(positionXY[0] - 1 * math.cos(math.radians(state.headingDegrees)),
+                                  positionXY[1] - 1 * math.sin(math.radians(state.headingDegrees)),
+                                  marker=(5, 0, state.headingDegrees - 90), color='r', markersize=.7 * markersize)
 
     # Setup plot xy limits and labels
     axes.set_xlim(xNLim, xPLim)
@@ -199,8 +196,8 @@ if __name__ == '__main__':
         positionPlot.set_xdata(positionXY[0])
         positionPlot.set_ydata(positionXY[1])
         positionPlot.set_marker((3, 0, state.headingDegrees - 90))  # Creates a triangle with correct 'heading'
-        positionPlotTail.set_xdata(positionXY[0] + 2 * (directionX / magnitude))
-        positionPlotTail.set_ydata(positionXY[1] + 2 * (directionY / magnitude))
+        positionPlotTail.set_xdata(positionXY[0] - 1 * math.cos(math.radians(state.headingDegrees)))
+        positionPlotTail.set_ydata(positionXY[1] - 1 * math.sin(math.radians(state.headingDegrees)))
         positionPlotTail.set_marker((5, 0, state.headingDegrees - 90))  # Creates a tail for the visualizer
 
         # Resize axes if needed
