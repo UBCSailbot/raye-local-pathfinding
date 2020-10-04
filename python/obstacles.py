@@ -16,6 +16,7 @@ AIS_BOAT_LENGTH_KM = 1
 AIS_BOAT_CIRCLE_SPACING_KM = AIS_BOAT_RADIUS_KM * 1.5  # Distance between circles that make up an AIS boat
 CURRENT_BOAT_COLOR = "red"
 PROJECTED_BOAT_COLOR = "blue"
+CURRENT_BOAT_TRANSPARENCY_ALPHA = 0.1  # Current position is more transparent
 
 
 def getProjectedPosition(aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
@@ -91,14 +92,23 @@ def getObstacles(state, referenceLatlon):
 class ObstacleInterface():
     def __init__(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
         """ Initialize obstacle """
-        pass
+        # Store member variables
+        self.aisShip = aisShip
+        self.sailbotPosition = sailbotPosition
+        self.sailbotSpeedKmph = sailbotSpeedKmph
+        self.referenceLatlon = referenceLatlon
+
+        # Calculate current and projected position
+        self.currentX, self.currentY = utils.latlonToXY(latlon(aisShip.lat, aisShip.lon), referenceLatlon)
+        self.projectedX, self.projectedY = getProjectedPosition(aisShip, sailbotPosition,
+                                                                sailbotSpeedKmph, referenceLatlon)
 
     def __str__(self):
         """ String representation of obstacle """
         pass
 
-    def addPatch(self, axes, color):
-        """ Add matplotlib.patches to axes with the given color """
+    def addPatch(self, axes):
+        """ Add matplotlib.patches to axes """
         pass
 
     def isValid(self, xy):
@@ -112,16 +122,7 @@ class ObstacleInterface():
 
 class EllipseObstacle(ObstacleInterface):
     def __init__(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
-        # Store member variables
-        self.aisShip = aisShip
-        self.sailbotPosition = sailbotPosition
-        self.sailbotSpeedKmph = sailbotSpeedKmph
-        self.referenceLatlon = referenceLatlon
-
-        # Calculate current and projected position
-        self.currentX, self.currentY = utils.latlonToXY(latlon(aisShip.lat, aisShip.lon), referenceLatlon)
-        self.projectedX, self.projectedY = getProjectedPosition(aisShip, sailbotPosition,
-                                                                sailbotSpeedKmph, referenceLatlon)
+        ObstacleInterface.__init__(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon)
 
         # Create ellipses
         self.currentEllipse = self.createEllipse(self.currentX, self.currentY)
@@ -148,7 +149,7 @@ class EllipseObstacle(ObstacleInterface):
 
     def addPatch(self, axes):
         self.projectedEllipse.addPatch(axes, color=PROJECTED_BOAT_COLOR)
-        self.currentEllipse.addPatch(axes, color=CURRENT_BOAT_COLOR)
+        self.currentEllipse.addPatch(axes, color=CURRENT_BOAT_COLOR, alpha=CURRENT_BOAT_TRANSPARENCY_ALPHA)
 
     def clearance(self, xy):
         return self.projectedEllipse.clearance(xy)
@@ -156,16 +157,7 @@ class EllipseObstacle(ObstacleInterface):
 
 class WedgeObstacle(ObstacleInterface):
     def __init__(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
-        # Store member variables
-        self.aisShip = aisShip
-        self.sailbotPosition = sailbotPosition
-        self.sailbotSpeedKmph = sailbotSpeedKmph
-        self.referenceLatlon = referenceLatlon
-
-        # Calculate current and projected position
-        self.currentX, self.currentY = utils.latlonToXY(latlon(aisShip.lat, aisShip.lon), referenceLatlon)
-        self.projectedX, self.projectedY = getProjectedPosition(aisShip, sailbotPosition,
-                                                                sailbotSpeedKmph, referenceLatlon)
+        ObstacleInterface.__init__(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon)
 
         # Create wedges
         self.currentWedge = self.createWedge(self.currentX, self.currentY)
@@ -192,7 +184,7 @@ class WedgeObstacle(ObstacleInterface):
 
     def addPatch(self, axes):
         self.projectedWedge.addPatch(axes, color=PROJECTED_BOAT_COLOR)
-        self.currentWedge.addPatch(axes, color=CURRENT_BOAT_COLOR)
+        self.currentWedge.addPatch(axes, color=CURRENT_BOAT_COLOR, alpha=CURRENT_BOAT_TRANSPARENCY_ALPHA)
 
     def isValid(self, xy):
         return self.projectedWedge.isValid(xy)
@@ -203,16 +195,7 @@ class WedgeObstacle(ObstacleInterface):
 
 class CirclesObstacle(ObstacleInterface):
     def __init__(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
-        # Store member variables
-        self.aisShip = aisShip
-        self.sailbotPosition = sailbotPosition
-        self.sailbotSpeedKmph = sailbotSpeedKmph
-        self.referenceLatlon = referenceLatlon
-
-        # Calculate current and projected position
-        self.currentX, self.currentY = utils.latlonToXY(latlon(aisShip.lat, aisShip.lon), referenceLatlon)
-        self.projectedX, self.projectedY = getProjectedPosition(aisShip, sailbotPosition,
-                                                                sailbotSpeedKmph, referenceLatlon)
+        ObstacleInterface.__init__(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon)
 
         # Create ellipses
         self.currentCircles = self.createCircles(self.currentX, self.currentY)
@@ -276,80 +259,55 @@ class CirclesObstacle(ObstacleInterface):
         for circle in self.projectedCircles:
             circle.addPatch(axes, color=PROJECTED_BOAT_COLOR)
         for circle in self.currentCircles:
-            circle.addPatch(axes, color=CURRENT_BOAT_COLOR)
+            circle.addPatch(axes, color=CURRENT_BOAT_COLOR, alpha=CURRENT_BOAT_TRANSPARENCY_ALPHA)
 
     def clearance(self, xy):
         return (self.projectedCircles[0].x - xy[0])**2 + (self.projectedCircles[0].y - xy[1])**2
 
 
-class HybridEllipseObstacle(WedgeObstacle, EllipseObstacle):
+class HybridEllipseObstacle(ObstacleInterface):
     def __init__(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
-        # Store member variables
-        self.aisShip = aisShip
-        self.sailbotPosition = sailbotPosition
-        self.sailbotSpeedKmph = sailbotSpeedKmph
-        self.referenceLatlon = referenceLatlon
+        ObstacleInterface.__init__(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon)
 
-        # Calculate current and projected position
-        self.currentX, self.currentY = utils.latlonToXY(latlon(aisShip.lat, aisShip.lon), referenceLatlon)
-        self.projectedX, self.projectedY = getProjectedPosition(aisShip, sailbotPosition,
-                                                                sailbotSpeedKmph, referenceLatlon)
-
-        # Create ellipses
-        self.currentEllipse = self.createEllipse(self.currentX, self.currentY)
-        self.projectedEllipse = self.createEllipse(self.projectedX, self.projectedY)
-        self.currentWedge = self.createWedge(self.currentX, self.currentY)
-        self.projectedWedge = self.createWedge(self.projectedX, self.projectedY)
+        self.wedgeObstacle = WedgeObstacle(aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon)
+        self.ellipseObstacle = EllipseObstacle(aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon)
 
     def __str__(self):
-        return str(self.currentEllipse) + str(self.projectedEllipse) + str(self.currentWedge) + str(self.projectedWedge)
+        return str(self.wedgeObstacle) + str(self.ellipseObstacle)
 
     def addPatch(self, axes):
-        self.projectedEllipse.addPatch(axes, color=PROJECTED_BOAT_COLOR)
-        self.currentEllipse.addPatch(axes, color=CURRENT_BOAT_COLOR)
-        self.projectedWedge.addPatch(axes, color=PROJECTED_BOAT_COLOR)
-        self.currentWedge.addPatch(axes, color=CURRENT_BOAT_COLOR)
+        self.wedgeObstacle.addPatch(axes)
+        self.ellipseObstacle.addPatch(axes)
 
     def isValid(self, xy):
-        return (self.projectedWedge.isValid(xy) and self.projectedEllipse.isValid(xy))
+        return (self.wedgeObstacle.isValid(xy) and self.ellipseObstacle.isValid(xy))
 
     def clearance(self, xy):
-        return self.projectedWedge.clearance(xy)
+        return self.wedgeObstacle.clearance(xy)
 
 
-class HybridCircleObstacle(WedgeObstacle):
+class HybridCircleObstacle(ObstacleInterface):
     def __init__(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
-        # Store member variables
-        self.aisShip = aisShip
-        self.sailbotPosition = sailbotPosition
-        self.sailbotSpeedKmph = sailbotSpeedKmph
-        self.referenceLatlon = referenceLatlon
-
-        # Calculate current and projected position
-        self.currentX, self.currentY = utils.latlonToXY(latlon(aisShip.lat, aisShip.lon), referenceLatlon)
-        self.projectedX, self.projectedY = getProjectedPosition(aisShip, sailbotPosition,
-                                                                sailbotSpeedKmph, referenceLatlon)
+        ObstacleInterface.__init__(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon)
 
         # Create ellipses
         self.currentCircle = Circle(self.currentX, self.currentY, AIS_BOAT_RADIUS_KM)
         self.projectedCircle = Circle(self.projectedX, self.projectedY, AIS_BOAT_RADIUS_KM)
-        self.currentWedge = self.createWedge(self.currentX, self.currentY)
-        self.projectedWedge = self.createWedge(self.projectedX, self.projectedY)
+        self.wedgeObstacle = WedgeObstacle(aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon)
 
     def __str__(self):
-        return str(self.currentCircle) + str(self.projectedCircle) + str(self.currentWedge) + str(self.projectedWedge)
+        return str(self.currentCircle) + str(self.projectedCircle) + str(self.wedgeObstacle)
 
     def addPatch(self, axes):
         self.projectedCircle.addPatch(axes, color=PROJECTED_BOAT_COLOR)
-        self.currentCircle.addPatch(axes, color=CURRENT_BOAT_COLOR)
-        self.projectedWedge.addPatch(axes, color=PROJECTED_BOAT_COLOR)
-        self.currentWedge.addPatch(axes, color=CURRENT_BOAT_COLOR)
+        self.currentCircle.addPatch(axes, color=CURRENT_BOAT_COLOR, alpha=CURRENT_BOAT_TRANSPARENCY_ALPHA)
+        self.wedgeObstacle.addPatch(axes)
 
     def isValid(self, xy):
-        return (self.projectedWedge.isValid(xy) and self.projectedCircle.isValid(xy))
+        return (self.wedgeObstacle.isValid(xy) and self.projectedCircle.isValid(xy))
 
     def clearance(self, xy):
-        return self.projectedWedge.clearance(xy)
+        return self.wedgeObstacle.clearance(xy)
 
 
 class ShapeInterface():
@@ -359,7 +317,7 @@ class ShapeInterface():
     def isValid(self, xy):
         pass
 
-    def addPatch(self, axes, color):
+    def addPatch(self, axes, color, alpha=1.0):
         pass
 
     def clearance(self, xy):
@@ -381,9 +339,10 @@ class Circle(ShapeInterface):
         distance = math.sqrt(pow(x - self.x, 2) + pow(y - self.y, 2))
         return distance > self.radius
 
-    def addPatch(self, axes, color):
+    def addPatch(self, axes, color, alpha=1.0):
         circlePatch = plt.Circle((self.x, self.y), radius=self.radius)
         circlePatch.set_color(color)
+        circlePatch.set_alpha(alpha)
         axes.add_patch(circlePatch)
 
     def clearance(self, xy):
@@ -433,9 +392,10 @@ class Ellipse(ShapeInterface):
         edge_pt = init_pt + a * math.cos(t) * rotationCol1 + b * math.sin(t) * rotationCol2
         return edge_pt
 
-    def addPatch(self, axes, color):
+    def addPatch(self, axes, color, alpha=1.0):
         patch = patches.Ellipse((self.x, self.y), self.width, self.height, self.angleDegrees)
         patch.set_color(color)
+        patch.set_alpha(alpha)
         axes.add_patch(patch)
 
     def clearance(self, xy):
@@ -464,9 +424,10 @@ class Wedge(ShapeInterface):
         distance = math.sqrt((xy[1] - self.y) ** 2 + (xy[0] - self.x) ** 2)
         return not (angle > self.theta1 and angle < self.theta2 and distance <= self.radius)
 
-    def addPatch(self, axes, color):
+    def addPatch(self, axes, color, alpha=1.0):
         patch = patches.Wedge((self.x, self.y), self.radius, self.theta1, self.theta2)
         patch.set_color(color)
+        patch.set_alpha(alpha)
         axes.add_patch(patch)
 
     def clearance(self, xy):
