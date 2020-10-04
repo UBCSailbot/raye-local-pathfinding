@@ -45,8 +45,8 @@ def getProjectedPosition(aisShip, sailbotPosition, sailbotSpeedKmph, referenceLa
         smallestTimeToLocHours = MAX_PROJECT_OBSTACLE_TIME_HOURS
     else:
         smallestTimeToLocHours = distanceBetweenBoatsKm / (sailbotSpeedKmph + boatSpeedInDirToSailbotKmph)
-        smallestTimeToLocHours = smallestTimeToLocHours if smallestTimeToLocHours < MAX_PROJECT_OBSTACLE_TIME_HOURS
-                                                        else MAX_PROJECT_OBSTACLE_TIME_HOURS
+        smallestTimeToLocHours = (smallestTimeToLocHours if smallestTimeToLocHours < MAX_PROJECT_OBSTACLE_TIME_HOURS
+                                  else MAX_PROJECT_OBSTACLE_TIME_HOURS)
     minimumBoatDistanceTravelledKm = smallestTimeToLocHours * aisShip.speedKmph
 
     # Calculate projected position
@@ -74,16 +74,16 @@ def getObstacles(state, referenceLatlon):
             obstacles.append(EllipseObstacle(ship, position, speedKmph, referenceLatlon))
     elif obstacle_type == "wedge":
         for ship in ships:
-            obstacles.append(Wedge(ship, position, speedKmph, referenceLatlon))
+            obstacles.append(WedgeObstacle(ship, position, speedKmph, referenceLatlon))
     elif obstacle_type == "circles":
         for ship in ships:
-            obstacles.append(Circles(ship, position, speedKmph, referenceLatlon))
+            obstacles.append(CirclesObstacle(ship, position, speedKmph, referenceLatlon))
     elif obstacle_type == "hybrid_ellipse":
         for ship in ships:
-            obstacles.append(HybridEllipse(ship, position, speedKmph, referenceLatlon))
+            obstacles.append(HybridEllipseObstacle(ship, position, speedKmph, referenceLatlon))
     elif obstacle_type == "hybrid_circle":
         for ship in ships:
-            obstacles.append(HybridCircle(ship, position, speedKmph, referenceLatlon))
+            obstacles.append(HybridCircleObstacle(ship, position, speedKmph, referenceLatlon))
     return obstacles
 
 
@@ -107,7 +107,6 @@ class ObstacleInterface():
     def clearance(self, xy):
         """ Return distance from obstacle to xy"""
         pass
-
 
 
 class EllipseObstacle(ObstacleInterface):
@@ -279,7 +278,6 @@ class CirclesObstacle(ObstacleInterface):
         return (self.projectedCircles[0].x - xy[0])**2 + (self.projectedCircles[0].y - xy[1])**2
 
 
-
 class HybridEllipseObstacle(ObstacleInterface):
     def __init__(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
         # Store member variables
@@ -314,7 +312,7 @@ class HybridEllipseObstacle(ObstacleInterface):
         return self.projectedWedge.clearance(xy)
 
 
-class HybridCircle(ObstacleInterface):
+class HybridCircleObstacle(ObstacleInterface):
     def __init__(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
         # Store member variables
         self.aisShip = aisShip
@@ -422,8 +420,8 @@ class Ellipse(ShapeInterface):
         init_pt = np.array([self.x, self.y])
         a = 0.5 * self.width
         b = 0.5 * self.height
-        rotation_col1 = np.array([math.cos(math.radians(self.angleDegrees)), math.sin(math.radians(self.angleDegrees))])
-        rotation_col2 = np.array([-math.sin(math.radians(self.angleDegrees)), math.cos(math.radians(self.angleDegrees))])
+        rotationCol1 = np.array([math.cos(math.radians(self.angleDegrees)), math.sin(math.radians(self.angleDegrees))])
+        rotationCol2 = np.array([-math.sin(math.radians(self.angleDegrees)), math.cos(math.radians(self.angleDegrees))])
         edge_pt = init_pt + a * math.cos(t) * rotation_col1 + b * math.sin(t) * rotation_col2
         return edge_pt
 
