@@ -177,7 +177,6 @@ class TestPath(unittest.TestCase):
 
         waypoint0 = path.getOMPLPath().getSolutionPath().getState(0)
         waypoint1 = path.getOMPLPath().getSolutionPath().getState(1)
-        waypoint2 = path.getOMPLPath().getSolutionPath().getState(2)
 
         # No obstacles at all
         self.assertFalse(path.obstacleOnPath(state))
@@ -216,6 +215,7 @@ class TestPath(unittest.TestCase):
         state.position = latlon(waypoint1Latlon.lat, waypoint0Latlon.lon)
         self.assertFalse(path.obstacleOnPath(state))
 
+        waypoint2 = path.getOMPLPath().getSolutionPath().getState(2)
         between1and2XY = [waypoint1.getX() + (waypoint2.getX() - waypoint1.getX()) / 2,
                           waypoint1.getY() + (waypoint2.getY() - waypoint1.getY()) / 2]
         between1and2Latlon = utils.XYToLatlon(between1and2XY, path.getReferenceLatlon())

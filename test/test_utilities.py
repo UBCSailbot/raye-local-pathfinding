@@ -3,8 +3,7 @@
 import local_imports  # Must be first import, as it adds python directory to path
 from geopy.distance import distance
 import utilities as utils
-from local_pathfinding.msg import latlon, AISMsg
-import Sailbot as sbot
+from local_pathfinding.msg import latlon
 import rostest
 import unittest
 
