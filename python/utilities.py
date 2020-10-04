@@ -2,42 +2,21 @@
 from datetime import datetime
 from datetime import date
 import os
-from ompl import util as ou
-from ompl import geometric as og
 import rospy
 import time
 import sys
-from updated_geometric_planner import plan
 import math
 from geopy.distance import distance
 from std_msgs.msg import Float64
 from local_pathfinding.msg import latlon
-import matplotlib.pyplot as plt
-from matplotlib import patches
-from Path import Path, OMPLPath
-from obstacles import EllipseObstacle, Wedge, Circles, HybridEllipse, HybridCircle
 
 # Location constants
 PORT_RENFREW_LATLON = latlon(48.5, -124.8)
 MAUI_LATLON = latlon(20.0, -156.0)
 
 # Constants
-AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM = 3.0
 GLOBAL_WAYPOINT_REACHED_RADIUS_KM = 10.0
 PATH_UPDATE_TIME_LIMIT_SECONDS = 7200
-
-# Pathfinding constants
-MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS = 20.0
-INCREASE_RUNTIME_FACTOR = 1.5
-
-# Scale NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES and NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND to change based on
-# waypoint distance
-LOOK_AHEAD_FOR_OBSTACLES_KM = 20
-NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES = int(math.ceil(LOOK_AHEAD_FOR_OBSTACLES_KM /
-                                                       AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM))
-LOOK_AHEAD_FOR_UPWIND_DOWNWIND_KM = 10
-NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND = int(math.ceil(LOOK_AHEAD_FOR_UPWIND_DOWNWIND_KM /
-                                                             AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM))
 
 # Constants for bearing and heading
 BEARING_NORTH = 0

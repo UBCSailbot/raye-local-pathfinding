@@ -1,4 +1,5 @@
 import math
+import sys
 import time
 import rospy
 from updated_geometric_planner import indexOfObstacleOnPath
@@ -7,10 +8,30 @@ import utilities as utils
 import obstacles as obs
 from local_pathfinding.msg import latlon
 from geopy.distance import distance
+import matplotlib.pyplot as plt
+from matplotlib import patches
+from ompl import util as ou
+from updated_geometric_planner import plan
+from ompl import geometric as og
+from std_msgs.msg import Float64
 
 # Constants
 UPWIND_DOWNWIND_TIME_LIMIT_SECONDS = 0.5
 MAX_ALLOWABLE_DISTANCE_FINAL_WAYPOINT_TO_GOAL_KM = 5
+AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM = 3.0
+
+# Pathfinding constants
+MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS = 20.0
+INCREASE_RUNTIME_FACTOR = 1.5
+
+# Scale NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES and NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND to change based on
+# waypoint distance
+LOOK_AHEAD_FOR_OBSTACLES_KM = 20
+NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES = int(math.ceil(LOOK_AHEAD_FOR_OBSTACLES_KM /
+                                                       AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM))
+LOOK_AHEAD_FOR_UPWIND_DOWNWIND_KM = 10
+NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND = int(math.ceil(LOOK_AHEAD_FOR_UPWIND_DOWNWIND_KM /
+                                                             AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM))
 
 
 class OMPLPath:
@@ -721,11 +742,11 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=Fals
     # Get setup parameters from state for ompl plan()
     # Convert all latlons to NE in km wrt referenceLatlon
     referenceLatlon = state.globalWaypoint
-    start = latlonToXY(state.position, referenceLatlon)
-    goal = latlonToXY(state.globalWaypoint, referenceLatlon)
+    start = utils.latlonToXY(state.position, referenceLatlon)
+    goal = utils.latlonToXY(state.globalWaypoint, referenceLatlon)
     dimensions = getXYLimits(start, goal)
-    obstacles = getObstacles(state, referenceLatlon)
-    globalWindSpeedKmph, globalWindDirectionDegrees = measuredWindToGlobalWind(
+    obstacles = obs.getObstacles(state, referenceLatlon)
+    globalWindSpeedKmph, globalWindDirectionDegrees = utils.measuredWindToGlobalWind(
         state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
 
     # Run the planner multiple times and find the best one
@@ -742,7 +763,7 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=Fals
     # Take screenshot
     shouldTakeScreenshot = rospy.get_param('screenshot', False)
     if shouldTakeScreenshot:
-        takeScreenshot()
+        utils.takeScreenshot()
 
     # Look for solutions
     validSolutions = []
