@@ -138,8 +138,8 @@ class EllipseObstacle(ObstacleInterface):
         angle = self.aisShip.headingDegrees
 
         # Calculate xy center of ellipse, which is has its tip at the actual (aisX, aisY)
-        xy = [self.projectedX + extendBoatLengthKm * math.cos(math.radians(angle)) * 0.5,
-              self.projectedY + extendBoatLengthKm * math.sin(math.radians(angle)) * 0.5]
+        xy = [aisX + extendBoatLengthKm * math.cos(math.radians(angle)) * 0.5,
+              aisY + extendBoatLengthKm * math.sin(math.radians(angle)) * 0.5]
         x, y = xy
         return Ellipse(x, y, height, width, angle)
 
@@ -195,7 +195,7 @@ class WedgeObstacle(ObstacleInterface):
         self.currentWedge.addPatch(axes, color=CURRENT_BOAT_COLOR)
 
     def isValid(self, xy):
-        self.projectedWedge.isValid(xy)
+        return self.projectedWedge.isValid(xy)
 
     def clearance(self, xy):
         return self.projectedWedge.clearance(xy)
@@ -282,7 +282,7 @@ class CirclesObstacle(ObstacleInterface):
         return (self.projectedCircles[0].x - xy[0])**2 + (self.projectedCircles[0].y - xy[1])**2
 
 
-class HybridEllipseObstacle(EllipseObstacle):
+class HybridEllipseObstacle(WedgeObstacle, EllipseObstacle):
     def __init__(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
         # Store member variables
         self.aisShip = aisShip
