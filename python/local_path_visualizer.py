@@ -142,6 +142,11 @@ if __name__ == '__main__':
     positionPlot, = axes.plot(positionXY[0], positionXY[1],
                               marker=(3, 0, state.headingDegrees - 90), color='r', markersize=markersize)
 
+    # Making the tail half of the visualizer
+    positionPlotTail, = axes.plot(positionXY[0] - 1 * math.cos(math.radians(state.headingDegrees)),
+                                  positionXY[1] - 1 * math.sin(math.radians(state.headingDegrees)),
+                                  marker=(5, 0, state.headingDegrees - 90), color='r', markersize=.7 * markersize)
+
     # Setup plot xy limits and labels
     axes.set_xlim(xNLim, xPLim)
     axes.set_ylim(yNLim, yPLim)
@@ -191,6 +196,9 @@ if __name__ == '__main__':
         positionPlot.set_xdata(positionXY[0])
         positionPlot.set_ydata(positionXY[1])
         positionPlot.set_marker((3, 0, state.headingDegrees - 90))  # Creates a triangle with correct 'heading'
+        positionPlotTail.set_xdata(positionXY[0] - 1 * math.cos(math.radians(state.headingDegrees)))
+        positionPlotTail.set_ydata(positionXY[1] - 1 * math.sin(math.radians(state.headingDegrees)))
+        positionPlotTail.set_marker((5, 0, state.headingDegrees - 90))  # Creates a tail for the visualizer
 
         # Resize axes if needed
         if needAxesResized(positionXY, nextGlobalWaypointXY, xPLim, xNLim, yPLim, yNLim):
