@@ -1,6 +1,20 @@
 # Installation Instructions
 
 The installation process consists of installing OMPL with Python bindings, installing ROS, setting up your ROS workspace, and setting up OpenCPN for visualization.
+
+### Setting up ROS Workspace
+
+1. Install ROS Melodic on a Ubuntu 18.04 (or similar). http://wiki.ros.org/ROS/Tutorials/InstallingandConfiguringROSEnvironment
+
+2. Find the location that you want to create a ROS workspace (eg. `cd ~`)
+
+3. Type the commands `mkdir -p catkin_ws/src` `cd catkin_ws` `catkin_make`.
+
+4. Clone the repository in the src folder: `cd src` `git clone https://github.com/UBCSailbot/local-pathfinding.git`. 
+
+5. Go back to catkin_ws and build and source. `cd ..` `catkin_make` `source devel/setup.bash`.
+
+
 ### Installing OMPL
 
 ROS requires Python2, so we will have a custom ompl installation script for this task. This may take 7-12 hours, as the creation of Python bindings takes a very long time. If you encounter errors in this process, try to run the commands in the script individually and identify where you are having difficulties
@@ -48,7 +62,7 @@ This will allow you to plot paths.
 
 __Setup Option 3: Pulling Docker Image From DockerHub__
 
-You can also pull a Docker image from DockerHub by running `docker pull tylerlum/ros_ompl_python_2:04.2020.V1`, which was updated as of April 2020. Then you can follow the instructions above, but change the image name. Eg:
+You can also pull a Docker image from DockerHub by running `docker pull tylerlum/ros_ompl_python_2:04.2020.V1`, which was updated as of April 2020. Then you can follow the instructions above, but change the image name. Eg, follow the xhost instructions above and then run:
 
 ```
 docker run -it \
@@ -57,18 +71,5 @@ docker run -it \
     --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" \
     tylerlum/ros_ompl_python_2:04.2020.V1
 ```
-
-
-### Setting up ROS Workspace
-
-1. Install ROS Melodic on a Ubuntu 18.04 (or similar). http://wiki.ros.org/ROS/Tutorials/InstallingandConfiguringROSEnvironment
-
-2. Find the location that you want to create a ROS workspace (eg. `cd ~`)
-
-3. Type the commands `mkdir -p catkin_ws/src` `cd catkin_ws` `catkin_make`.
-
-4. Clone the repository in the src folder: `cd src` `git clone https://github.com/UBCSailbot/local-pathfinding.git`. 
-
-5. Go back to catkin_ws and build and source. `cd ..` `catkin_make` `source devel/setup.bash`.
 
 
