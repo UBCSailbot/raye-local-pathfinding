@@ -3,11 +3,10 @@
 import local_imports  # Must be first import, as it adds python directory to path
 from geopy.distance import distance
 import utilities as utils
-from local_pathfinding.msg import latlon, AISMsg, AISShip
+from local_pathfinding.msg import latlon, AISMsg
 import Sailbot as sbot
 import rostest
 import unittest
-import matplotlib.pyplot as plt
 
 
 # Do something with local_imports to avoid lint errors
@@ -192,60 +191,6 @@ class TestUtilities(unittest.TestCase):
         # Test that we get back the same global wind as we started with
         self.assertAlmostEqual(calculatedGlobalWindSpeedKmph, globalWindSpeedKmph, places=3)
         self.assertAlmostEqual(calculatedGlobalWindDirectionDegrees, globalWindDirectionDegrees, places=3)
-
-    def test_createPath_basic(self):
-        # Create simple straight line path (no need for tacking because of wind is 90 degrees, goal is 0 degrees)
-        start = latlon(0, 0)
-        goal = latlon(0, 0.2)
-        measuredWindSpeedKmph, measuredWindDegrees = utils.globalWindToMeasuredWind(
-            globalWindSpeed=10, globalWindDirectionDegrees=90, boatSpeed=0, headingDegrees=0)
-        state = sbot.BoatState(globalWaypoint=goal, position=start, measuredWindDirectionDegrees=measuredWindDegrees,
-                               measuredWindSpeedKmph=measuredWindSpeedKmph, AISData=AISMsg(), headingDegrees=0,
-                               speedKmph=0)
-        path = utils.createPath(state, runtimeSeconds=0.5, numRuns=2, maxAllowableRuntimeSeconds=1)
-        latlons = path.getLatlons()
-
-        # Check that first state matches the setup start
-        startWaypoint = latlons[0]
-        self.assertAlmostEqual(start.lat, startWaypoint.lat, places=2)
-        self.assertAlmostEqual(start.lon, startWaypoint.lon, places=2)
-
-        # Check that the path reaches the goal
-        self.assertTrue(path.reachesGoalLatlon(goal))
-
-        # Check that total path length is reasonable
-        maxAcceptablePathLength = 2 * distance((start.lat, start.lon), (goal.lat, goal.lon)).kilometers
-        self.assertLessEqual(path.getLength(), maxAcceptablePathLength)
-
-        # Check that path cost is acceptable
-        self.assertFalse(utils.pathCostThresholdExceeded(path))
-
-    def test_createPath_advanced(self):
-        # Create tacking path (requires tacking because of wind is 45 degrees, goal is 45 degrees)
-        start = latlon(0, 0)
-        goal = latlon(0.2, 0.2)
-        measuredWindSpeedKmph, measuredWindDegrees = utils.globalWindToMeasuredWind(
-            globalWindSpeed=10, globalWindDirectionDegrees=45, boatSpeed=0, headingDegrees=0)
-        state = sbot.BoatState(globalWaypoint=goal, position=start, measuredWindDirectionDegrees=measuredWindDegrees,
-                               measuredWindSpeedKmph=measuredWindSpeedKmph, AISData=AISMsg(), headingDegrees=0,
-                               speedKmph=0)
-        path = utils.createPath(state, runtimeSeconds=0.5, numRuns=2, maxAllowableRuntimeSeconds=1)
-        latlons = path.getLatlons()
-
-        # Check that first state matches the setup start
-        startWaypoint = latlons[0]
-        self.assertAlmostEqual(start.lat, startWaypoint.lat, places=2)
-        self.assertAlmostEqual(start.lon, startWaypoint.lon, places=2)
-
-        # Check that the path reaches the goal
-        self.assertTrue(path.reachesGoalLatlon(goal))
-
-        # Check that total path length is reasonable
-        maxAcceptablePathLength = 2 * distance((start.lat, start.lon), (goal.lat, goal.lon)).kilometers
-        self.assertLessEqual(path.getLength(), maxAcceptablePathLength)
-
-        # Check that path cost is acceptable
-        self.assertFalse(utils.pathCostThresholdExceeded(path))
 
 
 if __name__ == '__main__':

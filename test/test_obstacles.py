@@ -1,5 +1,11 @@
 #!/usr/bin/env python
 import local_imports  # Must be first import, as it adds python directory to path
+from local_pathfinding.msg import latlon, AISMsg, AISShip
+import utilities as utils
+import matplotlib.pyplot as plt
+import Sailbot as sbot
+import rostest
+import unittest
 
 # Do something with local_imports to avoid lint errors
 local_imports.printMessage()

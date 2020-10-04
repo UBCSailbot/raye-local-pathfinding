@@ -5,7 +5,7 @@ import utilities as utils
 import Sailbot as sbot
 from local_pathfinding.msg import latlon, AISMsg, AISShip
 from planner_helpers import UPWIND_MAX_ANGLE_DEGREES, DOWNWIND_MAX_ANGLE_DEGREES
-from Path import UPWIND_DOWNWIND_TIME_LIMIT_SECONDS
+from Path import createPath, UPWIND_DOWNWIND_TIME_LIMIT_SECONDS
 from updated_geometric_planner import indexOfObstacleOnPath
 import rostest
 import unittest
@@ -27,7 +27,7 @@ class TestPath(unittest.TestCase):
         state = sbot.BoatState(globalWaypoint=latlon(0.2, 0.2), position=latlon(0, 0),
                                measuredWindDirectionDegrees=90, measuredWindSpeedKmph=10,
                                AISData=AISMsg(), headingDegrees=0, speedKmph=0)
-        path = utils.createPath(state, runtimeSeconds=1, numRuns=2)
+        path = createPath(state, runtimeSeconds=1, numRuns=2)
         spaceInformation = path.getSpaceInformation()
 
         # Create acutal path
@@ -84,7 +84,7 @@ class TestPath(unittest.TestCase):
                                measuredWindDirectionDegrees=measuredWindDirectionDegrees,
                                measuredWindSpeedKmph=measuredWindSpeedKmph,
                                AISData=AISMsg(), headingDegrees=0, speedKmph=0)
-        path = utils.createPath(state, runtimeSeconds=1, numRuns=2)
+        path = createPath(state, runtimeSeconds=1, numRuns=2)
         desiredHeadingDegrees = utils.getDesiredHeadingDegrees(state.position, path.getNextWaypoint())
 
         # Set state with global wind direction nearly same as boat current direction (sailing downwind)
@@ -172,7 +172,7 @@ class TestPath(unittest.TestCase):
                                measuredWindDirectionDegrees=measuredWindDirectionDegrees,
                                measuredWindSpeedKmph=measuredWindSpeedKmph,
                                AISData=AISMsg(), headingDegrees=0, speedKmph=0)
-        path = utils.createPath(state, runtimeSeconds=1, numRuns=2)
+        path = createPath(state, runtimeSeconds=1, numRuns=2)
 
         waypoint0 = path.getOMPLPath().getSolutionPath().getState(0)
         waypoint1 = path.getOMPLPath().getSolutionPath().getState(1)
@@ -237,7 +237,7 @@ class TestPath(unittest.TestCase):
                                measuredWindDirectionDegrees=measuredWindDirectionDegrees,
                                measuredWindSpeedKmph=measuredWindSpeedKmph,
                                AISData=AISMsg(), headingDegrees=0, speedKmph=0)
-        path = utils.createPath(state, runtimeSeconds=1, numRuns=2)
+        path = createPath(state, runtimeSeconds=1, numRuns=2)
         omplPath = path.getOMPLPath()
 
         '''
@@ -324,6 +324,60 @@ class TestPath(unittest.TestCase):
                                                   nextLocalWaypointIndex=nextLocalWaypointIndex,
                                                   numLookAheadWaypoints=numLookAheadWaypoints,
                                                   omplPath=path.getOMPLPath()))
+
+    def test_createPath_basic(self):
+        # Create simple straight line path (no need for tacking because of wind is 90 degrees, goal is 0 degrees)
+        start = latlon(0, 0)
+        goal = latlon(0, 0.2)
+        measuredWindSpeedKmph, measuredWindDegrees = utils.globalWindToMeasuredWind(
+            globalWindSpeed=10, globalWindDirectionDegrees=90, boatSpeed=0, headingDegrees=0)
+        state = sbot.BoatState(globalWaypoint=goal, position=start, measuredWindDirectionDegrees=measuredWindDegrees,
+                               measuredWindSpeedKmph=measuredWindSpeedKmph, AISData=AISMsg(), headingDegrees=0,
+                               speedKmph=0)
+        path = createPath(state, runtimeSeconds=0.5, numRuns=2, maxAllowableRuntimeSeconds=1)
+        latlons = path.getLatlons()
+
+        # Check that first state matches the setup start
+        startWaypoint = latlons[0]
+        self.assertAlmostEqual(start.lat, startWaypoint.lat, places=2)
+        self.assertAlmostEqual(start.lon, startWaypoint.lon, places=2)
+
+        # Check that the path reaches the goal
+        self.assertTrue(path.reachesGoalLatlon(goal))
+
+        # Check that total path length is reasonable
+        maxAcceptablePathLength = 2 * distance((start.lat, start.lon), (goal.lat, goal.lon)).kilometers
+        self.assertLessEqual(path.getLength(), maxAcceptablePathLength)
+
+        # Check that path cost is acceptable
+        self.assertFalse(utils.pathCostThresholdExceeded(path))
+
+    def test_createPath_advanced(self):
+        # Create tacking path (requires tacking because of wind is 45 degrees, goal is 45 degrees)
+        start = latlon(0, 0)
+        goal = latlon(0.2, 0.2)
+        measuredWindSpeedKmph, measuredWindDegrees = utils.globalWindToMeasuredWind(
+            globalWindSpeed=10, globalWindDirectionDegrees=45, boatSpeed=0, headingDegrees=0)
+        state = sbot.BoatState(globalWaypoint=goal, position=start, measuredWindDirectionDegrees=measuredWindDegrees,
+                               measuredWindSpeedKmph=measuredWindSpeedKmph, AISData=AISMsg(), headingDegrees=0,
+                               speedKmph=0)
+        path = createPath(state, runtimeSeconds=0.5, numRuns=2, maxAllowableRuntimeSeconds=1)
+        latlons = path.getLatlons()
+
+        # Check that first state matches the setup start
+        startWaypoint = latlons[0]
+        self.assertAlmostEqual(start.lat, startWaypoint.lat, places=2)
+        self.assertAlmostEqual(start.lon, startWaypoint.lon, places=2)
+
+        # Check that the path reaches the goal
+        self.assertTrue(path.reachesGoalLatlon(goal))
+
+        # Check that total path length is reasonable
+        maxAcceptablePathLength = 2 * distance((start.lat, start.lon), (goal.lat, goal.lon)).kilometers
+        self.assertLessEqual(path.getLength(), maxAcceptablePathLength)
+
+        # Check that path cost is acceptable
+        self.assertFalse(utils.pathCostThresholdExceeded(path))
 
 
 if __name__ == '__main__':
