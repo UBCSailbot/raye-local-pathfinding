@@ -100,7 +100,7 @@ class EllipseObstacle(ObstacleInterface):
     def _createEllipse(self, aisX, aisY):
         # Calculate width and height of ellipse
         extendBoatLengthKm = self.aisShip.speedKmph * OBSTACLE_EXTEND_TIME_HOURS
-        width = extendBoatLengthKm if extendBoatLengthKm > AIS_BOAT_RADIUS_KM else AIS_BOAT_RADIUS_KM
+        width = max(extendBoatLengthKm, AIS_BOAT_RADIUS_KM)  # Ensure greater than minimum length
         height = AIS_BOAT_RADIUS_KM
         angle = self.aisShip.headingDegrees
 
@@ -142,9 +142,9 @@ class WedgeObstacle(ObstacleInterface):
         while theta2 < theta1:
             theta2 += 360
 
-        # Defines how long the wedge should be
+        # Defines how long the wedge should be, ensure greater than minimum length
         extendBoatLengthKm = self.aisShip.speedKmph * OBSTACLE_EXTEND_TIME_HOURS
-        radius = extendBoatLengthKm if extendBoatLengthKm > AIS_BOAT_RADIUS_KM else AIS_BOAT_RADIUS_KM
+        radius = max(extendBoatLengthKm, AIS_BOAT_RADIUS_KM)
 
         return Wedge(aisX, aisY, radius, theta1, theta2)
 
@@ -297,14 +297,17 @@ def getProjectedPosition(aisShip, sailbotPosition, sailbotSpeedKmph, referenceLa
     boatSpeedInDirToSailbotKmph = (aisShip.speedKmph *
                                    math.cos(math.radians(aisShip.headingDegrees - angleBoatToSailbotDegrees)))
 
-    # Calculate MINIMUM time it would take for the boats to collide, but have an upper bound
+    # Calculate MINIMUM time it would take for the boats to collide
     distanceBetweenBoatsKm = distance((aisShip.lat, aisShip.lon), (sailbotPosition.lat, sailbotPosition.lon)).kilometers
     if sailbotSpeedKmph + boatSpeedInDirToSailbotKmph == 0:
         smallestTimeToLocHours = MAX_PROJECT_OBSTACLE_TIME_HOURS
     else:
+        # Ensure projected time to collision stays below threshold (not project too far forwards
+        # Ensure projected time is non-negative (not project backwards)
         smallestTimeToLocHours = distanceBetweenBoatsKm / (sailbotSpeedKmph + boatSpeedInDirToSailbotKmph)
-        smallestTimeToLocHours = (smallestTimeToLocHours if smallestTimeToLocHours < MAX_PROJECT_OBSTACLE_TIME_HOURS
-                                  else MAX_PROJECT_OBSTACLE_TIME_HOURS)
+        smallestTimeToLocHours = min(smallestTimeToLocHours, MAX_PROJECT_OBSTACLE_TIME_HOURS)
+        smallestTimeToLocHours = max(smallestTimeToLocHours, 0)
+
     minimumBoatDistanceTravelledKm = smallestTimeToLocHours * aisShip.speedKmph
 
     # Calculate projected position
@@ -357,7 +360,9 @@ class Circle(ShapeInterface):
     def clearance(self, xy):
         x, y = xy
         distance = math.sqrt(pow(x - self.x, 2) + pow(y - self.y, 2))
-        return distance if distance > 0 else 0
+
+        # Ensure clearance >= 0
+        return max(distance - self.radius, 0)
 
 
 class Ellipse(ShapeInterface):
