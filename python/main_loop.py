@@ -5,6 +5,7 @@ import local_pathfinding.msg as msg
 from std_msgs.msg import Float64, String, Bool
 import Sailbot as sbot
 import utilities as utils
+import Path
 import time
 import matplotlib.pyplot as plt
 
@@ -42,8 +43,8 @@ def speedupCallback(data):
 def createNewLocalPath(state, maxAllowableRuntimeSeconds):
     # Composition of functions used every time when updating local path
     global speedup
-    localPath = utils.createPath(state, resetSpeedupDuringPlan=True, speedupBeforePlan=speedup,
-                                 maxAllowableRuntimeSeconds=maxAllowableRuntimeSeconds)
+    localPath = Path.createPath(state, resetSpeedupDuringPlan=True, speedupBeforePlan=speedup,
+                                maxAllowableRuntimeSeconds=maxAllowableRuntimeSeconds)
     lastTimePathCreated = time.time()
     return localPath, lastTimePathCreated
 
@@ -80,7 +81,7 @@ if __name__ == '__main__':
 
     # Create first path and track time of updates
     state = sailbot.getCurrentState()
-    localPath, lastTimePathCreated = createNewLocalPath(state, utils.MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS)
+    localPath, lastTimePathCreated = createNewLocalPath(state, Path.MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS)
     sailbot.newGlobalPathReceived = False
 
     while not rospy.is_shutdown():
@@ -143,7 +144,7 @@ if __name__ == '__main__':
             # Update local path
             state = sailbot.getCurrentState()
             localPath, lastTimePathCreated = createNewLocalPath(
-                state, utils.MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS / 2.0)
+                state, Path.MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS / 2.0)
 
         else:
             # Check if new local path should be generated and compared to current local path
@@ -169,7 +170,7 @@ if __name__ == '__main__':
 
                 # Create new local path to compare
                 _localPath, _lastTimePathCreated = createNewLocalPath(
-                    state, utils.MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS)
+                    state, Path.MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS)
                 lastTimePathCreated = _lastTimePathCreated
 
                 # Update local path if new one is better than old AND it reaches the goal

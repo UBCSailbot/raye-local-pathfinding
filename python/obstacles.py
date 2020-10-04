@@ -67,7 +67,7 @@ def getObstacles(state, referenceLatlon):
     Returns:
        list of obstacles that implement the obstacle interface
     '''
-    ships, position, speedKmph = state.aisShip.ships, state.position, state.speedKmph
+    ships, position, speedKmph = state.AISData.ships, state.position, state.speedKmph
     obstacle_type = rospy.get_param('obstacle_type', 'hybrid_circle')
     obstacles = []
     if obstacle_type == "ellipse":
@@ -330,8 +330,8 @@ class HybridCircleObstacle(ObstacleInterface):
                                                                 sailbotSpeedKmph, referenceLatlon)
 
         # Create ellipses
-        self.currentCircle = self.createCircle(self.currentX, self.currentY)
-        self.projectedCircle = self.createCircle(self.projectedX, self.projectedY)
+        self.currentCircle = Circle(self.currentX, self.currentY, AIS_BOAT_RADIUS_KM)
+        self.projectedCircle = Circle(self.projectedX, self.projectedY, AIS_BOAT_RADIUS_KM)
         self.currentWedge = self.createWedge(self.currentX, self.currentY)
         self.projectedWedge = self.createWedge(self.projectedX, self.projectedY)
 

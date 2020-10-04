@@ -18,20 +18,10 @@ from std_msgs.msg import Float64
 # Constants
 UPWIND_DOWNWIND_TIME_LIMIT_SECONDS = 0.5
 MAX_ALLOWABLE_DISTANCE_FINAL_WAYPOINT_TO_GOAL_KM = 5
-AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM = 3.0
 
 # Pathfinding constants
 MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS = 20.0
 INCREASE_RUNTIME_FACTOR = 1.5
-
-# Scale NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES and NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND to change based on
-# waypoint distance
-LOOK_AHEAD_FOR_OBSTACLES_KM = 20
-NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES = int(math.ceil(LOOK_AHEAD_FOR_OBSTACLES_KM /
-                                                       AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM))
-LOOK_AHEAD_FOR_UPWIND_DOWNWIND_KM = 10
-NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND = int(math.ceil(LOOK_AHEAD_FOR_UPWIND_DOWNWIND_KM /
-                                                             AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM))
 
 
 class OMPLPath:
@@ -681,7 +671,7 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=Fals
     def setAverageDistanceBetweenWaypoints(solutionPath):
         # Set the average distance between waypoints
         localPathLengthKm = solutionPath.length()
-        numberOfLocalWaypoints = int(localPathLengthKm / AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM)
+        numberOfLocalWaypoints = int(localPathLengthKm / utils.AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM)
         solutionPath.interpolate(numberOfLocalWaypoints)
 
     def findBestSolution(validSolutions, invalidSolutions):
