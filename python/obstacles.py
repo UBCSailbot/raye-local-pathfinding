@@ -96,10 +96,6 @@ class ObstacleInterface():
         """ String representation of obstacle """
         pass
 
-    def _extendObstacle(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
-        """ Extends obstacle based on speed and heading """
-        pass
-
     def addPatch(self, axes, color):
         """ Add matplotlib.patches to axes with the given color """
         pass
@@ -170,7 +166,7 @@ class WedgeObstacle(ObstacleInterface):
         self.currentX, self.currentY = utils.latlonToXY(latlon(aisShip.lat, aisShip.lon), referenceLatlon)
         self.projectedX, self.projectedY = getProjectedPosition(aisShip, sailbotPosition,
 
-        # Create ellipses
+        # Create wedges
         self.currentWedge = self.createWedge(self.currentX, self.currentY)
         self.projectedWedge = self.createWedge(self.projectedX, self.projectedY)
 
@@ -280,34 +276,42 @@ class CirclesObstacle(ObstacleInterface):
             circle.addPatch(axes, color=CURRENT_BOAT_COLOR)
 
     def clearance(self, xy):
-        # TODO: Make this clearance better
         return (self.projectedCircles[0].x - xy[0])**2 + (self.projectedCircles[0].y - xy[1])**2
 
 
 
-class HybridEllipse(ObstacleInterface):
+class HybridEllipseObstacle(ObstacleInterface):
     def __init__(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
-        ObstacleInterface.__init__(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon)
-        self._extendObstacle(self.aisShip, self.sailbotPosition, self.sailbotSpeedKmph, self.referenceLatlon)
-        self.xy = utils.latlonToXY(latlon(aisShip.lat, aisShip.lon), referenceLatlon)
-        self.ellipse = Ellipse(self.xy[0], self.xy[1], AIS_BOAT_RADIUS_KM, AIS_BOAT_LENGTH_KM,
-                               aisShip.headingDegrees)
+        # Store member variables
+        self.aisShip = aisShip
+        self.sailbotPosition = sailbotPosition
+        self.sailbotSpeedKmph = sailbotSpeedKmph
+        self.referenceLatlon = referenceLatlon
+
+        # Calculate current and projected position
+        self.currentX, self.currentY = utils.latlonToXY(latlon(aisShip.lat, aisShip.lon), referenceLatlon)
+        self.projectedX, self.projectedY = getProjectedPosition(aisShip, sailbotPosition,
+
+        # Create ellipses
+        self.currentEllipse = self.createEllipse(self.currentX, self.currentY)
+        self.projectedEllipse = self.createEllipse(self.projectedX, self.projectedY)
+        self.currentWedge = self.createWedge(self.currentX, self.currentY)
+        self.projectedWedge = self.createWedge(self.projectedX, self.projectedY)
 
     def __str__(self):
-        return str(self.ellipse) + str(self.wedge)
-
-    def _extendObstacle(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
-        self.wedge = Wedge(aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon)
+        return str(self.currentEllipse) + str(self.projectedEllipse) + str(self.currentWedge) + str(self.projectedWedge)
 
     def addPatch(self, axes):
-        self.wedge.addPatch(axes)
-        self.ellipse.addPatch(axes)
+        self.projectedEllipse.addPatch(axes, color=PROJECTED_BOAT_COLOR)
+        self.currentEllipse.addPatch(axes, color=CURRENT_BOAT_COLOR)
+        self.projectedWedge.addPatch(axes, color=PROJECTED_BOAT_COLOR)
+        self.currentWedge.addPatch(axes, color=CURRENT_BOAT_COLOR)
 
     def isValid(self, xy):
-        return (self.wedge.isValid(xy) and self.ellipse.isValid(xy))
+        return (self.projectedWedge.isValid(xy) and self.projectedEllipse.isValid(xy))
 
     def clearance(self, xy):
-        return (self.xy[0] - xy[0])**2 + (self.xy[1] - xy[1])**2
+        return self.projectedWedge.clearance(xy)
 
 
 class HybridCircle(ObstacleInterface):
@@ -317,30 +321,31 @@ class HybridCircle(ObstacleInterface):
         self.sailbotPosition = sailbotPosition
         self.sailbotSpeedKmph = sailbotSpeedKmph
         self.referenceLatlon = referenceLatlon
+
+        # Calculate current and projected position
         self.currentX, self.currentY = utils.latlonToXY(latlon(aisShip.lat, aisShip.lon), referenceLatlon)
         self.projectedX, self.projectedY = getProjectedPosition(aisShip, sailbotPosition,
-                                                                sailbotSpeedKmph, referenceLatlon)
-        self._extendObstacle(self.aisShip, self.sailbotPosition, self.sailbotSpeedKmph, self.referenceLatlon)
+
+        # Create ellipses
+        self.currentCircle = self.createCircle(self.currentX, self.currentY)
+        self.projectedCircle = self.createCircle(self.projectedX, self.projectedY)
+        self.currentWedge = self.createWedge(self.currentX, self.currentY)
+        self.projectedWedge = self.createWedge(self.projectedX, self.projectedY)
 
     def __str__(self):
-        return str(self.circle) + str(self.wedge)
-
-    def _extendObstacle(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
-        self.origWedge = Wedge(aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon)
-        self.wedge = Wedge(aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon)
-        self.origCircle = Circle(self.currentX, self.currentY, AIS_BOAT_RADIUS_KM, "red")
-        self.circle = Circle(self.projectedX, self.projectedY, AIS_BOAT_RADIUS_KM, "blue")
+        return str(self.currentCircle) + str(self.projectedCircle) + str(self.currentWedge) + str(self.projectedWedge)
 
     def addPatch(self, axes):
-        self.wedge.addPatch(axes)
-        self.circle.addPatch(axes)
-        self.origCircle.addPatch(axes)
+        self.projectedCircle.addPatch(axes, color=PROJECTED_BOAT_COLOR)
+        self.currentCircle.addPatch(axes, color=CURRENT_BOAT_COLOR)
+        self.projectedWedge.addPatch(axes, color=PROJECTED_BOAT_COLOR)
+        self.currentWedge.addPatch(axes, color=CURRENT_BOAT_COLOR)
 
     def isValid(self, xy):
-        return (self.wedge.isValid(xy) and self.circle.isValid(xy))
+        return (self.projectedWedge.isValid(xy) and self.projectedCircle.isValid(xy))
 
     def clearance(self, xy):
-        return (self.projectedX - xy[0])**2 + (self.projectedY - xy[1])**2
+        return self.projectedWedge.clearance(xy)
 
 
 class ShapeInterface():
