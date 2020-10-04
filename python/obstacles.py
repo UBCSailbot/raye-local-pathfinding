@@ -7,35 +7,46 @@ from local_pathfinding.msg import latlon
 from geopy.distance import distance
 
 # Constants
-OBSTACLE_MAX_TIME_TO_LOC_HOURS = 3  # Do not extend objects more than X hours distance
+MAX_PROJECT_OBSTACLE_TIME_HOURS = 3  # Maximum obstacle can be projected (dist btwn current and projected positions)
+OBSTACLE_EXTEND_TIME_HOURS = 1       # Amount obstacles are extended forward (how long the shape is) TODO: max/min
 WEDGE_EXPAND_ANGLE_DEGREES = 10.0
 AIS_BOAT_RADIUS_KM = 0.2
 AIS_BOAT_LENGTH_KM = 1
 AIS_BOAT_CIRCLE_SPACING_KM = AIS_BOAT_RADIUS_KM * 1.5  # Distance between circles that make up an AIS boat
+CURRENT_BOAT_COLOR = "red"
+PROJECTED_BOAT_COLOR = "blue"
 
 
 def getProjectedPosition(aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
-    """ Calculate position where we project the boat to be if the sailbot moves directly towards it """
+    """ Calculate position where we project the boat to be if the sailbot moves directly towards it
+
+    Args:
+       aisShip (AISShip): State of the ais ship
+       sailbotPosition (local_pathfinding.msg._latlon.latlon): Position of sailbot
+       sailbotSpeedKmph (float): Speed of sailbot in kmph
+       referenceLatlon (local_pathfinding.msg._latlon.latlon): Position of the reference point that will be at (0,0)
+
+    Returns:
+       [x, y] projected position of the ais ship
+    """
     # Get positions of ais boat and sailbot
     aisX, aisY = utils.latlonToXY(latlon(aisShip.lat, aisShip.lon), referenceLatlon)
-    sailbotPositionX, sailbotPositionY = utils.latlonToXY(latlon(sailbotPosition.lat, sailbotPosition.lon),
-                                                          referenceLatlon)
+    sailbotX, sailbotY = utils.latlonToXY(latlon(sailbotPosition.lat, sailbotPosition.lon), referenceLatlon)
 
     # Project ais boat's velocity vector onto the line between the boats.
     # Will be +ve if moving towards sailbot, -ve if moving away form sailbot
-    angleBoatToSailbotDegrees = math.degrees(math.atan2(sailbotPositionY - aisY, sailbotPositionX - aisX))
+    angleBoatToSailbotDegrees = math.degrees(math.atan2(sailbotY - aisY, sailbotX - aisX))
     boatSpeedInDirToSailbotKmph = (aisShip.speedKmph *
                                    math.cos(math.radians(aisShip.headingDegrees - angleBoatToSailbotDegrees)))
 
     # Calculate MINIMUM time it would take for the boats to collide, but have an upper bound
-    MAX_TIME_TO_LOC_HOURS = 3
     distanceBetweenBoatsKm = distance((aisShip.lat, aisShip.lon), (sailbotPosition.lat, sailbotPosition.lon)).kilometers
     if sailbotSpeedKmph + boatSpeedInDirToSailbotKmph == 0:
-        smallestTimeToLocHours = MAX_TIME_TO_LOC_HOURS
+        smallestTimeToLocHours = MAX_PROJECT_OBSTACLE_TIME_HOURS
     else:
         smallestTimeToLocHours = distanceBetweenBoatsKm / (sailbotSpeedKmph + boatSpeedInDirToSailbotKmph)
-        smallestTimeToLocHours = smallestTimeToLocHours if smallestTimeToLocHours < MAX_TIME_TO_LOC_HOURS
-                                                        else MAX_TIME_TO_LOC_HOURS
+        smallestTimeToLocHours = smallestTimeToLocHours if smallestTimeToLocHours < MAX_PROJECT_OBSTACLE_TIME_HOURS
+                                                        else MAX_PROJECT_OBSTACLE_TIME_HOURS
     minimumBoatDistanceTravelledKm = smallestTimeToLocHours * aisShip.speedKmph
 
     # Calculate projected position
@@ -78,16 +89,19 @@ def getObstacles(state, referenceLatlon):
 
 class ObstacleInterface:
     def __init__(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
+        """ Initialize obstacle """
+        pass
 
     def __str__(self):
+        """ String representation of obstacle """
         pass
 
     def _extendObstacle(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
         """ Extends obstacle based on speed and heading """
         pass
 
-    def getPatch(self, color):
-        """ Add matplotlib.patches to axes """
+    def addPatch(self, axes, color):
+        """ Add matplotlib.patches to axes with the given color """
         pass
 
     def isValid(self, xy):
@@ -100,24 +114,24 @@ class ObstacleInterface:
 
 
 class Ellipse():
-    def __init__(self, x, y, height, width, angle):
+    def __init__(self, x, y, height, width, angleDegrees):
         self.x = x
         self.y = y
         self.height = height
         self.width = width
-        self.angle = angle
+        self.angleDegrees = angleDegrees
 
     def __str__(self):
-        return str((self.x, self.y, self.height, self.width, self.angle))
+        return str((self.x, self.y, self.height, self.width, self.angleDegrees))
 
     def isValid(self, xy):
         x = xy[0] - self.x
         y = xy[1] - self.y
-        x_ = math.cos(math.radians(self.angle)) * x + math.sin(math.radians(self.angle)) * y
-        y_ = -math.sin(math.radians(self.angle)) * x + math.cos(math.radians(self.angle)) * y
+        x_ = math.cos(math.radians(self.angleDegrees)) * x + math.sin(math.radians(self.angleDegrees)) * y
+        y_ = -math.sin(math.radians(self.angleDegrees)) * x + math.cos(math.radians(self.angleDegrees)) * y
         distance_center_to_boat = math.sqrt(x_ ** 2 + y_ ** 2)
-        angle_center_to_boat = math.degrees(math.atan2(y_, x_))
-        angle_center_to_boat = (angle_center_to_boat + 360) % 360
+        angleCenterToBoatDegrees = math.degrees(math.atan2(y_, x_))
+        angleCenterToBoatDegrees = (angleCenterToBoatDegrees + 360) % 360
 
         a = self.width * 0.5
         b = self.height * 0.5
@@ -135,55 +149,59 @@ class Ellipse():
         init_pt = np.array([self.x, self.y])
         a = 0.5 * self.width
         b = 0.5 * self.height
-        rotation_col1 = np.array([math.cos(math.radians(self.angle)), math.sin(math.radians(self.angle))])
-        rotation_col2 = np.array([-math.sin(math.radians(self.angle)), math.cos(math.radians(self.angle))])
+        rotation_col1 = np.array([math.cos(math.radians(self.angleDegrees)), math.sin(math.radians(self.angleDegrees))])
+        rotation_col2 = np.array([-math.sin(math.radians(self.angleDegrees)), math.cos(math.radians(self.angleDegrees))])
         edge_pt = init_pt + a * math.cos(t) * rotation_col1 + b * math.sin(t) * rotation_col2
         return edge_pt
 
-    def addPatch(self, axes):
-        axes.add_patch(patches.Ellipse((self.x, self.y), self.width, self.height, self.angle))
+    def addPatch(self, axes, color):
+        patch = patches.Ellipse((self.x, self.y), self.width, self.height, self.angleDegrees)
+        patch.set_color(color)
+        axes.add_patch(patch)
 
 
-class EllipseObstacle(ObstacleInterface, Ellipse):
+class EllipseObstacle(ObstacleInterface):
     def __init__(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
-        ObstacleInterface.__init__(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon)
-        self._extendObstacle(self.aisShip, self.sailbotPosition, self.sailbotSpeedKmph, self.referenceLatlon)
+        # Store member variables
+        self.aisShip = aisShip
+        self.sailbotPosition = sailbotPosition
+        self.sailbotSpeedKmph = sailbotSpeedKmph
+        self.referenceLatlon = referenceLatlon
+
+        # Calculate current and projected position
+        self.currentX, self.currentY = utils.latlonToXY(latlon(aisShip.lat, aisShip.lon), referenceLatlon)
+        self.projectedX, self.projectedY = getProjectedPosition(aisShip, sailbotPosition,
+
+        # Create ellipses
+        self.currentEllipse = self.createEllipse(self.currentX, self.currentY)
+        self.projectedEllipse = self.createEllipse(self.projectedX, self.projectedY)
 
     def __str__(self):
-        return Ellipse.__str__(self)
+        return "Current ellipse: {}. Projecte ellipse: {}".format(self.currentEllipse, self.projectedEllipse)
 
-    def _extendObstacle(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
+    def createEllipse(self, aisX, aisY):
         # Calculate width and height of ellipse
-        timeExtendLengthHours = 0.4
-        extendBoatLengthKm = aisShip.speedKmph * timeExtendLengthHours
-
-        if extendBoatLengthKm == 0:
-            width = AIS_BOAT_RADIUS_KM
-        else:
-            width = extendBoatLengthKm
+        extendBoatLengthKm = self.aisShip.speedKmph * OBSTACLE_EXTEND_TIME_HOURS
+        width = extendBoatLengthKm if extendBoatLengthKm > AIS_BOAT_RADIUS_KM else AIS_BOAT_RADIUS_KM
         height = AIS_BOAT_RADIUS_KM
-        angle = aisShip.headingDegrees
+        angle = self.aisShip.headingDegrees
 
-        # Calculate xy center of ellipse, which is has its tip at the projected position
+        # Calculate xy center of ellipse, which is has its tip at the actual (aisX, aisY)
         xy = [self.projectedX + extendBoatLengthKm * math.cos(math.radians(angle)) * 0.5,
               self.projectedY + extendBoatLengthKm * math.sin(math.radians(angle)) * 0.5]
-        self.x, self.y = xy[0], xy[1]
-        self.width, self.height = width, height
-        self.angle = angle
+        x, y = xy
+        return Ellipse(x, y, height, width, angle)
 
     def isValid(self, xy):
-        return Ellipse.isValid(self, xy)
-
-    def _ellipseFormula(self, t):
-        return Ellipse._ellipseFormula(self, t)
+        return self.projectedEllipse.isValid(xy)
 
     def addPatch(self, axes):
-        Ellipse.addPatch(self, axes)
-        # TODO: Add patch for ellipse at current position
+        projectedEllipse.addPatch(axes, color=PROJECTED_BOAT_COLOR)
+        currentEllipse.addPatch(axes, color=CURRENT_BOAT_COLOR)
 
     def clearance(self, xy):
-        # TODO: Make this clearance better
-        return (self.x - xy[0])**2 + (self.y - xy[1])**2
+        # TODO: Make this clearance distance from ellipse edge, not center
+        return (self.projectedX, - xy[0])**2 + (self.projectedY, - xy[1])**2
 
 
 class Wedge(ObstacleInterface):
