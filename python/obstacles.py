@@ -5,6 +5,7 @@ import utilities as utils
 from matplotlib import patches
 from local_pathfinding.msg import latlon
 from geopy.distance import distance
+import rospy
 
 # Constants
 MAX_PROJECT_OBSTACLE_TIME_HOURS = 3  # Maximum obstacle can be projected (dist btwn current and projected positions)
@@ -120,6 +121,7 @@ class EllipseObstacle(ObstacleInterface):
         # Calculate current and projected position
         self.currentX, self.currentY = utils.latlonToXY(latlon(aisShip.lat, aisShip.lon), referenceLatlon)
         self.projectedX, self.projectedY = getProjectedPosition(aisShip, sailbotPosition,
+                                                                sailbotSpeedKmph, referenceLatlon)
 
         # Create ellipses
         self.currentEllipse = self.createEllipse(self.currentX, self.currentY)
@@ -152,7 +154,6 @@ class EllipseObstacle(ObstacleInterface):
         return self.projectedEllipse.clearance(xy)
 
 
-
 class WedgeObstacle(ObstacleInterface):
     def __init__(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
         # Store member variables
@@ -164,6 +165,7 @@ class WedgeObstacle(ObstacleInterface):
         # Calculate current and projected position
         self.currentX, self.currentY = utils.latlonToXY(latlon(aisShip.lat, aisShip.lon), referenceLatlon)
         self.projectedX, self.projectedY = getProjectedPosition(aisShip, sailbotPosition,
+                                                                sailbotSpeedKmph, referenceLatlon)
 
         # Create wedges
         self.currentWedge = self.createWedge(self.currentX, self.currentY)
@@ -183,7 +185,7 @@ class WedgeObstacle(ObstacleInterface):
             theta2 += 360
 
         # Defines how long the wedge should be
-        extendBoatLengthKm = aisShip.speedKmph * OBSTACLE_EXTEND_TIME_HOURS
+        extendBoatLengthKm = self.aisShip.speedKmph * OBSTACLE_EXTEND_TIME_HOURS
         radius = extendBoatLengthKm if extendBoatLengthKm > AIS_BOAT_RADIUS_KM else AIS_BOAT_RADIUS_KM
 
         return Wedge(aisX, aisY, radius, theta1, theta2)
@@ -210,6 +212,7 @@ class CirclesObstacle(ObstacleInterface):
         # Calculate current and projected position
         self.currentX, self.currentY = utils.latlonToXY(latlon(aisShip.lat, aisShip.lon), referenceLatlon)
         self.projectedX, self.projectedY = getProjectedPosition(aisShip, sailbotPosition,
+                                                                sailbotSpeedKmph, referenceLatlon)
 
         # Create ellipses
         self.currentCircles = self.createCircles(self.currentX, self.currentY)
@@ -289,6 +292,7 @@ class HybridEllipseObstacle(ObstacleInterface):
         # Calculate current and projected position
         self.currentX, self.currentY = utils.latlonToXY(latlon(aisShip.lat, aisShip.lon), referenceLatlon)
         self.projectedX, self.projectedY = getProjectedPosition(aisShip, sailbotPosition,
+                                                                sailbotSpeedKmph, referenceLatlon)
 
         # Create ellipses
         self.currentEllipse = self.createEllipse(self.currentX, self.currentY)
@@ -323,6 +327,7 @@ class HybridCircleObstacle(ObstacleInterface):
         # Calculate current and projected position
         self.currentX, self.currentY = utils.latlonToXY(latlon(aisShip.lat, aisShip.lon), referenceLatlon)
         self.projectedX, self.projectedY = getProjectedPosition(aisShip, sailbotPosition,
+                                                                sailbotSpeedKmph, referenceLatlon)
 
         # Create ellipses
         self.currentCircle = self.createCircle(self.currentX, self.currentY)
@@ -359,6 +364,7 @@ class ShapeInterface():
     def clearance(self, xy):
         pass
 
+
 class Circle(ShapeInterface):
     """ Helper class for Circles representation"""
     def __init__(self, x, y, radius):
@@ -371,7 +377,7 @@ class Circle(ShapeInterface):
 
     def isValid(self, xy):
         x, y = xy
-        distance = math.sqrt(pow(x - self.x, 2) + pow(y - self.y, 2)
+        distance = math.sqrt(pow(x - self.x, 2) + pow(y - self.y, 2))
         return distance > self.radius
 
     def addPatch(self, axes, color):
@@ -381,8 +387,9 @@ class Circle(ShapeInterface):
 
     def clearance(self, xy):
         x, y = xy
-        distance = math.sqrt(pow(x - self.x, 2) + pow(y - self.y, 2)
+        distance = math.sqrt(pow(x - self.x, 2) + pow(y - self.y, 2))
         return distance if distance > 0 else 0
+
 
 class Ellipse(ShapeInterface):
     def __init__(self, x, y, height, width, angleDegrees):
@@ -422,7 +429,7 @@ class Ellipse(ShapeInterface):
         b = 0.5 * self.height
         rotationCol1 = np.array([math.cos(math.radians(self.angleDegrees)), math.sin(math.radians(self.angleDegrees))])
         rotationCol2 = np.array([-math.sin(math.radians(self.angleDegrees)), math.cos(math.radians(self.angleDegrees))])
-        edge_pt = init_pt + a * math.cos(t) * rotation_col1 + b * math.sin(t) * rotation_col2
+        edge_pt = init_pt + a * math.cos(t) * rotationCol1 + b * math.sin(t) * rotationCol2
         return edge_pt
 
     def addPatch(self, axes, color):
@@ -433,6 +440,7 @@ class Ellipse(ShapeInterface):
     def clearance(self, xy):
         # TODO: Make this clearance distance from ellipse edge, not center
         return (self.x - xy[0])**2 + (self.y - xy[1])**2
+
 
 class Wedge(ShapeInterface):
     def __init__(self, x, y, radius, theta1, theta2):
