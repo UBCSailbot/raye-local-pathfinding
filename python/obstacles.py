@@ -9,7 +9,7 @@ import rospy
 
 # Constants
 MAX_PROJECT_OBSTACLE_TIME_HOURS = 3  # Maximum obstacle can be projected (dist btwn current and projected positions)
-OBSTACLE_EXTEND_TIME_HOURS = 1       # Amount obstacles are extended forward (how long the shape is) TODO: max/min
+OBSTACLE_EXTEND_TIME_HOURS = 0.5       # Amount obstacles are extended forward (how long the shape is) TODO: max/min
 WEDGE_EXPAND_ANGLE_DEGREES = 10.0
 AIS_BOAT_RADIUS_KM = 0.2
 AIS_BOAT_LENGTH_KM = 1
@@ -270,6 +270,7 @@ class CirclesObstacle(ObstacleInterface):
                 # Multiplier to increase size of circles showing where the boat will be in the future in range [1, 2]
                 multiplier = 1 + abs(float(x - aisX) / (endX - aisX))
                 circles.append(Circle(x, y(x), AIS_BOAT_RADIUS_KM * multiplier))
+        return circles
 
     def addPatch(self, axes):
         for circle in self.projectedCircles:
@@ -281,7 +282,7 @@ class CirclesObstacle(ObstacleInterface):
         return (self.projectedCircles[0].x - xy[0])**2 + (self.projectedCircles[0].y - xy[1])**2
 
 
-class HybridEllipseObstacle(ObstacleInterface):
+class HybridEllipseObstacle(EllipseObstacle):
     def __init__(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
         # Store member variables
         self.aisShip = aisShip
@@ -316,7 +317,7 @@ class HybridEllipseObstacle(ObstacleInterface):
         return self.projectedWedge.clearance(xy)
 
 
-class HybridCircleObstacle(ObstacleInterface):
+class HybridCircleObstacle(WedgeObstacle):
     def __init__(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
         # Store member variables
         self.aisShip = aisShip

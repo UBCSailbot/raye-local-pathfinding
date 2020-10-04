@@ -574,7 +574,7 @@ class Path:
         return True
 
     def generateSafeHeading(self, state):
-        obstacleHeadingRad = math.radians(self._invalidObstacle.aisData.headingDegrees)
+        obstacleHeadingRad = math.radians(self._invalidObstacle.aisShip.headingDegrees)
         potentialHeadingsRad = []
         potentialHeadingsRad.append(obstacleHeadingRad + math.pi * 0.5)
         potentialHeadingsRad.append(obstacleHeadingRad - math.pi * 0.5)
