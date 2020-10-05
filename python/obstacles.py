@@ -296,17 +296,17 @@ def getProjectedPosition(aisShip, sailbotPosition, sailbotSpeedKmph, referenceLa
     angleBoatToSailbotDegrees = math.degrees(math.atan2(sailbotY - aisY, sailbotX - aisX))
     boatSpeedInDirToSailbotKmph = (aisShip.speedKmph *
                                    math.cos(math.radians(aisShip.headingDegrees - angleBoatToSailbotDegrees)))
+    distanceBetweenBoatsKm = distance((aisShip.lat, aisShip.lon), (sailbotPosition.lat, sailbotPosition.lon)).kilometers
+    distanceBetweenBoatsMaxRateOfChangeKmph = sailbotSpeedKmph + boatSpeedInDirToSailbotKmph
 
     # Calculate MINIMUM time it would take for the boats to collide
-    distanceBetweenBoatsKm = distance((aisShip.lat, aisShip.lon), (sailbotPosition.lat, sailbotPosition.lon)).kilometers
-    if sailbotSpeedKmph + boatSpeedInDirToSailbotKmph == 0:
+    # Sailbot can't catch up to other boat, project boat up to max threshold
+    if distanceBetweenBoatsMaxRateOfChangeKmph <= 0:
         smallestTimeToLocHours = MAX_PROJECT_OBSTACLE_TIME_HOURS
     else:
-        # Ensure projected time to collision stays below threshold (not project too far forwards
-        # Ensure projected time is non-negative (not project backwards)
-        smallestTimeToLocHours = distanceBetweenBoatsKm / (sailbotSpeedKmph + boatSpeedInDirToSailbotKmph)
+        # Ensure projected time to collision stays below threshold (not project too far forwards)
+        smallestTimeToLocHours = distanceBetweenBoatsKm / distanceBetweenBoatsMaxRateOfChangeKmph
         smallestTimeToLocHours = min(smallestTimeToLocHours, MAX_PROJECT_OBSTACLE_TIME_HOURS)
-        smallestTimeToLocHours = max(smallestTimeToLocHours, 0)
 
     minimumBoatDistanceTravelledKm = smallestTimeToLocHours * aisShip.speedKmph
 
