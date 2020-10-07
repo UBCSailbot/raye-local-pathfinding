@@ -10,6 +10,7 @@
     <arg name="gps_file" default="" />
     <arg name="goal_file" default="" />
     <arg name="wind_file" default="" />
+    <arg name="num_ais_ships" default="5" />
     <arg name="screenshot" default="false" />
     <arg name="plot_pathfinding_problem" default="false" />
     <arg name="random_seed" default="" />
