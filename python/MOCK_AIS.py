@@ -75,7 +75,7 @@ class MOCK_AISEnvironment:
         return msg.AISMsg(ship_list)
 
     def get_real_ships(self):
-        api_key = "06052ff87ac6fbab9fbd99bce5c80c2ef85642e4"
+        api_key = "6dc3e9efa43a316d866eb51b3cc0a64922d761ec"
         url = "https://services.marinetraffic.com/api/exportvessels/v:8/" + api_key + "/timespan:10/protocol:json"
         request = urllib2.Request(url)
         # Set the user agent to something so our request is accepted
@@ -92,7 +92,9 @@ class MOCK_AISEnvironment:
         ships = json.loads(data)
         self.real_ships = []
         for real_ship in ships:
-            new_ship = RealShip(int(real_ship[0]), float(real_ship[3]), float(real_ship[4]), float(real_ship[6]), float(real_ship[5]) * 0.1)
+            # https://www.marinetraffic.com/no/ais-api-services/documentation/api-service:ps05/_:a7be777368c393257ded7cf842173763#response-PS05
+            # Speed is given in knots * 10
+            new_ship = RealShip(int(real_ship[0]), float(real_ship[3]), float(real_ship[4]), float(real_ship[6]), float(real_ship[5]) * 0.1 * 0.54)
             self.real_ships.append(new_ship)
 
 
@@ -101,7 +103,7 @@ if __name__ == '__main__':
     r = rospy.Rate(1) #hz
 
     while not rospy.is_shutdown():
-        if self.use_real_ships:
+        if ais_env.use_real_ships:
             timestamp = time.time()
             # If it's been more than two minutes since last time we downloaded real ship
             # positions, do it again
