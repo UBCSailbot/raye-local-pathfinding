@@ -17,6 +17,7 @@
     <arg name="planner_type" default="RRTStar" />
     <include file="$(find local_pathfinding)/launch/launch_all_mocks.launch">
       <arg name="initial_speedup" value="$(arg initial_speedup)"/>
+      <arg name="num_ais_ships" value="$(arg num_ais_ships)" />
       <arg name="ais_file" value="$(arg ais_file)"/>
       <arg name="gps_file" value="$(arg gps_file)"/>
       <arg name="goal_file" value="$(arg goal_file)"/>
