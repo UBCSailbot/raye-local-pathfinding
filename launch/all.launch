@@ -17,13 +17,14 @@
     <arg name="planner_type" default="RRTStar" />
     <include file="$(find local_pathfinding)/launch/launch_all_mocks.launch">
       <arg name="initial_speedup" value="$(arg initial_speedup)"/>
+      <arg name="obstacle_type" value="$(arg obstacle_type)"/>
       <arg name="ais_file" value="$(arg ais_file)"/>
       <arg name="gps_file" value="$(arg gps_file)"/>
       <arg name="goal_file" value="$(arg goal_file)"/>
       <arg name="wind_file" value="$(arg wind_file)"/>
-      <arg name="obstacle_type" value="$(arg obstacle_type)"/>
       <arg name="screenshot" value="$(arg screenshot)"/>
       <arg name="plot_pathfinding_problem" value="$(arg plot_pathfinding_problem)"/>
+      <arg name="random_seed" value="$(arg random_seed)" />
       <arg name="planner_type" value="$(arg planner_type)" />
     </include>
 

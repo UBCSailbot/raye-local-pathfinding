@@ -8,6 +8,16 @@ extra
 .idea
 python/.idea/
 
+# VS code
+.vscode
+
+# OMPL
+ompl-1.5.0/
+install/castxml/
+
+# Vim
+*.swp
+
 ### C++ ###
 # Compiled Object files
 *.slo
