@@ -12,7 +12,7 @@ from local_pathfinding.msg import AISShip, AISMsg, GPS
 
 # Constants
 AIS_PUBLISH_PERIOD_SECONDS = 0.1  # Keep below 1.0 for smoother boat motion
-NUM_AIS_SHIPS = rospy.get_param('num_ais_ships', '5')
+NUM_AIS_SHIPS = rospy.get_param('num_ais_ships', default=5)
 
 
 class RandomShip:
