@@ -3,10 +3,10 @@
 import local_imports  # Must be first import, as it adds python directory to path
 from geopy.distance import distance
 import utilities as utils
-from local_pathfinding.msg import latlon, AISMsg, AISShip
-import Sailbot as sbot
+from local_pathfinding.msg import latlon
 import rostest
 import unittest
+
 
 # Do something with local_imports to avoid lint errors
 local_imports.printMessage()
@@ -87,60 +87,6 @@ class TestUtilities(unittest.TestCase):
                            .destination(point=(position.lat, position.lon), bearing=utils.BEARING_EAST))
         reachedGlobalWaypoint = latlon(reachedPosition.latitude, reachedPosition.longitude)
         self.assertTrue(utils.globalWaypointReached(position, reachedGlobalWaypoint))
-
-    def test_getObstacles(self):
-        # Setup: sailbot starting at (0,0). obstacle at (1,0) heading west
-        currentLatlon = latlon(0, 0)
-        referenceLatlon = currentLatlon
-        shipLatlon = utils.XYToLatlon(xy=(1, 0), referenceLatlon=referenceLatlon)
-        ships = [AISShip(ID=1000, lat=shipLatlon.lat, lon=shipLatlon.lon, headingDegrees=utils.HEADING_WEST,
-                         speedKmph=1)]
-        obstacles = utils.getObstacles(ships=ships, position=currentLatlon, speedKmph=1,
-                                       referenceLatlon=referenceLatlon)
-
-        self.assertFalse(utils.isValid(xy=[0, 0], obstacles=obstacles))
-        self.assertFalse(utils.isValid(xy=[1, 0], obstacles=obstacles))
-        self.assertTrue(utils.isValid(xy=[2, 0], obstacles=obstacles))
-
-    def test_getObstacles2(self):
-        # Setup starting at (0,0) with obstacle at (1,1) heading south-west
-        currentLatlon = latlon(0, 0)
-        referenceLatlon = currentLatlon
-        shipLatlon = utils.XYToLatlon(xy=(1, 1), referenceLatlon=referenceLatlon)
-        ships = [AISShip(ID=1000, lat=shipLatlon.lat, lon=shipLatlon.lon, headingDegrees=225, speedKmph=2**0.5)]
-        obstacles = utils.getObstacles(ships=ships, position=currentLatlon, speedKmph=1,
-                                       referenceLatlon=referenceLatlon)
-# Uncomment below to see obstacles extended on a plot
-#        ax = plt.gca()
-#        for obstacle in obstacles:
-#            ax.add_patch(plt.Circle((obstacle.x, obstacle.y), radius=obstacle.radius))
-#        plt.show()
-        self.assertFalse(utils.isValid(xy=[1, 1], obstacles=obstacles))
-        self.assertFalse(utils.isValid(xy=[0, 0], obstacles=obstacles))
-        self.assertTrue(utils.isValid(xy=[-1, -1], obstacles=obstacles))
-
-    def test_getObstacles3(self):
-        # Setup starting at (0,0) with obstacles at (0,3) and (-1,-1)
-        currentLatlon = latlon(0, 0)
-        referenceLatlon = currentLatlon
-        shipLatlon = utils.XYToLatlon(xy=(0, 3), referenceLatlon=referenceLatlon)
-        shipLatlon2 = utils.XYToLatlon(xy=(-1, -1), referenceLatlon=referenceLatlon)
-        ship1 = AISShip(ID=1000, lat=shipLatlon.lat, lon=shipLatlon.lon, headingDegrees=270, speedKmph=1.5)
-        ship2 = AISShip(ID=1001, lat=shipLatlon2.lat, lon=shipLatlon2.lon, headingDegrees=45, speedKmph=10)
-        obstacles = utils.getObstacles(ships=[ship1, ship2], position=currentLatlon,
-                                       speedKmph=1, referenceLatlon=referenceLatlon)
-# Uncomment below to see obstacles extended on a plot
-#        ax = plt.gca()
-#        for obstacle in obstacles:
-#            ax.add_patch(plt.Circle((obstacle.x, obstacle.y), radius=obstacle.radius))
-#        plt.show()
-        self.assertFalse(utils.isValid(xy=[0, 0], obstacles=obstacles))
-        self.assertFalse(utils.isValid(xy=[1, 1], obstacles=obstacles))
-        self.assertFalse(utils.isValid(xy=[3, 3], obstacles=obstacles))
-        self.assertFalse(utils.isValid(xy=[0, -1], obstacles=obstacles))
-        self.assertTrue(utils.isValid(xy=[0, 4], obstacles=obstacles))
-        self.assertFalse(utils.isValid(xy=[0, -1.19], obstacles=obstacles))
-        self.assertTrue(utils.isValid(xy=[0, -2.3], obstacles=obstacles))
 
     def test_headingToBearingDegrees(self):
         # Basic tests
@@ -244,60 +190,6 @@ class TestUtilities(unittest.TestCase):
         # Test that we get back the same global wind as we started with
         self.assertAlmostEqual(calculatedGlobalWindSpeedKmph, globalWindSpeedKmph, places=3)
         self.assertAlmostEqual(calculatedGlobalWindDirectionDegrees, globalWindDirectionDegrees, places=3)
-
-    def test_createPath_basic(self):
-        # Create simple straight line path (no need for tacking because of wind is 90 degrees, goal is 0 degrees)
-        start = latlon(0, 0)
-        goal = latlon(0, 0.2)
-        measuredWindSpeedKmph, measuredWindDegrees = utils.globalWindToMeasuredWind(
-            globalWindSpeed=10, globalWindDirectionDegrees=90, boatSpeed=0, headingDegrees=0)
-        state = sbot.BoatState(globalWaypoint=goal, position=start, measuredWindDirectionDegrees=measuredWindDegrees,
-                               measuredWindSpeedKmph=measuredWindSpeedKmph, AISData=AISMsg(), headingDegrees=0,
-                               speedKmph=0)
-        path = utils.createPath(state, runtimeSeconds=0.5, numRuns=2, maxAllowableRuntimeSeconds=1)
-        latlons = path.getLatlons()
-
-        # Check that first state matches the setup start
-        startWaypoint = latlons[0]
-        self.assertAlmostEqual(start.lat, startWaypoint.lat, places=2)
-        self.assertAlmostEqual(start.lon, startWaypoint.lon, places=2)
-
-        # Check that the path reaches the goal
-        self.assertTrue(path.reachesGoalLatlon(goal))
-
-        # Check that total path length is reasonable
-        maxAcceptablePathLength = 2 * distance((start.lat, start.lon), (goal.lat, goal.lon)).kilometers
-        self.assertLessEqual(path.getLength(), maxAcceptablePathLength)
-
-        # Check that path cost is acceptable
-        self.assertFalse(utils.pathCostThresholdExceeded(path))
-
-    def test_createPath_advanced(self):
-        # Create tacking path (requires tacking because of wind is 45 degrees, goal is 45 degrees)
-        start = latlon(0, 0)
-        goal = latlon(0.2, 0.2)
-        measuredWindSpeedKmph, measuredWindDegrees = utils.globalWindToMeasuredWind(
-            globalWindSpeed=10, globalWindDirectionDegrees=45, boatSpeed=0, headingDegrees=0)
-        state = sbot.BoatState(globalWaypoint=goal, position=start, measuredWindDirectionDegrees=measuredWindDegrees,
-                               measuredWindSpeedKmph=measuredWindSpeedKmph, AISData=AISMsg(), headingDegrees=0,
-                               speedKmph=0)
-        path = utils.createPath(state, runtimeSeconds=0.5, numRuns=2, maxAllowableRuntimeSeconds=1)
-        latlons = path.getLatlons()
-
-        # Check that first state matches the setup start
-        startWaypoint = latlons[0]
-        self.assertAlmostEqual(start.lat, startWaypoint.lat, places=2)
-        self.assertAlmostEqual(start.lon, startWaypoint.lon, places=2)
-
-        # Check that the path reaches the goal
-        self.assertTrue(path.reachesGoalLatlon(goal))
-
-        # Check that total path length is reasonable
-        maxAcceptablePathLength = 2 * distance((start.lat, start.lon), (goal.lat, goal.lon)).kilometers
-        self.assertLessEqual(path.getLength(), maxAcceptablePathLength)
-
-        # Check that path cost is acceptable
-        self.assertFalse(utils.pathCostThresholdExceeded(path))
 
 
 if __name__ == '__main__':
