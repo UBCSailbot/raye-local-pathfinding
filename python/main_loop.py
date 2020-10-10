@@ -2,7 +2,7 @@
 
 import rospy
 import local_pathfinding.msg as msg
-import handleInvalidStartState as hiss
+import handleInvalidState as hiss
 from std_msgs.msg import Float64, String, Bool
 import Sailbot as sbot
 import utilities as utils
