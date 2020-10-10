@@ -40,9 +40,9 @@ def speedupCallback(data):
     rospy.loginfo("speedup message of {} received.".format(speedup))
 
 
-def createNewLocalPath(state, maxAllowableRuntimeSeconds, desiredHeadingMsg, desiredHeadingPublisher, localPath=None):
+def createNewLocalPath(state, maxAllowableRuntimeSeconds, desiredHeadingPublisher, localPath=None):
     if localPath is not None:
-        state = getValidState(state, localPath, desiredHeadingMsg, desiredHeadingPublisher)
+        state = getValidState(state, localPath, desiredHeadingPublisher)
     else:
         state = sailbot.getCurrentState()
     
@@ -53,7 +53,7 @@ def createNewLocalPath(state, maxAllowableRuntimeSeconds, desiredHeadingMsg, des
     lastTimePathCreated = time.time()
     return localPath, lastTimePathCreated
 
-def getValidState(state, localPath, desiredHeadingMsg, desiredHeadingPublisher):
+def getValidState(state, localPath, desiredHeadingPublisher):
     # Check if local path MUST be updated
     startValid = localPath.checkStartValidity(sailbot, state)
     goalValid = localPath.checkGoalValidity(state)
@@ -61,9 +61,8 @@ def getValidState(state, localPath, desiredHeadingMsg, desiredHeadingPublisher):
     if not startValid:
         while not localPath.checkStartValidity(sailbot, state) and not rospy.is_shutdown():
             headingToSafety = localPath.generateSafeHeading(state)
-            desiredHeadingMsg.headingDegrees = headingToSafety
             rospy.logwarn("INVALID START STATE! Publishing Heading: {}".format(headingToSafety))
-            desiredHeadingPublisher.publish(desiredHeadingMsg)
+            desiredHeadingPublisher.publish(msg.heading(headingToSafety))
             state = sailbot.getCurrentState()
         rospy.logwarn("Start state OK")
     
@@ -80,7 +79,6 @@ if __name__ == '__main__':
 
     # Create ros publisher for the desired heading for the controller
     desiredHeadingPublisher = rospy.Publisher('desiredHeading', msg.heading, queue_size=4)
-    desiredHeadingMsg = msg.heading()
 
     # Create other publishers
     localPathPublisher = rospy.Publisher('localPath', msg.path, queue_size=4)
@@ -102,11 +100,12 @@ if __name__ == '__main__':
     # Create first path and track time of updates
     state = sailbot.getCurrentState()
     localPath, lastTimePathCreated = createNewLocalPath(state, Path.MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS,
-                                                        desiredHeadingMsg, desiredHeadingPublisher)
+                                                        desiredHeadingPublisher)
+    desiredHeadingDegrees = utils.getDesiredHeadingDegrees(state.position, localPath.getNextWaypoint())
     sailbot.newGlobalPathReceived = False
 
     while not rospy.is_shutdown():
-        rospy.loginfo("desiredHeadingMsg: {}".format(desiredHeadingMsg.headingDegrees))
+        rospy.loginfo("desiredHeadingDegrees: {}".format(desiredHeadingDegrees))
         rospy.loginfo("Current path cost is: {}".format(localPath.getCost()))
         state = sailbot.getCurrentState()
 
@@ -117,9 +116,8 @@ if __name__ == '__main__':
         if not startValid:
             while not localPath.checkStartValidity(sailbot, state) and not rospy.is_shutdown():
                 headingToSafety = localPath.generateSafeHeading(state)
-                desiredHeadingMsg.headingDegrees = headingToSafety
                 rospy.logwarn("INVALID START STATE! Publishing Heading: {}".format(headingToSafety))
-                desiredHeadingPublisher.publish(desiredHeadingMsg)
+                desiredHeadingPublisher.publish(msg.heading(headingToSafety))
                 state = sailbot.getCurrentState()
             rospy.logwarn("Start state OK")
 
@@ -168,7 +166,7 @@ if __name__ == '__main__':
 
             localPath, lastTimePathCreated = createNewLocalPath(
                 state, Path.MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS / 2.0, 
-                desiredHeadingMsg, desiredHeadingPublisher, localPath)
+                desiredHeadingPublisher, localPath)
 
         else:
             # Check if new local path should be generated and compared to current local path
@@ -194,7 +192,7 @@ if __name__ == '__main__':
 
                 # Create new local path to compare
                 _localPath, _lastTimePathCreated = createNewLocalPath(
-                    state, Path.MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS, desiredHeadingMsg,
+                    state, Path.MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS,
                     desiredHeadingPublisher, localPath)
                 lastTimePathCreated = _lastTimePathCreated
 
@@ -211,8 +209,8 @@ if __name__ == '__main__':
                     rospy.loginfo("Keeping old local path")
 
         # Publish desiredHeading
-        desiredHeadingMsg.headingDegrees = utils.getDesiredHeadingDegrees(state.position, localPath.getNextWaypoint())
-        desiredHeadingPublisher.publish(desiredHeadingMsg)
+        desiredHeadingDegrees = utils.getDesiredHeadingDegrees(state.position, localPath.getNextWaypoint())
+        desiredHeadingPublisher.publish(msg.heading(desiredHeadingDegrees))
 
         # Publish local path
         localPathPublisher.publish(msg.path(localPath.getLatlons()))
