@@ -19,6 +19,8 @@ class CollisionChecker:
         self.ships = rospy.wait_for_message('/AIS', AISMsg).ships
         self.lat = rospy.wait_for_message('/GPS', GPS).lat
         self.lon = rospy.wait_for_message('/GPS', GPS).lon
+        self.timesCollided = 0
+        self.timesWarned = 0
 
     def GPS_callback(self, data):
         self.lat = data.lat
@@ -33,10 +35,18 @@ class CollisionChecker:
             if dist < self.collision_radius:
                 rospy.logfatal("Boat has collided with obstacle. Collision radius {}km. Actual distance to boat: {}km"
                                .format(self.collision_radius, dist))
+                self.timesCollided = self.timesCollided + 1
 
             elif dist < self.warn_radius:
                 rospy.logwarn("Close to collision. Within {}km of boat. Actual distance to boat: {}km"
                               .format(self.warn_radius, dist))
+                self.timesWarned = self.timesWarned + 1
+
+    def getTimesCollided(self):
+        return self.timesCollided
+
+    def getTimesWarned(self):
+        return self.timesWarned
 
 
 if __name__ == '__main__':
@@ -45,4 +55,9 @@ if __name__ == '__main__':
 
     while not rospy.is_shutdown():
         collision_checker.check_for_collisions()
+        timesCollided = collision_checker.getTimesCollided
+        timesWarned = collision_checker.getTimesWarned
         rate.sleep()
+    
+    rospy.logfatal("Boat has collided with obstacles ", timesCollided, " times")
+    rospy.logwarn("Boat has been close to collision ", timesWarned, " times")
