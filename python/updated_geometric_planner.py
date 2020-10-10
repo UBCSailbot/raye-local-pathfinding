@@ -121,7 +121,8 @@ def indexOfObstacleOnPath(positionXY, nextLocalWaypointIndex, numLookAheadWaypoi
     return -1
 
 
-def plan(run_time, planner_type, wind_direction_degrees, dimensions, start_pos, goal_pos, obstacles, heading_degrees, objective_type='WeightedLengthAndClearanceCombo'):
+def plan(run_time, planner_type, wind_direction_degrees, dimensions, start_pos, goal_pos, obstacles, heading_degrees,
+         objective_type='WeightedLengthAndClearanceCombo'):
     # Construct the robot state space in which we're planning
     space = ob.SE2StateSpace()
 
