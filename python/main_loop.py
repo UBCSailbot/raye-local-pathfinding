@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 
 import rospy
-import math
-import planner_helpers as ph
 import local_pathfinding.msg as msg
+import handleInvalidStartState as hiss
 from std_msgs.msg import Float64, String, Bool
 import Sailbot as sbot
 import utilities as utils
@@ -44,7 +43,7 @@ def speedupCallback(data):
 
 
 def createNewLocalPath(sailbot, maxAllowableRuntimeSeconds, desiredHeadingPublisher):
-    state = getValidState(sailbot, desiredHeadingPublisher)
+    state = hiss.getValidState(sailbot, desiredHeadingPublisher)
 
     # Composition of functions used every time when updating local path
     global speedup
@@ -52,32 +51,6 @@ def createNewLocalPath(sailbot, maxAllowableRuntimeSeconds, desiredHeadingPublis
                                 maxAllowableRuntimeSeconds=maxAllowableRuntimeSeconds)
     lastTimePathCreated = time.time()
     return localPath, lastTimePathCreated
-
-
-def getValidState(sailbot, desiredHeadingPublisher):
-    state = sailbot.getCurrentState()
-    obstacleOnStartPosition = obstacleOnStart(state)
-    startValid = (obstacleOnStartPosition is None)
-
-    while not startValid and not rospy.is_shutdown():
-        headingToSafety = generateSafeHeading(state, obstacleOnStartPosition)
-        rospy.logwarn("INVALID START STATE! Publishing Heading: {}".format(headingToSafety))
-        desiredHeadingPublisher.publish(msg.heading(headingToSafety))
-        state = sailbot.getCurrentState()
-        obstacleOnStartPosition = obstacleOnStart(state)
-        startValid = (obstacleOnStartPosition is None)
-    rospy.logwarn("Start state OK")
-    return state
-
-
-def obstacleOnStart(state):
-    referenceLatlon = state.globalWaypoint
-    obstacles = obs.getObstacles(state, referenceLatlon)
-    for obstacle in obstacles:
-        xy = utils.latlonToXY(state.position, referenceLatlon)
-        if not obstacle.isValid(xy):
-            return obstacle
-    return None
 
 
 def checkGoalValidity(state):
@@ -88,23 +61,6 @@ def checkGoalValidity(state):
         if not obstacle.isValid(goalXY):
             return False
     return True
-
-
-def generateSafeHeading(state, invalidStartObstacle):
-    obstacleHeadingRad = math.radians(invalidStartObstacle.aisShip.headingDegrees)
-    potentialHeadingsRad = []
-    potentialHeadingsRad.append(obstacleHeadingRad + math.pi * 0.5)
-    potentialHeadingsRad.append(obstacleHeadingRad - math.pi * 0.5)
-
-    for headingRad in potentialHeadingsRad:
-        globalWindSpeedKmph, globalWindDirectionDegrees = utils.measuredWindToGlobalWind(
-            state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph,
-            state.headingDegrees)
-        rospy.logwarn("Global Wind Direction: {}".format(globalWindDirectionDegrees))
-        if not ph.isUpwind(math.radians(globalWindDirectionDegrees), headingRad):
-            return math.degrees(headingRad)
-    # if all else fails, go downwind
-    return globalWindDirectionDegrees
 
 
 if __name__ == '__main__':
@@ -150,7 +106,7 @@ if __name__ == '__main__':
 
         # Check if local path MUST be updated
         goalValid = checkGoalValidity(state)
-        state = getValidState(sailbot, desiredHeadingPublisher)
+        state = hiss.getValidState(sailbot, desiredHeadingPublisher)
 
         hasUpwindOrDownwindOnPath = localPath.upwindOrDownwindOnPath(
             state, numLookAheadWaypoints=utils.NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND, showWarnings=True)
