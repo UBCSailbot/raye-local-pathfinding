@@ -95,7 +95,6 @@ if __name__ == '__main__':
 
         # Check if local path MUST be updated
         goalValid = hiss.checkGoalValidity(state)
-        state = hiss.getValidStateMoveToSafetyIfNeeded(sailbot, desiredHeadingPublisher)
 
         hasUpwindOrDownwindOnPath = localPath.upwindOrDownwindOnPath(
             state, numLookAheadWaypoints=utils.NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND, showWarnings=True)

@@ -45,7 +45,7 @@ def generateSafeHeadingDegrees(state, invalidStartObstacle):
             state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph,
             state.headingDegrees)
         if not ph.isUpwind(math.radians(globalWindDirectionDegrees), math.radians(headingDegrees)):
-            rospy.logwarn("Found heading to safety: {}".headingDegrees)
+            rospy.logwarn("Found heading to safety: {}".format(headingDegrees))
             return headingDegrees
 
     # if all else fails, go downwind
