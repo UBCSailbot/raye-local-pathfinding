@@ -554,41 +554,6 @@ class Path:
             return True
         return False
 
-    def checkStartValidity(self, sbot, state):
-        obstacles = self.getObstacles(state)
-        for obstacle in obstacles:
-            xy = utils.latlonToXY(latlon(sbot.position.lat, sbot.position.lon), obstacle.referenceLatlon)
-            if not obstacle.isValid(xy):
-                self._invalidObstacle = obstacle
-                return False
-        return True
-
-    def checkGoalValidity(self, state):
-        obstacles = self.getObstacles(state)
-        latlonPath = self.getLatlons()
-        goalLatlon = latlonPath[len(latlonPath) - 1]
-        for obstacle in obstacles:
-            goalXY = utils.latlonToXY(latlon(goalLatlon.lat, goalLatlon.lon), obstacle.referenceLatlon)
-            if not obstacle.isValid(goalXY):
-                return False
-        return True
-
-    def generateSafeHeading(self, state):
-        obstacleHeadingRad = math.radians(self._invalidObstacle.aisShip.headingDegrees)
-        potentialHeadingsRad = []
-        potentialHeadingsRad.append(obstacleHeadingRad + math.pi * 0.5)
-        potentialHeadingsRad.append(obstacleHeadingRad - math.pi * 0.5)
-
-        for heading in potentialHeadingsRad:
-            globalWindSpeedKmph, globalWindDirectionDegrees = utils.measuredWindToGlobalWind(
-                state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
-            rospy.logwarn("Global Wind Direction:{}".format(globalWindDirectionDegrees))
-            if not ph.isUpwind(math.radians(globalWindDirectionDegrees), math.radians(heading)):
-                return math.degrees(heading)
-
-        # if all else fails, go downwind
-        return globalWindDirectionDegrees
-
 
 def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=False, speedupBeforePlan=1.0,
                maxAllowableRuntimeSeconds=MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS):
