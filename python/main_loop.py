@@ -42,7 +42,7 @@ def speedupCallback(data):
 
 
 def createNewLocalPath(sailbot, maxAllowableRuntimeSeconds, desiredHeadingPublisher):
-    state = hiss.getValidState(sailbot, desiredHeadingPublisher)
+    state = hiss.getValidStateMoveToSafetyIfNeeded(sailbot, desiredHeadingPublisher)
 
     # Composition of functions used every time when updating local path
     global speedup
@@ -95,7 +95,7 @@ if __name__ == '__main__':
 
         # Check if local path MUST be updated
         goalValid = hiss.checkGoalValidity(state)
-        state = hiss.getValidState(sailbot, desiredHeadingPublisher)
+        state = hiss.getValidStateMoveToSafetyIfNeeded(sailbot, desiredHeadingPublisher)
 
         hasUpwindOrDownwindOnPath = localPath.upwindOrDownwindOnPath(
             state, numLookAheadWaypoints=utils.NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND, showWarnings=True)

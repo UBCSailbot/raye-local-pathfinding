@@ -8,7 +8,7 @@ import obstacles as obs
 import utilities as utils
 
 
-def getValidState(sailbot, desiredHeadingPublisher):
+def getValidStateMoveToSafetyIfNeeded(sailbot, desiredHeadingPublisher):
     state = sailbot.getCurrentState()
     obstacleOnStartPosition = obstacleOnStart(state)
     startValid = (obstacleOnStartPosition is None)
@@ -36,6 +36,7 @@ def obstacleOnStart(state):
 
 
 def generateSafeHeadingDegrees(state, invalidStartObstacle):
+    rospy.logwarn("Generating heading to safety...")
     obstacleHeadingDegrees = invalidStartObstacle.aisShip.headingDegrees
     potentialHeadingsDegrees = [obstacleHeadingDegrees + 90, obstacleHeadingDegrees - 90]
 
@@ -43,10 +44,13 @@ def generateSafeHeadingDegrees(state, invalidStartObstacle):
         _, globalWindDirectionDegrees = utils.measuredWindToGlobalWind(
             state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph,
             state.headingDegrees)
-        rospy.logwarn("Global Wind Direction: {}".format(globalWindDirectionDegrees))
         if not ph.isUpwind(math.radians(globalWindDirectionDegrees), math.radians(headingDegrees)):
+            rospy.logwarn("Found heading to safety: {}".headingDegrees)
             return headingDegrees
+
     # if all else fails, go downwind
+    rospy.logwarn("Couldn't find conventional heading to safety, using downwind direction: {}"
+                  .format(globalWindDirectionDegrees))
     return globalWindDirectionDegrees
 
 
