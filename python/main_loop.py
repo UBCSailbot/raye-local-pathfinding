@@ -7,7 +7,6 @@ from std_msgs.msg import Float64, String, Bool
 import Sailbot as sbot
 import utilities as utils
 import Path
-import obstacles as obs
 import time
 import matplotlib.pyplot as plt
 
@@ -53,16 +52,6 @@ def createNewLocalPath(sailbot, maxAllowableRuntimeSeconds, desiredHeadingPublis
     return localPath, lastTimePathCreated
 
 
-def checkGoalValidity(state):
-    referenceLatlon = state.globalWaypoint
-    obstacles = obs.getObstacles(state, referenceLatlon)
-    for obstacle in obstacles:
-        goalXY = utils.latlonToXY(state.globalWaypoint, referenceLatlon)
-        if not obstacle.isValid(goalXY):
-            return False
-    return True
-
-
 if __name__ == '__main__':
     # Create sailbot ROS object that subscribes to relevant topics
     sailbot = sbot.Sailbot(nodeName='local_pathfinding')
@@ -105,7 +94,7 @@ if __name__ == '__main__':
         state = sailbot.getCurrentState()
 
         # Check if local path MUST be updated
-        goalValid = checkGoalValidity(state)
+        goalValid = hiss.checkGoalValidity(state)
         state = hiss.getValidState(sailbot, desiredHeadingPublisher)
 
         hasUpwindOrDownwindOnPath = localPath.upwindOrDownwindOnPath(

@@ -49,3 +49,13 @@ def generateSafeHeading(state, invalidStartObstacle):
             return math.degrees(headingRad)
     # if all else fails, go downwind
     return globalWindDirectionDegrees
+
+
+def checkGoalValidity(state):
+    referenceLatlon = state.globalWaypoint
+    obstacles = obs.getObstacles(state, referenceLatlon)
+    for obstacle in obstacles:
+        goalXY = utils.latlonToXY(state.globalWaypoint, referenceLatlon)
+        if not obstacle.isValid(goalXY):
+            return False
+    return True
