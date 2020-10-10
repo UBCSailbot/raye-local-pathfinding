@@ -13,14 +13,15 @@ def getValidState(sailbot, desiredHeadingPublisher):
     obstacleOnStartPosition = obstacleOnStart(state)
     startValid = (obstacleOnStartPosition is None)
 
-    while not startValid and not rospy.is_shutdown():
-        headingToSafety = generateSafeHeading(state, obstacleOnStartPosition)
-        rospy.logwarn("INVALID START STATE! Publishing Heading: {}".format(headingToSafety))
-        desiredHeadingPublisher.publish(msg.heading(headingToSafety))
-        state = sailbot.getCurrentState()
-        obstacleOnStartPosition = obstacleOnStart(state)
-        startValid = (obstacleOnStartPosition is None)
-    rospy.logwarn("Start state OK")
+    if not startValid:
+        while not startValid and not rospy.is_shutdown():
+            headingToSafetyDegrees = generateSafeHeadingDegrees(state, obstacleOnStartPosition)
+            rospy.logwarn("INVALID START STATE! Publishing Heading to safety: {}".format(headingToSafetyDegrees))
+            desiredHeadingPublisher.publish(msg.heading(headingToSafetyDegrees))
+            state = sailbot.getCurrentState()
+            obstacleOnStartPosition = obstacleOnStart(state)
+            startValid = (obstacleOnStartPosition is None)
+        rospy.loginfo("Start state OK")
     return state
 
 
@@ -34,19 +35,17 @@ def obstacleOnStart(state):
     return None
 
 
-def generateSafeHeading(state, invalidStartObstacle):
-    obstacleHeadingRad = math.radians(invalidStartObstacle.aisShip.headingDegrees)
-    potentialHeadingsRad = []
-    potentialHeadingsRad.append(obstacleHeadingRad + math.pi * 0.5)
-    potentialHeadingsRad.append(obstacleHeadingRad - math.pi * 0.5)
+def generateSafeHeadingDegrees(state, invalidStartObstacle):
+    obstacleHeadingDegrees = invalidStartObstacle.aisShip.headingDegrees
+    potentialHeadingsDegrees = [obstacleHeadingDegrees + 90, obstacleHeadingDegrees - 90]
 
-    for headingRad in potentialHeadingsRad:
-        globalWindSpeedKmph, globalWindDirectionDegrees = utils.measuredWindToGlobalWind(
+    for headingDegrees in potentialHeadingsDegrees:
+        _, globalWindDirectionDegrees = utils.measuredWindToGlobalWind(
             state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph,
             state.headingDegrees)
         rospy.logwarn("Global Wind Direction: {}".format(globalWindDirectionDegrees))
-        if not ph.isUpwind(math.radians(globalWindDirectionDegrees), headingRad):
-            return math.degrees(headingRad)
+        if not ph.isUpwind(math.radians(globalWindDirectionDegrees), math.radians(headingDegrees)):
+            return headingDegrees
     # if all else fails, go downwind
     return globalWindDirectionDegrees
 

@@ -137,9 +137,6 @@ if __name__ == '__main__':
                 sailbot.globalPathIndex += 1
 
             # Update local path
-            rospy.loginfo("cool")
-            time.sleep(5)
-
             localPath, lastTimePathCreated = createNewLocalPath(
                 sailbot, Path.MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS / 2.0,
                 desiredHeadingPublisher)
