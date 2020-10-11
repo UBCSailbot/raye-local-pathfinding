@@ -2,7 +2,7 @@
 
 import rospy
 import local_pathfinding.msg as msg
-import handleInvalidState as hiss
+import handleInvalidState as his
 from std_msgs.msg import Float64, String, Bool
 import Sailbot as sbot
 import utilities as utils
@@ -42,7 +42,7 @@ def speedupCallback(data):
 
 
 def createNewLocalPath(sailbot, maxAllowableRuntimeSeconds, desiredHeadingPublisher):
-    state = hiss.getValidStateMoveToSafetyIfNeeded(sailbot, desiredHeadingPublisher)
+    state = his.getValidStateMoveToSafetyIfNeeded(sailbot, desiredHeadingPublisher)
 
     # Composition of functions used every time when updating local path
     global speedup
@@ -94,7 +94,7 @@ if __name__ == '__main__':
         state = sailbot.getCurrentState()
 
         # Check if local path MUST be updated
-        goalValid = hiss.checkGoalValidity(state)
+        goalValid = his.checkGoalValidity(state)
 
         hasUpwindOrDownwindOnPath = localPath.upwindOrDownwindOnPath(
             state, numLookAheadWaypoints=utils.NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND, showWarnings=True)
