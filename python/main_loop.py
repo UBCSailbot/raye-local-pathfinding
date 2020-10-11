@@ -106,8 +106,7 @@ if __name__ == '__main__':
         pathNotReachGoal = not localPath.reachesGoalLatlon(state.globalWaypoint)
 
         if not goalValid:
-            # TODO: don't skip if global waypoint is destination
-            rospy.logwarn("Goal state invalid, skipping global waypoint")
+            rospy.logwarn("Goal state invalid, skipping to the next global waypoint")
             isGlobalWaypointReached = True
 
         mustUpdateLocalPath = (hasUpwindOrDownwindOnPath or hasObstacleOnPath or isGlobalWaypointReached
