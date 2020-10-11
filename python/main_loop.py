@@ -42,6 +42,17 @@ def speedupCallback(data):
 
 
 def createNewLocalPath(sailbot, maxAllowableRuntimeSeconds, desiredHeadingPublisher):
+    '''Ensures sailbot is in a valid starting state, then creates a local path.
+    If sailbot not in a valid state, use his.getValidStateMoveToSafetyIfNeeded to move to safety first.
+
+    Args:
+       sailbot (Sailbot): Sailbot object with which current state will be calculated
+       maxAllowableRuntimeSeconds (float): max time that can be spent generating a path
+       desiredHeadingPublisher (rospy.Publisher:msg.heading) publisher for desired heading of sailbot to move to safety
+
+    Returns:
+       Path object of local path AND time of path creation
+    '''
     # Gets current state. If start position is invalid, moves out of the way of the other boat before continuing
     state = his.getValidStateMoveToSafetyIfNeeded(sailbot, desiredHeadingPublisher)
 
