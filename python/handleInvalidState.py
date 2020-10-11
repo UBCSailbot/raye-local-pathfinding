@@ -9,6 +9,15 @@ import utilities as utils
 
 
 def getValidStateMoveToSafetyIfNeeded(sailbot, desiredHeadingPublisher):
+    '''Checks if the sailbot's start state is valid (nearby obstacle). If not, send desired heading to safety till valid
+
+    Args:
+       sailbot (Sailbot): Sailbot object with which current state will be calculated
+       desiredHeadingPublisher (rospy.Publisher:msg.heading) publisher for desired heading of sailbot to move to safety
+
+    Returns:
+       BoatState of the sailbot that has a valid start state
+    '''
     state = sailbot.getCurrentState()
     obstacleOnStartPosition = obstacleOnStart(state)
     startValid = (obstacleOnStartPosition is None)
@@ -26,6 +35,15 @@ def getValidStateMoveToSafetyIfNeeded(sailbot, desiredHeadingPublisher):
 
 
 def obstacleOnStart(state):
+    '''Checks if there are any obstacles projected to be on the state's starting position
+
+    Args:
+       state (BoatState): State of the sailbot and other boats
+
+    Returns:
+       ObstacleInterface object that is at the start state causing it to be invalid, else returns None
+       If there are multiple obstacles on start, this just returns one of them
+    '''
     referenceLatlon = state.globalWaypoint
     obstacles = obs.getObstacles(state, referenceLatlon)
     for obstacle in obstacles:
@@ -36,6 +54,17 @@ def obstacleOnStart(state):
 
 
 def generateSafeHeadingDegrees(state, invalidStartObstacle):
+    '''Finds a heading that the sailbot can safely follow to get away from a closeby AIS boat
+    It returns a heading perpendicular to the heading of the nearby boat to ensure we get out of its way.
+    Since there are two directions, we choose either one, as long as it is not upwind
+
+    Args:
+       state (BoatState): State of the sailbot and other boats
+       invalidStartObstacle (ObstacleInterface): obstacle that is causing the sailbot start state to be invalid
+
+    Returns:
+       float heading in degrees (0=East, 90=North) that sailbot should follow to get away from the AIS boat
+    '''
     rospy.logwarn("Generating heading to safety...")
     obstacleHeadingDegrees = invalidStartObstacle.aisShip.headingDegrees
     potentialHeadingsDegrees = [obstacleHeadingDegrees + 90, obstacleHeadingDegrees - 90]
@@ -55,6 +84,14 @@ def generateSafeHeadingDegrees(state, invalidStartObstacle):
 
 
 def checkGoalValidity(state):
+    '''Checks if the goal waypoint of the given state is valid (no obstacle there)
+
+    Args:
+       state (BoatState): State of the sailbot and other boats
+
+    Returns:
+       bool True iff there is no obstacle projected to be on the state's goal waypoint
+    '''
     referenceLatlon = state.globalWaypoint
     obstacles = obs.getObstacles(state, referenceLatlon)
     for obstacle in obstacles:

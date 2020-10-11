@@ -42,6 +42,7 @@ def speedupCallback(data):
 
 
 def createNewLocalPath(sailbot, maxAllowableRuntimeSeconds, desiredHeadingPublisher):
+    # Gets current state. If start position is invalid, moves out of the way of the other boat before continuing
     state = his.getValidStateMoveToSafetyIfNeeded(sailbot, desiredHeadingPublisher)
 
     # Composition of functions used every time when updating local path
