@@ -121,7 +121,8 @@ def indexOfObstacleOnPath(positionXY, nextLocalWaypointIndex, numLookAheadWaypoi
     return -1
 
 
-def plan(run_time, planner_type, objective_type, wind_direction_degrees, dimensions, start_pos, goal_pos, obstacles):
+def plan(run_time, planner_type, wind_direction_degrees, dimensions, start_pos, goal_pos, obstacles, heading_degrees,
+         objective_type='WeightedLengthAndClearanceCombo'):
     # Construct the robot state space in which we're planning
     space = ob.SE2StateSpace()
 
@@ -161,11 +162,8 @@ def plan(run_time, planner_type, objective_type, wind_direction_degrees, dimensi
     # Set the start and goal states
     ss.setStartAndGoalStates(start, goal)
 
-    # Create the optimization objective (helper function is simply a switch statement) and set wind direction
-    objective = ph.allocate_objective(si, objective_type)
-    for i in range(objective.getObjectiveCount()):
-        if isinstance(objective.getObjective(i), ph.WindObjective):
-            objective.getObjective(i).windDirectionDegrees = wind_direction_degrees
+    # Create the optimization objective (helper function is simply a switch statement)
+    objective = ph.allocate_objective(si, objective_type, wind_direction_degrees, heading_degrees)
     ss.setOptimizationObjective(objective)
 
     # Construct the optimal planner (helper function is simply a switch statement)

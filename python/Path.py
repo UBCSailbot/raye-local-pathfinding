@@ -727,8 +727,8 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=Fals
     for i in range(numRuns):
         # TODO: Incorporate globalWindSpeed into pathfinding?
         rospy.loginfo("Starting path-planning run number: {}".format(i))
-        solution = plan(runtimeSeconds, plannerType, 'WeightedLengthAndClearanceCombo',
-                        globalWindDirectionDegrees, dimensions, start, goal, obstacles)
+        solution = plan(runtimeSeconds, plannerType, globalWindDirectionDegrees,
+                        dimensions, start, goal, obstacles, state.headingDegrees)
         if isValidSolution(solution, referenceLatlon, state):
             validSolutions.append(solution)
         else:
@@ -748,8 +748,8 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=Fals
             break
 
         rospy.logwarn("Attempting to rerun with longer runtime: {} seconds".format(runtimeSeconds))
-        solution = plan(runtimeSeconds, "RRTStar", 'WeightedLengthAndClearanceCombo',
-                        globalWindDirectionDegrees, dimensions, start, goal, obstacles)
+        solution = plan(runtimeSeconds, plannerType, globalWindDirectionDegrees,
+                        dimensions, start, goal, obstacles, state.headingDegrees)
 
         if isValidSolution(solution, referenceLatlon, state):
             validSolutions.append(solution)
