@@ -2,6 +2,7 @@
 
 import rospy
 import local_pathfinding.msg as msg
+import handleInvalidState as his
 from std_msgs.msg import Float64, String, Bool
 import Sailbot as sbot
 import utilities as utils
@@ -40,7 +41,21 @@ def speedupCallback(data):
     rospy.loginfo("speedup message of {} received.".format(speedup))
 
 
-def createNewLocalPath(state, maxAllowableRuntimeSeconds):
+def createNewLocalPath(sailbot, maxAllowableRuntimeSeconds, desiredHeadingPublisher):
+    '''Ensures sailbot is in a valid starting state, then creates a local path.
+    If sailbot not in a valid state, use his.getValidStateMoveToSafetyIfNeeded to move to safety first.
+
+    Args:
+       sailbot (Sailbot): Sailbot object with which current state will be calculated
+       maxAllowableRuntimeSeconds (float): max time that can be spent generating a path
+       desiredHeadingPublisher (rospy.Publisher:msg.heading) publisher for desired heading of sailbot to move to safety
+
+    Returns:
+       Path object of local path AND time of path creation
+    '''
+    # Gets current state. If start position is invalid, moves out of the way of the other boat before continuing
+    state = his.getValidStateMoveToSafetyIfNeeded(sailbot, desiredHeadingPublisher)
+
     # Composition of functions used every time when updating local path
     global speedup
     localPath = Path.createPath(state, resetSpeedupDuringPlan=True, speedupBeforePlan=speedup,
@@ -60,7 +75,6 @@ if __name__ == '__main__':
 
     # Create ros publisher for the desired heading for the controller
     desiredHeadingPublisher = rospy.Publisher('desiredHeading', msg.heading, queue_size=4)
-    desiredHeadingMsg = msg.heading()
 
     # Create other publishers
     localPathPublisher = rospy.Publisher('localPath', msg.path, queue_size=4)
@@ -81,26 +95,18 @@ if __name__ == '__main__':
 
     # Create first path and track time of updates
     state = sailbot.getCurrentState()
-    localPath, lastTimePathCreated = createNewLocalPath(state, Path.MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS)
+    localPath, lastTimePathCreated = createNewLocalPath(sailbot, Path.MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS,
+                                                        desiredHeadingPublisher)
+    desiredHeadingDegrees = utils.getDesiredHeadingDegrees(state.position, localPath.getNextWaypoint())
     sailbot.newGlobalPathReceived = False
 
     while not rospy.is_shutdown():
-        rospy.loginfo("desiredHeadingMsg: {}".format(desiredHeadingMsg.headingDegrees))
+        rospy.loginfo("desiredHeadingDegrees: {}".format(desiredHeadingDegrees))
         rospy.loginfo("Current path cost is: {}".format(localPath.getCost()))
         state = sailbot.getCurrentState()
 
         # Check if local path MUST be updated
-        startValid = localPath.checkStartValidity(sailbot, state)
-        goalValid = localPath.checkGoalValidity(state)
-
-        if not startValid:
-            while not localPath.checkStartValidity(sailbot, state) and not rospy.is_shutdown():
-                headingToSafety = localPath.generateSafeHeading(state)
-                desiredHeadingMsg.headingDegrees = headingToSafety
-                rospy.logwarn("INVALID START STATE! Publishing Heading: {}".format(headingToSafety))
-                desiredHeadingPublisher.publish(desiredHeadingMsg)
-                state = sailbot.getCurrentState()
-            rospy.logwarn("Start state OK")
+        goalValid = his.checkGoalValidity(state)
 
         hasUpwindOrDownwindOnPath = localPath.upwindOrDownwindOnPath(
             state, numLookAheadWaypoints=utils.NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND, showWarnings=True)
@@ -112,8 +118,7 @@ if __name__ == '__main__':
         pathNotReachGoal = not localPath.reachesGoalLatlon(state.globalWaypoint)
 
         if not goalValid:
-            # TODO: don't skip if global waypoint is destination
-            rospy.logwarn("Goal state invalid, skipping global waypoint")
+            rospy.logwarn("Goal state invalid, skipping to the next global waypoint")
             isGlobalWaypointReached = True
 
         mustUpdateLocalPath = (hasUpwindOrDownwindOnPath or hasObstacleOnPath or isGlobalWaypointReached
@@ -142,9 +147,9 @@ if __name__ == '__main__':
                 sailbot.globalPathIndex += 1
 
             # Update local path
-            state = sailbot.getCurrentState()
             localPath, lastTimePathCreated = createNewLocalPath(
-                state, Path.MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS / 2.0)
+                sailbot, Path.MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS / 2.0,
+                desiredHeadingPublisher)
 
         else:
             # Check if new local path should be generated and compared to current local path
@@ -170,7 +175,8 @@ if __name__ == '__main__':
 
                 # Create new local path to compare
                 _localPath, _lastTimePathCreated = createNewLocalPath(
-                    state, Path.MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS)
+                    sailbot, Path.MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS,
+                    desiredHeadingPublisher)
                 lastTimePathCreated = _lastTimePathCreated
 
                 # Update local path if new one is better than old AND it reaches the goal
@@ -186,8 +192,8 @@ if __name__ == '__main__':
                     rospy.loginfo("Keeping old local path")
 
         # Publish desiredHeading
-        desiredHeadingMsg.headingDegrees = utils.getDesiredHeadingDegrees(state.position, localPath.getNextWaypoint())
-        desiredHeadingPublisher.publish(desiredHeadingMsg)
+        desiredHeadingDegrees = utils.getDesiredHeadingDegrees(state.position, localPath.getNextWaypoint())
+        desiredHeadingPublisher.publish(msg.heading(desiredHeadingDegrees))
 
         # Publish local path
         localPathPublisher.publish(msg.path(localPath.getLatlons()))
