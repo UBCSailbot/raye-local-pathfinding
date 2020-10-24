@@ -74,9 +74,10 @@ class ClearanceObjective(ob.StateCostIntegralObjective):
 
 
 class MinTurningObjective(ob.StateCostIntegralObjective):
-    def __init__(self, si):
+    def __init__(self, si, heading_degrees):
         super(MinTurningObjective, self).__init__(si, True)
         self.si_ = si
+        self.last_direction_radians = math.radians(heading_degrees)
 
     # This objective function punishes the boat for tacking or jibing
     # by adding a large cost for large turns
@@ -84,12 +85,7 @@ class MinTurningObjective(ob.StateCostIntegralObjective):
         direction_radians = math.atan2(s2.getY() - s1.getY(), s2.getX() - s1.getX())
 
         # Calculate turn size
-        try:
-            turn_size_radians = abs_angle_dist_radians(direction_radians, self.last_direction_radians)
-        except AttributeError:
-            # Handle edge case first angle
-            self.last_direction_radians = direction_radians
-            turn_size_radians = abs_angle_dist_radians(direction_radians, self.last_direction_radians)
+        turn_size_radians = abs_angle_dist_radians(direction_radians, self.last_direction_radians)
 
         # Calculate cost based on size of turn. Large turn is related to tacking angles.
         large_turn_threshold = math.radians(2 * max(UPWIND_MAX_ANGLE_DEGREES, DOWNWIND_MAX_ANGLE_DEGREES))
@@ -100,10 +96,10 @@ class MinTurningObjective(ob.StateCostIntegralObjective):
 
 
 class WindObjective(ob.StateCostIntegralObjective):
-    def __init__(self, si):
+    def __init__(self, si, windDirectionDegrees):
         super(WindObjective, self).__init__(si, True)
         self.si_ = si
-        self.windDirectionDegrees = 90  # north wind default
+        self.windDirectionDegrees = windDirectionDegrees
 
     # This objective function punishes the boat for going up/downwind
     def motionCost(self, s1, s2):
@@ -148,18 +144,19 @@ def get_threshold_path_length_objective(si):
     return obj
 
 
-def getBalancedObjective(si):
+def getBalancedObjective(si, windDirectionDegrees, headingDegrees):
     lengthObj = ob.PathLengthOptimizationObjective(si)
-    # clearObj = ClearanceObjective(si)
-    minTurnObj = MinTurningObjective(si)
-    windObj = WindObjective(si)
+    minTurnObj = MinTurningObjective(si, headingDegrees)
+    windObj = WindObjective(si, windDirectionDegrees)
 
     opt = ob.MultiOptimizationObjective(si)
     opt.addObjective(minTurnObj, MIN_TURN_WEIGHT)
     opt.addObjective(windObj, WIND_WEIGHT)
 
-    # REMOVING TO SAVE COMPUTATION AND SEE IF IMPROVES.
     opt.addObjective(lengthObj, LENGTH_WEIGHT)
+
+    # REMOVING TO SAVE COMPUTATION AND SEE IF IMPROVES.
+    # clearObj = ClearanceObjective(si)
     # opt.addObjective(clearObj, CLEARANCE_WEIGHT)
 
     return opt
@@ -167,7 +164,7 @@ def getBalancedObjective(si):
 # Keep these in alphabetical order and all lower case
 
 
-def allocate_objective(si, objectiveType):
+def allocate_objective(si, objectiveType, windDirectionDegrees=None, headingDegrees=None):
     if objectiveType.lower() == "pathclearance":
         return get_clearance_objective(si)
     elif objectiveType.lower() == "pathlength":
@@ -175,6 +172,9 @@ def allocate_objective(si, objectiveType):
     elif objectiveType.lower() == "thresholdpathlength":
         return get_threshold_path_length_objective(si)
     elif objectiveType.lower() == "weightedlengthandclearancecombo":
-        return getBalancedObjective(si)
+        if windDirectionDegrees is None or headingDegrees is None:
+            raise ValueError("allocate_objective requires windDirectionDegrees and headingDegrees"
+                             "parameters for weightedlengthandclearancecombo")
+        return getBalancedObjective(si, windDirectionDegrees, headingDegrees)
     else:
         ou.OMPL_ERROR("Optimization-objective is not implemented in allocation function.")
