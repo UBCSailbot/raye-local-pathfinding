@@ -1,5 +1,6 @@
 #! /usr/bin/env python
 import rospy
+import utilities
 from local_pathfinding.msg import AISMsg, GPS
 from geopy.distance import distance
 from MOCK_AIS import AIS_PUBLISH_PERIOD_SECONDS
@@ -42,12 +43,14 @@ class CollisionChecker:
                     rospy.logfatal("Boat has collided with obstacle. Collision radius {}km.\n"
                                    "\tActual distance to boat: {}km. Collision number: {}"
                                    .format(self.collision_radius, dist, self.times_collided))
+                    utilities.takeScreenshot()
 
                 elif dist < self.warn_radius:
                     check_ship = ship
                     self.times_warned = self.times_warned + 1
                     rospy.logwarn("Close to collision. Within {}km of boat.\n\tActual distance to boat: {}km. "
                                   "Warning number: {}" .format(self.warn_radius, dist, self.times_warned))
+                    utilities.takeScreenshot()
         else:
             dist = distance((check_ship.lat, check_ship.lon), (self.lat, self.lon)).km
             if not (dist < self.collision_radius or dist < self.warn_radius):
