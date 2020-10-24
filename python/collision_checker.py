@@ -19,8 +19,8 @@ class CollisionChecker:
         self.ships = rospy.wait_for_message('/AIS', AISMsg).ships
         self.lat = rospy.wait_for_message('/GPS', GPS).lat
         self.lon = rospy.wait_for_message('/GPS', GPS).lon
-        self.timesCollided = 0
-        self.timesWarned = 0
+        self.times_collided = 0
+        self.times_warned = 0
 
     def GPS_callback(self, data):
         self.lat = data.lat
@@ -29,35 +29,54 @@ class CollisionChecker:
     def AIS_callback(self, data):
         self.ships = data.ships
 
-    def check_for_collisions(self):
-        for ship in self.ships:
-            dist = distance((ship.lat, ship.lon), (self.lat, self.lon)).km
-            if dist < self.collision_radius:
-                rospy.logfatal("Boat has collided with obstacle. Collision radius {}km. Actual distance to boat: {}km"
-                               .format(self.collision_radius, dist))
-                self.timesCollided = self.timesCollided + 1
+    def check_for_collisions(self, colliding_ship):
+        check_ship = colliding_ship
 
-            elif dist < self.warn_radius:
-                rospy.logwarn("Close to collision. Within {}km of boat. Actual distance to boat: {}km"
-                              .format(self.warn_radius, dist))
-                self.timesWarned = self.timesWarned + 1
+        if check_ship is None:
+            for ship in self.ships:            
+                dist = distance((ship.lat, ship.lon), (self.lat, self.lon)).km
 
-    def getTimesCollided(self):
-        return self.timesCollided
+                if dist < self.collision_radius:
+                    check_ship = ship
+                    self.times_collided = self.times_collided + 1
+                    rospy.logfatal("Boat has collided with obstacle. Collision radius {}km. "
+                                   "Actual distance to boat: {}km. Collision number: {}"
+                                   .format(self.collision_radius, dist, self.times_collided))
 
-    def getTimesWarned(self):
-        return self.timesWarned
+                elif dist < self.warn_radius:
+                    check_ship = ship
+                    self.times_warned = self.times_warned + 1
+                    rospy.logwarn("Close to collision. Within {}km of boat. Actual distance to boat: {}km. "
+                                  "Warning number: {}"
+                                  .format(self.warn_radius, dist, self.times_warned))
+        else:
+            dist = distance((check_ship.lat, check_ship.lon), (self.lat, self.lon)).km
+            if not (dist < self.collision_radius or dist < self.warn_radius):
+                check_ship = None
+                rospy.logwarn("Boat is not in collision or warning radius anymore.")
+
+        return check_ship
+
+    def get_times_collided(self):
+        return self.times_collided
+
+    def get_times_warned(self):
+        return self.times_warned
 
 
 if __name__ == '__main__':
     collision_checker = CollisionChecker(COLLISION_RADIUS_KM, WARN_RADIUS_KM)
     rate = rospy.Rate(1 / CHECK_PERIOD)
 
+    shipColliding = None
     while not rospy.is_shutdown():
-        collision_checker.check_for_collisions()
-        timesCollided = collision_checker.getTimesCollided
-        timesWarned = collision_checker.getTimesWarned
+        shipColliding = collision_checker.check_for_collisions(shipColliding)
         rate.sleep()
-    
-    rospy.logfatal("Boat has collided with obstacles ", timesCollided, " times")
-    rospy.logwarn("Boat has been close to collision ", timesWarned, " times")
+
+    rospy.loginfo("Number of collisions: {}. Number of warnings: {}."
+                  .format(collision_checker.get_times_collided(), collision_checker.get_times_warned()))
+
+
+# To do:
+# - How to get the last message to print to screen, log, and rosout?
+# - How to save screenshot?
