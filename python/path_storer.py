@@ -50,15 +50,16 @@ class PathStorer:
 
     def store_path(self):
         if self.currentPath is None or self.currentPathCost is None or self.currentPathCostBreakdown is None:
+            rospy.loginfo("Path not received yet.")
             return
 
         if len(self.pathCosts) == 0 or abs(self.currentPathCost - self.pathCosts[-1]) >= PATH_COST_DIFFERENCE_TOLERANCE:
-            print("Store")
+            rospy.loginfo("New path detected. Storing path.")
             self.paths.append(self.currentPath)
             self.pathCosts.append(self.currentPathCost)
             self.pathCostBreakdowns.append(self.currentPathCostBreakdown)
         else:
-            print("Not store")
+            rospy.loginfo("Same path detected. Not storing path.")
 
 
 if __name__ == '__main__':
