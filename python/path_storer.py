@@ -12,9 +12,10 @@ import numpy as np
 
 CHECK_PERIOD_SECONDS = 1.0
 PATH_COST_DIFFERENCE_TOLERANCE = 0.1
+
+# Output paths
 dateStr = date.today().strftime("%b-%d-%Y")
 timeStr = datetime.now().strftime('%H-%M-%S')
-
 ABS_PATH_TO_THIS_FILE_DIR = os.path.dirname(os.path.abspath(__file__))
 ABS_PATH_TO_OUTPUT_DIR = os.path.join(ABS_PATH_TO_THIS_FILE_DIR, "../output/{}_{}".format(dateStr, timeStr))
 ABS_PATH_TO_OUTPUT_PATH_FILE = os.path.join(ABS_PATH_TO_OUTPUT_DIR, "path.pkl")
@@ -91,15 +92,22 @@ if __name__ == '__main__':
     plt.savefig(ABS_PATH_TO_OUTPUT_COST_PLOT_FILE)
 
     # Plot Path cost breakdown vs. Time
-    objectives = [x for x in path_storer.pathCostBreakdowns[0].split(" ") if "Objective" in x]
-    costBreakdowns = [[] for objective in objectives if "Multi" not in objective]
+
+    # Get objective names, except for the "Multi" objective, which is the total cost (we want breakdown)
+    objectives = [x for x in path_storer.pathCostBreakdowns[0].split(" ") if "Objective" in x and "Multi" not in x]
+
+    # Get the cost from each objective
+    costBreakdowns = [[] for _ in objectives]
     for costBreakdownString in path_storer.pathCostBreakdowns:
         costBreakdownStringSplit = costBreakdownString.split(" ")
+
+        # Get weighted cost. Will be in form: [..., 'Weighted', 'cost', '=', '79343.0', ...]
         costBreakdown = [float(costBreakdownStringSplit[i+3]) for i in range(len(costBreakdownStringSplit))
                          if costBreakdownStringSplit[i] == "Weighted"]
         for i in range(len(costBreakdown)):
             costBreakdowns[i].append(costBreakdown[i])
 
+    # Create stacked bar chart. Need to store bottoms to properly stack.
     plt.figure()
     bottoms = np.array([0.0] * len(costBreakdowns[0]))
     barPlots = []
