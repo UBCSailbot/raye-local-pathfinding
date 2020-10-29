@@ -33,18 +33,14 @@ class CollisionChecker:
         self.ships = data.ships
 
     def check_for_collisions(self):
-        currentCollidingBoats = list()
-        currentWarningBoats = list()
-        pastCollidingBoats = list()
-        pastWarningBoats = list()
 
         for ship in self.ships:
             dist = distance((ship.lat, ship.lon), (self.lat, self.lon)).km
 
-            if dist < self.collision_radius:  # hashmap to keep track of order?
+            if dist < self.collision_radius:
                 if ship not in self.collidingBoats:
-                    currentCollidingBoats.append(ship)
-                    currentWarningBoats.append(ship)
+                    self.collidingBoats.append(ship)
+                    self.warningBoats.append(ship)
                     self.times_collided += 1
                     rospy.logfatal("Boat has collided with obstacle. Collision radius {}km.\n"
                                    "\tActual distance to boat: {}km. Collision number: {}"
@@ -53,28 +49,22 @@ class CollisionChecker:
 
             elif dist < self.warn_radius:
                 if ship not in self.warningBoats:
-                    currentWarningBoats.append(ship)
+                    self.warningBoats.append(ship)
                     self.times_warned += 1
                     rospy.logwarn("Boat is close to obstacle. Within {}km of boat.\n\tActual distance to boat: {}km. "
                                   "Warning number: {}" .format(self.warn_radius, dist, self.times_warned))
                     utilities.takeScreenshot()
 
-            if dist >= self.collision_radius and ship in self.collidingBoats:
-                pastCollidingBoats.append(ship)
-                rospy.logwarn("An obstacle has moved outside collision radius.")  # get list size
+            if dist >= self.warn_radius:
+                if ship in self.collidingBoats:
+                    self.collidingBoats.remove(ship)
+                    rospy.logwarn("A collided obstacle has moved outside warning radius, {} left."
+                                  .format(len(self.collidingBoats)))
 
-            if dist >= self.warn_radius and ship in self.warningBoats:
-                pastWarningBoats.append(ship)
-                rospy.logwarn("An obstacle has moved outside warning radius.")
-
-        for ship in pastCollidingBoats:
-            self.collidingBoats.remove(ship)
-
-        for ship in pastWarningBoats:
-            self.warningBoats.remove(ship)
-
-        self.collidingBoats.extend(currentCollidingBoats)
-        self.warningBoats.extend(currentWarningBoats)
+                if ship in self.warningBoats:
+                    self.warningBoats.remove(ship)
+                    rospy.logwarn("A warned obstacle has moved outside warning radius, {} left."
+                                  .format(len(self.warningBoats)))
 
     def get_times_collided(self):
         return self.times_collided
