@@ -51,16 +51,16 @@ class PathStorer:
 
     def store_path(self):
         if self.currentPath is None or self.currentPathCost is None or self.currentPathCostBreakdown is None:
-            rospy.loginfo("Path not received yet.")
+            rospy.logdebug("Path not received yet.")
             return
 
         if len(self.pathCosts) == 0 or abs(self.currentPathCost - self.pathCosts[-1]) >= PATH_COST_DIFFERENCE_TOLERANCE:
-            rospy.loginfo("New path detected. Storing path.")
+            rospy.logdebug("New path detected. Storing path.")
             self.paths.append(self.currentPath)
             self.pathCosts.append(self.currentPathCost)
             self.pathCostBreakdowns.append(self.currentPathCostBreakdown)
         else:
-            rospy.loginfo("Same path detected. Not storing path.")
+            rospy.logdebug("Same path detected. Not storing path.")
 
 
 if __name__ == '__main__':
@@ -82,6 +82,7 @@ if __name__ == '__main__':
         pickle.dump(path_storer.pathCostBreakdowns, handle)
 
     # Plot Path cost vs. Time
+    rospy.loginfo("About to save cost plot...")
     indices = np.arange(len(path_storer.pathCosts))
     times = CHECK_PERIOD_SECONDS * indices
     plt.figure()
@@ -90,9 +91,10 @@ if __name__ == '__main__':
     plt.ylabel("Path cost")
     plt.title("Path cost vs. Time")
     plt.savefig(ABS_PATH_TO_OUTPUT_COST_PLOT_FILE)
+    rospy.loginfo("Successfully saved cost plot to {}".format(ABS_PATH_TO_OUTPUT_COST_PLOT_FILE))
 
     # Plot Path cost breakdown vs. Time
-
+    rospy.loginfo("About to save cost breakdown plot...")
     # Get objective names, except for the "Multi" objective, which is the total cost (we want breakdown)
     objectives = [x for x in path_storer.pathCostBreakdowns[0].split(" ") if "Objective" in x and "Multi" not in x]
 
@@ -119,5 +121,6 @@ if __name__ == '__main__':
     plt.xlabel("Time elapsed (s)")
     plt.ylabel("Path cost")
     plt.title("Path cost vs. Time")
-    plt.legend([bPlot[0] for bPlot in barPlots], [objective for objective in objectives])
+    plt.legend([bPlot[0] for bPlot in barPlots], objectives)
     plt.savefig(ABS_PATH_TO_OUTPUT_COST_BREAKDOWN_PLOT_FILE)
+    rospy.loginfo("Successfully saved cost breakdown plot to {}".format(ABS_PATH_TO_OUTPUT_COST_BREAKDOWN_PLOT_FILE))
