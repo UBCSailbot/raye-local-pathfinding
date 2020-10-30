@@ -119,5 +119,5 @@ if __name__ == '__main__':
     plt.xlabel("Time elapsed (s)")
     plt.ylabel("Path cost")
     plt.title("Path cost vs. Time")
-    plt.legend((barPlot[0] for barPlot in barPlots), (objective for objective in objectives))
+    plt.legend([bPlot[0] for bPlot in barPlots], [objective for objective in objectives])
     plt.savefig(ABS_PATH_TO_OUTPUT_COST_BREAKDOWN_PLOT_FILE)
