@@ -176,6 +176,7 @@ install(PROGRAMS
   python/MOCK_UDP_bridge.py
   python/local_path_visualizer.py
   python/json_dumper.py
+  python/path_storer.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
