@@ -86,7 +86,7 @@ if __name__ == '__main__':
     indices = np.arange(len(path_storer.pathCosts))
     times = CHECK_PERIOD_SECONDS * indices
     plt.figure()
-    plt.scatter(times, path_storer.pathCosts)
+    plt.plot(times, path_storer.pathCosts)
     plt.xlabel("Time elapsed (s)")
     plt.ylabel("Path cost")
     plt.title("Path cost vs. Time")
