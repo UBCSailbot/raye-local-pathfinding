@@ -63,6 +63,7 @@ class CollisionChecker:
     def get_times_warned(self):
         return self.times_warned
 
+
 if __name__ == '__main__':
     collision_checker = CollisionChecker(COLLISION_RADIUS_KM, WARN_RADIUS_KM)
     rate = rospy.Rate(1 / CHECK_PERIOD)
