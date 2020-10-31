@@ -84,4 +84,6 @@ install/castxml/
 *.out
 *.app
 
-
+# Screenshots
+*images/*
+*output/*

@@ -2,7 +2,7 @@
 import rospy
 import math
 import utilities as util
-from local_pathfinding.msg import AISShip, latlon, addBoat, GPS, path
+from local_pathfinding.msg import AISShip, latlon, addBoat, GPS, path, AISMsg
 
 # Globals for callbacks
 localWaypoint = latlon()
@@ -14,23 +14,26 @@ TRAILING_DISTANCE_KM = 5
 
 
 def command_callback(msg):
+    ships = rospy.wait_for_message('/AIS', AISMsg).ships
+    newShipID = max([ship.ID for ship in ships]) + 1
+
     if msg.addType == "latlon":
         add_pub.publish(msg.ship)
     if msg.addType == "nextWaypoint":
-        add_pub.publish(AISShip(msg.ship.ID, localWaypoint.lat, localWaypoint.lon, msg.ship.headingDegrees,
+        add_pub.publish(AISShip(newShipID, localWaypoint.lat, localWaypoint.lon, msg.ship.headingDegrees,
                                 msg.ship.speedKmph))
     if msg.addType == "onBoat":
-        add_pub.publish(AISShip(msg.ship.ID, gps.lat, gps.lon, msg.ship.headingDegrees, msg.ship.speedKmph))
+        add_pub.publish(AISShip(newShipID, gps.lat, gps.lon, msg.ship.headingDegrees, msg.ship.speedKmph))
     if msg.addType == "index":
         if msg.waypointIndex < len(localPath) and msg.waypointIndex >= 0:
-            add_pub.publish(AISShip(msg.ship.ID, localPath[msg.waypointIndex].lat, localPath[msg.waypointIndex].lon,
+            add_pub.publish(AISShip(newShipID, localPath[msg.waypointIndex].lat, localPath[msg.waypointIndex].lon,
                                     msg.ship.headingDegrees, msg.ship.speedKmph))
             rospy.loginfo("new ship generated at index {} of local path".format(msg.waypointIndex))
         else:
             rospy.loginfo("invalid index passed")
     if msg.addType == "trailing":
         coords = getTrailingBoatLatlon(gps)
-        ship = AISShip(msg.ship.ID, coords.lat, coords.lon, gps.headingDegrees, gps.speedKmph + TRAILING_ADDED_KMPH)
+        ship = AISShip(newShipID, coords.lat, coords.lon, gps.headingDegrees, gps.speedKmph + TRAILING_ADDED_KMPH)
         add_pub.publish(ship)
 
 

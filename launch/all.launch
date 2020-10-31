@@ -32,6 +32,6 @@
 
     <node pkg="local_pathfinding" type="main_loop.py" name="main_loop" output="$(arg main_loop_output)"/>
     <node pkg="local_pathfinding" type="local_path_visualizer.py" name="local_path_visualizer" />
-    <node pkg="local_pathfinding" type="collision_checker.py" name="collision_checker" />
+    <node pkg="local_pathfinding" type="collision_checker.py" name="collision_checker" output="screen" />
     <node pkg="local_pathfinding" type="path_storer.py" name="path_storer" if="$(arg store_path)" output="screen" />
 </launch>
