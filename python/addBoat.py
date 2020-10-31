@@ -15,11 +15,7 @@ TRAILING_DISTANCE_KM = 5
 
 def command_callback(msg):
     ships = rospy.wait_for_message('/AIS', AISMsg).ships
-    newShipID = 0
-    for ship in ships:
-        if ship.ID > newShipID:
-            newShipID = ship.ID
-    newShipID += 1
+    newShipID = max([ship.ID for ship in ships]) + 1
 
     if msg.addType == "latlon":
         add_pub.publish(msg.ship)

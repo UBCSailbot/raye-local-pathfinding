@@ -43,7 +43,7 @@ class CollisionChecker:
         for ship in self.ships:
             dist = distance((ship.lat, ship.lon), (self.lat, self.lon)).km
 
-            if dist < max_radius and dist >= min_radius:
+            if min_radius <= dist < max_radius:
                 if ship.ID not in boat_list:
                     counter += 1
                     boat_list.append(ship.ID)
