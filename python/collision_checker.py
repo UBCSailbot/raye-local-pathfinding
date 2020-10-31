@@ -33,51 +33,29 @@ class CollisionChecker:
         self.ships = data.ships
 
     def check_for_collisions(self):
+        self.check_radius(0, self.collision_radius, self.collidingBoats, self.times_collided, "collision")
+
+    def check_for_warnings(self):
+        self.check_radius(self.collision_radius, self.warn_radius, self.warningBoats, self.times_warned, "warning")
+
+    # min_radius is inclusive, max_radius is exclusive
+    def check_radius(self, min_radius, max_radius, boat_list, counter, message):
         for ship in self.ships:
             dist = distance((ship.lat, ship.lon), (self.lat, self.lon)).km
 
-            if dist < self.collision_radius:
-                if ship not in self.collidingBoats:
-                    # if ship in self.warningBoats:
-                    #     self.warningBoats.remove(ship)
-                    #     rospy.logfatal("Warned obstacle has collided with boat")
-
-                    rospy.logwarn("dist: {}. numboats: {}. times_collided: {}. ship ID: {}"
-                                  .format(dist, len(self.collidingBoats), self.times_collided, ship.ID))
-                    self.times_collided += 1
-                    self.collidingBoats.append(ship)
-                    rospy.logfatal("Boat has collided with obstacle. Collision radius {}km.\n"
-                                   "\tActual distance to boat: {}km. Collision number: {}"
-                                   .format(self.collision_radius, dist, self.times_collided))
+            if dist < max_radius and dist >= min_radius:
+                if ship.ID not in boat_list:
+                    counter += 1
+                    boat_list.append(ship.ID)
+                    rospy.logfatal("Obstacle {} is in {} radius. Actual distance to boat: {}km."
+                                   .format(ship.ID, message, dist))
                     utilities.takeScreenshot()
-                    rospy.logwarn("dist: {}. numboats: {}. times_collided: {}. ship ID: {}"
-                                  .format(dist, len(self.collidingBoats), self.times_collided, ship.ID))
-                    return
 
-            # elif dist < self.warn_radius:
-            #     if ship not in self.warningBoats and ship not in self.collidingBoats:
-            #         self.times_warned += 1
-            #         self.warningBoats.append(ship)
-            #         rospy.logwarn("Boat is close to obstacle. Within {}km of boat.\n\tActual distance to boat: {}km. "
-            #                       "Warning number: {}" .format(self.warn_radius, dist, self.times_warned))
-            #         utilities.takeScreenshot()
-            #         return
-
-            else:
-                if ship in self.collidingBoats:
-                    rospy.logwarn("dist: {}. numboats: {}. times_collided: {}. ship ID: {}"
-                                  .format(dist, len(self.collidingBoats), self.times_collided, ship.ID))
-                    rospy.logwarn("Obstacle has moved outside warning radius, {} left."
-                                  .format(len(self.collidingBoats) - 1))
-                    self.collidingBoats.remove(ship)
-                    rospy.logwarn("dist: {}. numboats: {}. times_collided: {}. ship ID: {}"
-                                  .format(dist, len(self.collidingBoats), self.times_collided, ship.ID))
-                    return
-                # elif ship in self.warningBoats:  # Warned obstacle number {} has ....
-                #     rospy.logwarn("Obstacle has moved outside warning radius, {} left."
-                #                   .format(len(self.warningBoats) - 1))  # self.warningBoats[ship], in .format
-                #     self.warningBoats.remove(ship)
-                #     return
+            elif dist >= max_radius:
+                if ship.ID in boat_list:
+                    boat_list.remove(ship.ID)
+                    rospy.logwarn("Obstacle {} has moved outside {} radius, {} left."
+                                  .format(ship.ID, message, len(boat_list)))
 
     def get_times_collided(self):
         return self.times_collided
@@ -91,6 +69,7 @@ if __name__ == '__main__':
 
     while not rospy.is_shutdown():
         collision_checker.check_for_collisions()
+        collision_checker.check_for_warnings()
         rate.sleep()
 
     rospy.loginfo("Total number of collisions: {}. Total number of warnings: {}."
