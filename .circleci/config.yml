@@ -53,7 +53,7 @@ commands:
       - run: source /opt/ros/melodic/setup.bash && cd /catkin_ws && catkin_make
       - checkout:
           path: /catkin_ws/src/local_pathfinding
-      - run: git checkout https://github.com/UBCSailbot/sailbot-msg.git /catkin_ws/src/sailbot_msg
+      - run: git clone https://github.com/UBCSailbot/sailbot-msg.git /catkin_ws/src/sailbot_msg
       - run: source /opt/ros/melodic/setup.bash && cd /catkin_ws && catkin_make
 
   install_and_run_flake8:
