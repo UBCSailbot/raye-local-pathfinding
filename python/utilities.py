@@ -8,7 +8,7 @@ import sys
 import math
 from geopy.distance import distance
 from std_msgs.msg import Float64
-from local_pathfinding.msg import latlon
+from sailbot_msg.msg import latlon
 
 # Location constants
 PORT_RENFREW_LATLON = latlon(48.5, -124.8)
@@ -95,8 +95,8 @@ def latlonToXY(latlon, referenceLatlon):
     '''Calculate the xy (km) coordinates of the given latlon, given the referenceLatlon located at (0,0)
 
     Args:
-       latlon (local_pathfinding.msg._latlon.latlon): The latlon whose xy coordinates will be calculated.
-       referenceLatlon (local_pathfinding.msg._latlon.latlon): The latlon that will be located at (0,0).
+       latlon (sailbot_msg.msg._latlon.latlon): The latlon whose xy coordinates will be calculated.
+       referenceLatlon (sailbot_msg.msg._latlon.latlon): The latlon that will be located at (0,0).
 
     Returns:
        list [x,y] representing the position of latlon in xy (km) coordinates
@@ -115,10 +115,10 @@ def XYToLatlon(xy, referenceLatlon):
 
     Args:
        xy (list of two floats): The xy (km) coordinates whose latlon coordinates will be calculated.
-       referenceLatlon (local_pathfinding.msg._latlon.latlon): The latlon that will be located at (0,0) wrt xy.
+       referenceLatlon (sailbot_msg.msg._latlon.latlon): The latlon that will be located at (0,0) wrt xy.
 
     Returns:
-       local_pathfinding.msg._latlon.latlon representing the position of xy in latlon coordinates
+       sailbot_msg.msg._latlon.latlon representing the position of xy in latlon coordinates
     '''
     x_distance = distance(kilometers=xy[0])
     y_distance = distance(kilometers=xy[1])
@@ -131,8 +131,8 @@ def globalWaypointReached(position, globalWaypoint):
     '''Checks if the position has reached the global waypoint.
 
     Args:
-       position (local_pathfinding.msg._latlon.latlon): Latlon of the position
-       globalWaypoint (local_pathfinding.msg._latlon.latlon): Latlon of the globalWaypoint
+       position (sailbot_msg.msg._latlon.latlon): Latlon of the position
+       globalWaypoint (sailbot_msg.msg._latlon.latlon): Latlon of the globalWaypoint
 
     Returns:
        bool True iff the distance between the position and globalWaypoint is below a threshold
@@ -170,8 +170,8 @@ def getDesiredHeadingDegrees(position, localWaypoint):
     '''Calculate the heading that the boat should aim towards to reach the local waypoint.
 
     Args:
-       position (local_pathfinding.msg._latlon.latlon): Current position of the boat
-       localWaypoint (local_pathfinding.msg._latlon.latlon): Current local waypoint that the boat is aiming towards
+       position (sailbot_msg.msg._latlon.latlon): Current position of the boat
+       localWaypoint (sailbot_msg.msg._latlon.latlon): Current local waypoint that the boat is aiming towards
 
     Returns:
        float that is the heading (degrees) that the boat should be aiming towards to reach the local waypoint
@@ -256,10 +256,10 @@ def headingToBearingDegrees(headingDegrees):
 
     Args:
        xy (list of two floats): The xy (km) coordinates whose latlon coordinates will be calculated.
-       referenceLatlon (local_pathfinding.msg._latlon.latlon): The latlon that will be located at (0,0) wrt xy.
+       referenceLatlon (sailbot_msg.msg._latlon.latlon): The latlon that will be located at (0,0) wrt xy.
 
     Returns:
-       local_pathfinding.msg._latlon.latlon representing the position of xy in latlon coordinates
+       sailbot_msg.msg._latlon.latlon representing the position of xy in latlon coordinates
     '''
     return -headingDegrees + 90
 

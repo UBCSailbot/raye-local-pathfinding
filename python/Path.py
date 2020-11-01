@@ -6,7 +6,7 @@ from updated_geometric_planner import indexOfObstacleOnPath
 import planner_helpers as ph
 import utilities as utils
 import obstacles as obs
-from local_pathfinding.msg import latlon
+from sailbot_msg.msg import latlon
 from geopy.distance import distance
 import matplotlib.pyplot as plt
 from matplotlib import patches
@@ -33,7 +33,7 @@ class OMPLPath:
                                                      used to generate the path.
         _solutionPath (ompl.geometric._geometric.PathGeometric): PathGeometric object that represents the path, in XY
                                                                  coordinates with respect to a referenceLatlon.
-        _referenceLatlon (local_pathfinding.msg._latlon.latlon): latlon object that is the reference point with which
+        _referenceLatlon (sailbot_msg.msg._latlon.latlon): latlon object that is the reference point with which
                                                                  the path's XY coordinates is set.
     """
 
@@ -324,7 +324,7 @@ class Path:
         '''Checks if the given path reaches the given goalLatlon
 
         Args:
-           goalLatlon (local_pathfinding.msg._latlon.latlon): Latlon that this path should be ending at
+           goalLatlon (sailbot_msg.msg._latlon.latlon): Latlon that this path should be ending at
 
         Returns:
            bool True iff the distance between the goalLatlon and the last path waypoint is below a threshold
@@ -358,7 +358,7 @@ class Path:
                 |B
 
         Args:
-           positionLatlon (local_pathfinding.msg._latlon.latlon): Latlon of the current boat position
+           positionLatlon (sailbot_msg.msg._latlon.latlon): Latlon of the current boat position
 
         Returns:
            bool True iff the positionLatlon has reached the next waypoint

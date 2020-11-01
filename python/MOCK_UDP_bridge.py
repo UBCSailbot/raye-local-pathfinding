@@ -3,7 +3,7 @@
 import rospy
 import socket
 
-import local_pathfinding.msg as msg
+import sailbot_msg.msg as msg
 from utilities import headingToBearingDegrees, measuredWindToGlobalWind
 
 try:

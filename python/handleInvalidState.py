@@ -3,7 +3,7 @@
 import rospy
 import math
 import planner_helpers as ph
-import local_pathfinding.msg as msg
+import sailbot_msg.msg as msg
 import obstacles as obs
 import utilities as utils
 

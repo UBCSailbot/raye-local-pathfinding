@@ -5,7 +5,7 @@ import time
 from utilities import MAUI_LATLON
 
 from std_msgs.msg import Float64
-import local_pathfinding.msg as msg
+import sailbot_msg.msg as msg
 from geopy.distance import distance
 
 # Constants for this class

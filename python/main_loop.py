@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import rospy
-import local_pathfinding.msg as msg
+import sailbot_msg.msg as msg
 import handleInvalidState as his
 from std_msgs.msg import Float64, String, Bool
 import Sailbot as sbot

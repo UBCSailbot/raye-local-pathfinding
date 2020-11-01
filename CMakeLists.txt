@@ -47,20 +47,6 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * uncomment the generate_messages entry below
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
-## Generate messages in the 'msg' folder
-add_message_files(
-  FILES
-  AISMsg.msg
-  AISShip.msg
-  GPS.msg
-  heading.msg
-  latlon.msg
-  path.msg
-  windSensor.msg
-  globalWind.msg
-  addBoat.msg
-)
-
 ## Generate services in the 'srv' folder
 # add_service_files(
 #   FILES
