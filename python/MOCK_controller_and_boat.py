@@ -2,6 +2,7 @@
 import rospy
 import random
 import json
+from simple_pid import PID
 
 from std_msgs.msg import Float64
 import sailbot_msg.msg as msg
@@ -10,8 +11,8 @@ from utilities import headingToBearingDegrees, PORT_RENFREW_LATLON
 
 # Constants
 GPS_PUBLISH_PERIOD_SECONDS = 0.1  # Keep below 1.0 for smoother boat motion
-# Bring this value to about 1.0 for limited deviation. 20.0 for quite large deviations.
-HEADING_DEGREES_STANDARD_DEVIATION = 1.0
+BOAT_SPEED_KMPH = 14.4  # Boat should move at about 4m/s = 14.4 km/h
+INITIAL_HEADING_DEGREES = 180
 
 
 class MOCK_ControllerAndSailbot:
@@ -23,6 +24,9 @@ class MOCK_ControllerAndSailbot:
         self.speedKmph = speedKmph
         self.publishPeriodSeconds = GPS_PUBLISH_PERIOD_SECONDS
 
+        self.headingPID = PID(1.0, 0, 0, setpoint=self.headingDegrees) # TODO: Change magic numbers
+        self.headingPID.output_limits = (-100, 100)
+
         rospy.init_node('MOCK_Sailbot_Listener', anonymous=True)
         self.publisher = rospy.Publisher("GPS", msg.GPS, queue_size=4)
         rospy.Subscriber("desiredHeading", msg.heading, self.desiredHeadingCallback)
@@ -30,6 +34,16 @@ class MOCK_ControllerAndSailbot:
         rospy.Subscriber('speedup', Float64, self.speedupCallback)
 
     def move(self):
+        def findHeadingRepresentationClosestTo(headingDegrees, closeToThisDegrees):
+            headingRepresentations = [headingDegrees, headingDegrees + 360, headingDegrees - 360]
+            distances = [abs(heading - closeToThisDegrees) for heading in headingRepresentations]
+            indexOfMinDistance = distances.index(min(distances))
+            return headingRepresentations[indexOfMinDistance]
+
+        self.headingDegrees = findHeadingRepresentationClosestTo(self.headingDegrees, self.headingPID.setpoint)
+        turningFactor = self.headingPID(self.headingDegrees)
+        self.headingDegrees += turningFactor * self.publishPeriodSeconds  # Need speedup factor?
+
         # Travel greater distances with speedup
         kmTraveledPerPeriod = self.speedKmph * self.publishPeriodSeconds / 3600.0 * self.speedup
         distanceTraveled = geopy.distance.distance(kilometers=kmTraveledPerPeriod)
@@ -41,7 +55,7 @@ class MOCK_ControllerAndSailbot:
 
     def desiredHeadingCallback(self, data):
         rospy.loginfo(data)
-        self.headingDegrees = data.headingDegrees + random.gauss(0, HEADING_DEGREES_STANDARD_DEVIATION)
+        self.headingPID.setpoint = data.headingDegrees
 
     def changeGPSCallback(self, data):
         rospy.loginfo("Received change GPS message = {}".format(data))
@@ -52,6 +66,14 @@ class MOCK_ControllerAndSailbot:
 
     def speedupCallback(self, data):
         self.speedup = data.data
+
+    def publish(self):
+        data = msg.GPS()
+        data.lat = self.lat
+        data.lon = self.lon
+        data.headingDegrees = self.headingDegrees
+        data.speedKmph = self.speedKmph
+        self.publisher.publish(data)
 
 
 if __name__ == '__main__':
@@ -66,16 +88,12 @@ if __name__ == '__main__':
             MOCK_ctrl_sailbot = MOCK_ControllerAndSailbot(*record)
     else:
         # Boat should move at about 4m/s = 14.4 km/h
-        MOCK_ctrl_sailbot = MOCK_ControllerAndSailbot(PORT_RENFREW_LATLON.lat, PORT_RENFREW_LATLON.lon, 180, 14.4)
+        MOCK_ctrl_sailbot = MOCK_ControllerAndSailbot(PORT_RENFREW_LATLON.lat, PORT_RENFREW_LATLON.lon,
+                                                      INITIAL_HEADING_DEGREES, BOAT_SPEED_KMPH)
 
     r = rospy.Rate(float(1) / MOCK_ctrl_sailbot.publishPeriodSeconds)
 
     while not rospy.is_shutdown():
         MOCK_ctrl_sailbot.move()
-        data = msg.GPS()
-        data.lat = MOCK_ctrl_sailbot.lat
-        data.lon = MOCK_ctrl_sailbot.lon
-        data.headingDegrees = MOCK_ctrl_sailbot.headingDegrees
-        data.speedKmph = MOCK_ctrl_sailbot.speedKmph
-        MOCK_ctrl_sailbot.publisher.publish(data)
+        MOCK_ctrl_sailbot.publish()
         r.sleep()
