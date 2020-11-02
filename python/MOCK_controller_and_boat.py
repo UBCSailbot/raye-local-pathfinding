@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import rospy
-import random
 import json
 from simple_pid import PID
 
@@ -24,7 +23,7 @@ class MOCK_ControllerAndSailbot:
         self.speedKmph = speedKmph
         self.publishPeriodSeconds = GPS_PUBLISH_PERIOD_SECONDS
 
-        self.headingPID = PID(1.0, 0, 0, setpoint=self.headingDegrees) # TODO: Change magic numbers
+        self.headingPID = PID(1.0, 0, 0, setpoint=self.headingDegrees)  # TODO: Change magic numbers
         self.headingPID.output_limits = (-100, 100)
 
         rospy.init_node('MOCK_Sailbot_Listener', anonymous=True)
