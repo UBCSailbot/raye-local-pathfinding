@@ -36,6 +36,7 @@ ${SUDO}apt-get install -y \
        python2.7-dev \
        python2.7-numpy \
        python-pip \
+       python-tk \
        wget \
 
 # Install spot

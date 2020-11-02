@@ -64,12 +64,12 @@ This will allow you to plot paths.
 
 __Setup Option 3: Pulling Docker Image From DockerHub__
 
-You can also pull a Docker image from DockerHub by running `docker pull tylerlum/ros_ompl_python_2:11.2020.V1`, which was updated as of November 2020. Then you can follow the instructions above, but change the image name. Eg, follow the xhost instructions above (`xhost +local:root`) and then run:
+You can also pull a Docker image from DockerHub by running `docker pull tylerlum/ros_ompl_python_2:11.2020.V2`, which was updated as of November 2020. Then you can follow the instructions above, but change the image name. Eg, follow the xhost instructions above (`xhost +local:root`) and then run:
 
 ```
 docker run -it \
     --env="DISPLAY" \
     --env="QT_X11_NO_MITSHM=1" \
     --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" \
-    tylerlum/ros_ompl_python_2:11.2020.V1
+    tylerlum/ros_ompl_python_2:11.2020.V2
 ```
