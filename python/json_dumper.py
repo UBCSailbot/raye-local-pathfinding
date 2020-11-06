@@ -3,7 +3,7 @@ import rospy
 import json
 import time
 import datetime
-from local_pathfinding.msg import AISMsg, GPS
+from sailbot_msg.msg import AISMsg, GPS
 global ais_dumped
 global gps_dumped
 

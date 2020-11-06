@@ -2,7 +2,7 @@
 
 import local_imports  # Must be first import, as it adds python directory to path
 import Sailbot as sbot
-import local_pathfinding.msg as msg
+import sailbot_msg.msg as msg
 import rospy
 import rostest
 import unittest

@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 import rospy
 import os
-import local_pathfinding.msg as msg
+import sailbot_msg.msg as msg
 from std_msgs.msg import String, Float64
 from datetime import datetime
 from datetime import date

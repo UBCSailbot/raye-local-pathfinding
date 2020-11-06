@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 import rospy
 import utilities
-from local_pathfinding.msg import AISMsg, GPS
+from sailbot_msg.msg import AISMsg, GPS
 from geopy.distance import distance
 from MOCK_AIS import AIS_PUBLISH_PERIOD_SECONDS
 

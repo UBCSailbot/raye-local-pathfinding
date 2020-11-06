@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import local_imports  # Must be first import, as it adds python directory to path
-from local_pathfinding.msg import latlon, AISMsg, AISShip
+from sailbot_msg.msg import latlon, AISMsg, AISShip
 import utilities as utils
 import obstacles as obs
 import Sailbot as sbot

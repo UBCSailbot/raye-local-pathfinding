@@ -10,14 +10,16 @@ The installation process consists of installing OMPL with Python bindings, insta
 
 3. Type the commands `mkdir -p catkin_ws/src` `cd catkin_ws` `catkin_make`.
 
-4. Clone the repository in the src folder: `cd src` `git clone https://github.com/UBCSailbot/local-pathfinding.git`. 
+4. Clone this repository in the src folder: `cd src` `git clone https://github.com/UBCSailbot/local-pathfinding.git`. 
 
-5. Go back to catkin_ws and build and source. `cd ..` `catkin_make` `source devel/setup.bash`.
+5. Clone the sailbot-msgs repository in the src folder: `git clone https://github.com/UBCSailbot/sailbot-msg.git`.
+
+6. Go back to catkin_ws and build and source. `cd ..` `catkin_make` `source devel/setup.bash`.
 
 
 ### Installing OMPL
 
-ROS requires Python2, so we will have a custom ompl installation script for this task. This may take 7-12 hours, as the creation of Python bindings takes a very long time. If you encounter errors in this process, try to run the commands in the script individually and identify where you are having difficulties
+ROS requires Python2, so we will have a custom ompl installation script for this task. This may take 7-16 hours, as the creation of Python bindings takes a very long time. If you encounter errors in this process, try to run the commands in the script individually and identify where you are having difficulties
 
 __Setup Option 1 (Recommended): Installation on the host computer__
 

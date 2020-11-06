@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import rospy
-from local_pathfinding.msg import AISMsg, GPS, path, latlon, windSensor
+from sailbot_msg.msg import AISMsg, GPS, path, latlon, windSensor
 from geopy.distance import distance
 
 

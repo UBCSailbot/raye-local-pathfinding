@@ -2,7 +2,7 @@
 import rospy
 import math
 import utilities as util
-from local_pathfinding.msg import AISShip, latlon, addBoat, GPS, path, AISMsg
+from sailbot_msg.msg import AISShip, latlon, addBoat, GPS, path, AISMsg
 
 # Globals for callbacks
 localWaypoint = latlon()

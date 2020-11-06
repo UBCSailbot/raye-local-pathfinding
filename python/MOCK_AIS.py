@@ -8,7 +8,7 @@ from geopy.distance import distance
 from utilities import headingToBearingDegrees, PORT_RENFREW_LATLON
 from std_msgs.msg import Int32
 
-from local_pathfinding.msg import AISShip, AISMsg, GPS
+from sailbot_msg.msg import AISShip, AISMsg, GPS
 
 # Constants
 AIS_PUBLISH_PERIOD_SECONDS = 0.1  # Keep below 1.0 for smoother boat motion
