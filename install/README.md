@@ -14,7 +14,7 @@ The installation process consists of installing OMPL with Python bindings, insta
 
 5. Clone the sailbot-msgs repository in the src folder: `git clone https://github.com/UBCSailbot/sailbot-msg.git`.
 
-6. Go back to catkin_ws and build and source. `cd ..` `catkin_make` `source devel/setup.bash`.
+6. Go back to catkin\_ws and build and source. `cd ..` `catkin_make` `source devel/setup.bash`.
 
 
 ### Installing OMPL
@@ -27,7 +27,7 @@ Installation on the host computer requires running the commands that are in the 
 
 * Navigate to the `install` directory: `cd install`
 
-* Run the script as root: `sudo ./ompl_install_instructions.bash`
+* Run the script as root: `sudo ./ompl_install_instructions.bash --sudo`
 
 * Check for errors. If none occur, it should look something like:
 
@@ -46,9 +46,9 @@ __Setup Option 2: Creating Docker Image__
 
 * Navigate to the `install` directory: `cd install`
 
-* Build the docker image by running `docker build --tag ompl_python_2 .` (can replace ompl_python_2 with the tag name of your choice). This operation takes about 10 hours. It creates a Docker image with all the dependencies to run the software.
+* Build the docker image by running `docker build --tag ros_ompl_python_2 .` (can replace ros\_ompl\_python\_2 with the tag name of your choice). This operation takes about 10 hours. It creates a Docker image with all the dependencies to run the software.
 
-* Run a docker container by running `docker run -it --name ompl --rm ompl_python_2`, which creates a container from the image created from the previous step. This brings you into an environment with the desired dependencies.
+* Run a docker container by running `docker run -it --name ompl --rm ros_ompl_python_2`, which creates a container from the image created from the previous step. This brings you into an environment with the desired dependencies.
 
 * Note: By default, the plotting will not working from a docker container because it does not have access to your screen. To fix this, you can run the following command in another terminal: `xhost +local:root` (be sure to run `xhost -local:root` when you are done to be safe!), then use the following command instead of the previous docker run command:
 
@@ -57,21 +57,21 @@ docker run -it \
     --env="DISPLAY" \
     --env="QT_X11_NO_MITSHM=1" \
     --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" \
-    ompl_python_2
+    ros_ompl_python_2
 ```
 
 This will allow you to plot paths.
 
 __Setup Option 3: Pulling Docker Image From DockerHub__
 
-You can also pull a Docker image from DockerHub by running `docker pull tylerlum/ros_ompl_python_2:04.2020.V1`, which was updated as of April 2020. Then you can follow the instructions above, but change the image name. Eg, follow the xhost instructions above and then run:
+You can also pull a Docker image from DockerHub by running `docker pull tylerlum/ros_ompl_python_2:11.2020.V2`, which was updated as of November 2020. Then you can follow the instructions above, but change the image name. Eg, follow the xhost instructions above (`xhost +local:root`) and then run:
 
 ```
 docker run -it \
     --env="DISPLAY" \
     --env="QT_X11_NO_MITSHM=1" \
     --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" \
-    tylerlum/ros_ompl_python_2:04.2020.V1
+    tylerlum/ros_ompl_python_2:11.2020.V2
 ```
 
 

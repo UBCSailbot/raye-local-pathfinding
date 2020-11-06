@@ -69,4 +69,4 @@ commands:
 executors:
   docker_exec:
     docker:
-      - image: tylerlum/ros_ompl_python_2:04.2020.V1
+      - image: tylerlum/ros_ompl_python_2:11.2020.V2
