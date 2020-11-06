@@ -8,6 +8,7 @@ from datetime import date
 import pickle
 import matplotlib.pyplot as plt
 import numpy as np
+import math
 
 UPDATE_TIME_SECONDS = 1.0
 
@@ -42,13 +43,9 @@ class LogClosestObstacle:
         self.lon = data.lon
 
     def find_closest_ship(self):
-        closest_ship_dist = None
-
-        for ship in self.ships:
-            dist = distance((ship.lat, ship.lon), (self.lat, self.lon)).km
-
-            if closest_ship_dist is None or closest_ship_dist > dist:
-                closest_ship_dist = dist
+        closest_ship_dist = None if len(self.ships) == 0 else min([distance((ship.lat, ship.lon),
+                                                                            (self.lat, self.lon)).km
+                                                                  for ship in self.ships])
 
         if closest_ship_dist is None or len(self.closestDistances) == 0:
             self.closestDistances.append(0)
