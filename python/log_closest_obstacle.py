@@ -3,8 +3,6 @@ import rospy
 from geopy.distance import distance
 from local_pathfinding.msg import AISMsg, GPS
 import os
-import local_pathfinding.msg as msg
-from std_msgs.msg import String, Float64
 from datetime import datetime
 from datetime import date
 import pickle
@@ -20,6 +18,7 @@ ABS_PATH_TO_THIS_FILE_DIR = os.path.dirname(os.path.abspath(__file__))
 ABS_PATH_TO_OUTPUT_DIR = os.path.join(ABS_PATH_TO_THIS_FILE_DIR, "../output/{}_{}".format(dateStr, timeStr))
 ABS_PATH_TO_OUTPUT_MIN_DISTANCE_FILE = os.path.join(ABS_PATH_TO_OUTPUT_DIR, "minDistance.pkl")
 ABS_PATH_TO_OUTPUT_MIN_DISTANCE_PLOT_FILE = os.path.join(ABS_PATH_TO_OUTPUT_DIR, "min_distance_plot.png")
+
 
 class LogClosestObstacle:
     def __init__(self):
