@@ -42,10 +42,11 @@ class LogClosestObstacle:
         self.lat = data.lat
         self.lon = data.lon
 
+    def get_distance(self, ship):
+        return distance((ship.lat, ship.lon), (self.lat, self.lon)).km
+
     def find_closest_ship(self):
-        closest_ship_dist = None if len(self.ships) == 0 else min([distance((ship.lat, ship.lon),
-                                                                            (self.lat, self.lon)).km
-                                                                  for ship in self.ships])
+        closest_ship_dist = None if len(self.ships) == 0 else min([self.get_distance(ship) for ship in self.ships])
 
         if closest_ship_dist is None or len(self.closestDistances) == 0:
             self.closestDistances.append(0)
