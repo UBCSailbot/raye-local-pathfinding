@@ -8,7 +8,6 @@ from datetime import date
 import pickle
 import matplotlib.pyplot as plt
 import numpy as np
-import math
 
 UPDATE_TIME_SECONDS = 1.0
 
