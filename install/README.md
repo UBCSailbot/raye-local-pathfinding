@@ -73,3 +73,5 @@ docker run -it \
     --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" \
     tylerlum/ros_ompl_python_2:11.2020.V2
 ```
+
+
