@@ -22,6 +22,7 @@ localPathUpdateForced = False
 # Global variable for speedup
 speedup = 1.0
 
+
 def localPathUpdateRequestedCallback(data):
     global localPathUpdateRequested
     rospy.loginfo("localPathUpdateRequested message received.")
