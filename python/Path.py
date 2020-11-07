@@ -20,9 +20,11 @@ UPWIND_DOWNWIND_TIME_LIMIT_SECONDS = 0.5
 MAX_ALLOWABLE_DISTANCE_FINAL_WAYPOINT_TO_GOAL_KM = 5
 
 # Pathfinding constants
-MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS = 20.0
+MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS = 20
 INCREASE_RUNTIME_FACTOR = 1.5
 
+# Global variable to count invalid solutions
+count_invalid_solutions = 0
 
 class OMPLPath:
     """ Class for storing an OMPL configuration, OMPL path, and the referenceLatlon
@@ -395,8 +397,11 @@ class Path:
         else:
             b = nextWaypointY + normalSlope * math.fabs(nextWaypointX)
 
-        def y(x): return normalSlope * x + b
-        def x(y): return (y - b) / normalSlope
+        def y(x):
+            return normalSlope * x + b
+
+        def x(y):
+            return (y - b) / normalSlope
 
     #    plt.xlim(-20, 20)
     #    plt.ylim(-20, 20)
@@ -553,6 +558,11 @@ class Path:
                 rospy.logwarn("Obstacle on path. waypointIndexWithObstacle: {}".format(waypointIndexWithObstacle))
             return True
         return False
+
+
+def incrementCountInvalidSolutions():
+    global count_invalid_solutions
+    count_invalid_solutions += 1
 
 
 def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=False, speedupBeforePlan=1.0,
@@ -745,6 +755,7 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=Fals
         if totalRuntimeSeconds >= maxAllowableRuntimeSeconds:
             rospy.logwarn("No valid solution can be found in under {} seconds. Using invalid solution."
                           .format(maxAllowableRuntimeSeconds))
+            incrementCountInvalidSolutions()
             break
 
         rospy.logwarn("Attempting to rerun with longer runtime: {} seconds".format(runtimeSeconds))

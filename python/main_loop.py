@@ -22,7 +22,6 @@ localPathUpdateForced = False
 # Global variable for speedup
 speedup = 1.0
 
-
 def localPathUpdateRequestedCallback(data):
     global localPathUpdateRequested
     rospy.loginfo("localPathUpdateRequested message received.")
@@ -211,3 +210,5 @@ if __name__ == '__main__':
         # If there are any plots, give some time for them to respond to requests, such as closing
         plt.pause(0.001)
         publishRate.sleep()
+
+    rospy.loginfo("Used invalid solutions {} times" .format(Path.count_invalid_solutions))
