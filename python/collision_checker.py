@@ -5,6 +5,7 @@ from local_pathfinding.msg import AISMsg, GPS
 from geopy.distance import distance
 from MOCK_AIS import AIS_PUBLISH_PERIOD_SECONDS
 
+# match with log_closest_obstacle.py
 COLLISION_RADIUS_KM = 0.1
 WARN_RADIUS_KM = 0.3
 CHECK_PERIOD = AIS_PUBLISH_PERIOD_SECONDS

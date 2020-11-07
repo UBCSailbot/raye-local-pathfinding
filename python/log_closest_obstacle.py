@@ -10,6 +10,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 UPDATE_TIME_SECONDS = 1.0
+PLOT_RANGE = 5
+
+# match with collision_checker.py
+COLLISION_RADIUS_KM = 0.1
+WARN_RADIUS_KM = 0.3
 
 # Output paths
 dateStr = date.today().strftime("%b-%d-%Y")
@@ -71,8 +76,17 @@ if __name__ == '__main__':
     rospy.loginfo("About to save closest distance plot...")
     indices = np.arange(len(log_closest_obstacle.get_closest_distances()))
     times = UPDATE_TIME_SECONDS * indices
+    warn_radius_line = list()
+    [warn_radius_line.append(WARN_RADIUS_KM) for _ in times]
+    collision_radius_line = list()
+    [collision_radius_line.append(COLLISION_RADIUS_KM) for _ in times]
+
     plt.figure()
+    plt.ylim(0, PLOT_RANGE)
     plt.plot(times, log_closest_obstacle.get_closest_distances())
+    plt.plot(times, warn_radius_line, color='yellow')
+    plt.plot(times, collision_radius_line, color='red')
+
     plt.xlabel("Time elapsed (s)")
     plt.ylabel("Closest Distances (km)")
     plt.title("Distance to Closest AIS Boat vs. Time")
