@@ -26,6 +26,7 @@ INCREASE_RUNTIME_FACTOR = 1.5
 # Global variable to count invalid solutions
 count_invalid_solutions = 0
 
+
 class OMPLPath:
     """ Class for storing an OMPL configuration, OMPL path, and the referenceLatlon
 
