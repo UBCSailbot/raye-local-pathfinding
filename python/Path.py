@@ -566,6 +566,7 @@ def incrementCountInvalidSolutions():
     global count_invalid_solutions
     count_invalid_solutions += 1
 
+
 def incrementTempInvalidSolutions():
     global temp_invalid_solutions
     temp_invalid_solutions += 1
