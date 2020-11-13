@@ -23,8 +23,9 @@ MAX_ALLOWABLE_DISTANCE_FINAL_WAYPOINT_TO_GOAL_KM = 5
 MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS = 20.0
 INCREASE_RUNTIME_FACTOR = 1.5
 
-# Global variable to count invalid solutions
+# Global variables to count invalid solutions
 count_invalid_solutions = 0
+temp_invalid_solutions = 0
 
 
 class OMPLPath:
@@ -217,8 +218,8 @@ class OMPLPath:
         rospy.loginfo("dist_boat_to_1 = {}. dist_0_to_1 = {}. boatCouldGoWrongDirection = {}."
                       .format(dist_boat_to_1, dist_0_to_1, boatCouldGoWrongDirection))
 
-        edgeCase = ((lengthBefore - lengthAfter == 0) or
-                    ((lengthBefore - lengthAfter == 1) and boatCouldGoWrongDirection))
+        edgeCase = ((lengthBefore - lengthAfter == 0) or ((lengthBefore - lengthAfter == 1)
+                    and boatCouldGoWrongDirection))
         if edgeCase:
             rospy.loginfo("Thus edgeCase = {}, so positionXY not prepended to path.".format(edgeCase))
         else:
@@ -565,6 +566,10 @@ def incrementCountInvalidSolutions():
     global count_invalid_solutions
     count_invalid_solutions += 1
 
+def incrementTempInvalidSolutions():
+    global temp_invalid_solutions
+    temp_invalid_solutions += 1
+
 
 def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=False, speedupBeforePlan=1.0,
                maxAllowableRuntimeSeconds=MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS):
@@ -751,6 +756,7 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=Fals
         rospy.logwarn("No valid solutions found in {} seconds runtime".format(runtimeSeconds))
         runtimeSeconds *= INCREASE_RUNTIME_FACTOR
         totalRuntimeSeconds += runtimeSeconds
+        incrementTempInvalidSolutions()
 
         # If valid solution can't be found for large runtime, then stop searching
         if totalRuntimeSeconds >= maxAllowableRuntimeSeconds:

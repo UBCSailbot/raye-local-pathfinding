@@ -212,4 +212,5 @@ if __name__ == '__main__':
         plt.pause(0.001)
         publishRate.sleep()
 
+    rospy.loginfo("No valid solutions found {} times" .format(Path.temp_invalid_solutions))
     rospy.loginfo("Used invalid solutions {} times" .format(Path.count_invalid_solutions))
