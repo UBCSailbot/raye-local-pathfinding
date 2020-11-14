@@ -42,29 +42,15 @@ still alive after 180.415 seconds!
 
 If the script stops, copy the output to a text file. You can try running the script line by line instead to find where the error occurs. If you get stuck, you can contact Tyler Lum (tylergwlum@gmail.com) for questions.
 
-__Setup Option 2: Creating Docker Image__
+__Setup Option 2: Pulling Docker Image From DockerHub__
 
-* Navigate to the `install` directory: `cd install`
-
-* Build the docker image by running `docker build --tag ros_ompl_python_2 .` (can replace ros\_ompl\_python\_2 with the tag name of your choice). This operation takes about 10 hours. It creates a Docker image with all the dependencies to run the software.
-
-* Run a docker container by running `docker run -it --name ompl --rm ros_ompl_python_2`, which creates a container from the image created from the previous step. This brings you into an environment with the desired dependencies.
-
-* Note: By default, the plotting will not working from a docker container because it does not have access to your screen. To fix this, you can run the following command in another terminal: `xhost +local:root` (be sure to run `xhost -local:root` when you are done to be safe!), then use the following command instead of the previous docker run command:
+You can also pull a Docker image from DockerHub by running `docker pull tylerlum/ros_ompl_python_2:11.2020.V2`, which was updated as of November 2020. Then you can run:
 
 ```
-docker run -it \
-    --env="DISPLAY" \
-    --env="QT_X11_NO_MITSHM=1" \
-    --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" \
-    ros_ompl_python_2
+docker run -it tylerlum/ros_ompl_python_2:11.2020.V2
 ```
 
-This will allow you to plot paths.
-
-__Setup Option 3: Pulling Docker Image From DockerHub__
-
-You can also pull a Docker image from DockerHub by running `docker pull tylerlum/ros_ompl_python_2:11.2020.V2`, which was updated as of November 2020. Then you can follow the instructions above, but change the image name. Eg, follow the xhost instructions above (`xhost +local:root`) and then run:
+Note: By default, the plotting will not working from a docker container because it does not have access to your screen. To fix this, you can run the following command in another terminal: `xhost +local:root` (be sure to run `xhost -local:root` when you are done to be safe!), then use the following command instead of the previous docker run command:
 
 ```
 docker run -it \
@@ -74,4 +60,18 @@ docker run -it \
     tylerlum/ros_ompl_python_2:11.2020.V2
 ```
 
+__Setup Option 3: Creating Docker Image From Scratch (Not recommended)__
 
+* Navigate to the `install` directory: `cd install`
+
+* Build the docker image by running `docker build --tag ros_ompl_python_2 .` (can replace ros\_ompl\_python\_2 with the tag name of your choice). This operation takes about 10 hours. It creates a Docker image with all the dependencies to run the software.
+
+* Run a docker container by running `docker run -it --name ompl --rm ros_ompl_python_2`, which creates a container from the image created from the previous step. This brings you into an environment with the desired dependencies. To get plotting working, you can run `xhost +local:root` then:
+
+```
+docker run -it \
+    --env="DISPLAY" \
+    --env="QT_X11_NO_MITSHM=1" \
+    --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" \
+    ros_ompl_python_2
+```
