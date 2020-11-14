@@ -1,9 +1,11 @@
 #! /usr/bin/env python
 import rospy
-from local_pathfinding.msg import AISMsg, GPS
+import utilities
+from sailbot_msg.msg import AISMsg, GPS
 from geopy.distance import distance
 from MOCK_AIS import AIS_PUBLISH_PERIOD_SECONDS
 
+# match with log_closest_obstacle.py
 COLLISION_RADIUS_KM = 0.1
 WARN_RADIUS_KM = 0.3
 CHECK_PERIOD = AIS_PUBLISH_PERIOD_SECONDS
@@ -19,6 +21,10 @@ class CollisionChecker:
         self.ships = rospy.wait_for_message('/AIS', AISMsg).ships
         self.lat = rospy.wait_for_message('/GPS', GPS).lat
         self.lon = rospy.wait_for_message('/GPS', GPS).lon
+        self.times_collided = 0
+        self.times_warned = 0
+        self.collidingBoats = list()
+        self.warningBoats = list()
 
     def GPS_callback(self, data):
         self.lat = data.lat
@@ -28,15 +34,35 @@ class CollisionChecker:
         self.ships = data.ships
 
     def check_for_collisions(self):
+        self.check_radius(0, self.collision_radius, self.collidingBoats, self.times_collided, "collision")
+
+    def check_for_warnings(self):
+        self.check_radius(self.collision_radius, self.warn_radius, self.warningBoats, self.times_warned, "warning")
+
+    # min_radius is inclusive, max_radius is exclusive
+    def check_radius(self, min_radius, max_radius, boat_list, counter, message):
         for ship in self.ships:
             dist = distance((ship.lat, ship.lon), (self.lat, self.lon)).km
-            if dist < self.collision_radius:
-                rospy.logfatal("Boat has collided with obstacle. Collision radius {}km. Actual distance to boat: {}km"
-                               .format(self.collision_radius, dist))
 
-            elif dist < self.warn_radius:
-                rospy.logwarn("Close to collision. Within {}km of boat. Actual distance to boat: {}km"
-                              .format(self.warn_radius, dist))
+            if min_radius <= dist < max_radius:
+                if ship.ID not in boat_list:
+                    counter += 1
+                    boat_list.append(ship.ID)
+                    rospy.logfatal("Obstacle {} is in {} radius. Actual distance to boat: {}km."
+                                   .format(ship.ID, message, dist))
+                    utilities.takeScreenshot()
+
+            elif dist >= max_radius:
+                if ship.ID in boat_list:
+                    boat_list.remove(ship.ID)
+                    rospy.logwarn("Obstacle {} has moved outside {} radius, {} left."
+                                  .format(ship.ID, message, len(boat_list)))
+
+    def get_times_collided(self):
+        return self.times_collided
+
+    def get_times_warned(self):
+        return self.times_warned
 
 
 if __name__ == '__main__':
@@ -45,4 +71,8 @@ if __name__ == '__main__':
 
     while not rospy.is_shutdown():
         collision_checker.check_for_collisions()
+        collision_checker.check_for_warnings()
         rate.sleep()
+
+    rospy.loginfo("Total number of collisions: {}. Total number of warnings: {}."
+                  .format(collision_checker.get_times_collided(), collision_checker.get_times_warned()))

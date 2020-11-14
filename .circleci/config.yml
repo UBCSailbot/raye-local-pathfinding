@@ -49,9 +49,11 @@ commands:
     description: "Set Up And Build Workspace"
     steps:
       - run: mkdir -p /catkin_ws/src/local_pathfinding
+      - run: mkdir -p /catkin_ws/src/sailbot_msg
       - run: source /opt/ros/melodic/setup.bash && cd /catkin_ws && catkin_make
       - checkout:
           path: /catkin_ws/src/local_pathfinding
+      - run: git clone https://github.com/UBCSailbot/sailbot-msg.git /catkin_ws/src/sailbot_msg
       - run: source /opt/ros/melodic/setup.bash && cd /catkin_ws && catkin_make
 
   install_and_run_flake8:
@@ -67,4 +69,4 @@ commands:
 executors:
   docker_exec:
     docker:
-      - image: tylerlum/ros_ompl_python_2:04.2020.V1
+      - image: tylerlum/ros_ompl_python_2:11.2020.V2

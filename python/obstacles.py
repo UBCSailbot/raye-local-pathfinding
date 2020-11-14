@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import utilities as utils
 from matplotlib import patches
-from local_pathfinding.msg import latlon
+from sailbot_msg.msg import latlon
 from geopy.distance import distance
 import rospy
 
@@ -26,7 +26,7 @@ def getObstacles(state, referenceLatlon):
 
     Args:
        state (BoatState): State of the sailbot
-       referenceLatlon (local_pathfinding.msg._latlon.latlon): Position of the reference point that will be at (0,0)
+       referenceLatlon (sailbot_msg.msg._latlon.latlon): Position of the reference point that will be at (0,0)
 
     Returns:
        list of obstacles that implement the obstacle interface
@@ -280,9 +280,9 @@ def getProjectedPosition(aisShip, sailbotPosition, sailbotSpeedKmph, referenceLa
 
     Args:
        aisShip (AISShip): State of the ais ship
-       sailbotPosition (local_pathfinding.msg._latlon.latlon): Position of sailbot
+       sailbotPosition (sailbot_msg.msg._latlon.latlon): Position of sailbot
        sailbotSpeedKmph (float): Speed of sailbot in kmph
-       referenceLatlon (local_pathfinding.msg._latlon.latlon): Position of the reference point that will be at (0,0)
+       referenceLatlon (sailbot_msg.msg._latlon.latlon): Position of the reference point that will be at (0,0)
 
     Returns:
        [x, y] projected position of the ais ship

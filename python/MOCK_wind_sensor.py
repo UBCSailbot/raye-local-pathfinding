@@ -3,7 +3,7 @@ import rospy
 import json
 
 from std_msgs.msg import Float64
-from local_pathfinding.msg import windSensor, GPS, globalWind
+from sailbot_msg.msg import windSensor, GPS, globalWind
 from utilities import globalWindToMeasuredWind
 import random
 

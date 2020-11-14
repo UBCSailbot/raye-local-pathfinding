@@ -4,7 +4,7 @@ import random
 import json
 
 from std_msgs.msg import Float64
-import local_pathfinding.msg as msg
+import sailbot_msg.msg as msg
 import geopy.distance
 from utilities import headingToBearingDegrees, PORT_RENFREW_LATLON
 

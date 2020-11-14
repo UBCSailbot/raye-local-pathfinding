@@ -3,7 +3,7 @@ import sys
 import rospy
 import math
 from std_msgs.msg import Float64
-from local_pathfinding.msg import path, latlon
+from sailbot_msg.msg import path, latlon
 import utilities as utils
 import obstacles as obs
 import Sailbot as sbot

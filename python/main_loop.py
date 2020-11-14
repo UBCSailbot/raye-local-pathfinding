@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import rospy
-import local_pathfinding.msg as msg
+import sailbot_msg.msg as msg
 import handleInvalidState as his
 from std_msgs.msg import Float64, String, Bool
 import Sailbot as sbot
@@ -211,3 +211,6 @@ if __name__ == '__main__':
         # If there are any plots, give some time for them to respond to requests, such as closing
         plt.pause(0.001)
         publishRate.sleep()
+
+    rospy.loginfo("No valid solutions found {} times" .format(Path.temp_invalid_solutions))
+    rospy.loginfo("Used invalid solutions {} times" .format(Path.count_invalid_solutions))

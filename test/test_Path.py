@@ -4,7 +4,7 @@ import local_imports  # Must be first import, as it adds python directory to pat
 from geopy.distance import distance
 import utilities as utils
 import Sailbot as sbot
-from local_pathfinding.msg import latlon, AISMsg, AISShip
+from sailbot_msg.msg import latlon, AISMsg, AISShip
 from planner_helpers import UPWIND_MAX_ANGLE_DEGREES, DOWNWIND_MAX_ANGLE_DEGREES
 from Path import createPath, UPWIND_DOWNWIND_TIME_LIMIT_SECONDS
 from updated_geometric_planner import indexOfObstacleOnPath
