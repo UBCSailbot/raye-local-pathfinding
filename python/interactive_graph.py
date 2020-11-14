@@ -18,15 +18,13 @@ def plot_min_distances(folder_name):
     x, y = fig_handle.axes[0].lines[0].get_data()
 
     # Getting warning times
-    i = 0
-    flag = 0
+    i = 1  # i = 0 is y intercept, not wanted
     warn_start_times = list()
     while i < len(y):
-        if y[i] < WARN_RADIUS_KM and flag == 0:
+        if y[i] < WARN_RADIUS_KM:
             warn_start_times.append(x[i])
-            flag = 1
-        elif y[i] >= WARN_RADIUS_KM and flag == 1:
-            flag = 0
+            while i + 1 < len(y) and y[i + 1] >= y[i]:
+                i += 1
         i += 1
 
     print(warn_start_times)
