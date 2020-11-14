@@ -1,6 +1,5 @@
 import matplotlib.pyplot as plt
 import pickle as pl
-import numpy as np
 import os
 
 # match with collision_checker.py
