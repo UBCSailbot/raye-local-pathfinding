@@ -95,7 +95,7 @@ You can run `rostopic echo /` then press TAB repeatedly to see the available top
 
 #### Plotting minimum distance graphs
 
-You can analyze the closest obstacle dist vs time graph of a completed simulation by cding to `local-pathfinding/python` and running `python min_dist_graphing.py <foldername>`, where `<foldername>` is the simulation's output folder name, found in `local-pathfinding/output`.
+You can analyze the closest obstacle distance vs. time graph of a completed simulation by cding to `local-pathfinding/python` and running `python min_dist_graphing.py <foldername>`, where `<foldername>` is the simulation's output folder name, found in `local-pathfinding/output`.
 
 ### Running tests
 
