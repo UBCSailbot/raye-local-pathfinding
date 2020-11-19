@@ -93,6 +93,10 @@ During a simulation, you can run:
 
 You can run `rostopic echo /` then press TAB repeatedly to see the available topics for listening. One of the most useful is `rostopic echo /localPathCostBreakdown` to see how the local path cost is being calculated.
 
+#### Plotting minimum distance graphs
+
+You can analyze the closest obstacle distance vs. time graph of a completed simulation by cding to `local-pathfinding/python` and running `python min_dist_graphing.py <foldername>`, where `<foldername>` is the simulation's output folder name, found in `local-pathfinding/output`.
+
 ### Running tests
 
 To run the tests, navigate to the `catkin_ws` and run `catkin_make run_tests`.

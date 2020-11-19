@@ -22,6 +22,7 @@ timeStr = datetime.now().strftime('%H-%M-%S')
 ABS_PATH_TO_THIS_FILE_DIR = os.path.dirname(os.path.abspath(__file__))
 ABS_PATH_TO_OUTPUT_DIR = os.path.join(ABS_PATH_TO_THIS_FILE_DIR, "../output/{}_{}".format(dateStr, timeStr))
 ABS_PATH_TO_OUTPUT_MIN_DISTANCE_FILE = os.path.join(ABS_PATH_TO_OUTPUT_DIR, "minDistance.pkl")
+ABS_PATH_TO_OUTPUT_MIN_DISTANCE_INTERACTIVE_FILE = os.path.join(ABS_PATH_TO_OUTPUT_DIR, "minDistanceInteractive.pkl")
 ABS_PATH_TO_OUTPUT_MIN_DISTANCE_PLOT_FILE = os.path.join(ABS_PATH_TO_OUTPUT_DIR, "min_distance_plot.png")
 
 
@@ -69,8 +70,6 @@ if __name__ == '__main__':
     # Save stored path information to pickle files
     if not os.path.exists(ABS_PATH_TO_OUTPUT_DIR):
         os.makedirs(ABS_PATH_TO_OUTPUT_DIR)
-    with open(ABS_PATH_TO_OUTPUT_MIN_DISTANCE_FILE, 'wb') as handle:
-        pickle.dump(log_closest_obstacle.get_closest_distances(), handle)
 
     # Plot Path cost vs. Time
     rospy.loginfo("About to save closest distance plot...")
@@ -81,7 +80,7 @@ if __name__ == '__main__':
     collision_radius_line = list()
     [collision_radius_line.append(COLLISION_RADIUS_KM) for _ in times]
 
-    plt.figure()
+    graph = plt.figure()
     plt.ylim(0, PLOT_RANGE)
     plt.plot(times, log_closest_obstacle.get_closest_distances())
     plt.plot(times, warn_radius_line, color='yellow')
@@ -91,4 +90,6 @@ if __name__ == '__main__':
     plt.ylabel("Closest Distances (km)")
     plt.title("Distance to Closest AIS Boat vs. Time")
     plt.savefig(ABS_PATH_TO_OUTPUT_MIN_DISTANCE_PLOT_FILE)
+    with open(ABS_PATH_TO_OUTPUT_MIN_DISTANCE_INTERACTIVE_FILE, 'wb') as handle:
+        pickle.dump(graph, handle)
     rospy.loginfo("Successfully saved closest distance plot to {}".format(ABS_PATH_TO_OUTPUT_MIN_DISTANCE_PLOT_FILE))
