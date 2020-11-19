@@ -9,6 +9,7 @@ from sailbot_msg.msg import AISMsg, GPS
 from datetime import datetime
 from datetime import date
 
+#constants
 UPDATE_TIME_SECONDS = 1.0
 
 dateStr = date.today().strftime("%b-%d-%Y")
@@ -18,9 +19,8 @@ ABS_PATH_TO_OUTPUT_DIR = os.path.join(ABS_PATH_TO_THIS_FILE_DIR, "../output/{}_{
 ABS_PATH_TO_OUTPUT_SAILBOT_GPS_DISPLACEMENT = os.path.join(ABS_PATH_TO_OUTPUT_DIR, "sailbot_gps_plot.png")
 
 class SailbotGPSData:
-
     def __init__(self):
-         #Subscribe to the GPS data, invoke the callback function every time the data is changed
+        #Subscribe to the GPS data, invoke the callback function every time the data is changed
         rospy.Subscriber('/GPS', GPS, self.GPS_callback)
 
         #Get initial values for Lat and Lon and simulation start time
@@ -55,18 +55,19 @@ class SailbotGPSData:
         self.lonArray.append(self.lon)
 
         #using geopy, return distance from start position in km and log to constole
-        distance = str(self.Find_Distance())
-        rospy.loginfo("Total displacement from start (km): {}".format(distance))
+        self.distance = str(self.Find_Distance())
 
+        #uncomment this code if you want to see the displacement plot in real time
+        ''' 
         plt.plot(self.lonArray, self.latArray, 'ro')
-        plt.title('displacement in km:' + distance)
+        plt.title('displacement in km:' + self.distance)
         plt.grid()
         plt.xlabel('Longitude')
         plt.ylabel('Latitude')
         plt.draw()
         plt.pause(0.0001)
         plt.clf()
-
+        '''
     
 if __name__ == '__main__':
     rospy.init_node('SailbotGPSData')
@@ -74,7 +75,15 @@ if __name__ == '__main__':
     while not rospy.is_shutdown():
         myClass.StoreSailbotGPS()
     
-    rospy.loginfo("hi")
+    rospy.loginfo("Saving to {}".format(ABS_PATH_TO_OUTPUT_SAILBOT_GPS_DISPLACEMENT))
+
+    #create plot and save plot to destination located at ABS_PATH_TO_OUTPUT_SAILBOT_GPS_DISPLACEMENT
+    plt.figure()
+    plt.plot(myClass.lonArray, myClass.latArray, 'ro')
+    plt.title('displacement in km:' + myClass.distance)
+    plt.grid()
+    plt.xlabel('Longitude')
+    plt.ylabel('Latitude')
     plt.savefig(ABS_PATH_TO_OUTPUT_SAILBOT_GPS_DISPLACEMENT)
-    rospy.loginfo("Successfully saved cost breakdown plot to {}".format(ABS_PATH_TO_OUTPUT_SAILBOT_GPS_DISPLACEMENT))
-        
+
+    rospy.loginfo("Successfully saved GPS displacement plot to {}".format(ABS_PATH_TO_OUTPUT_SAILBOT_GPS_DISPLACEMENT))
