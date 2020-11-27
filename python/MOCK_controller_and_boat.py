@@ -10,8 +10,18 @@ from utilities import headingToBearingDegrees, PORT_RENFREW_LATLON
 
 # Constants
 GPS_PUBLISH_PERIOD_SECONDS = 0.1  # Keep below 1.0 for smoother boat motion
+BOAT_SPEED_KMPH = 14.4  # Boat should move at about 4m/s = 14.4 km/h
+TURNING_GAIN = 0.25  # Proportional term in the heading controller
+SPEED_CHANGE_GAIN = 0.05  # The same, but for the speed
+
 # Bring this value to about 1.0 for limited deviation. 20.0 for quite large deviations.
 HEADING_DEGREES_STANDARD_DEVIATION = 1.0
+
+# TODO: Move this to utilities
+# Smallest signed angle
+def ssa(angle):
+    return ((angle + 180) % 360) - 180
+
 
 
 class MOCK_ControllerAndSailbot:
@@ -20,7 +30,9 @@ class MOCK_ControllerAndSailbot:
         self.lon = lon
         self.speedup = 1.0
         self.headingDegrees = headingDegrees
+        self.headingSetpoint = headingDegrees
         self.speedKmph = speedKmph
+        self.speedSetpoint = speedKmph
         self.publishPeriodSeconds = GPS_PUBLISH_PERIOD_SECONDS
 
         rospy.init_node('MOCK_Sailbot_Listener', anonymous=True)
@@ -39,9 +51,23 @@ class MOCK_ControllerAndSailbot:
         self.lon = destination.longitude
         self.lat = destination.latitude
 
+        # Heading
+        error = ssa(self.headingSetpoint - self.headingDegrees)
+        gain = min(1, TURNING_GAIN * self.publishPeriodSeconds * self.speedup)
+        self.headingDegrees = (self.headingDegrees + gain * error) % 360
+
+        # Speed
+        error = self.speedSetpoint - self.speedKmph
+        gain = min(1, SPEED_CHANGE_GAIN * self.publishPeriodSeconds * self.speedup)
+        self.speedKmph += gain * error
+
     def desiredHeadingCallback(self, data):
         rospy.loginfo(data)
-        self.headingDegrees = data.headingDegrees + random.gauss(0, HEADING_DEGREES_STANDARD_DEVIATION)
+        self.headingSetpoint = data.headingDegrees
+        error_mag = abs(ssa(self.headingSetpoint - self.headingDegrees))
+        # Anything >= 135 has maximum effect (speed is divided by 3)
+        # Anything <= 45 has no effect on speed
+        self.speedKmph = self.speedKmph / max(1, min(3, error_mag / 45))
 
     def changeGPSCallback(self, data):
         rospy.loginfo("Received change GPS message = {}".format(data))
