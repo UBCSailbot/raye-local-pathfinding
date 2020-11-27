@@ -323,6 +323,10 @@ def setInitialSpeedup():
     initial_speedup = rospy.get_param('initial_speedup', default=1.0)
     speedupPublisher = rospy.Publisher('speedup', Float64, queue_size=4)
 
+    # If initial speedup is about 1.0, don't need to do anything here
+    if abs(initial_speedup - 1.0) < 0.1:
+        return
+
     # Wait for other nodes before publishing
     numConnections = speedupPublisher.get_num_connections()
     while numConnections < MIN_NUM_SPEEDUP_SUBS_BEFORE_PUBLISHING:
