@@ -340,3 +340,13 @@ def setInitialSpeedup():
     rospy.loginfo("Publishing initial_speedup = {}".format(initial_speedup))
     speedupPublisher.publish(initial_speedup)
     time.sleep(1)
+
+
+# Smallest signed angle (degrees)
+def ssa_deg(angle):
+    return ((angle + 180) % 360) - 180
+
+# Smallest signed angle (radians)
+def ssa_rad(angle):
+    return ((angle + math.pi) % 2*math.pi) - math.pi
+

@@ -6,7 +6,7 @@ import json
 from std_msgs.msg import Float64
 import sailbot_msg.msg as msg
 import geopy.distance
-from utilities import headingToBearingDegrees, PORT_RENFREW_LATLON
+from utilities import headingToBearingDegrees, PORT_RENFREW_LATLON, ssa_deg
 
 # Constants
 GPS_PUBLISH_PERIOD_SECONDS = 0.1  # Keep below 1.0 for smoother boat motion
@@ -16,12 +16,6 @@ SPEED_CHANGE_GAIN = 0.05  # The same, but for the speed
 
 # Bring this value to about 1.0 for limited deviation. 20.0 for quite large deviations.
 HEADING_DEGREES_STANDARD_DEVIATION = 1.0
-
-# TODO: Move this to utilities
-# Smallest signed angle
-def ssa(angle):
-    return ((angle + 180) % 360) - 180
-
 
 
 class MOCK_ControllerAndSailbot:
@@ -52,7 +46,7 @@ class MOCK_ControllerAndSailbot:
         self.lat = destination.latitude
 
         # Heading
-        error = ssa(self.headingSetpoint - self.headingDegrees)
+        error = ssa_deg(self.headingSetpoint - self.headingDegrees)
         gain = min(1, TURNING_GAIN * self.publishPeriodSeconds * self.speedup)
         self.headingDegrees = (self.headingDegrees + gain * error) % 360
 
@@ -64,7 +58,7 @@ class MOCK_ControllerAndSailbot:
     def desiredHeadingCallback(self, data):
         rospy.loginfo(data)
         self.headingSetpoint = data.headingDegrees
-        error_mag = abs(ssa(self.headingSetpoint - self.headingDegrees))
+        error_mag = abs(ssa_deg(self.headingSetpoint - self.headingDegrees))
         # Anything >= 135 has maximum effect (speed is divided by 3)
         # Anything <= 45 has no effect on speed
         self.speedKmph = self.speedKmph / max(1, min(3, error_mag / 45))
