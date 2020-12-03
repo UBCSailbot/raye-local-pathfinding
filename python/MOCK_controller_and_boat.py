@@ -42,23 +42,27 @@ class MOCK_ControllerAndSailbot:
         self.lon = destination.longitude
         self.lat = destination.latitude
 
-        # Heading
-        error = ssa_deg(self.headingSetpoint - self.headingDegrees)
-        gain = min(1, TURNING_GAIN * self.publishPeriodSeconds * self.speedup)
-        self.headingDegrees = (self.headingDegrees + gain * error) % 360
+        if self.smoothChanges:
+            # Heading
+            error = ssa_deg(self.headingSetpoint - self.headingDegrees)
+            gain = min(1, TURNING_GAIN * self.publishPeriodSeconds * self.speedup)
+            self.headingDegrees = (self.headingDegrees + gain * error) % 360
 
-        # Speed
-        error = self.speedSetpoint - self.speedKmph
-        gain = min(1, SPEED_CHANGE_GAIN * self.publishPeriodSeconds * self.speedup)
-        self.speedKmph += gain * error
+            # Speed
+            error = self.speedSetpoint - self.speedKmph
+            gain = min(1, SPEED_CHANGE_GAIN * self.publishPeriodSeconds * self.speedup)
+            self.speedKmph += gain * error
 
     def desiredHeadingCallback(self, data):
         rospy.loginfo(data)
-        self.headingSetpoint = data.headingDegrees
-        error_mag = abs(ssa_deg(self.headingSetpoint - self.headingDegrees))
-        # Anything >= 135 has maximum effect (speed is divided by 3)
-        # Anything <= 45 has no effect on speed
-        self.speedKmph = self.speedKmph / max(1, min(3, error_mag / 45))
+        if self.smoothChanges:
+            self.headingSetpoint = data.headingDegrees
+            error_mag = abs(ssa_deg(self.headingSetpoint - self.headingDegrees))
+            # Heading change >= 135 has maximum effect (speed is divided by 3)
+            # Heading change <= 45 has no effect on speed
+            self.speedKmph = self.speedKmph / max(1, min(3, error_mag / 45))
+        else:
+            self.headingDegrees = data.headingDegrees
 
     def changeGPSCallback(self, data):
         rospy.loginfo("Received change GPS message = {}".format(data))
@@ -74,16 +78,17 @@ class MOCK_ControllerAndSailbot:
 if __name__ == '__main__':
     # Get gps_file  parameter
     gps_file = rospy.get_param('gps_file', default=None)
+    smooth_changes = rospy.get_param('smooth_changes', default=True)
 
     if gps_file:
         with open(gps_file) as f:
             record = json.loads(f.read())
-            lat = record[0]
-            lon = record[1]
             MOCK_ctrl_sailbot = MOCK_ControllerAndSailbot(*record)
     else:
         # Boat should move at about 4m/s = 14.4 km/h
         MOCK_ctrl_sailbot = MOCK_ControllerAndSailbot(PORT_RENFREW_LATLON.lat, PORT_RENFREW_LATLON.lon, 180, 14.4)
+
+    MOCK_ctrl_sailbot.smoothChanges = smooth_changes
 
     r = rospy.Rate(float(1) / MOCK_ctrl_sailbot.publishPeriodSeconds)
 

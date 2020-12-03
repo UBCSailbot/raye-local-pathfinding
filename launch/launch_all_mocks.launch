@@ -44,6 +44,10 @@
     <arg name="planner_type" default="RRTStar" />
     <param name="planner_type" type="string" value="$(arg planner_type)" />
 
+    <!-- Sets if changes in heading and speed should be smooth or not -->
+    <arg name="smooth_changes" default="true" />
+    <param name="smooth_changes" type="bool" value="$(arg smooth_changes)" />
+
     <node pkg="local_pathfinding" type="MOCK_wind_sensor.py" name="MOCK_wind_sensor" />
     <node pkg="local_pathfinding" type="MOCK_controller_and_boat.py" name="MOCK_controller_and_boat" />
     <node pkg="local_pathfinding" type="MOCK_AIS.py" name="MOCK_AIS" />
