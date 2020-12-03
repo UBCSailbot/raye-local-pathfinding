@@ -14,9 +14,6 @@ BOAT_SPEED_KMPH = 14.4  # Boat should move at about 4m/s = 14.4 km/h
 TURNING_GAIN = 0.25  # Proportional term in the heading controller
 SPEED_CHANGE_GAIN = 0.05  # The same, but for the speed
 
-# Bring this value to about 1.0 for limited deviation. 20.0 for quite large deviations.
-HEADING_DEGREES_STANDARD_DEVIATION = 1.0
-
 
 class MOCK_ControllerAndSailbot:
     def __init__(self, lat, lon, headingDegrees, speedKmph):
