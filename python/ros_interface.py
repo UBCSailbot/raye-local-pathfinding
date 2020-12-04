@@ -1,5 +1,4 @@
 import rospy
-import numpy
 from sailbot_msg.msg import Sensors, windSensor, GPS
 
 # Constants
@@ -60,45 +59,51 @@ class RosInterface:
         self.past_wind_direction = self.wind_direction
 
         # GPS sensors
-        self.gps_lat = self.checkErrAndAvg(self.past_gps_lat,
-                                           [self.data.gps_0_latitude, self.data.gps_1_latitude])
-        self.gps_lon = self.checkErrAndAvg(self.past_gps_lon,
-                                           [self.data.gps_0_longitude, self.data.gps_1_longitude])
-        self.gps_headingDegrees = self.checkErrAndAvg(self.past_gps_headingDegrees,
-                                                      [self.convertDegrees(self.data.gps_0_true_heading),
-                                                       self.convertDegrees(self.data.gps_1_true_heading)])
-        self.gps_speedKmph = self.checkErrAndAvg(self.past_gps_speedKmph,
-                                                 [self.data.gps_0_groundspeed * KNOTS_TO_KMPH,
-                                                  self.data.gps_1_groundspeed * KNOTS_TO_KMPH])
+        self.gps_lat = self.getTrustedAndAvg(self.past_gps_lat,
+                                             [self.data.gps_0_latitude, self.data.gps_1_latitude])
+        self.gps_lon = self.getTrustedAndAvg(self.past_gps_lon,
+                                             [self.data.gps_0_longitude, self.data.gps_1_longitude])
+        self.gps_headingDegrees = self.getTrustedAndAvg(self.past_gps_headingDegrees,
+                                                        [self.convertDegrees(self.data.gps_0_true_heading),
+                                                         self.convertDegrees(self.data.gps_1_true_heading)])
+        self.gps_speedKmph = self.getTrustedAndAvg(self.past_gps_speedKmph,
+                                                   [self.data.gps_0_groundspeed * KNOTS_TO_KMPH,
+                                                    self.data.gps_1_groundspeed * KNOTS_TO_KMPH])
         # Wind sensors
-        self.wind_speedKmph = self.checkErrAndAvg(self.past_wind_speedKmph,
-                                                  [self.data.wind_sensor_0_speed * KNOTS_TO_KMPH,
-                                                   self.data.wind_sensor_1_speed * KNOTS_TO_KMPH,
-                                                   self.data.wind_sensor_2_speed * KNOTS_TO_KMPH])
-        self.wind_direction = self.checkErrAndAvg(self.past_wind_direction,
-                                                  [self.data.wind_sensor_0_direction,
-                                                   self.data.wind_sensor_1_direction,
-                                                   self.data.wind_sensor_2_direction])
+        self.wind_speedKmph = self.getTrustedAndAvg(self.past_wind_speedKmph,
+                                                    [self.data.wind_sensor_0_speed * KNOTS_TO_KMPH,
+                                                     self.data.wind_sensor_1_speed * KNOTS_TO_KMPH,
+                                                     self.data.wind_sensor_2_speed * KNOTS_TO_KMPH])
+        self.wind_direction = self.getTrustedAndAvg(self.past_wind_direction,
+                                                    [self.data.wind_sensor_0_direction,
+                                                     self.data.wind_sensor_1_direction,
+                                                     self.data.wind_sensor_2_direction])
 
     # (0 is north, 90 is east, etc - cw - degrees) -> (0 is east, 90 is north, etc - ccw - degrees)
     def convertDegrees(self, degree):
         converted = -1 * degree + 90
         return converted if converted >= 0 else converted + 360
 
-    def checkErrAndAvg(self, pastValue, arr):
-        err_free_arr = self.checkError(pastValue, arr)
-        return float(sum(err_free_arr)) / len(err_free_arr)
+    def getTrustedAndAvg(self, pastValue, vals):
+        err_free_vals = self.getTrusted(pastValue, vals)
+        if not err_free_vals:
+            rospy.logwarn("Non-matching values, or value is 0, defaulting to previous value")
+            return pastValue
+        else:
+            return float(sum(err_free_vals)) / len(err_free_vals)
 
-    # past value is first element of arr
-    # might causes errors: returns empty array, what if sensor readings aren't consistent
-    # could modify past value to be the average of the past few outputs (store in array)
-    def checkError(self, pastValue, arr):
-        errorFreeList = list()
-        for value in arr:
-            if abs(float((pastValue - value)) / pastValue) < pastValue * ERROR:
-                errorFreeList.append(value)
+    # assumes sensor readings are consistent, initial readings are accurate, pastValue never 0 after initialization
+    # could modify past value to be the average of the past few outputs (store in list)
+    def getTrusted(self, pastValue, vals):
+        errorFreeVals = []
+        if pastValue != 0:
+            for value in vals:
+                if abs(float((pastValue - value)) / pastValue) < pastValue * ERROR:
+                    errorFreeVals.append(value)
+        else:
+            errorFreeVals = vals
 
-        return numpy.array(errorFreeList)
+        return errorFreeVals
 
 
 if __name__ == "__main__":
