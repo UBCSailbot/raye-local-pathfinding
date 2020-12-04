@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import rospy
 from geopy.distance import distance
-from local_pathfinding.msg import AISMsg, GPS
+from sailbot_msg.msg import AISMsg, GPS
 import os
 from datetime import datetime
 from datetime import date
