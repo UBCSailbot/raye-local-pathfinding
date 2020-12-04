@@ -87,22 +87,18 @@ class RosInterface:
     def getTrustedAndAvg(self, pastValue, vals):
         err_free_vals = self.getTrusted(pastValue, vals)
         if not err_free_vals:
-            rospy.logwarn("Non-matching values, or value is 0, defaulting to previous value")
-            return pastValue
+            rospy.logwarn("Values don't match with pastValue, or pastValue is 0, defaulting to first sensor's data")
+            return vals[0]
         else:
             return float(sum(err_free_vals)) / len(err_free_vals)
 
-    # assumes sensor readings are consistent, initial readings are accurate, pastValue never 0 after initialization
+    # assumes sensor readings are consistent, first sensor initial reading is accurate
     # could modify past value to be the average of the past few outputs (store in list)
     def getTrusted(self, pastValue, vals):
         errorFreeVals = []
-        if pastValue != 0:
-            for value in vals:
-                if abs(float((pastValue - value)) / pastValue) < pastValue * ERROR:
-                    errorFreeVals.append(value)
-        else:
-            errorFreeVals = vals
-
+        for value in vals:
+            if abs(float((pastValue - value)) / pastValue) < pastValue * ERROR:
+                errorFreeVals.append(value)
         return errorFreeVals
 
 
