@@ -60,23 +60,23 @@ class RosInterface:
         self.past_wind_direction = self.wind_direction
 
         # GPS sensors
-        self.gps_lat = self.checkErrAndAvg([self.past_gps_lat,
-                                            self.data.gps_0_latitude, self.data.gps_1_latitude])
-        self.gps_lon = self.checkErrAndAvg([self.past_gps_lon,
-                                            self.data.gps_0_longitude, self.data.gps_1_longitude])
-        self.gps_headingDegrees = self.checkErrAndAvg([self.past_gps_headingDegrees,
-                                                       self.convertDegrees(self.data.gps_0_true_heading),
+        self.gps_lat = self.checkErrAndAvg(self.past_gps_lat,
+                                           [self.data.gps_0_latitude, self.data.gps_1_latitude])
+        self.gps_lon = self.checkErrAndAvg(self.past_gps_lon,
+                                           [self.data.gps_0_longitude, self.data.gps_1_longitude])
+        self.gps_headingDegrees = self.checkErrAndAvg(self.past_gps_headingDegrees,
+                                                      [self.convertDegrees(self.data.gps_0_true_heading),
                                                        self.convertDegrees(self.data.gps_1_true_heading)])
-        self.gps_speedKmph = self.checkErrAndAvg([self.past_gps_speedKmph,
-                                                  self.data.gps_0_groundspeed * KNOTS_TO_KMPH,
+        self.gps_speedKmph = self.checkErrAndAvg(self.past_gps_speedKmph,
+                                                 [self.data.gps_0_groundspeed * KNOTS_TO_KMPH,
                                                   self.data.gps_1_groundspeed * KNOTS_TO_KMPH])
         # Wind sensors
-        self.wind_speedKmph = self.checkErrAndAvg([self.past_wind_speedKmph,
-                                                   self.data.wind_sensor_0_speed * KNOTS_TO_KMPH,
+        self.wind_speedKmph = self.checkErrAndAvg(self.past_wind_speedKmph,
+                                                  [self.data.wind_sensor_0_speed * KNOTS_TO_KMPH,
                                                    self.data.wind_sensor_1_speed * KNOTS_TO_KMPH,
                                                    self.data.wind_sensor_2_speed * KNOTS_TO_KMPH])
-        self.wind_direction = self.checkErrAndAvg([self.past_wind_direction,
-                                                   self.data.wind_sensor_0_direction,
+        self.wind_direction = self.checkErrAndAvg(self.past_wind_direction,
+                                                  [self.data.wind_sensor_0_direction,
                                                    self.data.wind_sensor_1_direction,
                                                    self.data.wind_sensor_2_direction])
 
@@ -85,19 +85,16 @@ class RosInterface:
         converted = -1 * degree + 90
         return converted if converted >= 0 else converted + 360
 
-    def checkErrAndAvg(self, arr):
-        err_free_arr = self.checkError(arr)
+    def checkErrAndAvg(self, pastValue, arr):
+        err_free_arr = self.checkError(pastValue, arr)
         return float(sum(err_free_arr)) / len(err_free_arr)
 
     # past value is first element of arr
     # might causes errors: returns empty array, what if sensor readings aren't consistent
     # could modify past value to be the average of the past few outputs (store in array)
-    def checkError(self, arr):
-        pastValue = arr[0]
-        presentValues = arr - arr[0]
-
+    def checkError(self, pastValue, arr):
         errorFreeList = list()
-        for value in presentValues:
+        for value in arr:
             if abs(float((pastValue - value)) / pastValue) < pastValue * ERROR:
                 errorFreeList.append(value)
 
