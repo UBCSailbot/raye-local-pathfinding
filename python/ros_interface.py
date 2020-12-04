@@ -7,11 +7,13 @@ CHECK_PERIOD_SECONDS = 0.1  # How often fields are updated
 KNOTS_TO_KMPH = 1.852
 ERROR = 0.2  # If signals need different margin of errors, modify as required
 
-# Conversion Notes:
-# - wind_speedKmph, wind_direction, wind_headingDegrees, gps_speedKmph: int32 -> float64 (no loss of precision)
-# - wind_speedKmph, gps_speedKmph: knots -> km/h
-# - wind_direction: no conversion required (0 is bow, 90 is starboard/right, etc - cw - degrees)
-# - heading_degrees: (0 is north, 90 is east, etc - cw - degrees) -> (0 is east, 90 is north, etc - ccw - degrees)
+"""
+Conversion Notes:
+- wind_speedKmph, wind_direction, wind_headingDegrees, gps_speedKmph: int32 -> float64 (no loss of precision)
+- wind_speedKmph, gps_speedKmph: knots -> km/h
+- wind_direction: no conversion required (0 is bow, 90 is starboard/right, etc - cw - degrees)
+- heading_degrees: (0 is north, 90 is east, etc - cw - degrees) -> (0 is east, 90 is north, etc - ccw - degrees)
+"""
 
 
 class RosInterface:
@@ -20,8 +22,8 @@ class RosInterface:
         rospy.Subscriber("sensors", Sensors, self.sensorsCallback)
         self.pubWind = rospy.Publisher('windSensor', windSensor, queue_size=4)
         self.pubGPS = rospy.Publisher('GPS', GPS, queue_size=4)
+        self.initialized = False
 
-        # sensorMsg = rospy.wait_for_message('sensors', Sensors)
         self.wind_speedKmph = 0
         self.wind_direction = 0
         self.gps_lat = 0
@@ -37,12 +39,15 @@ class RosInterface:
         self.past_gps_speedKmph = 0
 
     def sensorsCallback(self, data):
+        if not self.initialized:
+            self.initialized = True
         self.data = data
 
     def pub(self):
-        self.translate()
-        self.pubGPS.publish(self.gps_lat, self.gps_lon, self.gps_headingDegrees, self.gps_speedKmph)
-        self.pubWind.publish(self.wind_direction, self.wind_speedKmph)
+        if self.initialized:
+            self.translate()
+            self.pubGPS.publish(self.gps_lat, self.gps_lon, self.gps_headingDegrees, self.gps_speedKmph)
+            self.pubWind.publish(self.wind_direction, self.wind_speedKmph)
 
     # Translate from many sensor outputs to one signal, checking error margin, averaging, and converting units
     def translate(self):
