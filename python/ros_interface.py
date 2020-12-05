@@ -10,7 +10,7 @@ ERROR = 0.2  # If signals need different margin of errors, modify as required
 Conversion Notes:
 - wind_speedKmph, wind_direction, wind_headingDegrees, gps_speedKmph: int32 -> float64 (no loss of precision)
 - wind_speedKmph, gps_speedKmph: knots -> km/h
-- wind_direction: no conversion required (0 is bow, 90 is starboard/right, etc - cw - degrees)
+- wind_direction: (0 is forward, 90 is right, etc - cw - degrees) -> (0 is right, 90 is bow, etc - ccw - degrees)
 - heading_degrees: (0 is north, 90 is east, etc - cw - degrees) -> (0 is east, 90 is north, etc - ccw - degrees)
 """
 
@@ -22,6 +22,7 @@ class RosInterface:
         self.pubWind = rospy.Publisher('windSensor', windSensor, queue_size=4)
         self.pubGPS = rospy.Publisher('GPS', GPS, queue_size=4)
         self.initialized = False
+        self.data = 0
 
         self.wind_speedKmph = 0
         self.wind_direction = 0
@@ -47,9 +48,13 @@ class RosInterface:
             self.translate()
             self.pubGPS.publish(self.gps_lat, self.gps_lon, self.gps_headingDegrees, self.gps_speedKmph)
             self.pubWind.publish(self.wind_direction, self.wind_speedKmph)
+        else:
+            rospy.logwarn("Tried to publish sensor values, but not initialized yet. Waiting for first sensor message.")
 
     # Translate from many sensor outputs to one signal, checking error margin, averaging, and converting units
     def translate(self):
+        data = self.data
+
         # Past values
         self.past_gps_lat = self.gps_lat
         self.past_gps_lon = self.gps_lon
@@ -60,26 +65,26 @@ class RosInterface:
 
         # GPS sensors
         self.gps_lat = self.getTrustedAndAvg(self.past_gps_lat,
-                                             [self.data.gps_0_latitude, self.data.gps_1_latitude])
+                                             [data.gps_0_latitude, data.gps_1_latitude])
         self.gps_lon = self.getTrustedAndAvg(self.past_gps_lon,
-                                             [self.data.gps_0_longitude, self.data.gps_1_longitude])
+                                             [data.gps_0_longitude, data.gps_1_longitude])
         self.gps_headingDegrees = self.getTrustedAndAvg(self.past_gps_headingDegrees,
-                                                        [self.convertDegrees(self.data.gps_0_true_heading),
-                                                         self.convertDegrees(self.data.gps_1_true_heading)])
+                                                        [self.convertDegrees(data.gps_0_true_heading),
+                                                         self.convertDegrees(data.gps_1_true_heading)])
         self.gps_speedKmph = self.getTrustedAndAvg(self.past_gps_speedKmph,
-                                                   [self.data.gps_0_groundspeed * KNOTS_TO_KMPH,
-                                                    self.data.gps_1_groundspeed * KNOTS_TO_KMPH])
+                                                   [data.gps_0_groundspeed * KNOTS_TO_KMPH,
+                                                    data.gps_1_groundspeed * KNOTS_TO_KMPH])
         # Wind sensors
         self.wind_speedKmph = self.getTrustedAndAvg(self.past_wind_speedKmph,
-                                                    [self.data.wind_sensor_0_speed * KNOTS_TO_KMPH,
-                                                     self.data.wind_sensor_1_speed * KNOTS_TO_KMPH,
-                                                     self.data.wind_sensor_2_speed * KNOTS_TO_KMPH])
+                                                    [data.wind_sensor_0_speed * KNOTS_TO_KMPH,
+                                                     data.wind_sensor_1_speed * KNOTS_TO_KMPH,
+                                                     data.wind_sensor_2_speed * KNOTS_TO_KMPH])
         self.wind_direction = self.getTrustedAndAvg(self.past_wind_direction,
-                                                    [self.data.wind_sensor_0_direction,
-                                                     self.data.wind_sensor_1_direction,
-                                                     self.data.wind_sensor_2_direction])
+                                                    [self.convertDegrees(data.wind_sensor_0_direction),
+                                                     self.convertDegrees(data.wind_sensor_1_direction),
+                                                     self.convertDegrees(data.wind_sensor_2_direction)])
 
-    # (0 is north, 90 is east, etc - cw - degrees) -> (0 is east, 90 is north, etc - ccw - degrees)
+    # (0 is up, 90 is right, etc - cw - degrees) -> (0 is right, 90 is up, etc - ccw - degrees)
     def convertDegrees(self, degree):
         converted = -1 * degree + 90
         return converted if converted >= 0 else converted + 360
@@ -97,7 +102,7 @@ class RosInterface:
     def getTrusted(self, pastValue, vals):
         errorFreeVals = []
         for value in vals:
-            if abs(float((pastValue - value)) / pastValue) < pastValue * ERROR:
+            if pastValue != 0 and abs(float((pastValue - value)) / pastValue) < ERROR:
                 errorFreeVals.append(value)
         return errorFreeVals
 
