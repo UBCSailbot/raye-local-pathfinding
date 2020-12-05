@@ -22,21 +22,21 @@ class RosInterface:
         self.pubWind = rospy.Publisher('windSensor', windSensor, queue_size=4)
         self.pubGPS = rospy.Publisher('GPS', GPS, queue_size=4)
         self.initialized = False
-        self.data = 0
+        self.data = None
 
-        self.wind_speedKmph = 0
-        self.wind_direction = 0
-        self.gps_lat = 0
-        self.gps_lon = 0
-        self.gps_headingDegrees = 0
-        self.gps_speedKmph = 0
+        self.wind_speedKmph = None
+        self.wind_direction = None
+        self.gps_lat = None
+        self.gps_lon = None
+        self.gps_headingDegrees = None
+        self.gps_speedKmph = None
 
-        self.past_wind_speedKmph = 0
-        self.past_wind_direction = 0
-        self.past_gps_lat = 0
-        self.past_gps_lon = 0
-        self.past_gps_headingDegrees = 0
-        self.past_gps_speedKmph = 0
+        self.past_wind_speedKmph = None
+        self.past_wind_direction = None
+        self.past_gps_lat = None
+        self.past_gps_lon = None
+        self.past_gps_headingDegrees = None
+        self.past_gps_speedKmph = None
 
     def sensorsCallback(self, data):
         if not self.initialized:
@@ -92,7 +92,7 @@ class RosInterface:
     def getTrustedAndAvg(self, pastValue, vals):
         err_free_vals = self.getTrusted(pastValue, vals)
         if not err_free_vals:
-            rospy.logwarn("Values don't match with pastValue, or pastValue is 0, defaulting to first sensor's data")
+            rospy.logwarn("Values don't match with pastValue, or no pastValue, defaulting to first sensor's data")
             return vals[0]
         else:
             return float(sum(err_free_vals)) / len(err_free_vals)
@@ -102,7 +102,7 @@ class RosInterface:
     def getTrusted(self, pastValue, vals):
         errorFreeVals = []
         for value in vals:
-            if pastValue != 0 and abs(float((pastValue - value)) / pastValue) < ERROR:
+            if pastValue is not None and abs(float((pastValue - value)) / pastValue) < ERROR:
                 errorFreeVals.append(value)
         return errorFreeVals
 
