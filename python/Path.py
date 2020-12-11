@@ -2,7 +2,7 @@ import math
 import sys
 import time
 import rospy
-import numpy as np
+# import numpy as np -- used to test on line 416
 from updated_geometric_planner import indexOfObstacleOnPath
 import planner_helpers as ph
 import utilities as utils
