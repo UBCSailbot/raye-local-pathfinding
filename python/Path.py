@@ -22,6 +22,7 @@ MAX_ALLOWABLE_DISTANCE_FINAL_WAYPOINT_TO_GOAL_KM = 5
 # Pathfinding constants
 MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS = 20.0
 INCREASE_RUNTIME_FACTOR = 1.5
+WAYPOINT_REACHED_DISTANCE = 1.0
 
 # Global variables to count invalid solutions
 count_invalid_solutions = 0
@@ -342,24 +343,24 @@ class Path:
         '''Check if the given positionLatlon has reached the next waypoint.
         This is done by drawing a line from the waypoint at (self._nextWaypointIndex - 1) to (self._nextWaypointIndex)
         Then drawing a line perpendicular to the previous line that
-        intersects with the waypoint at self._nextWaypointIndex
+        is `WAYPOINT_REACHED_DISTANCE` in front of the waypoint at self._nextWaypointIndex.
         Then checks if the positionLatlon is past the perpendicular line or not
 
         Examples: B is boat. 0 is (self._nextWaypointIndex - 1). 1 is (self._nextWaypointIndex).
 
         Example 1 Waypoint not reached:
-                |
-                |
+              |
+              |
         0  B    1
-                |
-                |
+              |
+              |
 
         Example 2 Waypoint reached:
-                |
-                |
+              |
+              |
         0       1
-                |
-                |B
+              |
+              |B
 
         Args:
            positionLatlon (sailbot_msg.msg._latlon.latlon): Latlon of the current boat position
@@ -381,14 +382,14 @@ class Path:
         isStartEast = nextWaypointX < previousWaypointX
         if nextWaypointX == previousWaypointX:
             if isStartNorth:
-                return positionY <= nextWaypointY
+                return positionY <= nextWaypointY + WAYPOINT_REACHED_DISTANCE
             else:
-                return positionY >= nextWaypointY
+                return positionY >= nextWaypointY - WAYPOINT_REACHED_DISTANCE
         if nextWaypointY == previousWaypointY:
             if isStartEast:
-                return positionX <= nextWaypointX
+                return positionX <= nextWaypointX + WAYPOINT_REACHED_DISTANCE
             else:
-                return positionX >= nextWaypointX
+                return positionX >= nextWaypointX - WAYPOINT_REACHED_DISTANCE
 
         # Create line in form y = mx + b that is perpendicular to the line from previousWaypoint to nextWaypoint
         tangentSlope = (nextWaypointY - previousWaypointY) / (nextWaypointX - previousWaypointX)
@@ -398,6 +399,14 @@ class Path:
             b = nextWaypointY + normalSlope * -math.fabs(nextWaypointX)
         else:
             b = nextWaypointY + normalSlope * math.fabs(nextWaypointX)
+
+        # Modify y-intercept so that distance between the original and shifted lines has a
+        # magnitude of `WAYPOINT_REACHED_DISTANCE` in direction of previousWaypoint.
+        verticalShift = WAYPOINT_REACHED_DISTANCE * math.sin(math.atan(math.fabs(normalSlope)))
+        if isStartNorth:
+            b -= verticalShift
+        else:
+            b += verticalShift
 
         def y(x):
             return normalSlope * x + b
