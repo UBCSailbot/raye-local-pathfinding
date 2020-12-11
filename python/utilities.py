@@ -127,23 +127,6 @@ def XYToLatlon(xy, referenceLatlon):
     return latlon(destination.latitude, destination.longitude)
 
 
-def globalWaypointReached(position, globalWaypoint):
-    '''Checks if the position has reached the global waypoint.
-
-    Args:
-       position (sailbot_msg.msg._latlon.latlon): Latlon of the position
-       globalWaypoint (sailbot_msg.msg._latlon.latlon): Latlon of the globalWaypoint
-
-    Returns:
-       bool True iff the distance between the position and globalWaypoint is below a threshold
-    '''
-    # TODO: Consider fixing globalWaypointReached to not go backwards
-    sailbot = (position.lat, position.lon)
-    waypt = (globalWaypoint.lat, globalWaypoint.lon)
-    dist = distance(sailbot, waypt).kilometers
-    return dist < GLOBAL_WAYPOINT_REACHED_RADIUS_KM
-
-
 def timeLimitExceeded(lastTimePathCreated, speedup):
     '''Checks the time since last path was created has been too long. Ensures the boat is
     not stuck to a poor, stagnant path

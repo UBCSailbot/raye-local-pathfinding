@@ -2,6 +2,7 @@ import math
 import sys
 import time
 import rospy
+import numpy as np
 from updated_geometric_planner import indexOfObstacleOnPath
 import planner_helpers as ph
 import utilities as utils
@@ -339,7 +340,7 @@ class Path:
         goal = (goalLatlon.lat, goalLatlon.lon)
         return distance(lastWaypoint, goal).kilometers <= MAX_ALLOWABLE_DISTANCE_FINAL_WAYPOINT_TO_GOAL_KM
 
-    def nextWaypointReached(self, positionLatlon):
+    def waypointReached(self, positionLatlon, previousWaypointLatlon, nextWaypointLatlon):
         '''Check if the given positionLatlon has reached the next waypoint.
         This is done by drawing a line from the waypoint at (self._nextWaypointIndex - 1) to (self._nextWaypointIndex)
         Then drawing a line perpendicular to the previous line that
@@ -370,8 +371,6 @@ class Path:
         '''
         # Convert from latlons to XY
         refLatlon = self._omplPath.getReferenceLatlon()
-        previousWaypointLatlon = self._latlons[self._nextWaypointIndex - 1]
-        nextWaypointLatlon = self._latlons[self._nextWaypointIndex]
 
         positionX, positionY = utils.latlonToXY(positionLatlon, refLatlon)
         previousWaypointX, previousWaypointY = utils.latlonToXY(previousWaypointLatlon, refLatlon)
@@ -404,9 +403,9 @@ class Path:
         # magnitude of `WAYPOINT_REACHED_DISTANCE` in direction of previousWaypoint.
         verticalShift = WAYPOINT_REACHED_DISTANCE * math.sin(math.atan(math.fabs(normalSlope)))
         if isStartNorth:
-            b -= verticalShift
-        else:
             b += verticalShift
+        else:
+            b -= verticalShift
 
         def y(x):
             return normalSlope * x + b
@@ -414,15 +413,15 @@ class Path:
         def x(y):
             return (y - b) / normalSlope
 
-    #    plt.xlim(-20, 20)
-    #    plt.ylim(-20, 20)
-    #    plt.plot([0], [0], marker = 'o', markersize=10, color="black")
-    #    plt.plot([positionX], [positionY], marker = 'o', markersize=10, color="blue")
-    #    plt.plot([previousWaypointX], [previousWaypointY], marker = 'o', markersize=10, color="green")
-    #    plt.plot([nextWaypointX], [nextWaypointY], marker="o", markersize=10, color="red")
-    #    x_plot = np.linspace(-200, 200, 100)
-    #    plt.plot(x_plot, y(x_plot), '-r')
-    #    plt.show()
+        # plt.xlim(-20, 20)
+        # plt.ylim(-20, 20)
+        # plt.plot([0], [0], marker='o', markersize=10, color="black")
+        # plt.plot([positionX], [positionY], marker='o', markersize=10, color="blue")
+        # plt.plot([previousWaypointX], [previousWaypointY], marker='o', markersize=10, color="green")
+        # plt.plot([nextWaypointX], [nextWaypointY], marker="o", markersize=10, color="red")
+        # x_plot = np.linspace(-200, 200, 100)
+        # plt.plot(x_plot, y(x_plot), '-r')
+        # plt.show()
 
         # Check if the line has been crossed
         if isStartNorth:
@@ -438,6 +437,19 @@ class Path:
             return True
 
         return False
+
+    def nextWaypointReached(self, positionLatlon):
+        previousWaypointLatlon = self._latlons[self._nextWaypointIndex - 1]
+        nextWaypointLatlon = self._latlons[self._nextWaypointIndex]
+
+        return self.waypointReached(positionLatlon, previousWaypointLatlon, nextWaypointLatlon)
+
+    # assumes there are at least 2 elements in self._latlons
+    def lastWaypointReached(self, positionLatlon):
+        previousWaypointLatlon = self._latlons[len(self._latlons) - 2]
+        nextWaypointLatlon = self._latlons[len(self._latlons) - 1]
+
+        return self.waypointReached(positionLatlon, previousWaypointLatlon, nextWaypointLatlon)
 
     def _cleanNumLookAheadWaypoints(self, numLookAheadWaypoints):
         '''Ensure nextLocalWaypointIndex + numLookAheadWaypoints is in bounds
