@@ -157,18 +157,26 @@ if __name__ == '__main__':
     axes.set_title('Local Path Visualizer (speedup = {})'.format(speedup))
     axes.set_aspect(aspect=1)
 
-    # Show wind speed text and position text
-    arrowLength = min(xPLim - xNLim, yPLim - yNLim) / 15
-    arrowCenter = (xNLim + 1.5 * arrowLength, yPLim - 1.5 * arrowLength)
+    fractionOfPlotLength = min(xPLim - xNLim, yPLim - yNLim) / 15
+    arrowLength = fractionOfPlotLength
+
+    # Show wind speed text and ocean current speed text
+    windArrowCenter = (xNLim + 1.5 * arrowLength, yPLim - 1.5 * arrowLength)  # Upper left
     globalWindSpeedKmph, globalWindDirectionDegrees = utils.measuredWindToGlobalWind(
         state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
-    windSpeedText = axes.text(arrowCenter[0], arrowCenter[1] + 1.5 * arrowLength,
+    windSpeedText = axes.text(windArrowCenter[0], windArrowCenter[1] + 1.5 * fractionOfPlotLength,
                               "Global Wind Speed Kmph: {}".format(globalWindSpeedKmph), ha='center')
-    positionLatlonText = axes.text(positionXY[0], positionXY[1] + 0.5 * arrowLength,
+
+    oceanCurrentArrowCenter = (xPLim - 1.5 * arrowLength, yPLim - 1.5 * arrowLength)  # Upper right
+    oceanCurrentSpeedText = axes.text(oceanCurrentArrowCenter[0], oceanCurrentArrowCenter[1] + 1.5 * fractionOfPlotLength,
+                              "Ocean Current Speed Kmph: {}".format(rospy.get_param("ocean_current_speed", default=0)), ha='center')
+
+    # Show position and global waypoint text
+    positionLatlonText = axes.text(positionXY[0], positionXY[1] + 0.5 * fractionOfPlotLength,
                                    "(Lat: {}, Lon: {})".format(round(state.position.lat, LATLON_TEXT_DECIMAL_PLACES),
                                                                round(state.position.lon, LATLON_TEXT_DECIMAL_PLACES)),
                                    ha='center')
-    nextGlobalWaypointLatlonText = axes.text(nextGlobalWaypointXY[0], nextGlobalWaypointXY[1] + 0.5 * arrowLength,
+    nextGlobalWaypointLatlonText = axes.text(nextGlobalWaypointXY[0], nextGlobalWaypointXY[1] + 0.5 * fractionOfPlotLength,
                                              "(Lat: {}, Lon: {})"
                                              .format(round(nextGlobalWaypoint.lat, LATLON_TEXT_DECIMAL_PLACES),
                                                      round(nextGlobalWaypoint.lon, LATLON_TEXT_DECIMAL_PLACES)),
@@ -207,18 +215,27 @@ if __name__ == '__main__':
             axes.set_xlim(xNLim, xPLim)
             axes.set_ylim(yNLim, yPLim)
 
+        fractionOfPlotLength = min(xPLim - xNLim, yPLim - yNLim) / 15
+        arrowLength = fractionOfPlotLength
+
         # Update wind speed text
-        arrowLength = min(xPLim - xNLim, yPLim - yNLim) / 15
-        arrowCenter = (xNLim + 1.5 * arrowLength, yPLim - 1.5 * arrowLength)
+        windArrowCenter = (xNLim + 1.5 * arrowLength, yPLim - 1.5 * arrowLength)
         globalWindSpeedKmph, globalWindDirectionDegrees = utils.measuredWindToGlobalWind(
             state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
-        windSpeedText.set_position((arrowCenter[0], arrowCenter[1] + 1.5 * arrowLength))
+        windSpeedText.set_position((windArrowCenter[0], windArrowCenter[1] + 1.5 * fractionOfPlotLength))
         windSpeedText.set_text("Wind Speed Kmph: {}".format(globalWindSpeedKmph))
-        positionLatlonText.set_position((positionXY[0], positionXY[1] + 0.5 * arrowLength))
+
+        # Update ocean current speed text
+        oceanCurrentArrowCenter = (xPLim - 1.5 * arrowLength, yPLim - 1.5 * arrowLength)
+        oceanCurrentSpeedText.set_position((oceanCurrentArrowCenter[0], oceanCurrentArrowCenter[1] + 1.5 * fractionOfPlotLength))
+        oceanCurrentSpeedText.set_text("Ocean Current Speed Kmph: {}".format(rospy.get_param("ocean_current_speed", default=0)))
+
+        # Update position and global waypoint text
+        positionLatlonText.set_position((positionXY[0], positionXY[1] + 0.5 * fractionOfPlotLength))
         positionLatlonText.set_text("(Lat: {}, Lon: {})".format(round(state.position.lat, LATLON_TEXT_DECIMAL_PLACES),
                                                                 round(state.position.lon, LATLON_TEXT_DECIMAL_PLACES)))
         nextGlobalWaypointLatlonText.set_position(
-            (nextGlobalWaypointXY[0], nextGlobalWaypointXY[1] + 0.5 * arrowLength))
+            (nextGlobalWaypointXY[0], nextGlobalWaypointXY[1] + 0.5 * fractionOfPlotLength))
         nextGlobalWaypointLatlonText.set_text("(Lat: {}, Lon: {})"
                                               .format(round(nextGlobalWaypoint.lat, LATLON_TEXT_DECIMAL_PLACES),
                                                       round(nextGlobalWaypoint.lon, LATLON_TEXT_DECIMAL_PLACES)))
@@ -226,21 +243,30 @@ if __name__ == '__main__':
         # Update speedup text
         axes.set_title('Local Path Visualizer (speedup = {})'.format(speedup))
 
-        # Add boats and wind speed arrow
+        # Add boats and wind speed arrow and ocean current arrow
         for ship in shipsXY:
             ship.addPatch(axes)
-        arrowStart = (arrowCenter[0] - 0.5 * arrowLength * math.cos(math.radians(globalWindDirectionDegrees)),
-                      arrowCenter[1] - 0.5 * arrowLength * math.sin(math.radians(globalWindDirectionDegrees)))
-        windDirection = patches.FancyArrow(arrowStart[0], arrowStart[1],
-                                           arrowLength * math.cos(math.radians(globalWindDirectionDegrees)),
-                                           arrowLength * math.sin(math.radians(globalWindDirectionDegrees)),
-                                           width=arrowLength / 4)
+        windArrowStart = (windArrowCenter[0] - 0.5 * fractionOfPlotLength * math.cos(math.radians(globalWindDirectionDegrees)),
+                      windArrowCenter[1] - 0.5 * fractionOfPlotLength * math.sin(math.radians(globalWindDirectionDegrees)))
+        windDirection = patches.FancyArrow(windArrowStart[0], windArrowStart[1],
+                                           fractionOfPlotLength * math.cos(math.radians(globalWindDirectionDegrees)),
+                                           fractionOfPlotLength * math.sin(math.radians(globalWindDirectionDegrees)),
+                                           width=fractionOfPlotLength / 4)
         axes.add_patch(windDirection)
+
+        oceanCurrentDirectionDegrees = rospy.get_param('ocean_current_direction', default=0)
+        oceanCurrentArrowStart = (oceanCurrentArrowCenter[0] - 0.5 * fractionOfPlotLength * math.cos(math.radians(oceanCurrentDirectionDegrees)),
+                      oceanCurrentArrowCenter[1] - 0.5 * fractionOfPlotLength * math.sin(math.radians(oceanCurrentDirectionDegrees)))
+        oceanCurrentDirection = patches.FancyArrow(oceanCurrentArrowStart[0], oceanCurrentArrowStart[1],
+                                           fractionOfPlotLength * math.cos(math.radians(oceanCurrentDirectionDegrees)),
+                                           fractionOfPlotLength * math.sin(math.radians(oceanCurrentDirectionDegrees)),
+                                           width=fractionOfPlotLength / 4)
+        axes.add_patch(oceanCurrentDirection)
 
         # Draw then sleep
         plt.draw()
         plt.pause(0.001)
         r.sleep()
-        # Removes all ships and wind arrow
+        # Removes all ships and wind arrow and ocean current arrow
         for p in axes.patches:
             p.remove()
