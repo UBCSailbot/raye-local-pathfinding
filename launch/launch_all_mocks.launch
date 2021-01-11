@@ -44,6 +44,12 @@
     <arg name="planner_type" default="RRTStar" />
     <param name="planner_type" type="string" value="$(arg planner_type)" />
 
+    <!-- Sets planner type, accepted types include: "RRTStar", "RRTSharp","RRTXStatic" (full list in allocatePlanner()) -->
+    <arg name="ocean_current_speed" default="0.0" />
+    <arg name="ocean_current_direction" default="0.0" />
+    <param name="ocean_current_speed" type="double" value="$(arg ocean_current_speed)" />
+    <param name="ocean_current_direction" type="double" value="$(arg ocean_current_direction)" />
+
     <node pkg="local_pathfinding" type="MOCK_wind_sensor.py" name="MOCK_wind_sensor" />
     <node pkg="local_pathfinding" type="MOCK_controller_and_boat.py" name="MOCK_controller_and_boat" />
     <node pkg="local_pathfinding" type="MOCK_AIS.py" name="MOCK_AIS" />
