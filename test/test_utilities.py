@@ -72,22 +72,6 @@ class TestUtilities(unittest.TestCase):
         desiredHeading = utils.getDesiredHeadingDegrees(position=position, localWaypoint=eastDestination)
         self.assertAlmostEqual(desiredHeading, utils.HEADING_EAST, places=1)
 
-    def test_globalWaypointReached(self):
-        # Setup latlon
-        position = latlon(35, -150)
-
-        # Far away globalWaypoint unreached
-        unreachedPosition = (distance(kilometers=2*utils.GLOBAL_WAYPOINT_REACHED_RADIUS_KM)
-                             .destination(point=(position.lat, position.lon), bearing=utils.BEARING_EAST))
-        unreachedGlobalWaypoint = latlon(unreachedPosition.latitude, unreachedPosition.longitude)
-        self.assertFalse(utils.globalWaypointReached(position, unreachedGlobalWaypoint))
-
-        # Far away globalWaypoint reached
-        reachedPosition = (distance(kilometers=utils.GLOBAL_WAYPOINT_REACHED_RADIUS_KM/2)
-                           .destination(point=(position.lat, position.lon), bearing=utils.BEARING_EAST))
-        reachedGlobalWaypoint = latlon(reachedPosition.latitude, reachedPosition.longitude)
-        self.assertTrue(utils.globalWaypointReached(position, reachedGlobalWaypoint))
-
     def test_headingToBearingDegrees(self):
         # Basic tests
         self.assertAlmostEqual(utils.BEARING_NORTH % 360, utils.headingToBearingDegrees(utils.HEADING_NORTH) % 360,

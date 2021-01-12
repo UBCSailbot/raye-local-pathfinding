@@ -2,7 +2,6 @@ import math
 import sys
 import time
 import rospy
-# import numpy as np -- used to test on line 416
 from updated_geometric_planner import indexOfObstacleOnPath
 import planner_helpers as ph
 import utilities as utils
@@ -401,7 +400,8 @@ class Path:
 
         # Modify y-intercept so that distance between the original and shifted lines has a
         # magnitude of `WAYPOINT_REACHED_DISTANCE` in direction of previousWaypoint.
-        verticalShift = WAYPOINT_REACHED_DISTANCE * math.sin(math.atan(math.fabs(normalSlope)))
+        # NOte that cos(arctan(x)) can never be 0, so no division by 0 will happen
+        verticalShift = WAYPOINT_REACHED_DISTANCE / math.sin(math.atan(math.fabs(normalSlope)))
         if isStartNorth:
             b += verticalShift
         else:
@@ -413,6 +413,7 @@ class Path:
         def x(y):
             return (y - b) / normalSlope
 
+        # import numpy as np
         # plt.xlim(-20, 20)
         # plt.ylim(-20, 20)
         # plt.plot([0], [0], marker='o', markersize=10, color="black")
@@ -446,8 +447,8 @@ class Path:
 
     # assumes there are at least 2 elements in self._latlons
     def lastWaypointReached(self, positionLatlon):
-        previousWaypointLatlon = self._latlons[len(self._latlons) - 2]
-        nextWaypointLatlon = self._latlons[len(self._latlons) - 1]
+        previousWaypointLatlon = self._latlons[-2]
+        nextWaypointLatlon = self._latlons[-1]
 
         return self.waypointReached(positionLatlon, previousWaypointLatlon, nextWaypointLatlon)
 

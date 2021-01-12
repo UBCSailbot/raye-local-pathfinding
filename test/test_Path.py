@@ -40,22 +40,28 @@ class TestPath(unittest.TestCase):
 
         return path
 
-    def test_localWaypointReached(self):
-        # Setup path from (0,0) to (1,1)
-        path = self.createPathWithGivenPositionsXY([[0, 0], [1, 1]])
+    def test_waypointReached(self):
+        # Setup path from (0,0) to (5,5)
+        # Test passes when distance to next waypoint is less than or equal to 1
+        path = self.createPathWithGivenPositionsXY([[0, 0], [5, 5]])
+
+        # Setup initial values
+        previousWaypoint = utils.XYToLatlon(xy=(0, 0), referenceLatlon=path.getReferenceLatlon())
+        nextWaypoint = utils.XYToLatlon(xy=(5, 5), referenceLatlon=path.getReferenceLatlon())
 
         # Test reachedPos
-        reachedPos = utils.XYToLatlon(xy=(2, 2), referenceLatlon=path.getReferenceLatlon())
+        reachedPos = utils.XYToLatlon(xy=(4.5, 4.5), referenceLatlon=path.getReferenceLatlon())
         self.assertTrue(path.nextWaypointReached(reachedPos))
 
         # Test notReachedPos
-        notReachedPos = utils.XYToLatlon(xy=(1, 0.5), referenceLatlon=path.getReferenceLatlon())
+        notReachedPos = utils.XYToLatlon(xy=(4, 4), referenceLatlon=path.getReferenceLatlon())
         self.assertFalse(path.nextWaypointReached(notReachedPos))
 
     # testing cases where start and LWP have same lat or same lon
-    def test_localWaypointReached_sameLat(self):
-        # Setup path from (1,1) to (1,2)
-        path = self.createPathWithGivenPositionsXY([[1, 1], [1, 2]])
+    def test_nextWaypointReached_sameLat(self):
+        # Setup path from (1,1) to (1,3)
+        # Test passes when distance to next waypoint is less than or equal to 1
+        path = self.createPathWithGivenPositionsXY([[1, 1], [1, 3]])
 
         # Test reachedPos
         reachedPos = utils.XYToLatlon(xy=(100, 2.1), referenceLatlon=path.getReferenceLatlon())
@@ -65,9 +71,10 @@ class TestPath(unittest.TestCase):
         notReachedPos = utils.XYToLatlon(xy=(-100, 1.9), referenceLatlon=path.getReferenceLatlon())
         self.assertFalse(path.nextWaypointReached(notReachedPos))
 
-    def test_localWaypointReached_sameLon(self):
-        # Setup path from (2,1) to (1,1)
-        path = self.createPathWithGivenPositionsXY([[2, 1], [1, 1]])
+    def test_nextWaypointReached_sameLon(self):
+        # Setup path from (3,1) to (1,1)
+        # Test passes when distance to next waypoint is less than or equal to 1
+        path = self.createPathWithGivenPositionsXY([[3, 1], [1, 1]])
 
         # Test reachedPos
         reachedPos = utils.XYToLatlon(xy=(0.9, -100), referenceLatlon=path.getReferenceLatlon())
