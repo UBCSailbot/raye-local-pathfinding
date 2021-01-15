@@ -22,6 +22,12 @@ localPathUpdateForced = False
 # Global variable for speedup
 speedup = 1.0
 
+# Global variable for when the last wind sensor message arrived
+lastWindSensorMsg = 0
+
+def windSensorCallback(data):
+    global lastWindSensorMsg
+    lastWindSensorMsg = time.time()
 
 def localPathUpdateRequestedCallback(data):
     global localPathUpdateRequested
@@ -72,7 +78,9 @@ if __name__ == '__main__':
     rospy.Subscriber('requestLocalPathUpdate', Bool, localPathUpdateRequestedCallback)
     rospy.Subscriber('forceLocalPathUpdate', Bool, localPathUpdateForcedCallback)
     rospy.Subscriber('speedup', Float64, speedupCallback)
+    rospy.Subscriber('windSensor', msg.windSensor, windSensorCallback)
 
+    windSensorPublisher = rospy.Publisher('windSensor', msg.windSensor, queue_size=4)
     # Create ros publisher for the desired heading for the controller
     desiredHeadingPublisher = rospy.Publisher('desiredHeading', msg.heading, queue_size=4)
 
@@ -207,6 +215,16 @@ if __name__ == '__main__':
         nextGlobalWaypointPublisher.publish(state.globalWaypoint)
         pathCostPublisher.publish(localPath.getCost())
         pathCostBreakdownPublisher.publish(localPath.getPathCostBreakdownString())
+
+        if time.time() - lastWindSensorMsg > 30:
+            rospy.logwarn("Wind sensor data missing!")
+            windMsg = msg.windSensor()
+            # 90 deg is from the aft, 0 deg is from port/left
+            # Set the wind to 1000 kmph to make sure that it
+            # won't get overshadowed by the boat's own speed
+            windMsg.measuredDirectionDegrees = 0
+            windMsg.measuredSpeedKmph = 1000
+            windSensorPublisher.publish(windMsg)
 
         # If there are any plots, give some time for them to respond to requests, such as closing
         plt.pause(0.001)
