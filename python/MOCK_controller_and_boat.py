@@ -24,13 +24,16 @@ class MOCK_ControllerAndSailbot:
         self.headingSetpoint = headingDegrees
         self.speedKmph = speedKmph
         self.speedSetpoint = speedKmph
+        self.origSpeedSetpoint = speedKmph
         self.publishPeriodSeconds = GPS_PUBLISH_PERIOD_SECONDS
+        self.relativeWindDegrees = None
 
         rospy.init_node('MOCK_Sailbot_Listener', anonymous=True)
         self.publisher = rospy.Publisher("GPS", msg.GPS, queue_size=4)
         rospy.Subscriber("desiredHeading", msg.heading, self.desiredHeadingCallback)
         rospy.Subscriber("changeGPS", msg.GPS, self.changeGPSCallback)
         rospy.Subscriber('speedup', Float64, self.speedupCallback)
+        rospy.Subscriber("windSensor", msg.windSensor, self.windSensorCallback)
 
     def move(self):
         # Travel greater distances with speedup
@@ -49,9 +52,20 @@ class MOCK_ControllerAndSailbot:
             self.headingDegrees = (self.headingDegrees + gain * error) % 360
 
             # Speed
+            if self.relativeWindDegrees is not None:
+                if abs(ssa_deg(self.relativeWindDegrees)) < 15 or abs(ssa_deg(self.relativeWindDegrees)) > 165:
+                    self.speedSetpoint = self.origSpeedSetpoint / 4.0
+                else:
+                    self.speedSetpoint = self.origSpeedSetpoint
+                print(self.speedSetpoint)
+
             error = self.speedSetpoint - self.speedKmph
             gain = min(1, SPEED_CHANGE_GAIN * self.publishPeriodSeconds * self.speedup)
             self.speedKmph += gain * error
+
+    def windSensorCallback(self, data):
+        rospy.loginfo(data)
+        self.relativeWindDegrees = data.measuredDirectionDegrees
 
     def desiredHeadingCallback(self, data):
         rospy.loginfo(data)
