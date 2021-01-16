@@ -112,7 +112,7 @@ if __name__ == '__main__':
             state, numLookAheadWaypoints=utils.NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND, showWarnings=True)
         hasObstacleOnPath = localPath.obstacleOnPath(
             state, numLookAheadWaypoints=utils.NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES, showWarnings=True)
-        isGlobalWaypointReached = utils.globalWaypointReached(state.position, state.globalWaypoint)
+        isGlobalWaypointReached = localPath.lastWaypointReached(state.position)
         newGlobalPathReceived = sailbot.newGlobalPathReceived
         reachedEndOfLocalPath = localPath.reachedEnd()
         pathNotReachGoal = not localPath.reachesGoalLatlon(state.globalWaypoint)

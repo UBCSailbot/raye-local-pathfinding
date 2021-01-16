@@ -15,7 +15,6 @@ PORT_RENFREW_LATLON = latlon(48.5, -124.8)
 MAUI_LATLON = latlon(20.0, -156.0)
 
 # Constants
-GLOBAL_WAYPOINT_REACHED_RADIUS_KM = 10.0
 PATH_UPDATE_TIME_LIMIT_SECONDS = 7200
 AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM = 3.0
 
@@ -125,23 +124,6 @@ def XYToLatlon(xy, referenceLatlon):
     destination = x_distance.destination(point=(referenceLatlon.lat, referenceLatlon.lon), bearing=BEARING_EAST)
     destination = y_distance.destination(point=(destination.latitude, destination.longitude), bearing=BEARING_NORTH)
     return latlon(destination.latitude, destination.longitude)
-
-
-def globalWaypointReached(position, globalWaypoint):
-    '''Checks if the position has reached the global waypoint.
-
-    Args:
-       position (sailbot_msg.msg._latlon.latlon): Latlon of the position
-       globalWaypoint (sailbot_msg.msg._latlon.latlon): Latlon of the globalWaypoint
-
-    Returns:
-       bool True iff the distance between the position and globalWaypoint is below a threshold
-    '''
-    # TODO: Consider fixing globalWaypointReached to not go backwards
-    sailbot = (position.lat, position.lon)
-    waypt = (globalWaypoint.lat, globalWaypoint.lon)
-    dist = distance(sailbot, waypt).kilometers
-    return dist < GLOBAL_WAYPOINT_REACHED_RADIUS_KM
 
 
 def timeLimitExceeded(lastTimePathCreated, speedup):
