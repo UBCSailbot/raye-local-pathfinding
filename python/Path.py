@@ -339,6 +339,47 @@ class Path:
         goal = (goalLatlon.lat, goalLatlon.lon)
         return distance(lastWaypoint, goal).kilometers <= MAX_ALLOWABLE_DISTANCE_FINAL_WAYPOINT_TO_GOAL_KM
 
+    def getPerpLine(self, lastX, lastY, currX, currY, nextX, nextY):
+        '''
+        Returns:
+            bool isStartNorth, bool isStartEast, slope, y-intercept
+                - a vertical line, with undefined slope and no y-intercept, is represented by
+                  slope, y-intercept = None, None
+        '''
+        isStartNorth = nextY < lastY
+        isStartEast = nextX < lastX
+        if nextX == lastX:
+            if isStartNorth:
+                return isStartNorth, isStartEast, 0, nextY + WAYPOINT_REACHED_DISTANCE
+            else:
+                return isStartNorth, isStartEast, 0, nextY - WAYPOINT_REACHED_DISTANCE
+
+        if nextY == lastY:
+            if isStartEast:
+                return isStartNorth, isStartEast, None, None
+            else:
+                return isStartNorth, isStartEast, None, None
+
+        # Create line in form y = mx + b that is perpendicular to the line from previousWaypoint to nextWaypoint
+        tangentSlope = (nextY - lastY) / (nextX - lastX)
+        normalSlope = -1 / tangentSlope
+
+        if nextX > 0:
+            b = nextY + normalSlope * -math.fabs(nextX)
+        else:
+            b = nextY + normalSlope * math.fabs(nextX)
+
+        return isStartNorth, isStartEast, normalSlope, b
+
+        # Modify y-intercept so that distance between the original and shifted lines has a
+        # magnitude of `WAYPOINT_REACHED_DISTANCE` in direction of previousWaypoint.
+        # NOte that cos(arctan(x)) can never be 0, so no division by 0 will happen
+        verticalShift = WAYPOINT_REACHED_DISTANCE / math.sin(math.atan(math.fabs(normalSlope)))
+        if isStartNorth:
+            b += verticalShift
+        else:
+            b -= verticalShift
+
     def waypointReached(self, positionLatlon, previousWaypointLatlon, nextWaypointLatlon):
         '''Check if the given positionLatlon has reached the next waypoint.
         This is done by drawing a line from the waypoint at (self._nextWaypointIndex - 1) to (self._nextWaypointIndex)
@@ -375,37 +416,20 @@ class Path:
         previousWaypointX, previousWaypointY = utils.latlonToXY(previousWaypointLatlon, refLatlon)
         nextWaypointX, nextWaypointY = utils.latlonToXY(nextWaypointLatlon, refLatlon)
 
+        isStartNorth, isStartEast, normalSlope, b = self.getPerpLine(previousWaypointX, previousWaypointY, positionX,
+                                                                     positionY, nextWaypointX, nextWaypointY)
+
         # Handle edge cases where waypoints have the same x or y component
-        isStartNorth = nextWaypointY < previousWaypointY
-        isStartEast = nextWaypointX < previousWaypointX
-        if nextWaypointX == previousWaypointX:
+        if normalSlope == 0:
             if isStartNorth:
-                return positionY <= nextWaypointY + WAYPOINT_REACHED_DISTANCE
+                return positionY <= b
             else:
-                return positionY >= nextWaypointY - WAYPOINT_REACHED_DISTANCE
-        if nextWaypointY == previousWaypointY:
+                return positionY >= b
+        elif not normalSlope:
             if isStartEast:
                 return positionX <= nextWaypointX + WAYPOINT_REACHED_DISTANCE
             else:
                 return positionX >= nextWaypointX - WAYPOINT_REACHED_DISTANCE
-
-        # Create line in form y = mx + b that is perpendicular to the line from previousWaypoint to nextWaypoint
-        tangentSlope = (nextWaypointY - previousWaypointY) / (nextWaypointX - previousWaypointX)
-        normalSlope = -1 / tangentSlope
-
-        if nextWaypointX > 0:
-            b = nextWaypointY + normalSlope * -math.fabs(nextWaypointX)
-        else:
-            b = nextWaypointY + normalSlope * math.fabs(nextWaypointX)
-
-        # Modify y-intercept so that distance between the original and shifted lines has a
-        # magnitude of `WAYPOINT_REACHED_DISTANCE` in direction of previousWaypoint.
-        # NOte that cos(arctan(x)) can never be 0, so no division by 0 will happen
-        verticalShift = WAYPOINT_REACHED_DISTANCE / math.sin(math.atan(math.fabs(normalSlope)))
-        if isStartNorth:
-            b += verticalShift
-        else:
-            b -= verticalShift
 
         def y(x):
             return normalSlope * x + b
