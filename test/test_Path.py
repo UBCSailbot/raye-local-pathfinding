@@ -48,12 +48,14 @@ class TestPath(unittest.TestCase):
         boundaryCoord = 100 - math.sqrt(WAYPOINT_REACHED_DISTANCE**2 / 2)
 
         # Test reachedPos
-        reachedPos = utils.XYToLatlon(xy=(boundaryCoord + 0.01, boundaryCoord + 0.01), referenceLatlon=path.getReferenceLatlon())
+        reachedPos = utils.XYToLatlon(xy=(boundaryCoord + 0.01, boundaryCoord + 0.01),
+                                      referenceLatlon=path.getReferenceLatlon())
         self.assertTrue(path.nextWaypointReached(reachedPos))
         self.assertTrue(path.lastWaypointReached(reachedPos))
 
         # Test notReachedPos
-        notReachedPos = utils.XYToLatlon(xy=(boundaryCoord - 0.01, boundaryCoord - 0.01), referenceLatlon=path.getReferenceLatlon())
+        notReachedPos = utils.XYToLatlon(xy=(boundaryCoord - 0.01, boundaryCoord - 0.01),
+                                         referenceLatlon=path.getReferenceLatlon())
         self.assertFalse(path.nextWaypointReached(notReachedPos))
         self.assertFalse(path.lastWaypointReached(notReachedPos))
 
