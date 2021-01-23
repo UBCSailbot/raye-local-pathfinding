@@ -133,7 +133,7 @@ if __name__ == '__main__':
                  for xy in localPathXY]
     nextInd = distances.index(min(distances))
     prevInd = 0 if nextInd == 0 else nextInd - 1
-    
+
     isStartNorth, isStartEast, slope, y_intercept = getPerpLine(localPathXY[prevInd][0], localPathXY[prevInd][1],
                                                                 nextLocalWaypointXY[0], nextLocalWaypointXY[1])
 

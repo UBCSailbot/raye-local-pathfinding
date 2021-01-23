@@ -1,12 +1,13 @@
 #! /usr/bin/env python
 
 import local_imports  # Must be first import, as it adds python directory to path
+import math
 from geopy.distance import distance
 import utilities as utils
 import Sailbot as sbot
 from sailbot_msg.msg import latlon, AISMsg, AISShip
 from planner_helpers import UPWIND_MAX_ANGLE_DEGREES, DOWNWIND_MAX_ANGLE_DEGREES
-from Path import createPath, UPWIND_DOWNWIND_TIME_LIMIT_SECONDS
+from Path import createPath, UPWIND_DOWNWIND_TIME_LIMIT_SECONDS, WAYPOINT_REACHED_DISTANCE
 from updated_geometric_planner import indexOfObstacleOnPath
 import rostest
 import unittest
@@ -41,48 +42,51 @@ class TestPath(unittest.TestCase):
         return path
 
     def test_waypointReached(self):
-        # Setup path from (0,0) to (5,5)
-        # Test passes when distance to next waypoint is less than or equal to 1
-        path = self.createPathWithGivenPositionsXY([[0, 0], [5, 5]])
+        # Setup path from (0,0) to (100,100)
+        # Test passes when distance to next waypoint is less than or equal to WAYPOINT_REACHED_DISTANCE
+        path = self.createPathWithGivenPositionsXY([[0, 0], [100, 100]])
+        boundaryCoord = 100 - math.sqrt(WAYPOINT_REACHED_DISTANCE**2 / 2)
 
         # Test reachedPos
-        reachedPos = utils.XYToLatlon(xy=(4.5, 4.5), referenceLatlon=path.getReferenceLatlon())
+        reachedPos = utils.XYToLatlon(xy=(boundaryCoord + 0.01, boundaryCoord + 0.01), referenceLatlon=path.getReferenceLatlon())
         self.assertTrue(path.nextWaypointReached(reachedPos))
         self.assertTrue(path.lastWaypointReached(reachedPos))
 
         # Test notReachedPos
-        notReachedPos = utils.XYToLatlon(xy=(4, 4), referenceLatlon=path.getReferenceLatlon())
+        notReachedPos = utils.XYToLatlon(xy=(boundaryCoord - 0.01, boundaryCoord - 0.01), referenceLatlon=path.getReferenceLatlon())
         self.assertFalse(path.nextWaypointReached(notReachedPos))
         self.assertFalse(path.lastWaypointReached(notReachedPos))
 
     # testing cases where start and LWP have same lat or same lon
     def test_nextWaypointReached_sameLat(self):
-        # Setup path from (1,1) to (1,3)
-        # Test passes when distance to next waypoint is less than or equal to 1
-        path = self.createPathWithGivenPositionsXY([[1, 1], [1, 3]])
+        # Setup path from (1,1) to (1,100)
+        # Test passes when distance to next waypoint is less than or equal to WAYPOINT_REACHED_DISTANCE
+        path = self.createPathWithGivenPositionsXY([[1, 1], [1, 100]])
+        boundaryCoord = 100 - WAYPOINT_REACHED_DISTANCE
 
         # Test reachedPos
-        reachedPos = utils.XYToLatlon(xy=(100, 2.1), referenceLatlon=path.getReferenceLatlon())
+        reachedPos = utils.XYToLatlon(xy=(100, boundaryCoord + 0.01), referenceLatlon=path.getReferenceLatlon())
         self.assertTrue(path.nextWaypointReached(reachedPos))
         self.assertTrue(path.lastWaypointReached(reachedPos))
 
         # Test notReachedPos
-        notReachedPos = utils.XYToLatlon(xy=(-100, 1.9), referenceLatlon=path.getReferenceLatlon())
+        notReachedPos = utils.XYToLatlon(xy=(-100, boundaryCoord - 0.01), referenceLatlon=path.getReferenceLatlon())
         self.assertFalse(path.nextWaypointReached(notReachedPos))
         self.assertFalse(path.lastWaypointReached(notReachedPos))
 
     def test_nextWaypointReached_sameLon(self):
-        # Setup path from (3,1) to (1,1)
-        # Test passes when distance to next waypoint is less than or equal to 1
-        path = self.createPathWithGivenPositionsXY([[3, 1], [1, 1]])
+        # Setup path from (100,1) to (1,1)
+        # Test passes when distance to next waypoint is less than or equal to WAYPOINT_REACHED_DISTANCE
+        path = self.createPathWithGivenPositionsXY([[100, 1], [1, 1]])
+        boundaryCoord = 1 + WAYPOINT_REACHED_DISTANCE
 
         # Test reachedPos
-        reachedPos = utils.XYToLatlon(xy=(0.9, -100), referenceLatlon=path.getReferenceLatlon())
+        reachedPos = utils.XYToLatlon(xy=(boundaryCoord - 0.01, -100), referenceLatlon=path.getReferenceLatlon())
         self.assertTrue(path.nextWaypointReached(reachedPos))
         self.assertTrue(path.lastWaypointReached(reachedPos))
 
         # Test notReachedPos
-        notReachedPos = utils.XYToLatlon(xy=(1.1, 100), referenceLatlon=path.getReferenceLatlon())
+        notReachedPos = utils.XYToLatlon(xy=(boundaryCoord + 0.01, 100), referenceLatlon=path.getReferenceLatlon())
         self.assertFalse(path.nextWaypointReached(notReachedPos))
         self.assertFalse(path.lastWaypointReached(notReachedPos))
 

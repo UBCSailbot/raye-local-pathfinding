@@ -28,6 +28,7 @@ WAYPOINT_REACHED_DISTANCE = 0.5
 count_invalid_solutions = 0
 temp_invalid_solutions = 0
 
+
 def getPerpLine(lastX, lastY, nextX, nextY):
     '''
     Returns:
@@ -68,6 +69,7 @@ def getPerpLine(lastX, lastY, nextX, nextY):
         b -= verticalShift
 
     return isStartNorth, isStartEast, normalSlope, b
+
 
 class OMPLPath:
     """ Class for storing an OMPL configuration, OMPL path, and the referenceLatlon
