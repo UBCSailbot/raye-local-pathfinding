@@ -132,8 +132,7 @@ if __name__ == '__main__':
     nextInd = localPathXY.index([nextLocalWaypointXY[0], nextLocalWaypointXY[1]])
     prevInd = 0 if nextInd == 0 else nextInd - 1
     isStartNorth, isStartEast, slope, y_intercept = getPerpLine(localPathXY[prevInd][0], localPathXY[prevInd][1],
-                                                                positionXY[0], positionXY[1], nextLocalWaypointXY[0],
-                                                                nextLocalWaypointXY[1])
+                                                                nextLocalWaypointXY[0], nextLocalWaypointXY[1])
 
     # Create plot with waypoints and boat
     xPLim, xNLim, yPLim, yNLim = getXYLimits(positionXY, nextGlobalWaypointXY)
@@ -153,13 +152,14 @@ if __name__ == '__main__':
         waypointReachedPlot, = axes.plot([nextLocalWaypointXY[0] + offset, nextLocalWaypointXY[0] + offset],
                                          [nextLocalWaypointXY[1] - 5, nextLocalWaypointXY[1] + 5])
     else:
+        # methods for boundary line
         def y(x):
             return slope * x + y_intercept
 
-        def x(y):
-            return (y - y_intercept) / slope
+        # find the interception between the boundary line and path to the next waypoint
+        # solve for x in y = slope*x + y_intercept = -1/m(x-nextX) + nextY
+        centerX = (nextLocalWaypointXY[0] / slope + nextLocalWaypointXY[1]) / (slope + 1 / slope)
 
-        centerX = x(nextLocalWaypointXY[1])
         deltaX = 5 * math.cos(math.atan(math.fabs(slope)))
         lineX = [centerX - deltaX, centerX + deltaX]
         lineY = [y(lineX[0]), y(lineX[1])]
@@ -225,11 +225,12 @@ if __name__ == '__main__':
         localPathY = [xy[1] for xy in localPathXY]
         shipsXY = obs.getObstacles(state, referenceLatlon)
 
+        # ERROR: eventually cannot find index of local waypoint
         nextInd = localPathXY.index([nextLocalWaypointXY[0], nextLocalWaypointXY[1]])
         prevInd = 0 if nextInd == 0 else nextInd - 1
         isStartNorth, isStartEast, slope, y_intercept = getPerpLine(localPathXY[prevInd][0], localPathXY[prevInd][1],
-                                                                    positionXY[0], positionXY[1],
                                                                     nextLocalWaypointXY[0], nextLocalWaypointXY[1])
+        # rospy.logwarn('slope, y-intercept: ({}, {})'.format(slope, y_intercept))
 
         # Update plots
         localPathPlot.set_xdata(localPathX)
@@ -255,12 +256,20 @@ if __name__ == '__main__':
             def y(x):
                 return slope * x + y_intercept
 
-            def x(y):
-                return (y - y_intercept) / slope
+            # ERROR: slope is offset
 
-            rospy.logwarn(WAYPOINT_REACHED_DISTANCE)
-            centerX = x(nextLocalWaypointXY[1])
+            # find the interception between the boundary line and path to the next waypoint
+            #  - solve for x in y = slope*x + y_intercept = -1/m(x-nextX) + nextY
+            centerX = (nextLocalWaypointXY[0] / slope + nextLocalWaypointXY[1] - y_intercept) / (slope + 1 / slope)
+
+            # rospy.logwarn('previous waypoint: ({}, {})'.format(localPathXY[prevInd][0], localPathXY[prevInd][1]))
+            # rospy.logwarn('next waypoint: ({}, {})'.format(nextLocalWaypointXY[0], nextLocalWaypointXY[1]))
+            rospy.logwarn('boundary line middle: ({}, {})'.format(centerX, y(centerX)))
+            rospy.logwarn('current position: ({}, {})'.format(positionXY[0], positionXY[1]))
+
             deltaX = 5 * math.cos(math.atan(math.fabs(slope)))
+            rospy.logwarn('x bounds 1: ({}, {})'.format(centerX - deltaX, y(centerX - deltaX)))
+            rospy.logwarn('x bounds 2: ({}, {})'.format(centerX + deltaX, y(centerX + deltaX)))
             waypointReachedPlot.set_xdata([centerX - deltaX, centerX + deltaX])
             waypointReachedPlot.set_ydata([y(lineX[0]), y(lineX[1])])
 

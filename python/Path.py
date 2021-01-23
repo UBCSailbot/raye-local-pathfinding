@@ -22,13 +22,13 @@ MAX_ALLOWABLE_DISTANCE_FINAL_WAYPOINT_TO_GOAL_KM = 5
 # Pathfinding constants
 MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS = 20.0
 INCREASE_RUNTIME_FACTOR = 1.5
-WAYPOINT_REACHED_DISTANCE = 10.0
+WAYPOINT_REACHED_DISTANCE = 0.5
 
 # Global variables to count invalid solutions
 count_invalid_solutions = 0
 temp_invalid_solutions = 0
 
-def getPerpLine(lastX, lastY, currX, currY, nextX, nextY):
+def getPerpLine(lastX, lastY, nextX, nextY):
     '''
     Returns:
         bool isStartNorth, bool isStartEast, slope, y-intercept
@@ -58,8 +58,6 @@ def getPerpLine(lastX, lastY, currX, currY, nextX, nextY):
     else:
         b = nextY + normalSlope * math.fabs(nextX)
 
-    return isStartNorth, isStartEast, normalSlope, b
-
     # Modify y-intercept so that distance between the original and shifted lines has a
     # magnitude of `WAYPOINT_REACHED_DISTANCE` in direction of previousWaypoint.
     # NOte that cos(arctan(x)) can never be 0, so no division by 0 will happen
@@ -68,6 +66,8 @@ def getPerpLine(lastX, lastY, currX, currY, nextX, nextY):
         b += verticalShift
     else:
         b -= verticalShift
+
+    return isStartNorth, isStartEast, normalSlope, b
 
 class OMPLPath:
     """ Class for storing an OMPL configuration, OMPL path, and the referenceLatlon
@@ -415,8 +415,8 @@ class Path:
         previousWaypointX, previousWaypointY = utils.latlonToXY(previousWaypointLatlon, refLatlon)
         nextWaypointX, nextWaypointY = utils.latlonToXY(nextWaypointLatlon, refLatlon)
 
-        isStartNorth, isStartEast, normalSlope, b = getPerpLine(previousWaypointX, previousWaypointY, positionX,
-                                                                positionY, nextWaypointX, nextWaypointY)
+        isStartNorth, isStartEast, normalSlope, b = getPerpLine(previousWaypointX, previousWaypointY,
+                                                                nextWaypointX, nextWaypointY)
 
         # Handle edge cases where waypoints have the same x or y component
         if normalSlope == 0:
