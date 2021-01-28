@@ -68,6 +68,9 @@ if __name__ == '__main__':
     # Create sailbot ROS object that subscribes to relevant topics
     sailbot = sbot.Sailbot(nodeName='local_pathfinding')
 
+    # Get enable_los parameter
+    enable_los = rospy.get_param('enable_los', default=False)
+
     # Subscribe to requestLocalPathUpdate
     rospy.Subscriber('requestLocalPathUpdate', Bool, localPathUpdateRequestedCallback)
     rospy.Subscriber('forceLocalPathUpdate', Bool, localPathUpdateForcedCallback)
@@ -192,7 +195,11 @@ if __name__ == '__main__':
                     rospy.loginfo("Keeping old local path")
 
         # Publish desiredHeading
-        desiredHeadingDegrees = utils.getDesiredHeadingDegrees(state.position, localPath.getNextWaypoint())
+        if enable_los:
+            desiredHeadingDegrees = utils.getLOSHeadingDegrees(state.position, localPath.getPreviousWaypoint(), localPath.getNextWaypoint())
+        else:
+            desiredHeadingDegrees = utils.getDesiredHeadingDegrees(state.position, localPath.getNextWaypoint())
+
         desiredHeadingPublisher.publish(msg.heading(desiredHeadingDegrees))
 
         # Publish local path
