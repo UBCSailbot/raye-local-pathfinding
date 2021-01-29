@@ -38,13 +38,13 @@ def getPerpLine(lastX, lastY, nextX, nextY):
     '''
     isStartNorth = nextY < lastY
     isStartEast = nextX < lastX
-    if nextX == lastX:
+    if abs(nextX - lastX) < 0.1:
         if isStartNorth:
             return isStartNorth, isStartEast, 0, nextY + WAYPOINT_REACHED_DISTANCE
         else:
             return isStartNorth, isStartEast, 0, nextY - WAYPOINT_REACHED_DISTANCE
 
-    if nextY == lastY:
+    if abs(nextY - lastY) < 0.1:
         if isStartEast:
             return isStartNorth, isStartEast, None, None
         else:
