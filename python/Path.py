@@ -22,11 +22,53 @@ MAX_ALLOWABLE_DISTANCE_FINAL_WAYPOINT_TO_GOAL_KM = 5
 # Pathfinding constants
 MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS = 20.0
 INCREASE_RUNTIME_FACTOR = 1.5
-WAYPOINT_REACHED_DISTANCE = 1.0
+WAYPOINT_REACHED_DISTANCE = 0.5
 
 # Global variables to count invalid solutions
 count_invalid_solutions = 0
 temp_invalid_solutions = 0
+
+
+def getPerpLine(lastX, lastY, nextX, nextY):
+    '''
+    Returns:
+        bool isStartNorth, bool isStartEast, slope, y-intercept
+            - a vertical line, with undefined slope and no y-intercept, is represented by
+                slope, y-intercept = None, None
+    '''
+    isStartNorth = nextY < lastY
+    isStartEast = nextX < lastX
+    if abs(nextX - lastX) < 0.1:
+        if isStartNorth:
+            return isStartNorth, isStartEast, 0, nextY + WAYPOINT_REACHED_DISTANCE
+        else:
+            return isStartNorth, isStartEast, 0, nextY - WAYPOINT_REACHED_DISTANCE
+
+    if abs(nextY - lastY) < 0.1:
+        if isStartEast:
+            return isStartNorth, isStartEast, None, None
+        else:
+            return isStartNorth, isStartEast, None, None
+
+    # Create line in form y = mx + b that is perpendicular to the line from previousWaypoint to nextWaypoint
+    tangentSlope = (nextY - lastY) / (nextX - lastX)
+    normalSlope = -1 / tangentSlope
+
+    if nextX > 0:
+        b = nextY + normalSlope * -math.fabs(nextX)
+    else:
+        b = nextY + normalSlope * math.fabs(nextX)
+
+    # Modify y-intercept so that distance between the original and shifted lines has a
+    # magnitude of `WAYPOINT_REACHED_DISTANCE` in direction of previousWaypoint.
+    # NOte that cos(arctan(x)) can never be 0, so no division by 0 will happen
+    verticalShift = WAYPOINT_REACHED_DISTANCE / math.sin(math.atan(math.fabs(normalSlope)))
+    if isStartNorth:
+        b += verticalShift
+    else:
+        b -= verticalShift
+
+    return isStartNorth, isStartEast, normalSlope, b
 
 
 class OMPLPath:
@@ -375,37 +417,20 @@ class Path:
         previousWaypointX, previousWaypointY = utils.latlonToXY(previousWaypointLatlon, refLatlon)
         nextWaypointX, nextWaypointY = utils.latlonToXY(nextWaypointLatlon, refLatlon)
 
+        isStartNorth, isStartEast, normalSlope, b = getPerpLine(previousWaypointX, previousWaypointY,
+                                                                nextWaypointX, nextWaypointY)
+
         # Handle edge cases where waypoints have the same x or y component
-        isStartNorth = nextWaypointY < previousWaypointY
-        isStartEast = nextWaypointX < previousWaypointX
-        if nextWaypointX == previousWaypointX:
+        if normalSlope == 0:
             if isStartNorth:
-                return positionY <= nextWaypointY + WAYPOINT_REACHED_DISTANCE
+                return positionY <= b
             else:
-                return positionY >= nextWaypointY - WAYPOINT_REACHED_DISTANCE
-        if nextWaypointY == previousWaypointY:
+                return positionY >= b
+        elif not normalSlope:
             if isStartEast:
                 return positionX <= nextWaypointX + WAYPOINT_REACHED_DISTANCE
             else:
                 return positionX >= nextWaypointX - WAYPOINT_REACHED_DISTANCE
-
-        # Create line in form y = mx + b that is perpendicular to the line from previousWaypoint to nextWaypoint
-        tangentSlope = (nextWaypointY - previousWaypointY) / (nextWaypointX - previousWaypointX)
-        normalSlope = -1 / tangentSlope
-
-        if nextWaypointX > 0:
-            b = nextWaypointY + normalSlope * -math.fabs(nextWaypointX)
-        else:
-            b = nextWaypointY + normalSlope * math.fabs(nextWaypointX)
-
-        # Modify y-intercept so that distance between the original and shifted lines has a
-        # magnitude of `WAYPOINT_REACHED_DISTANCE` in direction of previousWaypoint.
-        # NOte that cos(arctan(x)) can never be 0, so no division by 0 will happen
-        verticalShift = WAYPOINT_REACHED_DISTANCE / math.sin(math.atan(math.fabs(normalSlope)))
-        if isStartNorth:
-            b += verticalShift
-        else:
-            b -= verticalShift
 
         def y(x):
             return normalSlope * x + b
