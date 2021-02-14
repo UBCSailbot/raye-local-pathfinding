@@ -231,11 +231,24 @@ class OMPLPath:
         x, y = utils.latlonToXY(state.position, self._referenceLatlon)
         positionXY = self._ss.getSpaceInformation().allocState()
         positionXY.setXY(x, y)
+        rospy.logwarn("====================")
+        rospy.logwarn("x = {}".format(x))
+        rospy.logwarn("y = {}".format(y))
 
         # Keep waypoints only after your positionXY
         lengthBefore = self._solutionPath.getStateCount()
+        rospy.logwarn("BEFORE===================")
+        for i in range(lengthBefore):
+            mystate = self._solutionPath.getState(i)
+            rospy.logwarn("mystate {}: x = {} y = {}".format(i, mystate.getX(), mystate.getY()))
         self._solutionPath.keepAfter(positionXY)
         lengthAfter = self._solutionPath.getStateCount()
+        rospy.logwarn("lengthBefore = {}".format(lengthBefore))
+        rospy.logwarn("lengthAfter= {}".format(lengthAfter))
+        rospy.logwarn("AFTER==============")
+        for i in range(lengthAfter):
+            mystate = self._solutionPath.getState(i)
+            rospy.logwarn("mystate {}: x = {} y = {}".format(i, mystate.getX(), mystate.getY()))
 
         def dist(state1, state2):
             """Calculates the euclidean distance between two states.
@@ -263,11 +276,13 @@ class OMPLPath:
 
         edgeCase = ((lengthBefore - lengthAfter == 0) or ((lengthBefore - lengthAfter == 1)
                     and boatCouldGoWrongDirection))
+        rospy.logwarn("edgeCase = {}".format(edgeCase))
         if edgeCase:
             rospy.loginfo("Thus edgeCase = {}, so positionXY not prepended to path.".format(edgeCase))
         else:
             self._solutionPath.prepend(positionXY)
             rospy.loginfo("Thus edgeCase = {}, so positionXY was prepended to path.".format(edgeCase))
+        rospy.logwarn("END OF REMOVEWAYPOINT")
 
 
 class Path:
