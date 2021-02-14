@@ -267,6 +267,14 @@ class OMPLPath:
             y2 = state2.getY()
             return ((x1 - x2)**2 + (y1 - y2)**2)**0.5
 
+        if lengthAfter == 1:
+            self._solutionPath.prepend(positionXY)
+            rospy.logwarn("lengthAfter == 1, so positionXY was prepended to path")
+            return
+        elif lengthAfter == 0:
+            raise RuntimeError("lengthAfter == 0, so can't perform pathfinding")
+
+
         # Only add in boat position as waypoint if edge case is avoided (described above)
         dist_boat_to_1 = dist(positionXY, self._solutionPath.getState(1))
         dist_0_to_1 = dist(self._solutionPath.getState(0), self._solutionPath.getState(1))
