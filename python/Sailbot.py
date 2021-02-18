@@ -2,6 +2,8 @@
 import rospy
 from sailbot_msg.msg import AISMsg, GPS, path, latlon, windSensor
 from geopy.distance import distance
+import time
+import sys
 
 
 class BoatState:
@@ -30,6 +32,7 @@ class BoatState:
 
 class Sailbot:
     def getCurrentState(self):
+        self.printWarningsIfStaleData()
         if self.globalPathIndex >= len(self.globalPath):
             rospy.logwarn("Global path index is out of range: index = {} len(globalPath) = {}"
                           .format(self.globalPathIndex, len(self.globalPath)))
@@ -38,18 +41,20 @@ class Sailbot:
         return BoatState(self.globalPath[self.globalPathIndex], self.position, self.measuredWindDirectionDegrees,
                          self.measuredWindSpeedKmph, self.AISData, self.headingDegrees, self.speedKmph)
 
-    def positionCallback(self, data):
-        self.position.lat = data.lat
-        self.position.lon = data.lon
+    def GPSCallback(self, data):
+        self.position = latlon(data.lat, data.lon)
         self.headingDegrees = data.headingDegrees
         self.speedKmph = data.speedKmph
+        self.GPSLastUpdate = time.time()
 
-    def windCallback(self, data):
+    def windSensorCallback(self, data):
         self.measuredWindDirectionDegrees = data.measuredDirectionDegrees
         self.measuredWindSpeedKmph = data.measuredSpeedKmph
+        self.windSensorLastUpdate = time.time()
 
-    def AISDataCallback(self, data):
+    def AISCallback(self, data):
         self.AISData = data
+        self.AISLastUpdate = time.time()
 
     def globalPathCallback(self, data):
         # Check that new path is valid
@@ -64,6 +69,8 @@ class Sailbot:
         else:
             rospy.logwarn_once("New global path is the same as the current path. This warning will only show once")
             # rospy.logwarn("New global path is the same as the current path.")
+
+        self.globalPathLastUpdate = time.time()
 
     def isNewPath(self, oldPath, newPath):
         # Check if they are obviously different
@@ -84,23 +91,75 @@ class Sailbot:
         rospy.loginfo("New global path received.")
         self.newGlobalPathReceived = True
         self.globalPath = data.waypoints
-        self.globalPathIndex = 1
+        self.globalPathIndex = 1  # First waypoint is the start point, so second waypoint is the next global waypoint
+
+    def printWarningsIfStaleData(self):
+        current_time = time.time()
+        GPSStaleLimitSeconds = 60
+        windSensorStaleLimitSeconds = 60
+        AISStaleLimitSeconds = 60
+        globalPathStaleLimitSeconds = 60 * 60 * 24 * 2
+        if current_time - self.GPSLastUpdate > GPSStaleLimitSeconds:
+            rospy.logwarn("GPS stale. Not updated for {} seconds ({} limit)"
+                          .format(current_time - self.GPSLastUpdate, GPSStaleLimitSeconds))
+        if current_time - self.windSensorLastUpdate > windSensorStaleLimitSeconds:
+            rospy.logwarn("windSensor stale. Not updated for {} seconds ({} limit)"
+                          .format(current_time - self.windSensorLastUpdate, windSensorStaleLimitSeconds))
+        if current_time - self.AISLastUpdate > AISStaleLimitSeconds:
+            rospy.logwarn("AIS stale. Not updated for {} seconds ({} limit)"
+                          .format(current_time - self.AISLastUpdate, AISStaleLimitSeconds))
+        if current_time - self.globalPathLastUpdate > globalPathStaleLimitSeconds:
+            rospy.logwarn("globalPath stale. Not updated for {} seconds ({} limit)"
+                          .format(current_time - self.globalPathLastUpdate, globalPathStaleLimitSeconds))
+
+    def waitForFirstSensorDataAndGlobalPath(self):
+        def isMissingFirstSensorDataOrGlobalPath():
+            return (self.position is None or self.measuredWindDirectionDegrees is None or
+                    self.measuredWindSpeedKmph is None or self.AISData is None or
+                    self.headingDegrees is None or self.speedKmph is None or self.globalPath is None)
+
+        while isMissingFirstSensorDataOrGlobalPath():
+            # Exit if shutdown
+            if rospy.is_shutdown():
+                rospy.loginfo("rospy.is_shutdown() is True. Exiting")
+                sys.exit()
+            else:
+                rospy.loginfo("Waiting for sailbot to receive first sensor data and global path")
+                rospy.loginfo("self.position is None? {}. self.measuredWindDirectionDegrees is None? {}. "
+                              "self.measuredWindSpeedKmph is None? {}. self.AISData is None? {}. "
+                              "self.headingDegrees is None? {}. self.speedKmph is None? {}. "
+                              "self.globalPath is None? {}."
+                              .format(self.position is None, self.measuredWindDirectionDegrees is None,
+                                      self.measuredWindSpeedKmph is None, self.AISData is None,
+                                      self.headingDegrees is None, self.speedKmph is None, self.globalPath is None))
+                time.sleep(1)
+
+        rospy.loginfo("First sensor data and global path received")
 
     def __init__(self, nodeName):
-        self.position = latlon(0, 0)
-        self.measuredWindDirectionDegrees = 0
-        self.measuredWindSpeedKmph = 0
-        self.AISData = AISMsg()
-        self.headingDegrees = 0
-        self.speedKmph = 0
-        self.globalPath = path([self.position, latlon(1, 1)]).waypoints
-        self.globalPathIndex = 1  # First waypoint is the start point, so second waypoint is the next global waypoint
+        # Sensor data and global path
+        self.position = None
+        self.measuredWindDirectionDegrees = None
+        self.measuredWindSpeedKmph = None
+        self.AISData = None
+        self.headingDegrees = None
+        self.speedKmph = None
+        self.globalPath = None
+
+        # Sensor data and global path last received time
+        self.GPSLastUpdate = None
+        self.windSensorLastUpdate = None
+        self.AISLastUpdate = None
+        self.globalPathLastUpdate = None
+
+        # State of sailboat (to be interacted with in main_loop.py)
+        self.globalPathIndex = -1
         self.newGlobalPathReceived = False
 
         rospy.init_node(nodeName, anonymous=True)
-        rospy.Subscriber("GPS", GPS, self.positionCallback)
-        rospy.Subscriber("windSensor", windSensor, self.windCallback)
-        rospy.Subscriber("AIS", AISMsg, self.AISDataCallback)
+        rospy.Subscriber("GPS", GPS, self.GPSCallback)
+        rospy.Subscriber("windSensor", windSensor, self.windSensorCallback)
+        rospy.Subscriber("AIS", AISMsg, self.AISCallback)
         rospy.Subscriber("globalPath", path, self.globalPathCallback)
 
 

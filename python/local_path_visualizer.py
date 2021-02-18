@@ -117,6 +117,7 @@ if __name__ == '__main__':
         else:
             rospy.loginfo("Waiting to receive first ROS messages")
             time.sleep(1)
+    sailbot.waitForFirstSensorDataAndGlobalPath()
     rospy.loginfo("ROS message received. Starting visualization")
 
     # Convert values from latlon to XY, relative to the referenceLatlon
