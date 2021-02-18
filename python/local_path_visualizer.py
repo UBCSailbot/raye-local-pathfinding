@@ -2,6 +2,7 @@
 import sys
 import rospy
 import math
+from Path import getPerpLine, WAYPOINT_REACHED_DISTANCE
 from std_msgs.msg import Float64
 from sailbot_msg.msg import path, latlon
 import utilities as utils
@@ -128,6 +129,14 @@ if __name__ == '__main__':
     localPathX = [xy[0] for xy in localPathXY]
     localPathY = [xy[1] for xy in localPathXY]
 
+    distances = [math.sqrt(((xy[0] - nextLocalWaypointXY[0])**2) + ((xy[1] - nextLocalWaypointXY[1])**2))
+                 for xy in localPathXY]
+    nextInd = distances.index(min(distances))
+    prevInd = 0 if nextInd == 0 else nextInd - 1
+
+    isStartNorth, isStartEast, slope, y_intercept = getPerpLine(localPathXY[prevInd][0], localPathXY[prevInd][1],
+                                                                nextLocalWaypointXY[0], nextLocalWaypointXY[1])
+
     # Create plot with waypoints and boat
     xPLim, xNLim, yPLim, yNLim = getXYLimits(positionXY, nextGlobalWaypointXY)
     markersize = min(xPLim - xNLim, yPLim - yNLim) / 2
@@ -138,6 +147,27 @@ if __name__ == '__main__':
                                         marker='*', color='y', markersize=markersize)          # Yellow star
     nextLocalWaypointPlot, = axes.plot(nextLocalWaypointXY[0], nextLocalWaypointXY[1],
                                        marker='X', color='g', markersize=markersize)           # Green X
+    if slope == 0:
+        waypointReachedPlot, = axes.plot([nextLocalWaypointXY[0] - 5, nextLocalWaypointXY[0] + 5],
+                                         [y_intercept, y_intercept])
+    elif not slope:
+        offset = WAYPOINT_REACHED_DISTANCE if isStartEast else -1 * WAYPOINT_REACHED_DISTANCE
+        waypointReachedPlot, = axes.plot([nextLocalWaypointXY[0] + offset, nextLocalWaypointXY[0] + offset],
+                                         [nextLocalWaypointXY[1] - 5, nextLocalWaypointXY[1] + 5])
+    else:
+        # methods for boundary line
+        def y(x):
+            return slope * x + y_intercept
+
+        # find the interception between the boundary line and path to the next waypoint
+        # solve for x in y = slope*x + y_intercept = -1/m(x-nextX) + nextY
+        centerX = (nextLocalWaypointXY[0] / slope + nextLocalWaypointXY[1]) / (slope + 1 / slope)
+
+        deltaX = 5 * math.cos(math.atan(math.fabs(slope)))
+        lineX = [centerX - deltaX, centerX + deltaX]
+        lineY = [y(lineX[0]), y(lineX[1])]
+        waypointReachedPlot, = axes.plot(lineX, lineY)
+
     # Red triangle with correct heading. The (-90) is because the triangle
     # default heading 0 points North, but this heading has 0 be East.
     positionPlot, = axes.plot(positionXY[0], positionXY[1],
@@ -157,18 +187,29 @@ if __name__ == '__main__':
     axes.set_title('Local Path Visualizer (speedup = {})'.format(speedup))
     axes.set_aspect(aspect=1)
 
-    # Show wind speed text and position text
-    arrowLength = min(xPLim - xNLim, yPLim - yNLim) / 15
-    arrowCenter = (xNLim + 1.5 * arrowLength, yPLim - 1.5 * arrowLength)
+    fractionOfPlotLength = min(xPLim - xNLim, yPLim - yNLim) / 15
+    arrowLength = fractionOfPlotLength
+
+    # Show wind speed text and ocean current speed text
+    windArrowCenter = (xNLim + 1.5 * arrowLength, yPLim - 1.5 * arrowLength)  # Upper left
     globalWindSpeedKmph, globalWindDirectionDegrees = utils.measuredWindToGlobalWind(
         state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
-    windSpeedText = axes.text(arrowCenter[0], arrowCenter[1] + 1.5 * arrowLength,
+    windSpeedText = axes.text(windArrowCenter[0], windArrowCenter[1] + 1.5 * fractionOfPlotLength,
                               "Global Wind Speed Kmph: {}".format(globalWindSpeedKmph), ha='center')
-    positionLatlonText = axes.text(positionXY[0], positionXY[1] + 0.5 * arrowLength,
+
+    oceanCurrentArrowCenter = (xPLim - 1.5 * arrowLength, yPLim - 1.5 * arrowLength)  # Upper right
+    oceanCurrentSpeedText = axes.text(oceanCurrentArrowCenter[0],
+                                      oceanCurrentArrowCenter[1] + 1.5 * fractionOfPlotLength,
+                                      "Ocean Current Speed Kmph: {}"
+                                      .format(rospy.get_param("ocean_current_speed", default=0)), ha='center')
+
+    # Show position and global waypoint text
+    positionLatlonText = axes.text(positionXY[0], positionXY[1] + 0.5 * fractionOfPlotLength,
                                    "(Lat: {}, Lon: {})".format(round(state.position.lat, LATLON_TEXT_DECIMAL_PLACES),
                                                                round(state.position.lon, LATLON_TEXT_DECIMAL_PLACES)),
                                    ha='center')
-    nextGlobalWaypointLatlonText = axes.text(nextGlobalWaypointXY[0], nextGlobalWaypointXY[1] + 0.5 * arrowLength,
+    nextGlobalWaypointLatlonText = axes.text(nextGlobalWaypointXY[0],
+                                             nextGlobalWaypointXY[1] + 0.5 * fractionOfPlotLength,
                                              "(Lat: {}, Lon: {})"
                                              .format(round(nextGlobalWaypoint.lat, LATLON_TEXT_DECIMAL_PLACES),
                                                      round(nextGlobalWaypoint.lon, LATLON_TEXT_DECIMAL_PLACES)),
@@ -187,6 +228,14 @@ if __name__ == '__main__':
         localPathY = [xy[1] for xy in localPathXY]
         shipsXY = obs.getObstacles(state, referenceLatlon)
 
+        distances = [math.sqrt(((xy[0] - nextLocalWaypointXY[0])**2) + ((xy[1] - nextLocalWaypointXY[1])**2))
+                     for xy in localPathXY]
+        nextInd = distances.index(min(distances))
+        prevInd = 0 if nextInd == 0 else nextInd - 1
+
+        isStartNorth, isStartEast, slope, y_intercept = getPerpLine(localPathXY[prevInd][0], localPathXY[prevInd][1],
+                                                                    nextLocalWaypointXY[0], nextLocalWaypointXY[1])
+
         # Update plots
         localPathPlot.set_xdata(localPathX)
         localPathPlot.set_ydata(localPathY)
@@ -200,6 +249,33 @@ if __name__ == '__main__':
         positionPlotTail.set_xdata(positionXY[0] - 1 * math.cos(math.radians(state.headingDegrees)))
         positionPlotTail.set_ydata(positionXY[1] - 1 * math.sin(math.radians(state.headingDegrees)))
         positionPlotTail.set_marker((5, 0, state.headingDegrees - 90))  # Creates a tail for the visualizer
+        if slope == 0:
+            waypointReachedPlot.set_xdata([nextLocalWaypointXY[0] - 5, nextLocalWaypointXY[0] + 5])
+            waypointReachedPlot.set_ydata([y_intercept, y_intercept])
+        elif not slope:
+            offset = WAYPOINT_REACHED_DISTANCE if isStartEast else -1 * WAYPOINT_REACHED_DISTANCE
+            waypointReachedPlot.set_xdata([nextLocalWaypointXY[0] + offset, nextLocalWaypointXY[0] + offset])
+            waypointReachedPlot.set_ydata([nextLocalWaypointXY[1] - 5, nextLocalWaypointXY[1] + 5])
+        else:
+            def y(x):
+                return slope * x + y_intercept
+
+            # find the interception between the boundary line and path to the next waypoint
+            #  - solve for x in y = slope*x + y_intercept = -1/m(x-nextX) + nextY
+            centerX = (nextLocalWaypointXY[0] / slope + nextLocalWaypointXY[1] - y_intercept) / (slope + 1 / slope)
+
+            deltaX = 5 * math.cos(math.atan(math.fabs(slope)))
+            waypointReachedPlot.set_xdata([centerX - deltaX, centerX + deltaX])
+            waypointReachedPlot.set_ydata([y(centerX - deltaX), y(centerX + deltaX)])
+
+            # #Print statements for debugging:
+            # rospy.logwarn('slope, y-intercept: ({}, {})'.format(slope, y_intercept))
+            # rospy.logwarn('previous waypoint: ({}, {})'.format(localPathXY[prevInd][0], localPathXY[prevInd][1]))
+            # rospy.logwarn('next waypoint: ({}, {})'.format(nextLocalWaypointXY[0], nextLocalWaypointXY[1]))
+            # rospy.logwarn('boundary line middle: ({}, {})'.format(centerX, y(centerX)))
+            # rospy.logwarn('current position: ({}, {})'.format(positionXY[0], positionXY[1]))
+            # rospy.logwarn('x bounds 1: ({}, {})'.format(centerX - deltaX, y(centerX - deltaX)))
+            # rospy.logwarn('x bounds 2: ({}, {})'.format(centerX + deltaX, y(centerX + deltaX)))
 
         # Resize axes if needed
         if needAxesResized(positionXY, nextGlobalWaypointXY, xPLim, xNLim, yPLim, yNLim):
@@ -207,18 +283,29 @@ if __name__ == '__main__':
             axes.set_xlim(xNLim, xPLim)
             axes.set_ylim(yNLim, yPLim)
 
+        fractionOfPlotLength = min(xPLim - xNLim, yPLim - yNLim) / 15
+        arrowLength = fractionOfPlotLength
+
         # Update wind speed text
-        arrowLength = min(xPLim - xNLim, yPLim - yNLim) / 15
-        arrowCenter = (xNLim + 1.5 * arrowLength, yPLim - 1.5 * arrowLength)
+        windArrowCenter = (xNLim + 1.5 * arrowLength, yPLim - 1.5 * arrowLength)
         globalWindSpeedKmph, globalWindDirectionDegrees = utils.measuredWindToGlobalWind(
             state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
-        windSpeedText.set_position((arrowCenter[0], arrowCenter[1] + 1.5 * arrowLength))
+        windSpeedText.set_position((windArrowCenter[0], windArrowCenter[1] + 1.5 * fractionOfPlotLength))
         windSpeedText.set_text("Wind Speed Kmph: {}".format(globalWindSpeedKmph))
-        positionLatlonText.set_position((positionXY[0], positionXY[1] + 0.5 * arrowLength))
+
+        # Update ocean current speed text
+        oceanCurrentArrowCenter = (xPLim - 1.5 * arrowLength, yPLim - 1.5 * arrowLength)
+        oceanCurrentSpeedText.set_position((oceanCurrentArrowCenter[0],
+                                            oceanCurrentArrowCenter[1] + 1.5 * fractionOfPlotLength))
+        oceanCurrentSpeedText.set_text("Ocean Current Speed Kmph: {}"
+                                       .format(rospy.get_param("ocean_current_speed", default=0)))
+
+        # Update position and global waypoint text
+        positionLatlonText.set_position((positionXY[0], positionXY[1] + 0.5 * fractionOfPlotLength))
         positionLatlonText.set_text("(Lat: {}, Lon: {})".format(round(state.position.lat, LATLON_TEXT_DECIMAL_PLACES),
                                                                 round(state.position.lon, LATLON_TEXT_DECIMAL_PLACES)))
         nextGlobalWaypointLatlonText.set_position(
-            (nextGlobalWaypointXY[0], nextGlobalWaypointXY[1] + 0.5 * arrowLength))
+            (nextGlobalWaypointXY[0], nextGlobalWaypointXY[1] + 0.5 * fractionOfPlotLength))
         nextGlobalWaypointLatlonText.set_text("(Lat: {}, Lon: {})"
                                               .format(round(nextGlobalWaypoint.lat, LATLON_TEXT_DECIMAL_PLACES),
                                                       round(nextGlobalWaypoint.lon, LATLON_TEXT_DECIMAL_PLACES)))
@@ -226,21 +313,33 @@ if __name__ == '__main__':
         # Update speedup text
         axes.set_title('Local Path Visualizer (speedup = {})'.format(speedup))
 
-        # Add boats and wind speed arrow
+        # Add boats and wind speed arrow and ocean current arrow
         for ship in shipsXY:
             ship.addPatch(axes)
-        arrowStart = (arrowCenter[0] - 0.5 * arrowLength * math.cos(math.radians(globalWindDirectionDegrees)),
-                      arrowCenter[1] - 0.5 * arrowLength * math.sin(math.radians(globalWindDirectionDegrees)))
-        windDirection = patches.FancyArrow(arrowStart[0], arrowStart[1],
-                                           arrowLength * math.cos(math.radians(globalWindDirectionDegrees)),
-                                           arrowLength * math.sin(math.radians(globalWindDirectionDegrees)),
-                                           width=arrowLength / 4)
+        globalWindDirectionRadians = math.radians(globalWindDirectionDegrees)
+        windArrowStart = (windArrowCenter[0] - 0.5 * fractionOfPlotLength * math.cos(globalWindDirectionRadians),
+                          windArrowCenter[1] - 0.5 * fractionOfPlotLength * math.sin(globalWindDirectionRadians))
+        windDirection = patches.FancyArrow(windArrowStart[0], windArrowStart[1],
+                                           fractionOfPlotLength * math.cos(math.radians(globalWindDirectionDegrees)),
+                                           fractionOfPlotLength * math.sin(math.radians(globalWindDirectionDegrees)),
+                                           width=fractionOfPlotLength / 4)
         axes.add_patch(windDirection)
+
+        oceanCurrentDirectionRadians = math.radians(rospy.get_param('ocean_current_direction', default=0))
+        oceanCurrentArrowStart = ((oceanCurrentArrowCenter[0] -
+                                   0.5 * fractionOfPlotLength * math.cos(oceanCurrentDirectionRadians)),
+                                  (oceanCurrentArrowCenter[1] -
+                                   0.5 * fractionOfPlotLength * math.sin(oceanCurrentDirectionRadians)))
+        oceanCurrentDirection = patches.FancyArrow(oceanCurrentArrowStart[0], oceanCurrentArrowStart[1],
+                                                   fractionOfPlotLength * math.cos(oceanCurrentDirectionRadians),
+                                                   fractionOfPlotLength * math.sin(oceanCurrentDirectionRadians),
+                                                   width=fractionOfPlotLength / 4)
+        axes.add_patch(oceanCurrentDirection)
 
         # Draw then sleep
         plt.draw()
         plt.pause(0.001)
         r.sleep()
-        # Removes all ships and wind arrow
+        # Removes all ships and wind arrow and ocean current arrow
         for p in axes.patches:
             p.remove()

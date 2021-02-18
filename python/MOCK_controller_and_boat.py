@@ -36,12 +36,23 @@ class MOCK_ControllerAndSailbot:
         rospy.Subscriber("windSensor", msg.windSensor, self.windSensorCallback)
 
     def move(self):
-        # Travel greater distances with speedup
-        kmTraveledPerPeriod = self.speedKmph * self.publishPeriodSeconds / 3600.0 * self.speedup
+        # Travel based on boat speed
+        kmTraveledPerPeriod = self.speedKmph * self.publishPeriodSeconds / 3600.0
+        kmTraveledPerPeriod *= self.speedup  # Move greater distances with speedup
         distanceTraveled = geopy.distance.distance(kilometers=kmTraveledPerPeriod)
         destination = distanceTraveled.destination(point=(self.lat, self.lon),
                                                    bearing=headingToBearingDegrees(self.headingDegrees))
+        self.lon = destination.longitude
+        self.lat = destination.latitude
 
+        # Travel based on ocean current
+        oceanCurrentSpeedKmph = rospy.get_param('ocean_current_speed', default=0.0)
+        oceanCurrentDirectionDegress = rospy.get_param('ocean_current_direction', default=0.0)
+        oceanCurrentKmTraveledPerPeriod = oceanCurrentSpeedKmph * self.publishPeriodSeconds / 3600.0
+        oceanCurrentKmTraveledPerPeriod *= self.speedup  # Move greater distances with speedup
+        distanceTraveled = geopy.distance.distance(kilometers=oceanCurrentKmTraveledPerPeriod)
+        destination = distanceTraveled.destination(point=(self.lat, self.lon),
+                                                   bearing=headingToBearingDegrees(oceanCurrentDirectionDegress))
         self.lon = destination.longitude
         self.lat = destination.latitude
 

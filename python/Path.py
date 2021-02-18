@@ -22,10 +22,53 @@ MAX_ALLOWABLE_DISTANCE_FINAL_WAYPOINT_TO_GOAL_KM = 5
 # Pathfinding constants
 MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS = 20.0
 INCREASE_RUNTIME_FACTOR = 1.5
+WAYPOINT_REACHED_DISTANCE = 0.5
 
 # Global variables to count invalid solutions
 count_invalid_solutions = 0
 temp_invalid_solutions = 0
+
+
+def getPerpLine(lastX, lastY, nextX, nextY):
+    '''
+    Returns:
+        bool isStartNorth, bool isStartEast, slope, y-intercept
+            - a vertical line, with undefined slope and no y-intercept, is represented by
+                slope, y-intercept = None, None
+    '''
+    isStartNorth = nextY < lastY
+    isStartEast = nextX < lastX
+    if abs(nextX - lastX) < 0.1:
+        if isStartNorth:
+            return isStartNorth, isStartEast, 0, nextY + WAYPOINT_REACHED_DISTANCE
+        else:
+            return isStartNorth, isStartEast, 0, nextY - WAYPOINT_REACHED_DISTANCE
+
+    if abs(nextY - lastY) < 0.1:
+        if isStartEast:
+            return isStartNorth, isStartEast, None, None
+        else:
+            return isStartNorth, isStartEast, None, None
+
+    # Create line in form y = mx + b that is perpendicular to the line from previousWaypoint to nextWaypoint
+    tangentSlope = (nextY - lastY) / (nextX - lastX)
+    normalSlope = -1 / tangentSlope
+
+    if nextX > 0:
+        b = nextY + normalSlope * -math.fabs(nextX)
+    else:
+        b = nextY + normalSlope * math.fabs(nextX)
+
+    # Modify y-intercept so that distance between the original and shifted lines has a
+    # magnitude of `WAYPOINT_REACHED_DISTANCE` in direction of previousWaypoint.
+    # NOte that cos(arctan(x)) can never be 0, so no division by 0 will happen
+    verticalShift = WAYPOINT_REACHED_DISTANCE / math.sin(math.atan(math.fabs(normalSlope)))
+    if isStartNorth:
+        b += verticalShift
+    else:
+        b -= verticalShift
+
+    return isStartNorth, isStartEast, normalSlope, b
 
 
 class OMPLPath:
@@ -117,7 +160,7 @@ class OMPLPath:
         Note: Best used when waypointReached() == True, not every loop, otherwise the
               localWaypointReached tangent line could get messed up.
         Additional reason: keepAfter() method implementation assumes all waypoints are equally spaced
-        Algorithm:
+        keepAfter() algorithm:
         1. Find index of waypoint closest to state, call that closestWaypoint
         2. Check dist(waypoint before closestWaypoint, state) and dist(waypoint after closestWaypoint, state)
             * If closer to waypoint BEFORE closestWaypoint: remove all waypoints before closestWaypoint
@@ -126,15 +169,14 @@ class OMPLPath:
               INCLUDING closestWaypoint
         This answers the question: should we remove the closestWaypoint?
         Eg. Are we past the closestWaypoint or behind it?
-
         Algorithm works when all waypoints have about the same distance apart.
-        Doesn't always work when waypoints are not all equally close
+        Doesn't always work when waypoints are not all equally close.
 
         Let B = Boat and numbers be waypoint numbers
         Boat is always aiming for index = 1
         Will replace the boat with index 0 after operation
 
-        EXAMPLE 1 when it works:
+        Example 1 when should add B to beginning:
         ------------------------
         Before:
         0   B  1     2     3  (B is closest to 1. Thus it compares dist(0, B) and dist(2, B). Decides to keep 1.)
@@ -145,7 +187,7 @@ class OMPLPath:
         After add in boat position as first position:
             0  1     2     3
 
-        Example 2 when it works:
+        Example 2 when should add B to beginning:
         ------------------------
         Before:
         0      1B    2     3 (B is closest to 1. Thus it compares dist(0, B) and dist(2, B). Decides to remove 1.)
@@ -156,7 +198,18 @@ class OMPLPath:
         After add in boat position as first position:
                 0    1     2
 
-        Example 3 when it doesn't work:
+        Example 3 when should add B to beginning:
+        ------------------------
+        Before:
+        0     1     2 B   3 (B is closest to 2. Thus it compares dist(1, B) and dist(3, B). Decides to remove 2.)
+
+        KeepAfter:
+                      B   0
+
+        After add in boat position as first position:
+                      0   1
+
+        Example 4 when should NOT add B to beginning:
         ------------------------
         Before:
         0 1B    2     3 (B is closest to 1. Thus it compares dist(0, B) and dist(2, B). Decides to keep 1.)
@@ -167,7 +220,7 @@ class OMPLPath:
         After add in boat position as first position:
           10    2     3 (Boat may be told to go backwards)
 
-        Example 4 when it doesn't work:
+        Example 5 when should NOT add B to beginning:
         ------------------------
         Before:
         0 B   1     2     3 (B is closest to 0. For this edge case, it just keeps everything.)
@@ -193,6 +246,7 @@ class OMPLPath:
         lengthBefore = self._solutionPath.getStateCount()
         self._solutionPath.keepAfter(positionXY)
         lengthAfter = self._solutionPath.getStateCount()
+        rospy.loginfo("lengthBefore = {}. lengthAfter = {}".format(lengthBefore, lengthAfter))
 
         def dist(state1, state2):
             """Calculates the euclidean distance between two states.
@@ -211,20 +265,23 @@ class OMPLPath:
             y2 = state2.getY()
             return ((x1 - x2)**2 + (y1 - y2)**2)**0.5
 
-        # Only add in boat position as waypoint if edge case is avoided (described above)
-        dist_boat_to_1 = dist(positionXY, self._solutionPath.getState(1))
-        dist_0_to_1 = dist(self._solutionPath.getState(0), self._solutionPath.getState(1))
-        boatCouldGoWrongDirection = dist_boat_to_1 < dist_0_to_1
-        rospy.loginfo("dist_boat_to_1 = {}. dist_0_to_1 = {}. boatCouldGoWrongDirection = {}."
-                      .format(dist_boat_to_1, dist_0_to_1, boatCouldGoWrongDirection))
+        if lengthAfter == 0:
+            raise RuntimeError("lengthAfter == 0, can't perform pathfinding. keepAfter() won't do this")
 
-        edgeCase = ((lengthBefore - lengthAfter == 0) or ((lengthBefore - lengthAfter == 1)
-                    and boatCouldGoWrongDirection))
-        if edgeCase:
-            rospy.loginfo("Thus edgeCase = {}, so positionXY not prepended to path.".format(edgeCase))
-        else:
+        if lengthAfter == 1:
             self._solutionPath.prepend(positionXY)
-            rospy.loginfo("Thus edgeCase = {}, so positionXY was prepended to path.".format(edgeCase))
+            rospy.loginfo("lengthAfter == 1 case being handled")
+            prepend_boat_position = True
+        else:
+            # Only prepend boat position if dist(B, 1) > dist(0, 1)
+            dist_boat_to_1 = dist(positionXY, self._solutionPath.getState(1))
+            dist_0_to_1 = dist(self._solutionPath.getState(0), self._solutionPath.getState(1))
+            rospy.loginfo("dist_boat_to_1 = {}. dist_0_to_1 = {}.".format(dist_boat_to_1, dist_0_to_1))
+            prepend_boat_position = (dist_boat_to_1 > dist_0_to_1)
+
+        rospy.loginfo("prepend_boat_position = {}".format(prepend_boat_position))
+        if prepend_boat_position:
+            self._solutionPath.prepend(positionXY)
 
 
 class Path:
@@ -338,28 +395,28 @@ class Path:
         goal = (goalLatlon.lat, goalLatlon.lon)
         return distance(lastWaypoint, goal).kilometers <= MAX_ALLOWABLE_DISTANCE_FINAL_WAYPOINT_TO_GOAL_KM
 
-    def nextWaypointReached(self, positionLatlon):
+    def waypointReached(self, positionLatlon, previousWaypointLatlon, nextWaypointLatlon):
         '''Check if the given positionLatlon has reached the next waypoint.
         This is done by drawing a line from the waypoint at (self._nextWaypointIndex - 1) to (self._nextWaypointIndex)
         Then drawing a line perpendicular to the previous line that
-        intersects with the waypoint at self._nextWaypointIndex
+        is `WAYPOINT_REACHED_DISTANCE` in front of the waypoint at self._nextWaypointIndex.
         Then checks if the positionLatlon is past the perpendicular line or not
 
         Examples: B is boat. 0 is (self._nextWaypointIndex - 1). 1 is (self._nextWaypointIndex).
 
         Example 1 Waypoint not reached:
-                |
-                |
+              |
+              |
         0  B    1
-                |
-                |
+              |
+              |
 
         Example 2 Waypoint reached:
-                |
-                |
+              |
+              |
         0       1
-                |
-                |B
+              |
+              |B
 
         Args:
            positionLatlon (sailbot_msg.msg._latlon.latlon): Latlon of the current boat position
@@ -369,35 +426,25 @@ class Path:
         '''
         # Convert from latlons to XY
         refLatlon = self._omplPath.getReferenceLatlon()
-        previousWaypointLatlon = self._latlons[self._nextWaypointIndex - 1]
-        nextWaypointLatlon = self._latlons[self._nextWaypointIndex]
 
         positionX, positionY = utils.latlonToXY(positionLatlon, refLatlon)
         previousWaypointX, previousWaypointY = utils.latlonToXY(previousWaypointLatlon, refLatlon)
         nextWaypointX, nextWaypointY = utils.latlonToXY(nextWaypointLatlon, refLatlon)
 
+        isStartNorth, isStartEast, normalSlope, b = getPerpLine(previousWaypointX, previousWaypointY,
+                                                                nextWaypointX, nextWaypointY)
+
         # Handle edge cases where waypoints have the same x or y component
-        isStartNorth = nextWaypointY < previousWaypointY
-        isStartEast = nextWaypointX < previousWaypointX
-        if nextWaypointX == previousWaypointX:
+        if normalSlope == 0:
             if isStartNorth:
-                return positionY <= nextWaypointY
+                return positionY <= b
             else:
-                return positionY >= nextWaypointY
-        if nextWaypointY == previousWaypointY:
+                return positionY >= b
+        elif not normalSlope:
             if isStartEast:
-                return positionX <= nextWaypointX
+                return positionX <= nextWaypointX + WAYPOINT_REACHED_DISTANCE
             else:
-                return positionX >= nextWaypointX
-
-        # Create line in form y = mx + b that is perpendicular to the line from previousWaypoint to nextWaypoint
-        tangentSlope = (nextWaypointY - previousWaypointY) / (nextWaypointX - previousWaypointX)
-        normalSlope = -1 / tangentSlope
-
-        if nextWaypointX > 0:
-            b = nextWaypointY + normalSlope * -math.fabs(nextWaypointX)
-        else:
-            b = nextWaypointY + normalSlope * math.fabs(nextWaypointX)
+                return positionX >= nextWaypointX - WAYPOINT_REACHED_DISTANCE
 
         def y(x):
             return normalSlope * x + b
@@ -405,15 +452,16 @@ class Path:
         def x(y):
             return (y - b) / normalSlope
 
-    #    plt.xlim(-20, 20)
-    #    plt.ylim(-20, 20)
-    #    plt.plot([0], [0], marker = 'o', markersize=10, color="black")
-    #    plt.plot([positionX], [positionY], marker = 'o', markersize=10, color="blue")
-    #    plt.plot([previousWaypointX], [previousWaypointY], marker = 'o', markersize=10, color="green")
-    #    plt.plot([nextWaypointX], [nextWaypointY], marker="o", markersize=10, color="red")
-    #    x_plot = np.linspace(-200, 200, 100)
-    #    plt.plot(x_plot, y(x_plot), '-r')
-    #    plt.show()
+        # import numpy as np
+        # plt.xlim(-20, 20)
+        # plt.ylim(-20, 20)
+        # plt.plot([0], [0], marker='o', markersize=10, color="black")
+        # plt.plot([positionX], [positionY], marker='o', markersize=10, color="blue")
+        # plt.plot([previousWaypointX], [previousWaypointY], marker='o', markersize=10, color="green")
+        # plt.plot([nextWaypointX], [nextWaypointY], marker="o", markersize=10, color="red")
+        # x_plot = np.linspace(-200, 200, 100)
+        # plt.plot(x_plot, y(x_plot), '-r')
+        # plt.show()
 
         # Check if the line has been crossed
         if isStartNorth:
@@ -429,6 +477,19 @@ class Path:
             return True
 
         return False
+
+    def nextWaypointReached(self, positionLatlon):
+        previousWaypointLatlon = self._latlons[self._nextWaypointIndex - 1]
+        nextWaypointLatlon = self._latlons[self._nextWaypointIndex]
+
+        return self.waypointReached(positionLatlon, previousWaypointLatlon, nextWaypointLatlon)
+
+    # assumes there are at least 2 elements in self._latlons
+    def lastWaypointReached(self, positionLatlon):
+        previousWaypointLatlon = self._latlons[-2]
+        nextWaypointLatlon = self._latlons[-1]
+
+        return self.waypointReached(positionLatlon, previousWaypointLatlon, nextWaypointLatlon)
 
     def _cleanNumLookAheadWaypoints(self, numLookAheadWaypoints):
         '''Ensure nextLocalWaypointIndex + numLookAheadWaypoints is in bounds
