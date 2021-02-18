@@ -16,7 +16,7 @@ from ompl import geometric as og
 from std_msgs.msg import Float64
 
 # Constants
-UPWIND_DOWNWIND_TIME_LIMIT_SECONDS = 0.5
+UPWIND_DOWNWIND_TIME_LIMIT_SECONDS = 2.0
 MAX_ALLOWABLE_DISTANCE_FINAL_WAYPOINT_TO_GOAL_KM = 5
 
 # Pathfinding constants

@@ -44,6 +44,10 @@
     <arg name="planner_type" default="RRTStar" />
     <param name="planner_type" type="string" value="$(arg planner_type)" />
 
+    <!-- Sets if changes in heading and speed should be smooth or not -->
+    <arg name="smooth_changes" default="true" />
+    <param name="smooth_changes" type="bool" value="$(arg smooth_changes)" />
+  
     <!-- Sets planner type, accepted types include: "RRTStar", "RRTSharp","RRTXStatic" (full list in allocatePlanner()) -->
     <arg name="ocean_current_speed" default="0.0" />
     <arg name="ocean_current_direction" default="0.0" />
