@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import rospy
-import random
 import json
 
 from std_msgs.msg import Float64
