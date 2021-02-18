@@ -160,7 +160,7 @@ class OMPLPath:
         Note: Best used when waypointReached() == True, not every loop, otherwise the
               localWaypointReached tangent line could get messed up.
         Additional reason: keepAfter() method implementation assumes all waypoints are equally spaced
-        Algorithm:
+        keepAfter() algorithm:
         1. Find index of waypoint closest to state, call that closestWaypoint
         2. Check dist(waypoint before closestWaypoint, state) and dist(waypoint after closestWaypoint, state)
             * If closer to waypoint BEFORE closestWaypoint: remove all waypoints before closestWaypoint
@@ -169,15 +169,14 @@ class OMPLPath:
               INCLUDING closestWaypoint
         This answers the question: should we remove the closestWaypoint?
         Eg. Are we past the closestWaypoint or behind it?
-
         Algorithm works when all waypoints have about the same distance apart.
-        Doesn't always work when waypoints are not all equally close
+        Doesn't always work when waypoints are not all equally close.
 
         Let B = Boat and numbers be waypoint numbers
         Boat is always aiming for index = 1
         Will replace the boat with index 0 after operation
 
-        EXAMPLE 1 when it works:
+        Example 1 when should add B to beginning:
         ------------------------
         Before:
         0   B  1     2     3  (B is closest to 1. Thus it compares dist(0, B) and dist(2, B). Decides to keep 1.)
@@ -188,7 +187,7 @@ class OMPLPath:
         After add in boat position as first position:
             0  1     2     3
 
-        Example 2 when it works:
+        Example 2 when should add B to beginning:
         ------------------------
         Before:
         0      1B    2     3 (B is closest to 1. Thus it compares dist(0, B) and dist(2, B). Decides to remove 1.)
@@ -199,7 +198,18 @@ class OMPLPath:
         After add in boat position as first position:
                 0    1     2
 
-        Example 3 when it doesn't work:
+        Example 3 when should add B to beginning:
+        ------------------------
+        Before:
+        0     1     2 B   3 (B is closest to 2. Thus it compares dist(1, B) and dist(3, B). Decides to remove 2.)
+
+        KeepAfter:
+                      B   0
+
+        After add in boat position as first position:
+                      0   1
+
+        Example 4 when should NOT add B to beginning:
         ------------------------
         Before:
         0 1B    2     3 (B is closest to 1. Thus it compares dist(0, B) and dist(2, B). Decides to keep 1.)
@@ -210,7 +220,7 @@ class OMPLPath:
         After add in boat position as first position:
           10    2     3 (Boat may be told to go backwards)
 
-        Example 4 when it doesn't work:
+        Example 5 when should NOT add B to beginning:
         ------------------------
         Before:
         0 B   1     2     3 (B is closest to 0. For this edge case, it just keeps everything.)
@@ -236,6 +246,7 @@ class OMPLPath:
         lengthBefore = self._solutionPath.getStateCount()
         self._solutionPath.keepAfter(positionXY)
         lengthAfter = self._solutionPath.getStateCount()
+        rospy.loginfo("lengthBefore = {}. lengthAfter = {}".format(lengthBefore, lengthAfter))
 
         def dist(state1, state2):
             """Calculates the euclidean distance between two states.
@@ -254,20 +265,23 @@ class OMPLPath:
             y2 = state2.getY()
             return ((x1 - x2)**2 + (y1 - y2)**2)**0.5
 
-        # Only add in boat position as waypoint if edge case is avoided (described above)
-        dist_boat_to_1 = dist(positionXY, self._solutionPath.getState(1))
-        dist_0_to_1 = dist(self._solutionPath.getState(0), self._solutionPath.getState(1))
-        boatCouldGoWrongDirection = dist_boat_to_1 < dist_0_to_1
-        rospy.loginfo("dist_boat_to_1 = {}. dist_0_to_1 = {}. boatCouldGoWrongDirection = {}."
-                      .format(dist_boat_to_1, dist_0_to_1, boatCouldGoWrongDirection))
+        if lengthAfter == 0:
+            raise RuntimeError("lengthAfter == 0, can't perform pathfinding. keepAfter() won't do this")
 
-        edgeCase = ((lengthBefore - lengthAfter == 0) or ((lengthBefore - lengthAfter == 1)
-                    and boatCouldGoWrongDirection))
-        if edgeCase:
-            rospy.loginfo("Thus edgeCase = {}, so positionXY not prepended to path.".format(edgeCase))
-        else:
+        if lengthAfter == 1:
             self._solutionPath.prepend(positionXY)
-            rospy.loginfo("Thus edgeCase = {}, so positionXY was prepended to path.".format(edgeCase))
+            rospy.loginfo("lengthAfter == 1 case being handled")
+            prepend_boat_position = True
+        else:
+            # Only prepend boat position if dist(B, 1) > dist(0, 1)
+            dist_boat_to_1 = dist(positionXY, self._solutionPath.getState(1))
+            dist_0_to_1 = dist(self._solutionPath.getState(0), self._solutionPath.getState(1))
+            rospy.loginfo("dist_boat_to_1 = {}. dist_0_to_1 = {}.".format(dist_boat_to_1, dist_0_to_1))
+            prepend_boat_position = (dist_boat_to_1 > dist_0_to_1)
+
+        rospy.loginfo("prepend_boat_position = {}".format(prepend_boat_position))
+        if prepend_boat_position:
+            self._solutionPath.prepend(positionXY)
 
 
 class Path:
