@@ -51,13 +51,11 @@ class TestPath(unittest.TestCase):
         reachedPos = utils.XYToLatlon(xy=(boundaryCoord + 0.01, boundaryCoord + 0.01),
                                       referenceLatlon=path.getReferenceLatlon())
         self.assertTrue(path.nextWaypointReached(reachedPos))
-        self.assertTrue(path.lastWaypointReached(reachedPos))
 
         # Test notReachedPos
         notReachedPos = utils.XYToLatlon(xy=(boundaryCoord - 0.01, boundaryCoord - 0.01),
                                          referenceLatlon=path.getReferenceLatlon())
         self.assertFalse(path.nextWaypointReached(notReachedPos))
-        self.assertFalse(path.lastWaypointReached(notReachedPos))
 
     # testing cases where start and LWP have same lat or same lon
     def test_nextWaypointReached_sameLat(self):
@@ -69,12 +67,10 @@ class TestPath(unittest.TestCase):
         # Test reachedPos
         reachedPos = utils.XYToLatlon(xy=(100, boundaryCoord + 0.01), referenceLatlon=path.getReferenceLatlon())
         self.assertTrue(path.nextWaypointReached(reachedPos))
-        self.assertTrue(path.lastWaypointReached(reachedPos))
 
         # Test notReachedPos
         notReachedPos = utils.XYToLatlon(xy=(-100, boundaryCoord - 0.01), referenceLatlon=path.getReferenceLatlon())
         self.assertFalse(path.nextWaypointReached(notReachedPos))
-        self.assertFalse(path.lastWaypointReached(notReachedPos))
 
     def test_nextWaypointReached_sameLon(self):
         # Setup path from (100,1) to (1,1)
@@ -85,12 +81,10 @@ class TestPath(unittest.TestCase):
         # Test reachedPos
         reachedPos = utils.XYToLatlon(xy=(boundaryCoord - 0.01, -100), referenceLatlon=path.getReferenceLatlon())
         self.assertTrue(path.nextWaypointReached(reachedPos))
-        self.assertTrue(path.lastWaypointReached(reachedPos))
 
         # Test notReachedPos
         notReachedPos = utils.XYToLatlon(xy=(boundaryCoord + 0.01, 100), referenceLatlon=path.getReferenceLatlon())
         self.assertFalse(path.nextWaypointReached(notReachedPos))
-        self.assertFalse(path.lastWaypointReached(notReachedPos))
 
     def test_upwindOrDownwindOnPath(self):
         # Create simple path from latlon(0,0) to latlon(0.2,0.2)
