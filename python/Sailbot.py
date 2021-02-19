@@ -166,6 +166,7 @@ class Sailbot:
 # Example code of how this class works.
 if __name__ == '__main__':
     sailbot = Sailbot(nodeName='testSailbot')
+    sailbot.waitForFirstSensorDataAndGlobalPath()
     r = rospy.Rate(1)  # hz
 
     while not rospy.is_shutdown():
