@@ -246,7 +246,7 @@ class OMPLPath:
         lengthBefore = self._solutionPath.getStateCount()
         self._solutionPath.keepAfter(positionXY)
         lengthAfter = self._solutionPath.getStateCount()
-        rospy.loginfo("lengthBefore = {}. lengthAfter = {}".format(lengthBefore, lengthAfter))
+        rospy.logerr("lengthBefore = {}. lengthAfter = {}".format(lengthBefore, lengthAfter))
 
         def dist(state1, state2):
             """Calculates the euclidean distance between two states.
@@ -270,17 +270,21 @@ class OMPLPath:
 
         if lengthAfter == 1:
             self._solutionPath.prepend(positionXY)
-            rospy.loginfo("lengthAfter == 1 case being handled")
+            rospy.logerr("lengthAfter == 1 case being handled")
             prepend_boat_position = True
         else:
             # Only prepend boat position if dist(B, 1) > dist(0, 1)
             dist_boat_to_1 = dist(positionXY, self._solutionPath.getState(1))
             dist_0_to_1 = dist(self._solutionPath.getState(0), self._solutionPath.getState(1))
-            rospy.loginfo("dist_boat_to_1 = {}. dist_0_to_1 = {}.".format(dist_boat_to_1, dist_0_to_1))
+            rospy.logerr("positionXY.getX() = {}. positionXY.getY() = {}.".format(positionXY.getX(), positionXY.getY()))
+            rospy.logerr("self._solutionPath.getState(0).getX() = {}. self._solutionPath.getState(0).getY() = {}.".format(self._solutionPath.getState(0).getX(), self._solutionPath.getState(0).getY()))
+            rospy.logerr("self._solutionPath.getState(1).getX() = {}. self._solutionPath.getState(1).getY() = {}.".format(self._solutionPath.getState(1).getX(), self._solutionPath.getState(1).getY()))
+            rospy.logerr("dist_boat_to_1 = {}. dist_0_to_1 = {}.".format(dist_boat_to_1, dist_0_to_1))
             prepend_boat_position = (dist_boat_to_1 > dist_0_to_1)
 
-        rospy.loginfo("prepend_boat_position = {}".format(prepend_boat_position))
-        if prepend_boat_position:
+        rospy.logerr("prepend_boat_position = {}".format(prepend_boat_position))
+        # if prepend_boat_position:
+        if False:
             self._solutionPath.prepend(positionXY)
 
 

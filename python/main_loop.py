@@ -101,8 +101,9 @@ if __name__ == '__main__':
     sailbot.newGlobalPathReceived = False
 
     while not rospy.is_shutdown():
+        rospy.logerr("=============================================--------------------")
         rospy.loginfo("desiredHeadingDegrees: {}".format(desiredHeadingDegrees))
-        rospy.loginfo("Current path cost is: {}".format(localPath.getCost()))
+        rospy.logerr("Current path cost is: {}".format(localPath.getCost()))
         state = sailbot.getCurrentState()
 
         # Check if local path MUST be updated
@@ -185,11 +186,12 @@ if __name__ == '__main__':
                 newPathReachesGoal = _localPath.reachesGoalLatlon(state.globalWaypoint)
                 rospy.loginfo("currentPathCost = {}. newPathCost = {}. newPathReachesGoal = {}."
                               .format(currentPathCost, newPathCost, newPathReachesGoal))
-                if newPathCost < currentPathCost and newPathReachesGoal:
-                    rospy.loginfo("Updating to new local path")
+                # if newPathCost < currentPathCost and newPathReachesGoal:
+                if False:
+                    rospy.logerr("Updating to new local path")
                     localPath = _localPath
                 else:
-                    rospy.loginfo("Keeping old local path")
+                    rospy.logerr("Keeping old local path")
 
         # Publish desiredHeading
         desiredHeadingDegrees = utils.getDesiredHeadingDegrees(state.position, localPath.getNextWaypoint())
