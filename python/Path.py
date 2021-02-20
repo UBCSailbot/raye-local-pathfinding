@@ -29,35 +29,35 @@ count_invalid_solutions = 0
 temp_invalid_solutions = 0
 
 
-def getPerpLine(lastX, lastY, nextX, nextY):
+def getPerpLine(lastXY, nextXY):
     '''
     Returns:
         bool isStartNorth, bool isStartEast, slope, y-intercept
             - a vertical line, with undefined slope and no y-intercept, is represented by
                 slope, y-intercept = None, None
     '''
-    isStartNorth = nextY < lastY
-    isStartEast = nextX < lastX
-    if abs(nextX - lastX) < 0.1:
+    isStartNorth = nextXY[1] < lastXY[1]
+    isStartEast = nextXY[0] < lastXY[0]
+    if abs(nextXY[0] - lastXY[0]) < 0.01:
         if isStartNorth:
-            return isStartNorth, isStartEast, 0, nextY + WAYPOINT_REACHED_DISTANCE
+            return isStartNorth, isStartEast, 0, nextXY[1] + WAYPOINT_REACHED_DISTANCE
         else:
-            return isStartNorth, isStartEast, 0, nextY - WAYPOINT_REACHED_DISTANCE
+            return isStartNorth, isStartEast, 0, nextXY[1] - WAYPOINT_REACHED_DISTANCE
 
-    if abs(nextY - lastY) < 0.1:
+    if abs(nextXY[1] - lastXY[1]) < 0.01:
         if isStartEast:
             return isStartNorth, isStartEast, None, None
         else:
             return isStartNorth, isStartEast, None, None
 
     # Create line in form y = mx + b that is perpendicular to the line from previousWaypoint to nextWaypoint
-    tangentSlope = (nextY - lastY) / (nextX - lastX)
+    tangentSlope = (nextXY[1] - lastXY[1]) / (nextXY[0] - lastXY[0])
     normalSlope = -1 / tangentSlope
 
-    if nextX > 0:
-        b = nextY + normalSlope * -math.fabs(nextX)
+    if nextXY[0] > 0:
+        b = nextXY[1] + normalSlope * -math.fabs(nextXY[0])
     else:
-        b = nextY + normalSlope * math.fabs(nextX)
+        b = nextXY[1] + normalSlope * math.fabs(nextXY[0])
 
     # Modify y-intercept so that distance between the original and shifted lines has a
     # magnitude of `WAYPOINT_REACHED_DISTANCE` in direction of previousWaypoint.
@@ -428,11 +428,10 @@ class Path:
         refLatlon = self._omplPath.getReferenceLatlon()
 
         positionX, positionY = utils.latlonToXY(positionLatlon, refLatlon)
-        previousWaypointX, previousWaypointY = utils.latlonToXY(previousWaypointLatlon, refLatlon)
-        nextWaypointX, nextWaypointY = utils.latlonToXY(nextWaypointLatlon, refLatlon)
+        previousWaypointXY = utils.latlonToXY(previousWaypointLatlon, refLatlon)
+        nextWaypointXY = utils.latlonToXY(nextWaypointLatlon, refLatlon)
 
-        isStartNorth, isStartEast, normalSlope, b = getPerpLine(previousWaypointX, previousWaypointY,
-                                                                nextWaypointX, nextWaypointY)
+        isStartNorth, isStartEast, normalSlope, b = getPerpLine(previousWaypointXY, nextWaypointXY)
 
         # Handle edge cases where waypoints have the same x or y component
         if normalSlope == 0:
@@ -442,9 +441,9 @@ class Path:
                 return positionY >= b
         elif not normalSlope:
             if isStartEast:
-                return positionX <= nextWaypointX + WAYPOINT_REACHED_DISTANCE
+                return positionX <= nextWaypointXY[0] + WAYPOINT_REACHED_DISTANCE
             else:
-                return positionX >= nextWaypointX - WAYPOINT_REACHED_DISTANCE
+                return positionX >= nextWaypointXY[0] - WAYPOINT_REACHED_DISTANCE
 
         def y(x):
             return normalSlope * x + b

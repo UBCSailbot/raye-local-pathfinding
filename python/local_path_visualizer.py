@@ -174,10 +174,8 @@ if __name__ == '__main__':
     nextInd = distances.index(min(distances))
     prevInd = 0 if nextInd == 0 else nextInd - 1
 
-    _, isStartEast, slope, y_intercept = getPerpLine(localPathXY[prevInd][0], localPathXY[prevInd][1],
-                                                     nextLocalWaypointXY[0], nextLocalWaypointXY[1])
-    _, glob_isStartEast, glob_slope, glob_y = getPerpLine(previousGlobalWaypointXY[0], previousGlobalWaypointXY[1],
-                                                          nextGlobalWaypointXY[0], nextGlobalWaypointXY[1])
+    _, isStartEast, slope, y_intercept = getPerpLine(localPathXY[prevInd], nextLocalWaypointXY)
+    _, glob_isStartEast, glob_slope, glob_y = getPerpLine(previousGlobalWaypointXY, nextGlobalWaypointXY)
 
     # Create plot with waypoints and boat
     xPLim, xNLim, yPLim, yNLim = getXYLimits(positionXY, nextGlobalWaypointXY)
@@ -261,10 +259,8 @@ if __name__ == '__main__':
         nextInd = distances.index(min(distances))
         prevInd = 0 if nextInd == 0 else nextInd - 1
 
-        _, isStartEast, slope, y_intercept = getPerpLine(localPathXY[prevInd][0], localPathXY[prevInd][1],
-                                                         nextLocalWaypointXY[0], nextLocalWaypointXY[1])
-        _, glob_isStartEast, glob_slope, glob_y = getPerpLine(previousGlobalWaypointXY[0], previousGlobalWaypointXY[1],
-                                                              nextGlobalWaypointXY[0], nextGlobalWaypointXY[1])
+        _, isStartEast, slope, y_intercept = getPerpLine(localPathXY[prevInd], nextLocalWaypointXY)
+        _, glob_isStartEast, glob_slope, glob_y = getPerpLine(previousGlobalWaypointXY, nextGlobalWaypointXY)
 
         # Update plots
         localPathPlot.set_xdata(localPathX)
