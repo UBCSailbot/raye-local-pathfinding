@@ -3,7 +3,6 @@ import sys
 import rospy
 import math
 from Path import getPerpLine, WAYPOINT_REACHED_DISTANCE
-# from main_loop import previousGlobalWaypoint
 from std_msgs.msg import Float64
 from sailbot_msg.msg import path, latlon
 import utilities as utils
@@ -38,6 +37,10 @@ def nextLocalWaypointCallback(data):
 def nextGlobalWaypointCallback(data):
     global nextGlobalWaypoint
     nextGlobalWaypoint = data
+
+def previousGlobalWaypointCallback(data):
+    global previousGlobalWaypoint
+    previousGlobalWaypoint = data
 
 
 # Global variable for speedup
@@ -117,7 +120,7 @@ def getPerpPlot(isStartEast, slope, y_intercept, destinationXY):
 
         deltaX = 5 * math.cos(math.atan(math.fabs(slope)))
         lineX = [centerX - deltaX, centerX + deltaX]
-        
+
         # #Print statements for debugging:
         # rospy.logwarn("Method lines: ({}, {}); {}; {}".format(centerX, centerX,
         #                [centerX - deltaX, centerX + deltaX], [y(centerX - deltaX), y(centerX + deltaX)]))
@@ -128,8 +131,8 @@ def getPerpPlot(isStartEast, slope, y_intercept, destinationXY):
         # rospy.logwarn('current position: ({}, {})'.format(positionXY[0], positionXY[1]))
         # rospy.logwarn('x bounds 1: ({}, {})'.format(centerX - deltaX, y(centerX - deltaX)))
         # rospy.logwarn('x bounds 2: ({}, {})'.format(centerX + deltaX, y(centerX + deltaX)))
-        
-        return lineX, [y(lineX[0]), y(lineX[1])]            
+
+        return lineX, [y(lineX[0]), y(lineX[1])]
 
 
 if __name__ == '__main__':
@@ -138,6 +141,7 @@ if __name__ == '__main__':
     rospy.Subscriber("localPath", path, localPathCallback)
     rospy.Subscriber("nextLocalWaypoint", latlon, nextLocalWaypointCallback)
     rospy.Subscriber("nextGlobalWaypoint", latlon, nextGlobalWaypointCallback)
+    rospy.Subscriber("previousGlobalWaypoint", latlon, previousGlobalWaypointCallback)
     rospy.Subscriber("speedup", Float64, speedupCallback)
     r = rospy.Rate(1.0 / VISUALIZER_UPDATE_PERIOD_SECONDS)
 
@@ -157,7 +161,7 @@ if __name__ == '__main__':
     referenceLatlon = nextGlobalWaypoint  # Ensure that this matches createLocalPathSS referenceLatlon for best results
     positionXY = utils.latlonToXY(state.position, referenceLatlon)
     nextGlobalWaypointXY = utils.latlonToXY(nextGlobalWaypoint, referenceLatlon)
-    # previousGlobalWaypointXY = utils.latlonToXY(previousGlobalWaypoint, referenceLatlon)
+    previousGlobalWaypointXY = utils.latlonToXY(previousGlobalWaypoint, referenceLatlon)
     nextLocalWaypointXY = utils.latlonToXY(nextLocalWaypoint, referenceLatlon)
     localPathXY = [utils.latlonToXY(localWaypoint, referenceLatlon) for localWaypoint in localPath]
     localPathX = [xy[0] for xy in localPathXY]
@@ -170,6 +174,8 @@ if __name__ == '__main__':
 
     _, isStartEast, slope, y_intercept = getPerpLine(localPathXY[prevInd][0], localPathXY[prevInd][1],
                                                      nextLocalWaypointXY[0], nextLocalWaypointXY[1])
+    _, glob_isStartEast, glob_slope, glob_y = getPerpLine(previousGlobalWaypointXY[0], previousGlobalWaypointXY[1],
+                                                          nextGlobalWaypointXY[0], nextGlobalWaypointXY[1])
 
     # Create plot with waypoints and boat
     xPLim, xNLim, yPLim, yNLim = getXYLimits(positionXY, nextGlobalWaypointXY)
@@ -183,7 +189,10 @@ if __name__ == '__main__':
                                        marker='X', color='g', markersize=markersize)           # Green X
 
     lineX, lineY = getPerpPlot(isStartEast, slope, y_intercept, nextLocalWaypointXY)
-    waypointReachedPlot, = axes.plot(lineX, lineY)
+    waypointReachedPlot, = axes.plot(lineX, lineY, color='b')
+
+    glob_X, glob_Y = getPerpPlot(glob_isStartEast, glob_slope, glob_y, nextGlobalWaypointXY)
+    globalWaypointReachedPlot, = axes.plot(glob_X, glob_Y, color='r')
 
     # Red triangle with correct heading. The (-90) is because the triangle
     # default heading 0 points North, but this heading has 0 be East.
@@ -252,6 +261,8 @@ if __name__ == '__main__':
 
         _, isStartEast, slope, y_intercept = getPerpLine(localPathXY[prevInd][0], localPathXY[prevInd][1],
                                                          nextLocalWaypointXY[0], nextLocalWaypointXY[1])
+        _, glob_isStartEast, glob_slope, glob_y = getPerpLine(previousGlobalWaypointXY[0], previousGlobalWaypointXY[1],
+                                                              nextGlobalWaypointXY[0], nextGlobalWaypointXY[1])
 
         # Update plots
         localPathPlot.set_xdata(localPathX)
@@ -270,6 +281,10 @@ if __name__ == '__main__':
         lineX, lineY = getPerpPlot(isStartEast, slope, y_intercept, nextLocalWaypointXY)
         waypointReachedPlot.set_xdata(lineX)
         waypointReachedPlot.set_ydata(lineY)
+
+        glob_X, glob_Y = getPerpPlot(glob_isStartEast, glob_slope, glob_y, nextGlobalWaypointXY)
+        globalWaypointReachedPlot.set_xdata(glob_X)
+        globalWaypointReachedPlot.set_ydata(glob_Y)
 
         # Resize axes if needed
         if needAxesResized(positionXY, nextGlobalWaypointXY, xPLim, xNLim, yPLim, yNLim):
