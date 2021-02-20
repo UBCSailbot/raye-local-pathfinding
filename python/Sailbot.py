@@ -175,9 +175,6 @@ class Sailbot:
             self.newGlobalPathReceived = True
             self.globalPath = data.waypoints
             self.globalPathIndex = 1  # First waypoint is start point, so second waypoint is next global waypoint
-        else:
-            rospy.logwarn_once("New global path is the same as the current path. This warning will only show once")
-            # rospy.logwarn("New global path is the same as the current path.")
 
         self.globalPathLastUpdate = time.time()
 
