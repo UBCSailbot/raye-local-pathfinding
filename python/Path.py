@@ -344,7 +344,7 @@ class Path:
                 return path[pathIndex]
 
         return _getNextWaypoint(self._latlons, self._nextWaypointIndex)
-    
+
     def getPreviousWaypoint(self):
         '''Gets the previous waypoint, but performs bounds and edge case checks'''
         def _getPreviousWaypoint(path, pathIndex):
