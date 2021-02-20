@@ -38,6 +38,7 @@ def nextGlobalWaypointCallback(data):
     global nextGlobalWaypoint
     nextGlobalWaypoint = data
 
+
 def previousGlobalWaypointCallback(data):
     global previousGlobalWaypoint
     previousGlobalWaypoint = data
@@ -101,6 +102,7 @@ def needAxesResized(positionXY, nextGlobalWaypointXY, xPLim, xNLim, yPLim, yNLim
         return True
 
     return False
+
 
 def getPerpPlot(isStartEast, slope, y_intercept, destinationXY):
     if slope == 0:
