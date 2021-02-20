@@ -192,7 +192,7 @@ class Sailbot:
         GPSStaleLimitSeconds = 60
         windSensorStaleLimitSeconds = 60
         AISStaleLimitSeconds = 60
-        globalPathStaleLimitSeconds = 60 * 60 * 24 * 2
+        globalPathStaleLimitSeconds = 60
         if current_time - self.GPSLastUpdate > GPSStaleLimitSeconds:
             rospy.logwarn("GPS stale. Not updated for {} seconds ({} limit)"
                           .format(current_time - self.GPSLastUpdate, GPSStaleLimitSeconds))
