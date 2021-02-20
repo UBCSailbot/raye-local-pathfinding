@@ -53,16 +53,12 @@ def getPerpLine(lastX, lastY, nextX, nextY):
     # Create line in form y = mx + b that is perpendicular to the line from previousWaypoint to nextWaypoint
     tangentSlope = (nextY - lastY) / (nextX - lastX)
     normalSlope = -1 / tangentSlope
-
-    if nextX > 0:
-        b = nextY + normalSlope * -math.fabs(nextX)
-    else:
-        b = nextY + normalSlope * math.fabs(nextX)
+    b = nextY - normalSlope * nextX
 
     # Modify y-intercept so that distance between the original and shifted lines has a
     # magnitude of `WAYPOINT_REACHED_DISTANCE` in direction of previousWaypoint.
     # NOte that cos(arctan(x)) can never be 0, so no division by 0 will happen
-    verticalShift = WAYPOINT_REACHED_DISTANCE / math.sin(math.atan(math.fabs(normalSlope)))
+    verticalShift = WAYPOINT_REACHED_DISTANCE / math.cos(math.atan(math.fabs(normalSlope)))
     if isStartNorth:
         b += verticalShift
     else:
