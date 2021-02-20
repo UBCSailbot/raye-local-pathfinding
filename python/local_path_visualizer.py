@@ -110,12 +110,14 @@ def needAxesResized(positionXY, nextGlobalWaypointXY, xPLim, xNLim, yPLim, yNLim
 
 
 def getPerpPlot(isStartEast, slope, y_intercept, destinationXY):
+    destinationX, destinationY = destinationXY
+
     if slope == 0:
-        return [destinationXY[0] - 5, destinationXY[0] + 5], [y_intercept, y_intercept]
+        return [destinationX - 5, destinationX + 5], [y_intercept, y_intercept]
     elif not slope:
         offset = WAYPOINT_REACHED_DISTANCE if isStartEast else -1 * WAYPOINT_REACHED_DISTANCE
-        return [destinationXY[0] + offset, destinationXY[0] + offset],
-        [destinationXY[1] - 5, destinationXY[1] + 5]
+        return [destinationX + offset, destinationX + offset],
+        [destinationY - 5, destinationY + 5]
     else:
         # methods for boundary line
         def y(x):
@@ -123,7 +125,7 @@ def getPerpPlot(isStartEast, slope, y_intercept, destinationXY):
 
         # find the interception between the boundary line and path to the next waypoint
         # solve for x in y = slope*x + y_intercept = -1/m(x-nextX) + nextY
-        centerX = (destinationXY[0] / slope + destinationXY[1] - y_intercept) / (slope + 1 / slope)
+        centerX = (destinationX / slope + destinationY - y_intercept) / (slope + 1 / slope)
 
         deltaX = 5 * math.cos(math.atan(math.fabs(slope)))
         lineX = [centerX - deltaX, centerX + deltaX]

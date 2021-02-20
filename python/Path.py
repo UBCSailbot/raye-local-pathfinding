@@ -36,28 +36,31 @@ def getPerpLine(lastXY, nextXY):
             - a vertical line, with undefined slope and no y-intercept, is represented by
                 slope, y-intercept = None, None
     '''
-    isStartNorth = nextXY[1] < lastXY[1]
-    isStartEast = nextXY[0] < lastXY[0]
-    if abs(nextXY[0] - lastXY[0]) < 0.01:
-        if isStartNorth:
-            return isStartNorth, isStartEast, 0, nextXY[1] + WAYPOINT_REACHED_DISTANCE
-        else:
-            return isStartNorth, isStartEast, 0, nextXY[1] - WAYPOINT_REACHED_DISTANCE
+    lastX, lastY = lastXY
+    nextX, nextY = nextXY
 
-    if abs(nextXY[1] - lastXY[1]) < 0.01:
+    isStartNorth = nextY < lastY
+    isStartEast = nextX < lastX
+    if abs(nextX - lastX) < 0.01:
+        if isStartNorth:
+            return isStartNorth, isStartEast, 0, nextY + WAYPOINT_REACHED_DISTANCE
+        else:
+            return isStartNorth, isStartEast, 0, nextY - WAYPOINT_REACHED_DISTANCE
+
+    if abs(nextY - lastY) < 0.01:
         if isStartEast:
             return isStartNorth, isStartEast, None, None
         else:
             return isStartNorth, isStartEast, None, None
 
     # Create line in form y = mx + b that is perpendicular to the line from previousWaypoint to nextWaypoint
-    tangentSlope = (nextXY[1] - lastXY[1]) / (nextXY[0] - lastXY[0])
+    tangentSlope = (nextY - lastY) / (nextX - lastX)
     normalSlope = -1 / tangentSlope
 
-    if nextXY[0] > 0:
-        b = nextXY[1] + normalSlope * -math.fabs(nextXY[0])
+    if nextX > 0:
+        b = nextY + normalSlope * -math.fabs(nextX)
     else:
-        b = nextXY[1] + normalSlope * math.fabs(nextXY[0])
+        b = nextY + normalSlope * math.fabs(nextX)
 
     # Modify y-intercept so that distance between the original and shifted lines has a
     # magnitude of `WAYPOINT_REACHED_DISTANCE` in direction of previousWaypoint.
