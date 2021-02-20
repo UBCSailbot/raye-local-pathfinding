@@ -344,6 +344,28 @@ class Path:
                 return path[pathIndex]
 
         return _getNextWaypoint(self._latlons, self._nextWaypointIndex)
+    
+    def getPreviousWaypoint(self):
+        '''Gets the previous waypoint, but performs bounds and edge case checks'''
+        def _getPreviousWaypoint(path, pathIndex):
+            # If path is empty, return (0, 0)
+            if len(path) == 0:
+                rospy.logwarn("Path is empty.")
+                rospy.logwarn("Setting waypoint to be (0, 0).")
+                return latlon(0, 0)
+
+            # If index out of range, return last waypoint in path
+            if pathIndex >= len(path):
+                rospy.logwarn("Path index is out of range: index = {} len(path) = {}".format(pathIndex, len(path)))
+                rospy.logwarn("Setting waypoint to be the last element of the path")
+                pathIndex = len(path) - 1
+                return path[pathIndex]
+
+            # If index in range, return the correct waypoint
+            else:
+                return path[pathIndex]
+
+        return _getPreviousWaypoint(self._latlons, self._nextWaypointIndex - 1)
 
     # Simple methods that directly call _omplPath methods
     def getCost(self):

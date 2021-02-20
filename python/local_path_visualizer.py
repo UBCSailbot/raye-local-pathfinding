@@ -44,6 +44,11 @@ def previousGlobalWaypointCallback(data):
     previousGlobalWaypoint = data
 
 
+def previousLocalWaypointCallback(data):
+    global previousLocalWaypoint
+    previousLocalWaypoint = data
+
+
 # Global variable for speedup
 speedup = 1.0
 
@@ -142,6 +147,7 @@ if __name__ == '__main__':
     sailbot = sbot.Sailbot(nodeName='localPathVisualizer')
     rospy.Subscriber("localPath", path, localPathCallback)
     rospy.Subscriber("nextLocalWaypoint", latlon, nextLocalWaypointCallback)
+    rospy.Subscriber("previousLocalWaypoint", latlon, previousLocalWaypointCallback)
     rospy.Subscriber("nextGlobalWaypoint", latlon, nextGlobalWaypointCallback)
     rospy.Subscriber("previousGlobalWaypoint", latlon, previousGlobalWaypointCallback)
     rospy.Subscriber("speedup", Float64, speedupCallback)
@@ -165,16 +171,12 @@ if __name__ == '__main__':
     nextGlobalWaypointXY = utils.latlonToXY(nextGlobalWaypoint, referenceLatlon)
     previousGlobalWaypointXY = utils.latlonToXY(previousGlobalWaypoint, referenceLatlon)
     nextLocalWaypointXY = utils.latlonToXY(nextLocalWaypoint, referenceLatlon)
+    previousLocalWaypointXY = utils.latlonToXY(previousLocalWaypoint, referenceLatlon)
     localPathXY = [utils.latlonToXY(localWaypoint, referenceLatlon) for localWaypoint in localPath]
     localPathX = [xy[0] for xy in localPathXY]
     localPathY = [xy[1] for xy in localPathXY]
 
-    distances = [math.sqrt(((xy[0] - nextLocalWaypointXY[0])**2) + ((xy[1] - nextLocalWaypointXY[1])**2))
-                 for xy in localPathXY]
-    nextInd = distances.index(min(distances))
-    prevInd = 0 if nextInd == 0 else nextInd - 1
-
-    _, isStartEast, slope, y_intercept = getPerpLine(localPathXY[prevInd], nextLocalWaypointXY)
+    _, isStartEast, slope, y_intercept = getPerpLine(previousLocalWaypointXY, nextLocalWaypointXY)
     _, glob_isStartEast, glob_slope, glob_y = getPerpLine(previousGlobalWaypointXY, nextGlobalWaypointXY)
 
     # Create plot with waypoints and boat
@@ -249,17 +251,13 @@ if __name__ == '__main__':
         positionXY = utils.latlonToXY(state.position, referenceLatlon)
         nextGlobalWaypointXY = utils.latlonToXY(nextGlobalWaypoint, referenceLatlon)
         nextLocalWaypointXY = utils.latlonToXY(nextLocalWaypoint, referenceLatlon)
+        previousLocalWaypointXY = utils.latlonToXY(previousLocalWaypoint, referenceLatlon)
         localPathXY = [utils.latlonToXY(localWaypoint, referenceLatlon) for localWaypoint in localPath]
         localPathX = [xy[0] for xy in localPathXY]
         localPathY = [xy[1] for xy in localPathXY]
         shipsXY = obs.getObstacles(state, referenceLatlon)
 
-        distances = [math.sqrt(((xy[0] - nextLocalWaypointXY[0])**2) + ((xy[1] - nextLocalWaypointXY[1])**2))
-                     for xy in localPathXY]
-        nextInd = distances.index(min(distances))
-        prevInd = 0 if nextInd == 0 else nextInd - 1
-
-        _, isStartEast, slope, y_intercept = getPerpLine(localPathXY[prevInd], nextLocalWaypointXY)
+        _, isStartEast, slope, y_intercept = getPerpLine(previousLocalWaypointXY, nextLocalWaypointXY)
         _, glob_isStartEast, glob_slope, glob_y = getPerpLine(previousGlobalWaypointXY, nextGlobalWaypointXY)
 
         # Update plots
