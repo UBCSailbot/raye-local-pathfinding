@@ -153,9 +153,8 @@ class OMPLPath:
     def removePastWaypoints(self, state):
         """Removes waypoints that the boat has already passed.
 
-        Note: Best used when waypointReached() == True, not every loop, otherwise the
-              localWaypointReached tangent line could get messed up.
-        Additional reason: keepAfter() method implementation assumes all waypoints are equally spaced
+        Note: Best used when waypointReached() == True, not every loop
+        Reason: keepAfter() method implementation assumes all waypoints are equally spaced
         keepAfter() algorithm:
         1. Find index of waypoint closest to state, call that closestWaypoint
         2. Check dist(waypoint before closestWaypoint, state) and dist(waypoint after closestWaypoint, state)
@@ -172,7 +171,7 @@ class OMPLPath:
         Boat is always aiming for index = 1
         Will replace the boat with index 0 after operation
 
-        Example 1 when should add B to beginning:
+        Example 1 (regular behavior)
         ------------------------
         Before:
         0   B  1     2     3  (B is closest to 1. Thus it compares dist(0, B) and dist(2, B). Decides to keep 1.)
@@ -180,10 +179,7 @@ class OMPLPath:
         KeepAfter:
             B  0     1     2
 
-        After add in boat position as first position:
-            0  1     2     3
-
-        Example 2 when should add B to beginning:
+        Example 2 (cases where we overshoot the waypoint, so we skip a waypoint
         ------------------------
         Before:
         0      1B    2     3 (B is closest to 1. Thus it compares dist(0, B) and dist(2, B). Decides to remove 1.)
@@ -191,10 +187,7 @@ class OMPLPath:
         KeepAfter:
                 B    0     1
 
-        After add in boat position as first position:
-                0    1     2
-
-        Example 3 when should add B to beginning:
+        Example 3 (edge case where the boat's position must be prepended to the path to avoid out of bounds)
         ------------------------
         Before:
         0     1     2 B   3 (B is closest to 2. Thus it compares dist(1, B) and dist(3, B). Decides to remove 2.)
@@ -205,7 +198,7 @@ class OMPLPath:
         After add in boat position as first position:
                       0   1
 
-        Example 4 when should NOT add B to beginning:
+        Example 4 (strange case with irregular spacing)
         ------------------------
         Before:
         0 1B    2     3 (B is closest to 1. Thus it compares dist(0, B) and dist(2, B). Decides to keep 1.)
@@ -213,10 +206,7 @@ class OMPLPath:
         KeepAfter:
           0B    1     2
 
-        After add in boat position as first position:
-          10    2     3 (Boat may be told to go backwards)
-
-        Example 5 when should NOT add B to beginning:
+        Example 5
         ------------------------
         Before:
         0 B   1     2     3 (B is closest to 0. For this edge case, it just keeps everything.)
@@ -224,13 +214,8 @@ class OMPLPath:
         KeepAfter:
         0 B   1     2     3
 
-        After add in boat position as first position:
-        1 0   2     3     4 (Boat may be told to go backwards)
-
-        Therefore, in this method, we will have an edge case check after the KeepAfter operation.
-        If (0 waypoints are removed) OR (1 waypoint is removed AND dist(B, 1) < dist(0,1)),
-        then dont add position B as starting waypoint.
-        Else add position B as a starting waypoint.
+        Therefore, in this method, we will have an edge case check after the keepAfter operation.
+        If lengthAfter == 1, then add position B as a starting waypoint.
         """
 
         # Get current position in xy coordinates
@@ -243,23 +228,6 @@ class OMPLPath:
         self._solutionPath.keepAfter(positionXY)
         lengthAfter = self._solutionPath.getStateCount()
         rospy.loginfo("lengthBefore = {}. lengthAfter = {}".format(lengthBefore, lengthAfter))
-
-        def dist(state1, state2):
-            """Calculates the euclidean distance between two states.
-
-            Keyword arguments:
-                state1 (ompl.base._base.SE2StateInternal): SE2State object of first state
-                state2 (ompl.base._base.SE2StateInternal): SE2State object of second state
-
-            Note: Do not replace this method with self._ss.getStateSpace().distance(state1, state2)
-                  as this method also takes into account angle differences between these states,
-                  which is not relevant here.
-            """
-            x1 = state1.getX()
-            y1 = state1.getY()
-            x2 = state2.getX()
-            y2 = state2.getY()
-            return ((x1 - x2)**2 + (y1 - y2)**2)**0.5
 
         if lengthAfter == 0:
             raise RuntimeError("lengthAfter == 0, can't perform pathfinding. keepAfter() won't do this")
