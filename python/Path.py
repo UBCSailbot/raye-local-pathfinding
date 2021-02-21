@@ -460,6 +460,13 @@ class Path:
 
         return self.waypointReached(positionLatlon, previousWaypointLatlon, nextWaypointLatlon)
 
+    # assumes there are at least 2 elements in self._latlons
+    def lastWaypointReached(self, positionLatlon):
+        previousWaypointLatlon = self._latlons[-2]
+        nextWaypointLatlon = self._latlons[-1]
+
+        return self.waypointReached(positionLatlon, previousWaypointLatlon, nextWaypointLatlon)
+
     def _cleanNumLookAheadWaypoints(self, numLookAheadWaypoints):
         '''Ensure nextLocalWaypointIndex + numLookAheadWaypoints is in bounds
         Default behavior when numLookAheadWaypoints is not given OR bad input: set to max
