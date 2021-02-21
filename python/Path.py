@@ -263,20 +263,8 @@ class OMPLPath:
 
         if lengthAfter == 0:
             raise RuntimeError("lengthAfter == 0, can't perform pathfinding. keepAfter() won't do this")
-
         if lengthAfter == 1:
-            self._solutionPath.prepend(positionXY)
-            rospy.loginfo("lengthAfter == 1 case being handled")
-            prepend_boat_position = True
-        else:
-            # Only prepend boat position if dist(B, 0) is large (dist(B, 0) > 0.5 * dist(0, 1))
-            dist_boat_to_0 = dist(positionXY, self._solutionPath.getState(0))
-            dist_0_to_1 = dist(self._solutionPath.getState(0), self._solutionPath.getState(1))
-            rospy.loginfo("dist_boat_to_0 = {}. dist_0_to_1 = {}.".format(dist_boat_to_0, dist_0_to_1))
-            prepend_boat_position = (dist_boat_to_0 > 0.5 * dist_0_to_1)
-
-        rospy.loginfo("prepend_boat_position = {}".format(prepend_boat_position))
-        if prepend_boat_position:
+            rospy.loginfo("lengthAfter == 1, prepending boat position to path so path length is at least 2")
             self._solutionPath.prepend(positionXY)
 
 
