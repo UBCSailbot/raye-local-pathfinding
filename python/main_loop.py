@@ -84,8 +84,8 @@ if __name__ == '__main__':
     pathCostBreakdownPublisher = rospy.Publisher('localPathCostBreakdown', String, queue_size=4)
     publishRate = rospy.Rate(1.0 / MAIN_LOOP_PERIOD_SECONDS)
 
-    # Wait until first global path is received
-    utils.waitForGlobalPath(sailbot)
+    # Wait until first sensor data + globalPath is received
+    sailbot.waitForFirstSensorDataAndGlobalPath()
 
     # Set the initial speedup value. Best done here in main_loop to ensure the timing.
     # Should be published before loop begins.

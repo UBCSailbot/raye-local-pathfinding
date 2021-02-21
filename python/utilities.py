@@ -4,7 +4,6 @@ from datetime import date
 import os
 import rospy
 import time
-import sys
 import math
 from geopy.distance import distance
 from std_msgs.msg import Float64
@@ -277,23 +276,6 @@ def pathCostThresholdExceeded(path):
     rospy.loginfo("pathCost = {}. Cost threshold for this length = {}"
                   .format(pathCost, costThreshold))
     return pathCost > costThreshold
-
-
-def waitForGlobalPath(sailbot):
-    '''Wait until the sailbot object receives a global path message. Outputs log messages with updates.
-
-    Args:
-       sailbot (Sailbot): Sailbot object with which the checking for global path message will happen.
-    '''
-    while not sailbot.newGlobalPathReceived:
-        # Exit if shutdown
-        if rospy.is_shutdown():
-            rospy.loginfo("rospy.is_shutdown() is True. Exiting")
-            sys.exit()
-        else:
-            rospy.loginfo("Waiting for sailbot to receive first newGlobalPath")
-            time.sleep(1)
-    rospy.loginfo("newGlobalPath received")
 
 
 def setInitialSpeedup():
