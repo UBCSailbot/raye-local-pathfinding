@@ -180,7 +180,7 @@ if __name__ == '__main__':
     localPathY = [xy[1] for xy in localPathXY]
 
     _, isStartEast, slope, y_intercept = getPerpLine(previousLocalWaypointXY, nextLocalWaypointXY)
-    _, glob_isStartEast, glob_slope, glob_y = getPerpLine(previousGlobalWaypointXY, nextGlobalWaypointXY)
+    _, glob_isStartEast, glob_slope, glob_y = getPerpLine(previousGlobalWaypointXY, nextGlobalWaypointXY, True)
 
     # Create plot with waypoints and boat
     xPLim, xNLim, yPLim, yNLim = getXYLimits(positionXY, nextGlobalWaypointXY)
@@ -261,7 +261,7 @@ if __name__ == '__main__':
         shipsXY = obs.getObstacles(state, referenceLatlon)
 
         _, isStartEast, slope, y_intercept = getPerpLine(previousLocalWaypointXY, nextLocalWaypointXY)
-        _, glob_isStartEast, glob_slope, glob_y = getPerpLine(previousGlobalWaypointXY, nextGlobalWaypointXY)
+        _, glob_isStartEast, glob_slope, glob_y = getPerpLine(previousGlobalWaypointXY, nextGlobalWaypointXY, True)
 
         # Update plots
         localPathPlot.set_xdata(localPathX)
