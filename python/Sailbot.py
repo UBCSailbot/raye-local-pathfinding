@@ -98,13 +98,14 @@ class Sailbot:
         '''Get the current sailbot boatstate, which includes all information relevant for pathfinding.
 
         Notes:
-        * Should only be run after running waitForFirstSensorDataAndGlobalPath() to ensure valid data
+        * Should only be run after running waitForFirstSensorDataAndGlobalPath() to get valid data, else returns None
         * Prints warnings if there is stale data.
         * If sailbot reaches end of its global path so that its globalPathIndex >= len(globalPath), then it
           simply sets the next global waypoint to be the last global waypoint
 
         Returns:
-           BoatState representing the current state of the sailbot
+           BoatState representing the current state of the sailbot.
+           Returns None if first subscriber messages have not been received
         '''
         if self.isMissingFirstSensorDataOrGlobalPath():
             rospy.logerr("Can't get current state: missing first sensor data or global path")
