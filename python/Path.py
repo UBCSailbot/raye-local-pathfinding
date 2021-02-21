@@ -23,28 +23,33 @@ MAX_ALLOWABLE_DISTANCE_FINAL_WAYPOINT_TO_GOAL_KM = 5
 MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS = 20.0
 INCREASE_RUNTIME_FACTOR = 1.5
 WAYPOINT_REACHED_DISTANCE = 0.5
+GLOBAL_WAYPOINT_REACHED_DISTANCE = 0.5
 
 # Global variables to count invalid solutions
 count_invalid_solutions = 0
 temp_invalid_solutions = 0
 
 
-def getPerpLine(lastX, lastY, nextX, nextY):
+def getPerpLine(lastXY, nextXY, isGlobal=False):
     '''
     Returns:
         bool isStartNorth, bool isStartEast, slope, y-intercept
             - a vertical line, with undefined slope and no y-intercept, is represented by
                 slope, y-intercept = None, None
     '''
+    lastX, lastY = lastXY
+    nextX, nextY = nextXY
+    dist = GLOBAL_WAYPOINT_REACHED_DISTANCE if isGlobal else WAYPOINT_REACHED_DISTANCE
+
     isStartNorth = nextY < lastY
     isStartEast = nextX < lastX
-    if abs(nextX - lastX) < 0.1:
+    if abs(nextX - lastX) < 0.01:
         if isStartNorth:
-            return isStartNorth, isStartEast, 0, nextY + WAYPOINT_REACHED_DISTANCE
+            return isStartNorth, isStartEast, 0, nextY + dist
         else:
-            return isStartNorth, isStartEast, 0, nextY - WAYPOINT_REACHED_DISTANCE
+            return isStartNorth, isStartEast, 0, nextY - dist
 
-    if abs(nextY - lastY) < 0.1:
+    if abs(nextY - lastY) < 0.01:
         if isStartEast:
             return isStartNorth, isStartEast, None, None
         else:
@@ -56,9 +61,9 @@ def getPerpLine(lastX, lastY, nextX, nextY):
     b = nextY - normalSlope * nextX
 
     # Modify y-intercept so that distance between the original and shifted lines has a
-    # magnitude of `WAYPOINT_REACHED_DISTANCE` in direction of previousWaypoint.
+    # magnitude of dist in direction of previousWaypoint.
     # NOte that cos(arctan(x)) can never be 0, so no division by 0 will happen
-    verticalShift = WAYPOINT_REACHED_DISTANCE / math.cos(math.atan(math.fabs(normalSlope)))
+    verticalShift = dist / math.cos(math.atan(math.fabs(normalSlope)))
     if isStartNorth:
         b += verticalShift
     else:
@@ -297,6 +302,28 @@ class Path:
 
         return _getNextWaypoint(self._latlons, self._nextWaypointIndex)
 
+    def getPreviousWaypoint(self):
+        '''Gets the previous waypoint, but performs bounds and edge case checks'''
+        def _getPreviousWaypoint(path, pathIndex):
+            # If path is empty, return (0, 0)
+            if len(path) == 0:
+                rospy.logwarn("Path is empty.")
+                rospy.logwarn("Setting waypoint to be (0, 0).")
+                return latlon(0, 0)
+
+            # If index out of range, return last waypoint in path
+            if pathIndex >= len(path):
+                rospy.logwarn("Path index is out of range: index = {} len(path) = {}".format(pathIndex, len(path)))
+                rospy.logwarn("Setting waypoint to be the last element of the path")
+                pathIndex = len(path) - 1
+                return path[pathIndex]
+
+            # If index in range, return the correct waypoint
+            else:
+                return path[pathIndex]
+
+        return _getPreviousWaypoint(self._latlons, self._nextWaypointIndex - 1)
+
     # Simple methods that directly call _omplPath methods
     def getCost(self):
         return self._omplPath.getCost()
@@ -347,11 +374,11 @@ class Path:
         goal = (goalLatlon.lat, goalLatlon.lon)
         return distance(lastWaypoint, goal).kilometers <= MAX_ALLOWABLE_DISTANCE_FINAL_WAYPOINT_TO_GOAL_KM
 
-    def waypointReached(self, positionLatlon, previousWaypointLatlon, nextWaypointLatlon):
+    def waypointReached(self, positionLatlon, previousWaypointLatlon, nextWaypointLatlon, isGlobal=False):
         '''Check if the given positionLatlon has reached the next waypoint.
         This is done by drawing a line from the waypoint at (self._nextWaypointIndex - 1) to (self._nextWaypointIndex)
         Then drawing a line perpendicular to the previous line that
-        is `WAYPOINT_REACHED_DISTANCE` in front of the waypoint at self._nextWaypointIndex.
+        is dist in front of the waypoint at self._nextWaypointIndex.
         Then checks if the positionLatlon is past the perpendicular line or not
 
         Examples: B is boat. 0 is (self._nextWaypointIndex - 1). 1 is (self._nextWaypointIndex).
@@ -380,11 +407,11 @@ class Path:
         refLatlon = self._omplPath.getReferenceLatlon()
 
         positionX, positionY = utils.latlonToXY(positionLatlon, refLatlon)
-        previousWaypointX, previousWaypointY = utils.latlonToXY(previousWaypointLatlon, refLatlon)
-        nextWaypointX, nextWaypointY = utils.latlonToXY(nextWaypointLatlon, refLatlon)
+        previousWaypointXY = utils.latlonToXY(previousWaypointLatlon, refLatlon)
+        nextWaypointXY = utils.latlonToXY(nextWaypointLatlon, refLatlon)
 
-        isStartNorth, isStartEast, normalSlope, b = getPerpLine(previousWaypointX, previousWaypointY,
-                                                                nextWaypointX, nextWaypointY)
+        isStartNorth, isStartEast, normalSlope, b = getPerpLine(previousWaypointXY, nextWaypointXY, isGlobal)
+        dist = GLOBAL_WAYPOINT_REACHED_DISTANCE if isGlobal else WAYPOINT_REACHED_DISTANCE
 
         # Handle edge cases where waypoints have the same x or y component
         if normalSlope == 0:
@@ -394,9 +421,9 @@ class Path:
                 return positionY >= b
         elif not normalSlope:
             if isStartEast:
-                return positionX <= nextWaypointX + WAYPOINT_REACHED_DISTANCE
+                return positionX <= nextWaypointXY[0] + dist
             else:
-                return positionX >= nextWaypointX - WAYPOINT_REACHED_DISTANCE
+                return positionX >= nextWaypointXY[0] - dist
 
         def y(x):
             return normalSlope * x + b

@@ -79,7 +79,9 @@ if __name__ == '__main__':
     # Create other publishers
     localPathPublisher = rospy.Publisher('localPath', msg.path, queue_size=4)
     nextLocalWaypointPublisher = rospy.Publisher('nextLocalWaypoint', msg.latlon, queue_size=4)
+    previousLocalWaypointPublisher = rospy.Publisher('previousLocalWaypoint', msg.latlon, queue_size=4)
     nextGlobalWaypointPublisher = rospy.Publisher('nextGlobalWaypoint', msg.latlon, queue_size=4)
+    previousGlobalWaypointPublisher = rospy.Publisher('previousGlobalWaypoint', msg.latlon, queue_size=4)
     pathCostPublisher = rospy.Publisher('localPathCost', Float64, queue_size=4)
     pathCostBreakdownPublisher = rospy.Publisher('localPathCostBreakdown', String, queue_size=4)
     publishRate = rospy.Rate(1.0 / MAIN_LOOP_PERIOD_SECONDS)
@@ -110,7 +112,14 @@ if __name__ == '__main__':
             state, numLookAheadWaypoints=utils.NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND, showWarnings=True)
         hasObstacleOnPath = localPath.obstacleOnPath(
             state, numLookAheadWaypoints=utils.NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES, showWarnings=True)
-        isGlobalWaypointReached = localPath.lastWaypointReached(state.position)
+
+        # global waypoint reached when boat crosses either red or final blue line
+        isLastWaypointReached = localPath.lastWaypointReached(state.position)
+        nextGlobalWaypoint = sailbot.globalPath[sailbot.globalPathIndex]
+        previousGlobalWaypoint = sailbot.globalPath[sailbot.globalPathIndex - 1]
+        isGlobalWaypointReached = (localPath.waypointReached(state.position, previousGlobalWaypoint, nextGlobalWaypoint,
+                                                             True) or isLastWaypointReached)
+
         newGlobalPathReceived = sailbot.newGlobalPathReceived
         reachedEndOfLocalPath = localPath.reachedEnd()
         pathNotReachGoal = not localPath.reachesGoalLatlon(state.globalWaypoint)
@@ -201,7 +210,9 @@ if __name__ == '__main__':
 
         # Publish nextLocalWaypoint and nextGlobalWaypoint and path cost
         nextLocalWaypointPublisher.publish(localPath.getNextWaypoint())
+        previousLocalWaypointPublisher.publish(localPath.getPreviousWaypoint())
         nextGlobalWaypointPublisher.publish(state.globalWaypoint)
+        previousGlobalWaypointPublisher.publish(sailbot.globalPath[sailbot.globalPathIndex - 1])
         pathCostPublisher.publish(localPath.getCost())
         pathCostBreakdownPublisher.publish(localPath.getPathCostBreakdownString())
 

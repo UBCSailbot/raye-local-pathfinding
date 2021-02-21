@@ -39,6 +39,16 @@ def nextGlobalWaypointCallback(data):
     nextGlobalWaypoint = data
 
 
+def previousGlobalWaypointCallback(data):
+    global previousGlobalWaypoint
+    previousGlobalWaypoint = data
+
+
+def previousLocalWaypointCallback(data):
+    global previousLocalWaypoint
+    previousLocalWaypoint = data
+
+
 # Global variable for speedup
 speedup = 1.0
 
@@ -99,12 +109,49 @@ def needAxesResized(positionXY, nextGlobalWaypointXY, xPLim, xNLim, yPLim, yNLim
     return False
 
 
+def getPerpPlot(isStartEast, slope, y_intercept, destinationXY):
+    destinationX, destinationY = destinationXY
+
+    if slope == 0:
+        return [destinationX - 5, destinationX + 5], [y_intercept, y_intercept]
+    elif not slope:
+        offset = WAYPOINT_REACHED_DISTANCE if isStartEast else -1 * WAYPOINT_REACHED_DISTANCE
+        return [destinationX + offset, destinationX + offset],
+        [destinationY - 5, destinationY + 5]
+    else:
+        # methods for boundary line
+        def y(x):
+            return slope * x + y_intercept
+
+        # find the interception between the boundary line and path to the next waypoint
+        # solve for x in y = slope*x + y_intercept = -1/m(x-nextX) + nextY
+        centerX = (destinationX / slope + destinationY - y_intercept) / (slope + 1 / slope)
+
+        deltaX = 5 * math.cos(math.atan(math.fabs(slope)))
+        lineX = [centerX - deltaX, centerX + deltaX]
+
+        # #Print statements for debugging:
+        # rospy.logwarn("Method lines: ({}, {}); {}; {}".format(centerX, centerX,
+        #                [centerX - deltaX, centerX + deltaX], [y(centerX - deltaX), y(centerX + deltaX)]))
+        # rospy.logwarn('slope, y-intercept: ({}, {})'.format(slope, y_intercept))
+        # rospy.logwarn('previous waypoint: ({}, {})'.format(localPathXY[prevInd][0], localPathXY[prevInd][1]))
+        # rospy.logwarn('next waypoint: ({}, {})'.format(nextLocalWaypointXY[0], nextLocalWaypointXY[1]))
+        # rospy.logwarn('boundary line middle: ({}, {})'.format(centerX, y(centerX)))
+        # rospy.logwarn('current position: ({}, {})'.format(positionXY[0], positionXY[1]))
+        # rospy.logwarn('x bounds 1: ({}, {})'.format(centerX - deltaX, y(centerX - deltaX)))
+        # rospy.logwarn('x bounds 2: ({}, {})'.format(centerX + deltaX, y(centerX + deltaX)))
+
+        return lineX, [y(lineX[0]), y(lineX[1])]
+
+
 if __name__ == '__main__':
     # Setup ros subscribers
     sailbot = sbot.Sailbot(nodeName='localPathVisualizer')
     rospy.Subscriber("localPath", path, localPathCallback)
     rospy.Subscriber("nextLocalWaypoint", latlon, nextLocalWaypointCallback)
+    rospy.Subscriber("previousLocalWaypoint", latlon, previousLocalWaypointCallback)
     rospy.Subscriber("nextGlobalWaypoint", latlon, nextGlobalWaypointCallback)
+    rospy.Subscriber("previousGlobalWaypoint", latlon, previousGlobalWaypointCallback)
     rospy.Subscriber("speedup", Float64, speedupCallback)
     r = rospy.Rate(1.0 / VISUALIZER_UPDATE_PERIOD_SECONDS)
 
@@ -125,18 +172,15 @@ if __name__ == '__main__':
     referenceLatlon = nextGlobalWaypoint  # Ensure that this matches createLocalPathSS referenceLatlon for best results
     positionXY = utils.latlonToXY(state.position, referenceLatlon)
     nextGlobalWaypointXY = utils.latlonToXY(nextGlobalWaypoint, referenceLatlon)
+    previousGlobalWaypointXY = utils.latlonToXY(previousGlobalWaypoint, referenceLatlon)
     nextLocalWaypointXY = utils.latlonToXY(nextLocalWaypoint, referenceLatlon)
+    previousLocalWaypointXY = utils.latlonToXY(previousLocalWaypoint, referenceLatlon)
     localPathXY = [utils.latlonToXY(localWaypoint, referenceLatlon) for localWaypoint in localPath]
     localPathX = [xy[0] for xy in localPathXY]
     localPathY = [xy[1] for xy in localPathXY]
 
-    distances = [math.sqrt(((xy[0] - nextLocalWaypointXY[0])**2) + ((xy[1] - nextLocalWaypointXY[1])**2))
-                 for xy in localPathXY]
-    nextInd = distances.index(min(distances))
-    prevInd = 0 if nextInd == 0 else nextInd - 1
-
-    isStartNorth, isStartEast, slope, y_intercept = getPerpLine(localPathXY[prevInd][0], localPathXY[prevInd][1],
-                                                                nextLocalWaypointXY[0], nextLocalWaypointXY[1])
+    _, isStartEast, slope, y_intercept = getPerpLine(previousLocalWaypointXY, nextLocalWaypointXY)
+    _, glob_isStartEast, glob_slope, glob_y = getPerpLine(previousGlobalWaypointXY, nextGlobalWaypointXY, True)
 
     # Create plot with waypoints and boat
     xPLim, xNLim, yPLim, yNLim = getXYLimits(positionXY, nextGlobalWaypointXY)
@@ -148,26 +192,12 @@ if __name__ == '__main__':
                                         marker='*', color='y', markersize=markersize)          # Yellow star
     nextLocalWaypointPlot, = axes.plot(nextLocalWaypointXY[0], nextLocalWaypointXY[1],
                                        marker='X', color='g', markersize=markersize)           # Green X
-    if slope == 0:
-        waypointReachedPlot, = axes.plot([nextLocalWaypointXY[0] - 5, nextLocalWaypointXY[0] + 5],
-                                         [y_intercept, y_intercept])
-    elif not slope:
-        offset = WAYPOINT_REACHED_DISTANCE if isStartEast else -1 * WAYPOINT_REACHED_DISTANCE
-        waypointReachedPlot, = axes.plot([nextLocalWaypointXY[0] + offset, nextLocalWaypointXY[0] + offset],
-                                         [nextLocalWaypointXY[1] - 5, nextLocalWaypointXY[1] + 5])
-    else:
-        # methods for boundary line
-        def y(x):
-            return slope * x + y_intercept
 
-        # find the interception between the boundary line and path to the next waypoint
-        # solve for x in y = slope*x + y_intercept = -1/m(x-nextX) + nextY
-        centerX = (nextLocalWaypointXY[0] / slope + nextLocalWaypointXY[1]) / (slope + 1 / slope)
+    lineX, lineY = getPerpPlot(isStartEast, slope, y_intercept, nextLocalWaypointXY)
+    waypointReachedPlot, = axes.plot(lineX, lineY, color='b')
 
-        deltaX = 5 * math.cos(math.atan(math.fabs(slope)))
-        lineX = [centerX - deltaX, centerX + deltaX]
-        lineY = [y(lineX[0]), y(lineX[1])]
-        waypointReachedPlot, = axes.plot(lineX, lineY)
+    glob_X, glob_Y = getPerpPlot(glob_isStartEast, glob_slope, glob_y, nextGlobalWaypointXY)
+    globalWaypointReachedPlot, = axes.plot(glob_X, glob_Y, color='r')
 
     # Red triangle with correct heading. The (-90) is because the triangle
     # default heading 0 points North, but this heading has 0 be East.
@@ -224,18 +254,14 @@ if __name__ == '__main__':
         positionXY = utils.latlonToXY(state.position, referenceLatlon)
         nextGlobalWaypointXY = utils.latlonToXY(nextGlobalWaypoint, referenceLatlon)
         nextLocalWaypointXY = utils.latlonToXY(nextLocalWaypoint, referenceLatlon)
+        previousLocalWaypointXY = utils.latlonToXY(previousLocalWaypoint, referenceLatlon)
         localPathXY = [utils.latlonToXY(localWaypoint, referenceLatlon) for localWaypoint in localPath]
         localPathX = [xy[0] for xy in localPathXY]
         localPathY = [xy[1] for xy in localPathXY]
         shipsXY = obs.getObstacles(state, referenceLatlon)
 
-        distances = [math.sqrt(((xy[0] - nextLocalWaypointXY[0])**2) + ((xy[1] - nextLocalWaypointXY[1])**2))
-                     for xy in localPathXY]
-        nextInd = distances.index(min(distances))
-        prevInd = 0 if nextInd == 0 else nextInd - 1
-
-        isStartNorth, isStartEast, slope, y_intercept = getPerpLine(localPathXY[prevInd][0], localPathXY[prevInd][1],
-                                                                    nextLocalWaypointXY[0], nextLocalWaypointXY[1])
+        _, isStartEast, slope, y_intercept = getPerpLine(previousLocalWaypointXY, nextLocalWaypointXY)
+        _, glob_isStartEast, glob_slope, glob_y = getPerpLine(previousGlobalWaypointXY, nextGlobalWaypointXY, True)
 
         # Update plots
         localPathPlot.set_xdata(localPathX)
@@ -250,33 +276,14 @@ if __name__ == '__main__':
         positionPlotTail.set_xdata(positionXY[0] - 1 * math.cos(math.radians(state.headingDegrees)))
         positionPlotTail.set_ydata(positionXY[1] - 1 * math.sin(math.radians(state.headingDegrees)))
         positionPlotTail.set_marker((5, 0, state.headingDegrees - 90))  # Creates a tail for the visualizer
-        if slope == 0:
-            waypointReachedPlot.set_xdata([nextLocalWaypointXY[0] - 5, nextLocalWaypointXY[0] + 5])
-            waypointReachedPlot.set_ydata([y_intercept, y_intercept])
-        elif not slope:
-            offset = WAYPOINT_REACHED_DISTANCE if isStartEast else -1 * WAYPOINT_REACHED_DISTANCE
-            waypointReachedPlot.set_xdata([nextLocalWaypointXY[0] + offset, nextLocalWaypointXY[0] + offset])
-            waypointReachedPlot.set_ydata([nextLocalWaypointXY[1] - 5, nextLocalWaypointXY[1] + 5])
-        else:
-            def y(x):
-                return slope * x + y_intercept
 
-            # find the interception between the boundary line and path to the next waypoint
-            #  - solve for x in y = slope*x + y_intercept = -1/m(x-nextX) + nextY
-            centerX = (nextLocalWaypointXY[0] / slope + nextLocalWaypointXY[1] - y_intercept) / (slope + 1 / slope)
+        lineX, lineY = getPerpPlot(isStartEast, slope, y_intercept, nextLocalWaypointXY)
+        waypointReachedPlot.set_xdata(lineX)
+        waypointReachedPlot.set_ydata(lineY)
 
-            deltaX = 5 * math.cos(math.atan(math.fabs(slope)))
-            waypointReachedPlot.set_xdata([centerX - deltaX, centerX + deltaX])
-            waypointReachedPlot.set_ydata([y(centerX - deltaX), y(centerX + deltaX)])
-
-            # #Print statements for debugging:
-            # rospy.logwarn('slope, y-intercept: ({}, {})'.format(slope, y_intercept))
-            # rospy.logwarn('previous waypoint: ({}, {})'.format(localPathXY[prevInd][0], localPathXY[prevInd][1]))
-            # rospy.logwarn('next waypoint: ({}, {})'.format(nextLocalWaypointXY[0], nextLocalWaypointXY[1]))
-            # rospy.logwarn('boundary line middle: ({}, {})'.format(centerX, y(centerX)))
-            # rospy.logwarn('current position: ({}, {})'.format(positionXY[0], positionXY[1]))
-            # rospy.logwarn('x bounds 1: ({}, {})'.format(centerX - deltaX, y(centerX - deltaX)))
-            # rospy.logwarn('x bounds 2: ({}, {})'.format(centerX + deltaX, y(centerX + deltaX)))
+        glob_X, glob_Y = getPerpPlot(glob_isStartEast, glob_slope, glob_y, nextGlobalWaypointXY)
+        globalWaypointReachedPlot.set_xdata(glob_X)
+        globalWaypointReachedPlot.set_ydata(glob_Y)
 
         # Resize axes if needed
         if needAxesResized(positionXY, nextGlobalWaypointXY, xPLim, xNLim, yPLim, yNLim):
