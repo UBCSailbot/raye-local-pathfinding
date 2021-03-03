@@ -4,7 +4,7 @@ import rospy
 import math
 from Path import getPerpLine, WAYPOINT_REACHED_DISTANCE
 from std_msgs.msg import Float64
-from sailbot_msg.msg import path, latlon
+from sailbot_msg.msg import path, latlon, GPS
 import utilities as utils
 import obstacles as obs
 import Sailbot as sbot
@@ -20,6 +20,7 @@ LATLON_TEXT_DECIMAL_PLACES = 3
 localPath = None
 nextLocalWaypoint = None
 nextGlobalWaypoint = None
+speedKmph = 0.0
 
 # ROS subscribe callbacks
 
@@ -56,6 +57,10 @@ speedup = 1.0
 def speedupCallback(data):
     global speedup
     speedup = data.data
+
+def GPSCallback(data):
+    global speedKmph
+    speedKmph = data.speedKmph
 
 # Set xy for figure
 
@@ -153,6 +158,7 @@ if __name__ == '__main__':
     rospy.Subscriber("nextGlobalWaypoint", latlon, nextGlobalWaypointCallback)
     rospy.Subscriber("previousGlobalWaypoint", latlon, previousGlobalWaypointCallback)
     rospy.Subscriber("speedup", Float64, speedupCallback)
+    rospy.Subscriber("GPS", GPS, GPSCallback)
     r = rospy.Rate(1.0 / VISUALIZER_UPDATE_PERIOD_SECONDS)
 
     # Wait for first messages
@@ -246,6 +252,13 @@ if __name__ == '__main__':
                                                      round(nextGlobalWaypoint.lon, LATLON_TEXT_DECIMAL_PLACES)),
                                              ha='center')
 
+    boatSpeedText = axes.text(oceanCurrentArrowCenter[0],
+                                      oceanCurrentArrowCenter[1] + 1.75 * fractionOfPlotLength,
+                                      "Boat Speed Kmph: {}"
+                                      .format(round(speedKmph, 2)), ha='center')
+
+
+
     while not rospy.is_shutdown():
         state = sailbot.getCurrentState()
         referenceLatlon = nextGlobalWaypoint  # Ensure this matches createLocalPathSS referenceLatlon for best results
@@ -307,6 +320,13 @@ if __name__ == '__main__':
                                             oceanCurrentArrowCenter[1] + 1.5 * fractionOfPlotLength))
         oceanCurrentSpeedText.set_text("Ocean Current Speed Kmph: {}"
                                        .format(rospy.get_param("ocean_current_speed", default=0)))
+
+
+        # Update boat speed text
+        boatSpeedText.set_position((oceanCurrentArrowCenter[0],
+                                            oceanCurrentArrowCenter[1] + 1.75 * fractionOfPlotLength))
+        boatSpeedText.set_text("Boat Speed Kmph: {}"
+                                       .format(round(speedKmph, 2)))
 
         # Update position and global waypoint text
         positionLatlonText.set_position((positionXY[0], positionXY[1] + 0.5 * fractionOfPlotLength))
