@@ -196,7 +196,8 @@ if __name__ == '__main__':
 
         # Publish desiredHeading
         if enable_los:
-            desiredHeadingDegrees = utils.getLOSHeadingDegrees(state.position, localPath.getPreviousWaypoint(), localPath.getNextWaypoint())
+            desiredHeadingDegrees = utils.getLOSHeadingDegrees(state.position, localPath.getPreviousWaypoint(),
+                                                               localPath.getNextWaypoint())
         else:
             desiredHeadingDegrees = utils.getDesiredHeadingDegrees(state.position, localPath.getNextWaypoint())
 
