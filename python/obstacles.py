@@ -14,7 +14,7 @@ WEDGE_EXPAND_ANGLE_DEGREES = 10.0
 AIS_BOAT_RADIUS_KM = 0.2
 AIS_BOAT_LENGTH_KM = 1
 AIS_BOAT_CIRCLE_SPACING_KM = AIS_BOAT_RADIUS_KM * 1.5  # Distance between circles that make up an AIS boat
-SAILBOT_MAX_SPEED = 14.4
+SAILBOT_MAX_SPEED_BUFFER = 16
 
 # Obstacle visualization constants
 CURRENT_BOAT_COLOR = "red"
@@ -286,7 +286,8 @@ def getProjectedPosition(aisShip, sailbotPosition, referenceLatlon):
     Returns:
        [x, y] projected position of the ais ship
     """
-    sailbotSpeedKmph = SAILBOT_MAX_SPEED  # calculate projection as if sailbot was moving at its maximum speed
+    # calculate projection as if sailbot was moving slightly faster than its maximum speed
+    sailbotSpeedKmph = SAILBOT_MAX_SPEED_BUFFER
 
     # Get positions of ais boat and sailbot
     aisX, aisY = utils.latlonToXY(latlon(aisShip.lat, aisShip.lon), referenceLatlon)
