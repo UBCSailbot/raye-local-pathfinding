@@ -14,6 +14,7 @@ WEDGE_EXPAND_ANGLE_DEGREES = 10.0
 AIS_BOAT_RADIUS_KM = 0.2
 AIS_BOAT_LENGTH_KM = 1
 AIS_BOAT_CIRCLE_SPACING_KM = AIS_BOAT_RADIUS_KM * 1.5  # Distance between circles that make up an AIS boat
+SAILBOT_MAX_SPEED = 14.4
 
 # Obstacle visualization constants
 CURRENT_BOAT_COLOR = "red"
@@ -31,24 +32,24 @@ def getObstacles(state, referenceLatlon):
     Returns:
        list of obstacles that implement the obstacle interface
     '''
-    ships, position, speedKmph = state.AISData.ships, state.position, state.speedKmph
+    ships, position = state.AISData.ships, state.position
     obstacle_type = rospy.get_param('obstacle_type', 'hybrid_circle')
     obstacles = []
     if obstacle_type == "ellipse":
         for ship in ships:
-            obstacles.append(EllipseObstacle(ship, position, speedKmph, referenceLatlon))
+            obstacles.append(EllipseObstacle(ship, position, referenceLatlon))
     elif obstacle_type == "wedge":
         for ship in ships:
-            obstacles.append(WedgeObstacle(ship, position, speedKmph, referenceLatlon))
+            obstacles.append(WedgeObstacle(ship, position, referenceLatlon))
     elif obstacle_type == "circles":
         for ship in ships:
-            obstacles.append(CirclesObstacle(ship, position, speedKmph, referenceLatlon))
+            obstacles.append(CirclesObstacle(ship, position, referenceLatlon))
     elif obstacle_type == "hybrid_ellipse":
         for ship in ships:
-            obstacles.append(HybridEllipseObstacle(ship, position, speedKmph, referenceLatlon))
+            obstacles.append(HybridEllipseObstacle(ship, position, referenceLatlon))
     elif obstacle_type == "hybrid_circle":
         for ship in ships:
-            obstacles.append(HybridCircleObstacle(ship, position, speedKmph, referenceLatlon))
+            obstacles.append(HybridCircleObstacle(ship, position, referenceLatlon))
     return obstacles
 
 
@@ -56,18 +57,16 @@ def getObstacles(state, referenceLatlon):
 
 
 class ObstacleInterface():
-    def __init__(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
+    def __init__(self, aisShip, sailbotPosition, referenceLatlon):
         """ Initialize obstacle """
         # Store member variables
         self.aisShip = aisShip
         self.sailbotPosition = sailbotPosition
-        self.sailbotSpeedKmph = sailbotSpeedKmph
         self.referenceLatlon = referenceLatlon
 
         # Calculate current and projected position
         self.currentX, self.currentY = utils.latlonToXY(latlon(aisShip.lat, aisShip.lon), referenceLatlon)
-        self.projectedX, self.projectedY = getProjectedPosition(aisShip, sailbotPosition,
-                                                                sailbotSpeedKmph, referenceLatlon)
+        self.projectedX, self.projectedY = getProjectedPosition(aisShip, sailbotPosition, referenceLatlon)
 
     def __str__(self):
         """ String representation of obstacle """
@@ -87,8 +86,8 @@ class ObstacleInterface():
 
 
 class EllipseObstacle(ObstacleInterface):
-    def __init__(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
-        ObstacleInterface.__init__(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon)
+    def __init__(self, aisShip, sailbotPosition, referenceLatlon):
+        ObstacleInterface.__init__(self, aisShip, sailbotPosition, referenceLatlon)
 
         # Create ellipses
         self.currentEllipse = self._createEllipse(self.currentX, self.currentY)
@@ -122,8 +121,8 @@ class EllipseObstacle(ObstacleInterface):
 
 
 class WedgeObstacle(ObstacleInterface):
-    def __init__(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
-        ObstacleInterface.__init__(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon)
+    def __init__(self, aisShip, sailbotPosition, referenceLatlon):
+        ObstacleInterface.__init__(self, aisShip, sailbotPosition, referenceLatlon)
 
         # Create wedges
         self.currentWedge = self._createWedge(self.currentX, self.currentY)
@@ -160,8 +159,8 @@ class WedgeObstacle(ObstacleInterface):
 
 
 class CirclesObstacle(ObstacleInterface):
-    def __init__(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
-        ObstacleInterface.__init__(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon)
+    def __init__(self, aisShip, sailbotPosition, referenceLatlon):
+        ObstacleInterface.__init__(self, aisShip, sailbotPosition, referenceLatlon)
 
         # Create ellipses
         self.currentCircles = self._createCircles(self.currentX, self.currentY)
@@ -232,11 +231,11 @@ class CirclesObstacle(ObstacleInterface):
 
 
 class HybridEllipseObstacle(ObstacleInterface):
-    def __init__(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
-        ObstacleInterface.__init__(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon)
+    def __init__(self, aisShip, sailbotPosition, referenceLatlon):
+        ObstacleInterface.__init__(self, aisShip, sailbotPosition, referenceLatlon)
 
-        self.wedgeObstacle = WedgeObstacle(aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon)
-        self.ellipseObstacle = EllipseObstacle(aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon)
+        self.wedgeObstacle = WedgeObstacle(aisShip, sailbotPosition, referenceLatlon)
+        self.ellipseObstacle = EllipseObstacle(aisShip, sailbotPosition, referenceLatlon)
 
     def __str__(self):
         return str(self.wedgeObstacle) + str(self.ellipseObstacle)
@@ -253,12 +252,12 @@ class HybridEllipseObstacle(ObstacleInterface):
 
 
 class HybridCircleObstacle(ObstacleInterface):
-    def __init__(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
-        ObstacleInterface.__init__(self, aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon)
+    def __init__(self, aisShip, sailbotPosition, referenceLatlon):
+        ObstacleInterface.__init__(self, aisShip, sailbotPosition, referenceLatlon)
 
         self.currentCircle = Circle(self.currentX, self.currentY, AIS_BOAT_RADIUS_KM)
         self.projectedCircle = Circle(self.projectedX, self.projectedY, AIS_BOAT_RADIUS_KM)
-        self.wedgeObstacle = WedgeObstacle(aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon)
+        self.wedgeObstacle = WedgeObstacle(aisShip, sailbotPosition, referenceLatlon)
 
     def __str__(self):
         return str(self.currentCircle) + str(self.projectedCircle) + str(self.wedgeObstacle)
@@ -275,7 +274,7 @@ class HybridCircleObstacle(ObstacleInterface):
         return self.wedgeObstacle.clearance(xy)
 
 
-def getProjectedPosition(aisShip, sailbotPosition, sailbotSpeedKmph, referenceLatlon):
+def getProjectedPosition(aisShip, sailbotPosition, referenceLatlon):
     """ Calculate position where we project the boat to be if the sailbot moves directly towards it
 
     Args:
@@ -287,6 +286,8 @@ def getProjectedPosition(aisShip, sailbotPosition, sailbotSpeedKmph, referenceLa
     Returns:
        [x, y] projected position of the ais ship
     """
+    sailbotSpeedKmph = SAILBOT_MAX_SPEED  # calculate projection as if sailbot was moving at its maximum speed
+
     # Get positions of ais boat and sailbot
     aisX, aisY = utils.latlonToXY(latlon(aisShip.lat, aisShip.lon), referenceLatlon)
     sailbotX, sailbotY = utils.latlonToXY(latlon(sailbotPosition.lat, sailbotPosition.lon), referenceLatlon)
