@@ -4,7 +4,6 @@ from datetime import date
 import os
 import rospy
 import time
-import sys
 import math
 from geopy.distance import distance
 from std_msgs.msg import Float64
@@ -162,6 +161,40 @@ def getDesiredHeadingDegrees(position, localWaypoint):
     return math.degrees(math.atan2(xy[1], xy[0]))
 
 
+def getLOSHeadingDegrees(position, previousWaypoint, currentWaypoint):
+    '''Calculate the heading that the boat should aim towards to reach the local waypoint.
+    The LOS guidance law will attempt to keep the boat on the straight line between the previous and current waypoint.
+
+    Args:
+       position (sailbot_msg.msg._latlon.latlon): Current position of the boat
+       previousWaypoint (sailbot_msg.msg._latlon.latlon): Previous local waypoint that the boat visited
+       currentWaypoint (sailbot_msg.msg._latlon.latlon): Current local waypoint that the boat is aiming towards
+
+    Returns:
+       float that is the heading (degrees) that the boat should be aiming towards to reach the local waypoint
+    '''
+    # The lookahead distance describes how "hard" the boat should try to reduce the crosstrack error
+    lookahead = 0.001
+    Kp = 1 / lookahead
+
+    x_start = previousWaypoint.lon
+    y_start = previousWaypoint.lat
+
+    x_end = currentWaypoint.lon
+    y_end = currentWaypoint.lat
+
+    x = position.lon
+    y = position.lat
+
+    # The direction that we would ideally be heading
+    straight_course = math.atan2(y_end - y_start, x_end - x_start)
+
+    # Lateral error, i. e. how far the boat has drifted off track
+    crosstrack_error = -(x - x_start) * math.sin(straight_course) + (y - y_start) * math.cos(straight_course)
+
+    return math.degrees(straight_course - math.atan(Kp * crosstrack_error))
+
+
 def measuredWindToGlobalWind(measuredWindSpeed, measuredWindDirectionDegrees, boatSpeed, headingDegrees):
     '''Calculate the global wind based on the measured wind and the boat velocity
 
@@ -279,23 +312,6 @@ def pathCostThresholdExceeded(path):
     return pathCost > costThreshold
 
 
-def waitForGlobalPath(sailbot):
-    '''Wait until the sailbot object receives a global path message. Outputs log messages with updates.
-
-    Args:
-       sailbot (Sailbot): Sailbot object with which the checking for global path message will happen.
-    '''
-    while not sailbot.newGlobalPathReceived:
-        # Exit if shutdown
-        if rospy.is_shutdown():
-            rospy.loginfo("rospy.is_shutdown() is True. Exiting")
-            sys.exit()
-        else:
-            rospy.loginfo("Waiting for sailbot to receive first newGlobalPath")
-            time.sleep(1)
-    rospy.loginfo("newGlobalPath received")
-
-
 def setInitialSpeedup():
     '''Wait until there are enough speedup subscribers before publishing initial speedup.
     Assumes 1.0 if "initial_speedup" parameter not set.
@@ -326,3 +342,8 @@ def setInitialSpeedup():
     rospy.loginfo("Publishing initial_speedup = {}".format(initial_speedup))
     speedupPublisher.publish(initial_speedup)
     time.sleep(1)
+
+
+# Smallest signed angle (degrees)
+def ssa_deg(angle):
+    return ((angle + 180) % 360) - 180

@@ -17,8 +17,11 @@
     <arg name="plot_pathfinding_problem" default="false" />
     <arg name="random_seed" default="" />
     <arg name="planner_type" default="RRTStar" />
+    <arg name="smooth_changes" default="true" />
     <arg name="ocean_current_speed" default="0.0" />
     <arg name="ocean_current_direction" default="0.0" />
+    <arg name="enable_los" default="false" />
+    <param name="enable_los" type="bool" value="$(arg enable_los)" />
     <include file="$(find local_pathfinding)/launch/launch_all_mocks.launch">
       <arg name="initial_speedup" value="$(arg initial_speedup)"/>
       <arg name="num_ais_ships" value="$(arg num_ais_ships)"/>
@@ -31,6 +34,7 @@
       <arg name="plot_pathfinding_problem" value="$(arg plot_pathfinding_problem)"/>
       <arg name="random_seed" value="$(arg random_seed)" />
       <arg name="planner_type" value="$(arg planner_type)" />
+      <arg name="smooth_changes" value="$(arg smooth_changes)" />
       <arg name="ocean_current_speed" default="$(arg ocean_current_speed)" />
       <arg name="ocean_current_direction" default="$(arg ocean_current_direction)" />
     </include>

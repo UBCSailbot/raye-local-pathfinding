@@ -68,6 +68,9 @@ if __name__ == '__main__':
     # Create sailbot ROS object that subscribes to relevant topics
     sailbot = sbot.Sailbot(nodeName='local_pathfinding')
 
+    # Get enable_los parameter
+    enable_los = rospy.get_param('enable_los', default=False)
+
     # Subscribe to requestLocalPathUpdate
     rospy.Subscriber('requestLocalPathUpdate', Bool, localPathUpdateRequestedCallback)
     rospy.Subscriber('forceLocalPathUpdate', Bool, localPathUpdateForcedCallback)
@@ -79,13 +82,15 @@ if __name__ == '__main__':
     # Create other publishers
     localPathPublisher = rospy.Publisher('localPath', msg.path, queue_size=4)
     nextLocalWaypointPublisher = rospy.Publisher('nextLocalWaypoint', msg.latlon, queue_size=4)
+    previousLocalWaypointPublisher = rospy.Publisher('previousLocalWaypoint', msg.latlon, queue_size=4)
     nextGlobalWaypointPublisher = rospy.Publisher('nextGlobalWaypoint', msg.latlon, queue_size=4)
+    previousGlobalWaypointPublisher = rospy.Publisher('previousGlobalWaypoint', msg.latlon, queue_size=4)
     pathCostPublisher = rospy.Publisher('localPathCost', Float64, queue_size=4)
     pathCostBreakdownPublisher = rospy.Publisher('localPathCostBreakdown', String, queue_size=4)
     publishRate = rospy.Rate(1.0 / MAIN_LOOP_PERIOD_SECONDS)
 
-    # Wait until first global path is received
-    utils.waitForGlobalPath(sailbot)
+    # Wait until first sensor data + globalPath is received
+    sailbot.waitForFirstSensorDataAndGlobalPath()
 
     # Set the initial speedup value. Best done here in main_loop to ensure the timing.
     # Should be published before loop begins.
@@ -106,34 +111,35 @@ if __name__ == '__main__':
         state = sailbot.getCurrentState()
 
         # Check if local path MUST be updated
-        goalValid = his.checkGoalValidity(state)
-
         hasUpwindOrDownwindOnPath = localPath.upwindOrDownwindOnPath(
             state, numLookAheadWaypoints=utils.NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND, showWarnings=True)
         hasObstacleOnPath = localPath.obstacleOnPath(
             state, numLookAheadWaypoints=utils.NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES, showWarnings=True)
-        isGlobalWaypointReached = localPath.lastWaypointReached(state.position)
+
+        # global waypoint reached when boat crosses either red or final blue line
+        isLastWaypointReached = localPath.lastWaypointReached(state.position)
+        nextGlobalWaypoint = sailbot.globalPath[sailbot.globalPathIndex]
+        previousGlobalWaypoint = sailbot.globalPath[sailbot.globalPathIndex - 1]
+        isGlobalWaypointReached = (localPath.waypointReached(state.position, previousGlobalWaypoint, nextGlobalWaypoint,
+                                                             True) or isLastWaypointReached)
+
         newGlobalPathReceived = sailbot.newGlobalPathReceived
         reachedEndOfLocalPath = localPath.reachedEnd()
         pathNotReachGoal = not localPath.reachesGoalLatlon(state.globalWaypoint)
-
-        if not goalValid:
-            rospy.logwarn("Goal state invalid, skipping to the next global waypoint")
-            isGlobalWaypointReached = True
-
+        goalInvalid = (not his.checkGoalValidity(state))
         mustUpdateLocalPath = (hasUpwindOrDownwindOnPath or hasObstacleOnPath or isGlobalWaypointReached
                                or newGlobalPathReceived or reachedEndOfLocalPath or pathNotReachGoal
-                               or localPathUpdateForced)
+                               or goalInvalid or localPathUpdateForced)
 
         #mustUpdateLocalPath = False # Josh
         if mustUpdateLocalPath:
             # Log reason for local path update
             rospy.logwarn("MUST update local Path. Reason: hasUpwindOrDownwindOnPath? {}. hasObstacleOnPath? {}. "
                           "isGlobalWaypointReached? {}. newGlobalPathReceived? {}. reachedEndOfLocalPath? {}. "
-                          "pathNotReachGoal? {}. localPathUpdateForced? {}."
+                          "pathNotReachGoal? {}. goalInvalid? {}. localPathUpdateForced? {}."
                           .format(hasUpwindOrDownwindOnPath, hasObstacleOnPath, isGlobalWaypointReached,
                                   newGlobalPathReceived, reachedEndOfLocalPath, pathNotReachGoal,
-                                  localPathUpdateForced))
+                                  goalInvalid, localPathUpdateForced))
 
             # Reset request
             if localPathUpdateForced:
@@ -144,8 +150,11 @@ if __name__ == '__main__':
                 sailbot.newGlobalPathReceived = False
 
             # If globalWaypoint reached, increment the index
-            if isGlobalWaypointReached:
-                rospy.loginfo("Global waypoint reached")
+            if isGlobalWaypointReached or goalInvalid:
+                if isGlobalWaypointReached:
+                    rospy.loginfo("Global waypoint reached")
+                if goalInvalid:
+                    rospy.logwarn("Goal state invalid, skipping to the next global waypoint")
                 sailbot.globalPathIndex += 1
 
             # Update local path
@@ -197,7 +206,12 @@ if __name__ == '__main__':
                     rospy.loginfo("Keeping old local path")
 
         # Publish desiredHeading
-        desiredHeadingDegrees = utils.getDesiredHeadingDegrees(state.position, localPath.getNextWaypoint())
+        if enable_los:
+            desiredHeadingDegrees = utils.getLOSHeadingDegrees(state.position, localPath.getPreviousWaypoint(),
+                                                               localPath.getNextWaypoint())
+        else:
+            desiredHeadingDegrees = utils.getDesiredHeadingDegrees(state.position, localPath.getNextWaypoint())
+
         desiredHeadingPublisher.publish(msg.heading(desiredHeadingDegrees))
 
         # Publish local path
@@ -209,7 +223,9 @@ if __name__ == '__main__':
 
         # Publish nextLocalWaypoint and nextGlobalWaypoint and path cost
         nextLocalWaypointPublisher.publish(localPath.getNextWaypoint())
+        previousLocalWaypointPublisher.publish(localPath.getPreviousWaypoint())
         nextGlobalWaypointPublisher.publish(state.globalWaypoint)
+        previousGlobalWaypointPublisher.publish(sailbot.globalPath[sailbot.globalPathIndex - 1])
         pathCostPublisher.publish(localPath.getCost())
         pathCostBreakdownPublisher.publish(localPath.getPathCostBreakdownString())
 

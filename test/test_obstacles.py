@@ -51,9 +51,10 @@ class TestObstacles(unittest.TestCase):
         # Uncomment below to see obstacles extended on a plot
         # self.plotObstacles(obstacles)
 
-        self.assertTrue(utils.isValid(xy=[1, 1], obstacles=obstacles))
+        self.assertFalse(utils.isValid(xy=[1, 1], obstacles=obstacles))
         self.assertTrue(utils.isValid(xy=[0, 0], obstacles=obstacles))
-        self.assertFalse(utils.isValid(xy=[1, 0], obstacles=obstacles))
+        self.assertTrue(utils.isValid(xy=[1, 0], obstacles=obstacles))
+        self.assertTrue(utils.isValid(xy=[0, 1], obstacles=obstacles))
 
     def test_getObstacles3(self):
         # Setup starting at (0,0) with obstacles at (0,3) heading south and at (-1,-1) heading north east
@@ -72,7 +73,8 @@ class TestObstacles(unittest.TestCase):
 
         self.assertFalse(utils.isValid(xy=[0, 0], obstacles=obstacles))
         self.assertFalse(utils.isValid(xy=[1, 1], obstacles=obstacles))
-        self.assertFalse(utils.isValid(xy=[3, 3], obstacles=obstacles))
+        self.assertFalse(utils.isValid(xy=[2.5, 2.5], obstacles=obstacles))
+        self.assertTrue(utils.isValid(xy=[3, 3], obstacles=obstacles))
         self.assertTrue(utils.isValid(xy=[0, -1], obstacles=obstacles))
         self.assertTrue(utils.isValid(xy=[0, 4], obstacles=obstacles))
         self.assertTrue(utils.isValid(xy=[0, -2], obstacles=obstacles))
