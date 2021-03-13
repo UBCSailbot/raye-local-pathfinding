@@ -29,7 +29,7 @@ def gpsCallback(data):
 
 # Global variables for global wind conditions
 globalWindSpeedKmph = random.randint(MIN_GLOBAL_WIND_SPEED_KMPH, MAX_GLOBAL_WIND_SPEED_KMPH)
-globalWindDirectionDegrees = 90
+globalWindDirectionDegrees = 45
 
 
 def globalWindCallback(data):

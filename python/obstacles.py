@@ -9,8 +9,8 @@ import rospy
 
 # Obstacle dimension constants
 MAX_PROJECT_OBSTACLE_TIME_HOURS = 3  # Maximum obstacle can be projected (dist btwn current and projected positions)
-OBSTACLE_EXTEND_TIME_HOURS = 0.5       # Amount obstacles are extended forward (how long the shape is) TODO: max/min
-WEDGE_EXPAND_ANGLE_DEGREES = 10.0
+OBSTACLE_EXTEND_TIME_HOURS = 1       # Amount obstacles are extended forward (how long the shape is) TODO: max/min
+WEDGE_EXPAND_ANGLE_DEGREES = 10.0 # 20
 AIS_BOAT_RADIUS_KM = 0.2
 AIS_BOAT_LENGTH_KM = 1
 AIS_BOAT_CIRCLE_SPACING_KM = AIS_BOAT_RADIUS_KM * 1.5  # Distance between circles that make up an AIS boat

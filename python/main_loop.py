@@ -124,6 +124,8 @@ if __name__ == '__main__':
         mustUpdateLocalPath = (hasUpwindOrDownwindOnPath or hasObstacleOnPath or isGlobalWaypointReached
                                or newGlobalPathReceived or reachedEndOfLocalPath or pathNotReachGoal
                                or localPathUpdateForced)
+
+        #mustUpdateLocalPath = False # Josh
         if mustUpdateLocalPath:
             # Log reason for local path update
             rospy.logwarn("MUST update local Path. Reason: hasUpwindOrDownwindOnPath? {}. hasObstacleOnPath? {}. "
@@ -159,6 +161,9 @@ if __name__ == '__main__':
 
             generateNewLocalPathToCompare = (costTooHigh or isLocalWaypointReached or isTimeLimitExceeded
                                              or localPathUpdateRequested)
+
+            #generateNewLocalPathToCompare = False
+
             if generateNewLocalPathToCompare:
                 rospy.loginfo("Generating new local path to compare to current local path. Reason: costTooHigh? {}. "
                               "isLocalWaypointReached? {}. isTimeLimitExceeded? {}. localPathUpdateRequested? {}."

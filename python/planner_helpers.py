@@ -24,12 +24,12 @@ MIN_TURN_WEIGHT = 1.0
 WIND_WEIGHT = 1.0
 
 # Minimum turn cost multipliers
-LARGE_TURN_MULTIPLIER = 500.0
+LARGE_TURN_MULTIPLIER = 500.0 
 SMALL_TURN_MULTIPLIER = 10.0
 
 # Upwind downwind cost multipliers
-UPWIND_MULTIPLIER = 3000.0
-DOWNWIND_MULTIPLIER = 3000.0
+UPWIND_MULTIPLIER = 1000.0 # used to be 3000.0
+DOWNWIND_MULTIPLIER = 1000.0 # also 3000.0
 
 
 class ValidityChecker(ob.StateValidityChecker):
