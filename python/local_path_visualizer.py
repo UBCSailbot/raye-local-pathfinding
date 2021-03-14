@@ -235,18 +235,16 @@ if __name__ == '__main__':
 
     # Show position and global waypoint text
     positionLatlonText = axes.text(positionXY[0], positionXY[1] + 0.5 * fractionOfPlotLength,
-                                   "(Lat: {}, Lon: {})".format(round(state.position.lat, LATLON_TEXT_DECIMAL_PLACES),
-                                                               round(state.position.lon, LATLON_TEXT_DECIMAL_PLACES)),
-                                   ha='center')
+                                   "(Lat: {}, Lon: {}) {} kmph"
+                                   .format(round(state.position.lat, LATLON_TEXT_DECIMAL_PLACES),
+                                           round(state.position.lon, LATLON_TEXT_DECIMAL_PLACES),
+                                           round(state.speedKmph, LATLON_TEXT_DECIMAL_PLACES)), ha='center')
     nextGlobalWaypointLatlonText = axes.text(nextGlobalWaypointXY[0],
                                              nextGlobalWaypointXY[1] + 0.5 * fractionOfPlotLength,
                                              "(Lat: {}, Lon: {})"
                                              .format(round(nextGlobalWaypoint.lat, LATLON_TEXT_DECIMAL_PLACES),
                                                      round(nextGlobalWaypoint.lon, LATLON_TEXT_DECIMAL_PLACES)),
                                              ha='center')
-
-    boatSpeedText = axes.text(oceanCurrentArrowCenter[0], oceanCurrentArrowCenter[1] + 1.75 * fractionOfPlotLength,
-                              "Boat Speed Kmph: {}".format(round(state.speedKmph, 2)), ha='center')
 
     while not rospy.is_shutdown():
         state = sailbot.getCurrentState()
@@ -310,15 +308,12 @@ if __name__ == '__main__':
         oceanCurrentSpeedText.set_text("Ocean Current Speed Kmph: {}"
                                        .format(rospy.get_param("ocean_current_speed", default=0)))
 
-        # Update boat speed text
-        boatSpeedText.set_position((oceanCurrentArrowCenter[0],
-                                    oceanCurrentArrowCenter[1] + 1.75 * fractionOfPlotLength))
-        boatSpeedText.set_text("Boat Speed Kmph: {}".format(round(state.speedKmph, 2)))
-
         # Update position and global waypoint text
         positionLatlonText.set_position((positionXY[0], positionXY[1] + 0.5 * fractionOfPlotLength))
-        positionLatlonText.set_text("(Lat: {}, Lon: {})".format(round(state.position.lat, LATLON_TEXT_DECIMAL_PLACES),
-                                                                round(state.position.lon, LATLON_TEXT_DECIMAL_PLACES)))
+        positionLatlonText.set_text("(Lat: {}, Lon: {}) {} kmph"
+                                    .format(round(state.position.lat, LATLON_TEXT_DECIMAL_PLACES),
+                                            round(state.position.lon, LATLON_TEXT_DECIMAL_PLACES),
+                                            round(state.speedKmph, LATLON_TEXT_DECIMAL_PLACES)))
         nextGlobalWaypointLatlonText.set_position(
             (nextGlobalWaypointXY[0], nextGlobalWaypointXY[1] + 0.5 * fractionOfPlotLength))
         nextGlobalWaypointLatlonText.set_text("(Lat: {}, Lon: {})"
