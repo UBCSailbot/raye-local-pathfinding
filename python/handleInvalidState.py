@@ -110,7 +110,6 @@ def getNewGlobalWaypoint(state):
        state (BoatState): State of the sailbot and other boats
     '''
     referenceLatlon = state.globalWaypoint
-    obstacles = obs.getObstacles(state, referenceLatlon)
     goalX, goalY = utils.latlonToXY(state.globalWaypoint, referenceLatlon)
     sailbotX, sailbotY = utils.latlonToXY(state.position, referenceLatlon)
     goalLatlon = utils.XYToLatlon((goalX, goalY), referenceLatlon)
