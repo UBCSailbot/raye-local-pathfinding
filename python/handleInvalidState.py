@@ -7,6 +7,8 @@ import sailbot_msg.msg as msg
 import obstacles as obs
 import utilities as utils
 
+MOVE_GOAL_WAYPOINT_STEP_SIZE = 5
+
 
 def getValidStateMoveToSafetyIfNeeded(sailbot, desiredHeadingPublisher):
     '''Checks if the sailbot's start state is valid (nearby obstacle). If not, send desired heading to safety till valid
@@ -83,7 +85,7 @@ def generateSafeHeadingDegrees(state, invalidStartObstacle):
     return globalWindDirectionDegrees
 
 
-def checkGoalValidity(state):
+def checkGoalValidity(state, goalLatlon):
     '''Checks if the goal waypoint of the given state is valid (no obstacle there)
 
     Args:
@@ -92,10 +94,31 @@ def checkGoalValidity(state):
     Returns:
        bool True iff there is no obstacle projected to be on the state's goal waypoint
     '''
-    referenceLatlon = state.globalWaypoint
+    referenceLatlon = goalLatlon
     obstacles = obs.getObstacles(state, referenceLatlon)
     for obstacle in obstacles:
-        goalXY = utils.latlonToXY(state.globalWaypoint, referenceLatlon)
+        goalXY = utils.latlonToXY(goalLatlon, referenceLatlon)
         if not obstacle.isValid(goalXY):
             return False
     return True
+
+
+def getNewGlobalWaypoint(state):
+    '''Returns XY coordinates for the global waypoint such that it is valid
+
+    Args:
+       state (BoatState): State of the sailbot and other boats
+    '''
+    referenceLatlon = state.globalWaypoint
+    obstacles = obs.getObstacles(state, referenceLatlon)
+    goalX, goalY = utils.latlonToXY(state.globalWaypoint, referenceLatlon)
+    sailbotX, sailbotY = utils.latlonToXY(state.position, referenceLatlon)
+    goalLatlon = utils.XYToLatlon((goalX, goalY), referenceLatlon)
+    while not checkGoalValidity(state, goalLatlon):
+        deltaX = sailbotX - goalX
+        deltaY = sailbotY - goalY
+        dist = math.sqrt(deltaY**2 - deltaX**2)
+        goalX = MOVE_GOAL_WAYPOINT_STEP_SIZE * deltaX / dist
+        goalY = MOVE_GOAL_WAYPOINT_STEP_SIZE * deltaY / dist
+        goalLatlon = utils.XYToLatlon((goalX, goalY), referenceLatlon)
+    return goalX, goalY
