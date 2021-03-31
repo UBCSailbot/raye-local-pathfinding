@@ -2,7 +2,6 @@
 import sys
 import rospy
 import math
-import handleInvalidState as his
 from Path import getPerpLine, WAYPOINT_REACHED_DISTANCE
 from std_msgs.msg import Float64
 from sailbot_msg.msg import path, latlon

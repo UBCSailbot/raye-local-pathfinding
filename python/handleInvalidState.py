@@ -122,8 +122,8 @@ def getNewGlobalWaypoint(state):
         deltaY = sailbotY - goalY
         dist = math.sqrt(deltaX**2 + deltaY**2)
 
-        goalX = MOVE_GOAL_WAYPOINT_STEP_SIZE * deltaX / dist
-        goalY = MOVE_GOAL_WAYPOINT_STEP_SIZE * deltaY / dist
+        goalX += MOVE_GOAL_WAYPOINT_STEP_SIZE * deltaX / dist
+        goalY += MOVE_GOAL_WAYPOINT_STEP_SIZE * deltaY / dist
         goalLatlon = utils.XYToLatlon((goalX, goalY), referenceLatlon)
 
     return goalLatlon
