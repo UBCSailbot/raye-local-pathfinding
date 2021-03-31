@@ -85,7 +85,7 @@ def generateSafeHeadingDegrees(state, invalidStartObstacle):
     return globalWindDirectionDegrees
 
 
-def checkGoalValidity(state, goalLatlon):
+def checkGoalValidity(state, goalLatlon=None):
     '''Checks if the goal waypoint of the given state is valid (no obstacle there)
 
     Args:
@@ -94,6 +94,9 @@ def checkGoalValidity(state, goalLatlon):
     Returns:
        bool True iff there is no obstacle projected to be on the state's goal waypoint
     '''
+    if goalLatlon is None:
+        goalLatlon = state.globalWaypoint
+
     referenceLatlon = goalLatlon
     obstacles = obs.getObstacles(state, referenceLatlon)
     for obstacle in obstacles:
