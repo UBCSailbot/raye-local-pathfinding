@@ -104,7 +104,7 @@ def checkGoalValidity(state, goalLatlon):
 
 
 def getNewGlobalWaypoint(state):
-    '''Returns XY coordinates such that checkGoalValidity(XYToLatlon(XY)) is true
+    '''Returns a latlon newGoal such that checkGoalValidity(state, newGoal) is true
 
     Args:
        state (BoatState): State of the sailbot and other boats
@@ -113,6 +113,7 @@ def getNewGlobalWaypoint(state):
     goalLatlon = state.globalWaypoint
     goalX, goalY = utils.latlonToXY(goalLatlon, referenceLatlon)
     sailbotX, sailbotY = utils.latlonToXY(state.position, referenceLatlon)
+
     while not checkGoalValidity(state, goalLatlon):
         deltaX = sailbotX - goalX
         deltaY = sailbotY - goalY
@@ -122,4 +123,4 @@ def getNewGlobalWaypoint(state):
         goalY = MOVE_GOAL_WAYPOINT_STEP_SIZE * deltaY / dist
         goalLatlon = utils.XYToLatlon((goalX, goalY), referenceLatlon)
 
-    return goalX, goalY
+    return goalLatlon
