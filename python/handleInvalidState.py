@@ -7,7 +7,7 @@ import sailbot_msg.msg as msg
 import obstacles as obs
 import utilities as utils
 
-MOVE_GOAL_WAYPOINT_STEP_SIZE = 5
+MOVE_GOAL_WAYPOINT_STEP_SIZE_KM = 5
 
 
 def getValidStateMoveToSafetyIfNeeded(sailbot, desiredHeadingPublisher):
@@ -86,10 +86,11 @@ def generateSafeHeadingDegrees(state, invalidStartObstacle):
 
 
 def checkGoalValidity(state, goalLatlon=None):
-    '''Checks if the goal waypoint of the given state is valid (no obstacle there)
+    '''Checks if the goal of the given state is valid (no obstacle there)
 
     Args:
        state (BoatState): State of the sailbot and other boats
+       goalLatlon (latlon): Location to check the validity of. If is None, goal is the current global waypoint
 
     Returns:
        bool True iff there is no obstacle projected to be on the state's goal waypoint
@@ -106,11 +107,14 @@ def checkGoalValidity(state, goalLatlon=None):
     return True
 
 
-def getNewGlobalWaypoint(state):
-    '''Returns a latlon newGoal such that checkGoalValidity(state, newGoal) is true
+def moveGlobalWaypointUntilValid(state):
+    '''Moves global waypoint towards sailbot until it is valid
 
     Args:
        state (BoatState): State of the sailbot and other boats
+
+    Returns:
+        latlon goalLatlon such that checkGoalValidity(state, newGoal) is true
     '''
     referenceLatlon = state.globalWaypoint
     goalLatlon = state.globalWaypoint
@@ -122,8 +126,8 @@ def getNewGlobalWaypoint(state):
         deltaY = sailbotY - goalY
         dist = math.sqrt(deltaX**2 + deltaY**2)
 
-        goalX += MOVE_GOAL_WAYPOINT_STEP_SIZE * deltaX / dist
-        goalY += MOVE_GOAL_WAYPOINT_STEP_SIZE * deltaY / dist
+        goalX += MOVE_GOAL_WAYPOINT_STEP_SIZE_KM * deltaX / dist
+        goalY += MOVE_GOAL_WAYPOINT_STEP_SIZE_KM * deltaY / dist
         goalLatlon = utils.XYToLatlon((goalX, goalY), referenceLatlon)
 
     return goalLatlon

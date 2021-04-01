@@ -153,10 +153,10 @@ if __name__ == '__main__':
                     rospy.loginfo("Global waypoint reached")
                 sailbot.globalPathIndex += 1
 
-            # If goal invalid, use a new global waypoint
+            # If goal invalid, move global waypoint towards sailbot until it is valid
             if goalInvalid:
                 rospy.loginfo("Goal state invalid, finding new global waypoint")
-                state.globalWaypoint = his.getNewGlobalWaypoint(state)
+                state.globalWaypoint = his.moveGlobalWaypointUntilValid(state)
 
             # Update local path
             localPath, lastTimePathCreated = createNewLocalPath(
