@@ -630,6 +630,7 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=Fals
     Returns:
        Path object representing the path from state.position to state.globalWaypoint
     '''
+
     # Helper methods
     def getXYLimits(start, goal, extraLengthFraction=0.6):
         # Calculate extra length to allow wider solution space
@@ -785,7 +786,7 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=Fals
         # TODO: Incorporate globalWindSpeed into pathfinding?
         rospy.loginfo("Starting path-planning run number: {}".format(i))
         solution = plan(runtimeSeconds, plannerType, globalWindDirectionDegrees,
-                        dimensions, start, goal, obstacles, state.headingDegrees)
+                        dimensions, start, goal, obstacles, state.headingDegrees) # Josh
         if isValidSolution(solution, referenceLatlon, state):
             validSolutions.append(solution)
         else:

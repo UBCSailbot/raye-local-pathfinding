@@ -8,7 +8,7 @@ from geopy.distance import distance
 import rospy
 
 # Obstacle dimension constants
-MAX_PROJECT_OBSTACLE_TIME_HOURS = 3  # Maximum obstacle can be projected (dist btwn current and projected positions)
+MAX_PROJECT_OBSTACLE_TIME_HOURS = 50  # Maximum obstacle can be projected (dist btwn current and projected positions)
 OBSTACLE_EXTEND_TIME_HOURS = 1       # Amount obstacles are extended forward (how long the shape is) TODO: max/min
 WEDGE_EXPAND_ANGLE_DEGREES = 10.0 # 20
 AIS_BOAT_RADIUS_KM = 0.2
@@ -177,7 +177,7 @@ class CirclesObstacle(ObstacleInterface):
         circles = []
 
         # Calculate length to extend boat
-        extendBoatLengthKm = self.aisShip.speedKmph * OBSTACLE_EXTEND_TIME_HOURS
+        extendBoatLengthKm = self.aisShip.speedKmph * OBSTACLE_EXTEND_TIME_HOURS * 0 #JOSH this code isnt being run
 
         # Boat not moving
         if extendBoatLengthKm == 0:

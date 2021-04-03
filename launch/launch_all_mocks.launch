@@ -25,7 +25,7 @@
     <param name="obstacle_type" type="string" value="$(arg obstacle_type)" />
 
     <!-- Sets the num_ais_ships -->
-    <arg name="num_ais_ships" default="5" />
+    <arg name="num_ais_ships" default="25" />
     <param name="num_ais_ships" type="int" value="$(arg num_ais_ships)" />
 
     <!-- Set if screenshots should be taken or not -->
@@ -37,7 +37,7 @@
     <param name="plot_pathfinding_problem" type="bool" value="$(arg plot_pathfinding_problem)" />
 
     <!-- Sets random seed. Will only set seed if it is an integer. -->
-    <arg name="random_seed" default="" />
+    <arg name="random_seed" default="123" />
     <param name="random_seed" type="string" value="$(arg random_seed)" />
 
     <!-- Sets planner type, accepted types include: "RRTStar", "RRTSharp","RRTXStatic" (full list in allocatePlanner()) -->

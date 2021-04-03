@@ -16,7 +16,7 @@
     <arg name="screenshot" default="false" />
     <arg name="plot_pathfinding_problem" default="false" />
     <arg name="random_seed" default="" />
-    <arg name="planner_type" default="RRTStar" />
+    <arg name="planner_type" default="PRMStar" />
     <arg name="smooth_changes" default="true" />
     <arg name="ocean_current_speed" default="0.0" />
     <arg name="ocean_current_direction" default="0.0" />

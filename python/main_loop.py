@@ -131,7 +131,7 @@ if __name__ == '__main__':
                                or newGlobalPathReceived or reachedEndOfLocalPath or pathNotReachGoal
                                or goalInvalid or localPathUpdateForced)
 
-        #mustUpdateLocalPath = False # Josh
+        # mustUpdateLocalPath = False # Josh
         if mustUpdateLocalPath:
             # Log reason for local path update
             rospy.logwarn("MUST update local Path. Reason: hasUpwindOrDownwindOnPath? {}. hasObstacleOnPath? {}. "

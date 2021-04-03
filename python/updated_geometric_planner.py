@@ -2,10 +2,63 @@ import math
 from ompl import util as ou
 from ompl import base as ob
 from ompl import geometric as og
+import rospy
 
 import planner_helpers as ph
 
 VALIDITY_CHECKING_RESOLUTION_KM = 0.05
+
+class MyValidStateSampler(ob.ValidStateSampler):
+    def __init__(self, si):
+        super(MyValidStateSampler, self).__init__(si)
+        self.name_ = "my sampler"
+        self.rng_ = ou.RNG()
+        self.si = si
+
+    # Generate a sample in the valid part of the R^3 state space.
+    # Valid states satisfy the following constraints:
+    # -1<= x,y,z <=1
+    # if .25 <= z <= .5, then |x|>.8 and |y|>.8
+    def sample(self, state):
+
+        rospy.loginfo("HIHIHIHIHIH")
+        
+
+        x_low = self.si.getStateSpace().getBounds().low[0]
+        y_low = self.si.getStateSpace().getBounds().low[1]
+        x_high = self.si.getStateSpace().getBounds().high[0]
+        y_high = self.si.getStateSpace().getBounds().high[1]
+        x = self.rng_.uniformReal(x_low, x_high)
+        y = 1000000
+        while y > x:
+            y = self.rng_.uniformReal(y_low, y_high)
+        state.setXY(x, y)
+
+        return True
+
+        # z = self.rng_.uniformReal(-1, 1)
+
+        # if z > .25 and z < .5:
+        #     x = self.rng_.uniformReal(0, 1.8)
+        #     y = self.rng_.uniformReal(0, .2)
+        #     i = self.rng_.uniformInt(0, 3)
+        #     if i == 0:
+        #         state[0] = x-1
+        #         state[1] = y-1
+        #     elif i == 1:
+        #         state[0] = x-.8
+        #         state[1] = y+.8
+        #     elif i == 2:
+        #         state[0] = y-1
+        #         state[1] = x-1
+        #     elif i == 3:
+        #         state[0] = y+.8
+        #         state[1] = x-.8
+        # else:
+        #     state[0] = self.rng_.uniformReal(-1, 1)
+        #     state[1] = self.rng_.uniformReal(-1, 1)
+        # state[2] = z
+        # return True
 
 
 def absolute_distance_between_angles(angle1, angle2):
@@ -145,6 +198,8 @@ def plan(run_time, planner_type, wind_direction_degrees, dimensions, start_pos, 
     desiredResolution = VALIDITY_CHECKING_RESOLUTION_KM / ss.getStateSpace().getMaximumExtent()
     si.setStateValidityCheckingResolution(desiredResolution)
 
+    # si.setstate allocator --> add in an allocator here
+
     # Set the objects used to check which states in the space are valid
     validity_checker = ph.ValidityChecker(si, obstacles)
     ss.setStateValidityChecker(validity_checker)
@@ -161,6 +216,9 @@ def plan(run_time, planner_type, wind_direction_degrees, dimensions, start_pos, 
 
     # Set the start and goal states
     ss.setStartAndGoalStates(start, goal)
+
+    si.setValidStateSamplerAllocator(ob.ValidStateSamplerAllocator(MyValidStateSampler)) # Josh
+    rospy.loginfo("hello")
 
     # Create the optimization objective (helper function is simply a switch statement)
     objective = ph.allocate_objective(si, objective_type, wind_direction_degrees, heading_degrees)
