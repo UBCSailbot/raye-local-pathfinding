@@ -108,7 +108,8 @@ def checkGoalValidity(state, goalLatlon=None):
 
 
 def moveGlobalWaypointUntilValid(state):
-    '''Moves global waypoint towards sailbot until it is valid
+    '''Draws straight line between sailbot and current global waypoint, then moves goalLatlon towards sailbot along this
+    line until it is valid
 
     Args:
        state (BoatState): State of the sailbot and other boats
