@@ -22,10 +22,6 @@ localPathUpdateForced = False
 # Global variable for speedup
 speedup = 1.0
 
-# Global variable for moving waypoint
-goalWasInvalid = False
-movedGlobalWaypoint = None
-
 
 def localPathUpdateRequestedCallback(data):
     global localPathUpdateRequested
@@ -113,8 +109,6 @@ if __name__ == '__main__':
         rospy.loginfo("desiredHeadingDegrees: {}".format(desiredHeadingDegrees))
         rospy.loginfo("Current path cost is: {}".format(localPath.getCost()))
         state = sailbot.getCurrentState()
-        if goalWasInvalid:
-            state.globalWaypoint = movedGlobalWaypoint
 
         # Check if local path MUST be updated
         hasUpwindOrDownwindOnPath = localPath.upwindOrDownwindOnPath(
@@ -132,18 +126,17 @@ if __name__ == '__main__':
         newGlobalPathReceived = sailbot.newGlobalPathReceived
         reachedEndOfLocalPath = localPath.reachedEnd()
         pathNotReachGoal = not localPath.reachesGoalLatlon(state.globalWaypoint)
-        goalInvalid = (not his.checkGoalValidity(state))
         mustUpdateLocalPath = (hasUpwindOrDownwindOnPath or hasObstacleOnPath or isGlobalWaypointReached
                                or newGlobalPathReceived or reachedEndOfLocalPath or pathNotReachGoal
-                               or goalInvalid or localPathUpdateForced)
+                               or localPathUpdateForced)
         if mustUpdateLocalPath:
             # Log reason for local path update
             rospy.logwarn("MUST update local Path. Reason: hasUpwindOrDownwindOnPath? {}. hasObstacleOnPath? {}. "
                           "isGlobalWaypointReached? {}. newGlobalPathReceived? {}. reachedEndOfLocalPath? {}. "
-                          "pathNotReachGoal? {}. goalInvalid? {}. localPathUpdateForced? {}."
+                          "pathNotReachGoal? {}. localPathUpdateForced? {}."
                           .format(hasUpwindOrDownwindOnPath, hasObstacleOnPath, isGlobalWaypointReached,
                                   newGlobalPathReceived, reachedEndOfLocalPath, pathNotReachGoal,
-                                  goalInvalid, localPathUpdateForced))
+                                  localPathUpdateForced))
 
             # Reset request
             if localPathUpdateForced:
@@ -153,20 +146,14 @@ if __name__ == '__main__':
             if newGlobalPathReceived:
                 sailbot.newGlobalPathReceived = False
 
+            # Reset sbot.goalWasInvalid boolean
+            if sbot.goalWasInvalid:
+                sbot.goalWasInvalid = False
+
             # If globalWaypoint reached, increment the index
             if isGlobalWaypointReached:
                 rospy.loginfo("Global waypoint reached")
                 sailbot.globalPathIndex += 1
-                goalWasInvalid = False
-
-            # If goal invalid, move global waypoint towards sailbot until it is valid
-            if goalInvalid and not goalWasInvalid:
-                rospy.loginfo("Goal state invalid, finding new global waypoint")
-                rospy.loginfo("Old waypoint: {}".format(state.globalWaypoint))
-                movedGlobalWaypoint = his.moveGlobalWaypointUntilValid(state)
-                state.globalWaypoint = movedGlobalWaypoint
-                rospy.loginfo("Moved waypoint: {}".format(state.globalWaypoint))
-                goalWasInvalid = True
 
             # Update local path
             localPath, lastTimePathCreated = createNewLocalPath(

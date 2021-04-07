@@ -1,9 +1,14 @@
 #!/usr/bin/env python
 import rospy
+import handleInvalidState as his
 from sailbot_msg.msg import AISMsg, GPS, path, latlon, windSensor
 from geopy.distance import distance
 import time
 import sys
+
+# Global variables for moving waypoint
+goalWasInvalid = False
+movedGlobalWaypoint = None
 
 
 class BoatState:
@@ -121,8 +126,22 @@ class Sailbot:
             rospy.logwarn("Setting globalWaypoint to be the last element of the globalPath")
             self.globalPathIndex = len(self.globalPath) - 1
 
-        return BoatState(self.globalPath[self.globalPathIndex], self.position, self.measuredWindDirectionDegrees,
-                         self.measuredWindSpeedKmph, self.AISData, self.headingDegrees, self.speedKmph)
+        state = BoatState(self.globalPath[self.globalPathIndex], self.position, self.measuredWindDirectionDegrees,
+                          self.measuredWindSpeedKmph, self.AISData, self.headingDegrees, self.speedKmph)
+
+        global goalWasInvalid
+        global movedGlobalWaypoint
+        if goalWasInvalid or not his.checkGoalValidity(state):
+            if not goalWasInvalid:
+                rospy.logwarn("Goal state invalid, finding new global waypoint")
+                rospy.loginfo("Old waypoint: {}".format(state.globalWaypoint))
+                movedGlobalWaypoint = his.moveGlobalWaypointUntilValid(state)
+                rospy.loginfo("Moved waypoint: {}".format(movedGlobalWaypoint))
+                goalWasInvalid = True
+
+            state.globalWaypoint = movedGlobalWaypoint
+
+        return state
 
     def GPSCallback(self, data):
         self.position = latlon(data.lat, data.lon)
