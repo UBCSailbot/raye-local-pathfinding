@@ -2,16 +2,16 @@
 import wandb
 import cv2
 import rospy
+import os
 from log_closest_obstacle import LogClosestObstacle
 from path_storer import PathStorer
 from collision_checker import CollisionChecker
 from store_sailbot_gps import SailbotGPSData
 from utilities import takeScreenshot
-# import matplotlib.pyplot as plt
 from PIL import Image
 
 UPDATE_TIME_SECONDS = 1.0
-SCREENSHOT_PERIOD_SECONDS = 2.0
+SCREENSHOT_PERIOD_SECONDS = 10.0
 
 
 if __name__ == '__main__':
@@ -74,20 +74,12 @@ if __name__ == '__main__':
             # Screenshot
             if counter % (SCREENSHOT_PERIOD_SECONDS // UPDATE_TIME_SECONDS) == 0:
                 screenshot_path = takeScreenshot(return_path_to_file=True)
-                # screenshot = plt.imread(screenshot_path)
-                # screenshot = cv2.imread(screenshot_path)
-                # print(screenshot.shape)
-                # screenshot = cv2.resize(screenshot, dsize=(screenshot.shape[1]//4, screenshot.shape[0]//4))
-                # print(screenshot.shape)
                 screenshot = Image.open(screenshot_path)
-                print(screenshot_path)
-                print(screenshot.size)
-                print("WORKING11111111111111111111111")
-                output_path
-                screenshot.save(screenshot_path, "JPEG", optimize=True, quality=50)
-                screenshot = Image.open(screenshot_path)
-                print(screenshot.size)
-                print("2WORKING11111111111111111111111")
+
+                # Change to jpg file extension for jpg compression
+                compressed_screenshot_path = os.path.splitext(screenshot_path)[0] + '.jpg'
+                screenshot.save(compressed_screenshot_path, "JPEG", optimize=True, quality=5)
+                screenshot = Image.open(compressed_screenshot_path)
 
                 wandb.log({"Screenshot {}".format(counter):
                            [wandb.Image(screenshot, caption="My Screenshot {}".format(counter))]})
