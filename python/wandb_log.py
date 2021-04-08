@@ -19,10 +19,10 @@ if __name__ == '__main__':
     config.update(params)
 
     # Setup subscribers
-    log_closest_obstacle = LogClosestObstacle()
-    path_storer = PathStorer()
-    collision_checker = CollisionChecker()
-    sailbot_gps_data = SailbotGPSData()
+    log_closest_obstacle = LogClosestObstacle(create_ros_node=False)
+    path_storer = PathStorer(create_ros_node=False)
+    collision_checker = CollisionChecker(create_ros_node=False)
+    sailbot_gps_data = SailbotGPSData(create_ros_node=False)
     rate = rospy.Rate(UPDATE_TIME_SECONDS)
 
     while not rospy.is_shutdown():

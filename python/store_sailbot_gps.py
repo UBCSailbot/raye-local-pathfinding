@@ -19,7 +19,9 @@ ABS_PATH_TO_OUTPUT_SAILBOT_GPS_DISPLACEMENT = os.path.join(ABS_PATH_TO_OUTPUT_DI
 
 
 class SailbotGPSData:
-    def __init__(self):
+    def __init__(self, create_ros_node=True):
+        if create_ros_node:
+            rospy.init_node('SailbotGPSData', anonymous=True)
         # Subscribe to the GPS data, invoke the callback function every time the data is changed
         rospy.Subscriber('/GPS', GPS, self.GPS_callback)
 

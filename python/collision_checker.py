@@ -12,7 +12,9 @@ CHECK_PERIOD = AIS_PUBLISH_PERIOD_SECONDS
 
 
 class CollisionChecker:
-    def __init__(self, collision_radius_km=COLLISION_RADIUS_KM, warn_radius_km=WARN_RADIUS_KM):
+    def __init__(self, collision_radius_km=COLLISION_RADIUS_KM, warn_radius_km=WARN_RADIUS_KM, create_ros_node=True):
+        if create_ros_node:
+            rospy.init_node('collision_checker', anonymous=True)
         self.collision_radius = collision_radius_km
         self.warn_radius = warn_radius_km
         rospy.Subscriber('/AIS', AISMsg, self.AIS_callback)
