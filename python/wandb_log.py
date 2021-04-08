@@ -34,11 +34,16 @@ if __name__ == '__main__':
         sailbot_gps_data.StoreSailbotGPS()
 
         # Store logs
-        if len(log_closest_obstacle.closestDistances) > 0:
-            wandb.log({'closestObstacleDistanceKm': log_closest_obstacle.closestDistances[-1]})
-        if len(path_storer.pathCosts) > 0:
-            wandb.log({'pathCost': path_storer.pathCosts[-1]})
-        if len(path_storer.pathCostBreakdowns) > 0:
+        if len(log_closest_obstacle.closestDistances) > 0 and len(path_storer.pathCosts) > 0 and len(path_storer.pathCostBreakdowns) > 0:
+            new_log = {'Collisions': collision_checker.get_times_collided(),
+                       'NearCollisions': collision_checker.get_times_warned(),
+                       'Lat': sailbot_gps_data.lat,
+                       'Lon': sailbot_gps_data.lon,
+                       'DisplacementKm': sailbot_gps_data.Find_Distance(),
+                       'closestObstacleDistanceKm': log_closest_obstacle.closestDistances[-1],
+                       'pathCost': path_storer.pathCosts[-1],
+                      }
+
             objectives = [x for x in path_storer.pathCostBreakdowns[0].split(" ") if "Objective" in x and "Multi" not in x]
 
             # Get weighted cost. Will be in form: [..., 'Weighted', 'cost', '=', '79343.0', ...]
@@ -47,11 +52,12 @@ if __name__ == '__main__':
                              if costBreakdownStringSplit[i] == "Weighted"]
 
             for i, objective in enumerate(objectives):
-                wandb.log({'{}WeightedCost'.format(objective): costBreakdown[i]})
-        wandb.log({'Collisions': collision_checker.get_times_collided()})
-        wandb.log({'NearCollisions': collision_checker.get_times_warned()})
-        wandb.log({'Lat': sailbot_gps_data.lat})
-        wandb.log({'Lon': sailbot_gps_data.lon})
-        wandb.log({'DisplacementKm': sailbot_gps_data.Find_Distance()})
+                new_log['{}WeightedCost'.format(objective)] = costBreakdown[i]
+            wandb.log(new_log)
+
+            # Latlon scatter plot
+            data = [[lon, lat] for (lat, lon) in zip(sailbot_gps_data.latArray, sailbot_gps_data.lonArray)]
+            table = wandb.Table(data=data, columns=['lon', 'lat'])
+            wandb.log({'latlonPlot': wandb.plot.scatter(table, 'lon', 'lat', title='Sailbot Latlon Plot')})
 
         rate.sleep()
