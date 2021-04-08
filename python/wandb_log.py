@@ -34,25 +34,27 @@ if __name__ == '__main__':
         sailbot_gps_data.StoreSailbotGPS()
 
         # Store logs
-        if len(log_closest_obstacle.closestDistances) > 0 and len(path_storer.pathCosts) > 0 and len(path_storer.pathCostBreakdowns) > 0:
+        validDataReady = (len(log_closest_obstacle.closestDistances) > 0 and len(path_storer.pathCosts) > 0 and
+                          len(path_storer.pathCostBreakdowns) > 0)
+        if validDataReady:
             new_log = {'Collisions': collision_checker.get_times_collided(),
                        'NearCollisions': collision_checker.get_times_warned(),
                        'Lat': sailbot_gps_data.lat,
                        'Lon': sailbot_gps_data.lon,
                        'DisplacementKm': sailbot_gps_data.Find_Distance(),
                        'closestObstacleDistanceKm': log_closest_obstacle.closestDistances[-1],
-                       'pathCost': path_storer.pathCosts[-1],
-                      }
+                       'pathCost': path_storer.pathCosts[-1]}
 
-            objectives = [x for x in path_storer.pathCostBreakdowns[0].split(" ") if "Objective" in x and "Multi" not in x]
-
-            # Get weighted cost. Will be in form: [..., 'Weighted', 'cost', '=', '79343.0', ...]
+            # Get objective and their weighted cost.
+            # Will be in form: [..., 'Weighted', 'cost', '=', '79343.0', ...]
+            objectives = [x for x in path_storer.pathCostBreakdowns[0].split(" ")
+                          if "Objective" in x and "Multi" not in x]
             costBreakdownStringSplit = path_storer.pathCostBreakdowns[-1].split(" ")
             costBreakdown = [float(costBreakdownStringSplit[i+3]) for i in range(len(costBreakdownStringSplit))
                              if costBreakdownStringSplit[i] == "Weighted"]
-
             for i, objective in enumerate(objectives):
                 new_log['{}WeightedCost'.format(objective)] = costBreakdown[i]
+
             wandb.log(new_log)
 
             # Latlon scatter plot
