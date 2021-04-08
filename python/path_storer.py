@@ -27,7 +27,6 @@ ABS_PATH_TO_OUTPUT_COST_BREAKDOWN_PLOT_FILE = os.path.join(ABS_PATH_TO_OUTPUT_DI
 
 class PathStorer:
     def __init__(self):
-        rospy.init_node('path_storer', anonymous=True)
         rospy.Subscriber('localPath', msg.path, self.path_callback)
         rospy.Subscriber('localPathCost', Float64, self.pathCost_callback)
         rospy.Subscriber('localPathCostBreakdown', String, self.pathCostBreakdown_callback)

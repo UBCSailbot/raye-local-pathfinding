@@ -28,7 +28,6 @@ ABS_PATH_TO_OUTPUT_MIN_DISTANCE_PLOT_FILE = os.path.join(ABS_PATH_TO_OUTPUT_DIR,
 
 class LogClosestObstacle:
     def __init__(self):
-        rospy.init_node('log_closest_obstacle', anonymous=True)
         rospy.Subscriber('/AIS', AISMsg, self.AIS_callback)
         rospy.Subscriber('/GPS', GPS, self.GPS_callback)
         self.ships = rospy.wait_for_message('/AIS', AISMsg).ships
