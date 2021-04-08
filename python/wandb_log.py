@@ -13,6 +13,11 @@ if __name__ == '__main__':
     rospy.init_node('wandb_log')
     wandb.init(entity='tylerlum', project='sailbot-test-1')
 
+    # Log parameters
+    config = wandb.config
+    params = {name: rospy.get_param(name) for name in rospy.get_param_names()}
+    config.update(params)
+
     # Setup subscribers
     log_closest_obstacle = LogClosestObstacle()
     path_storer = PathStorer()
