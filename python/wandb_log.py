@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import wandb
-import cv2
 import rospy
 import os
 from log_closest_obstacle import LogClosestObstacle
@@ -15,8 +14,7 @@ SCREENSHOT_PERIOD_SECONDS = 10.0
 
 
 if __name__ == '__main__':
-    import os
-    os.environ["WANDB_SILENT"] = "true"
+    os.environ["WANDB_SILENT"] = "true"  # Avoid small wandb bug
     rospy.init_node('wandb_log')
     wandb.init(entity='ubcsailbot', project='sailbot-test-2')
 
