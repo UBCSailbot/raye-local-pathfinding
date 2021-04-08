@@ -11,7 +11,7 @@ UPDATE_TIME_SECONDS = 1.0
 
 if __name__ == '__main__':
     rospy.init_node('wandb_log')
-    wandb.init(entity='tylerlum', project='sailbot-test-1')
+    wandb.init(entity='ubcsailbot', project='sailbot-test-1')
 
     # Log parameters
     config = wandb.config
