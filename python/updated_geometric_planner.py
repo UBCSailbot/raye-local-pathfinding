@@ -30,8 +30,9 @@ class MyValidStateSampler(ob.ValidStateSampler):
         y_high = self.si.getStateSpace().getBounds().high[1]
         x = self.rng_.uniformReal(x_low, x_high)
         y = 1000000
-        while y > x:
-            y = self.rng_.uniformReal(y_low, y_high)
+        #while y > x:
+            #y = self.rng_.uniformReal(y_low, y_high)
+        y = int(self.rng_.uniformReal(y_low, y_high))
         state.setXY(x, y)
 
         return True
