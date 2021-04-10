@@ -131,20 +131,21 @@ class Sailbot:
 
         global goalWasInvalid
         global movedGlobalWaypoint
-        if goalWasInvalid or not his.checkGoalValidity(state):
-            if not goalWasInvalid:
-                rospy.logwarn("Goal state invalid, finding new global waypoint")
-                rospy.loginfo("Old waypoint: {}".format(state.globalWaypoint))
 
-                # calculating waypoint to use in moveGlobalWaypointUntilValid
-                isLast = self.globalPathIndex == len(self.globalPath) - 1
-                otherWaypointIndex = self.globalPathIndex - 1 if isLast else self.globalPathIndex + 1
-                otherWaypoint = self.globalPath[otherWaypointIndex]
+        if not goalWasInvalid and not his.checkGoalValidity(state):
+            rospy.logwarn("Goal state invalid, finding new global waypoint")
+            rospy.loginfo("Old waypoint: {}".format(state.globalWaypoint))
 
-                movedGlobalWaypoint = his.moveGlobalWaypointUntilValid(state, isLast, otherWaypoint)
-                rospy.loginfo("Moved waypoint: {}".format(movedGlobalWaypoint))
-                goalWasInvalid = True
+            # calculating waypoint to use in moveGlobalWaypointUntilValid
+            isLast = self.globalPathIndex == len(self.globalPath) - 1
+            otherWaypointIndex = self.globalPathIndex - 1 if isLast else self.globalPathIndex + 1
+            otherWaypoint = self.globalPath[otherWaypointIndex]
 
+            movedGlobalWaypoint = his.moveGlobalWaypointUntilValid(state, isLast, otherWaypoint)
+            rospy.loginfo("Moved waypoint: {}".format(movedGlobalWaypoint))
+            goalWasInvalid = True
+
+        if goalWasInvalid:
             state.globalWaypoint = movedGlobalWaypoint
 
         return state
