@@ -107,24 +107,26 @@ def checkGoalValidity(state, goalLatlon=None):
     return True
 
 
-def moveGlobalWaypointUntilValid(state):
-    '''Draws straight line between sailbot and current global waypoint, then moves goalLatlon towards sailbot along this
-    line until it is valid
+def moveGlobalWaypointUntilValid(state, isLast, otherWaypoint):
+    '''Draws straight line between other and current global waypoint, then moves goalLatlon away from sailbot along this
+    line until it is valid. Other waypoint is the previous global waypoint if isLast, else the next global waypoint
 
     Args:
        state (BoatState): State of the sailbot and other boats
+       isLast (boolean): True if current global waypoint is the last one, else False
+       otherWaypoint (latlon): Previous global waypoint if isLast, else the next global waypoint
 
     Returns:
-        latlon goalLatlon such that checkGoalValidity(state, newGoal) is true
+        goalLatlon (latlon) such that checkGoalValidity(state, newGoal) is true
     '''
     referenceLatlon = state.globalWaypoint
     goalLatlon = state.globalWaypoint
     goalX, goalY = utils.latlonToXY(goalLatlon, referenceLatlon)
-    sailbotX, sailbotY = utils.latlonToXY(state.position, referenceLatlon)
+    otherX, otherY = utils.latlonToXY(otherWaypoint, referenceLatlon)
 
     while not checkGoalValidity(state, goalLatlon):
-        deltaX = sailbotX - goalX
-        deltaY = sailbotY - goalY
+        deltaX = goalX - otherX if isLast else otherX - goalX
+        deltaY = goalY - otherY if isLast else otherY - goalY
         dist = math.sqrt(deltaX**2 + deltaY**2)
 
         goalX += MOVE_GOAL_WAYPOINT_STEP_SIZE_KM * deltaX / dist
