@@ -77,7 +77,7 @@ if __name__ == '__main__':
     rospy.Subscriber('speedup', Float64, speedupCallback)
 
     # Create ros publisher for the desired heading for the controller
-    desiredHeadingPublisher = rospy.Publisher('desiredHeading', msg.heading, queue_size=4)
+    desiredHeadingPublisher = rospy.Publisher('heading_degrees', msg.heading, queue_size=4)
 
     # Create other publishers
     localPathPublisher = rospy.Publisher('localPath', msg.path, queue_size=4)

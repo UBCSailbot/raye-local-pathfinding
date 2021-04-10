@@ -29,7 +29,7 @@ class MOCK_ControllerAndSailbot:
 
         rospy.init_node('MOCK_Sailbot_Listener', anonymous=True)
         self.publisher = rospy.Publisher("GPS", msg.GPS, queue_size=4)
-        rospy.Subscriber("desiredHeading", msg.heading, self.desiredHeadingCallback)
+        rospy.Subscriber("heading_degrees", msg.heading, self.desiredHeadingCallback)
         rospy.Subscriber("changeGPS", msg.GPS, self.changeGPSCallback)
         rospy.Subscriber('speedup', Float64, self.speedupCallback)
         rospy.Subscriber("windSensor", msg.windSensor, self.windSensorCallback)
