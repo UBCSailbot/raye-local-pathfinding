@@ -57,10 +57,9 @@ def speedupCallback(data):
     global speedup
     speedup = data.data
 
-# Set xy for figure
-
 
 def getXYLimits(xy0, xy1):
+    # Set xy for figure
     xPLim = max([xy0[0], xy1[0]])
     xNLim = min([xy0[0], xy1[0]])
     yPLim = max([xy0[1], xy1[1]])
@@ -236,9 +235,10 @@ if __name__ == '__main__':
 
     # Show position and global waypoint text
     positionLatlonText = axes.text(positionXY[0], positionXY[1] + 0.5 * fractionOfPlotLength,
-                                   "(Lat: {}, Lon: {})".format(round(state.position.lat, LATLON_TEXT_DECIMAL_PLACES),
-                                                               round(state.position.lon, LATLON_TEXT_DECIMAL_PLACES)),
-                                   ha='center')
+                                   "(Lat: {}, Lon: {}) {} kmph"
+                                   .format(round(state.position.lat, LATLON_TEXT_DECIMAL_PLACES),
+                                           round(state.position.lon, LATLON_TEXT_DECIMAL_PLACES),
+                                           round(state.speedKmph, LATLON_TEXT_DECIMAL_PLACES)), ha='center')
     nextGlobalWaypointLatlonText = axes.text(nextGlobalWaypointXY[0],
                                              nextGlobalWaypointXY[1] + 0.5 * fractionOfPlotLength,
                                              "(Lat: {}, Lon: {})"
@@ -310,8 +310,10 @@ if __name__ == '__main__':
 
         # Update position and global waypoint text
         positionLatlonText.set_position((positionXY[0], positionXY[1] + 0.5 * fractionOfPlotLength))
-        positionLatlonText.set_text("(Lat: {}, Lon: {})".format(round(state.position.lat, LATLON_TEXT_DECIMAL_PLACES),
-                                                                round(state.position.lon, LATLON_TEXT_DECIMAL_PLACES)))
+        positionLatlonText.set_text("(Lat: {}, Lon: {}) {} kmph"
+                                    .format(round(state.position.lat, LATLON_TEXT_DECIMAL_PLACES),
+                                            round(state.position.lon, LATLON_TEXT_DECIMAL_PLACES),
+                                            round(state.speedKmph, LATLON_TEXT_DECIMAL_PLACES)))
         nextGlobalWaypointLatlonText.set_position(
             (nextGlobalWaypointXY[0], nextGlobalWaypointXY[1] + 0.5 * fractionOfPlotLength))
         nextGlobalWaypointLatlonText.set_text("(Lat: {}, Lon: {})"
