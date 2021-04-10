@@ -7,6 +7,8 @@ import sailbot_msg.msg as msg
 import obstacles as obs
 import utilities as utils
 
+MOVE_GOAL_WAYPOINT_STEP_SIZE_KM = 5
+
 
 def getValidStateMoveToSafetyIfNeeded(sailbot, desiredHeadingPublisher):
     '''Checks if the sailbot's start state is valid (nearby obstacle). If not, send desired heading to safety till valid
@@ -83,19 +85,52 @@ def generateSafeHeadingDegrees(state, invalidStartObstacle):
     return globalWindDirectionDegrees
 
 
-def checkGoalValidity(state):
-    '''Checks if the goal waypoint of the given state is valid (no obstacle there)
+def checkGoalValidity(state, goalLatlon=None):
+    '''Checks if the goal of the given state is valid (no obstacle there)
 
     Args:
        state (BoatState): State of the sailbot and other boats
+       goalLatlon (latlon): Location to check the validity of. If is None, goal is the current global waypoint
 
     Returns:
        bool True iff there is no obstacle projected to be on the state's goal waypoint
     '''
-    referenceLatlon = state.globalWaypoint
+    if goalLatlon is None:
+        goalLatlon = state.globalWaypoint
+
+    referenceLatlon = goalLatlon
     obstacles = obs.getObstacles(state, referenceLatlon)
     for obstacle in obstacles:
-        goalXY = utils.latlonToXY(state.globalWaypoint, referenceLatlon)
+        goalXY = utils.latlonToXY(goalLatlon, referenceLatlon)
         if not obstacle.isValid(goalXY):
             return False
     return True
+
+
+def moveGlobalWaypointUntilValid(state, isLast, otherWaypoint):
+    '''Draws straight line between other and current global waypoint, then moves goalLatlon away from sailbot along this
+    line until it is valid
+
+    Args:
+       state (BoatState): State of the sailbot and other boats
+       isLast (boolean): True if current global waypoint is the last one, else False
+       otherWaypoint (latlon): Previous global waypoint if isLast, else the next global waypoint
+
+    Returns:
+        goalLatlon (latlon) such that checkGoalValidity(state, newGoal) is true
+    '''
+    referenceLatlon = state.globalWaypoint
+    goalLatlon = state.globalWaypoint
+    goalX, goalY = utils.latlonToXY(goalLatlon, referenceLatlon)
+    otherX, otherY = utils.latlonToXY(otherWaypoint, referenceLatlon)
+
+    while not checkGoalValidity(state, goalLatlon):
+        deltaX = goalX - otherX if isLast else otherX - goalX
+        deltaY = goalY - otherY if isLast else otherY - goalY
+        dist = math.sqrt(deltaX**2 + deltaY**2)
+
+        goalX += MOVE_GOAL_WAYPOINT_STEP_SIZE_KM * deltaX / dist
+        goalY += MOVE_GOAL_WAYPOINT_STEP_SIZE_KM * deltaY / dist
+        goalLatlon = utils.XYToLatlon((goalX, goalY), referenceLatlon)
+
+    return goalLatlon
