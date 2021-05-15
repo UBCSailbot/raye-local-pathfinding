@@ -1,6 +1,5 @@
 #! /usr/bin/env python
 import rospy
-import math
 import time
 import sys
 from utilities import measuredWindToGlobalWind
@@ -20,7 +19,7 @@ class GlobalWind:
         headingDegrees (float): angle of the boat in global frame. 0 degrees is East. 90 degrees is North.
        '''
         self.isFirstRun = True
-        
+
         self.measuredWindSpeed = None
         self.measuredWindDirection = None
         self.boatSpeed = None
@@ -47,7 +46,7 @@ class GlobalWind:
         if self.isFirstRun:
             self.waitForFirstSensorData()
             self.isFirstRun = False
-        
+
         return measuredWindToGlobalWind(self.measuredWindDirection, self.measuredWindSpeed, self.boatSpeed,
                                         self.headingDegrees)
 

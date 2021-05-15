@@ -196,32 +196,32 @@ def getLOSHeadingDegrees(position, previousWaypoint, currentWaypoint):
 
 
 def measuredWindToGlobalWind(measuredWindDirectionDegrees, measuredWindSpeedKmph, boatSpeedKmph, headingDegrees):
-        '''Calculate the global wind based on the measured wind and the boat velocity
+    '''Calculate the global wind based on the measured wind and the boat velocity
 
-        Returns:
-        float, float pair representing the globalWindSpeed (same units as input speed), globalWindDirectionDegrees
-        '''        
-        measuredWindRadians = math.radians(measuredWindDirectionDegrees)
-        headingRadians = math.radians(headingDegrees)
+    Returns:
+    float, float pair representing the globalWindSpeed (same units as input speed), globalWindDirectionDegrees
+    '''
+    measuredWindRadians = math.radians(measuredWindDirectionDegrees)
+    headingRadians = math.radians(headingDegrees)
 
-        # GF = global frame. BF = boat frame
-        # Calculate wind speed in boat frame. X is right. Y is forward.
-        measuredWindSpeedXBF = measuredWindSpeedKmph * math.cos(measuredWindRadians)
-        measuredWindSpeedYBF = measuredWindSpeedKmph * math.sin(measuredWindRadians)
+    # GF = global frame. BF = boat frame
+    # Calculate wind speed in boat frame. X is right. Y is forward.
+    measuredWindSpeedXBF = measuredWindSpeedKmph * math.cos(measuredWindRadians)
+    measuredWindSpeedYBF = measuredWindSpeedKmph * math.sin(measuredWindRadians)
 
-        # Assume boat is moving entirely in heading direction, so all boat speed is in boat frame Y direction
-        trueWindSpeedXBF = measuredWindSpeedXBF
-        trueWindSpeedYBF = measuredWindSpeedYBF + boatSpeedKmph
+    # Assume boat is moving entirely in heading direction, so all boat speed is in boat frame Y direction
+    trueWindSpeedXBF = measuredWindSpeedXBF
+    trueWindSpeedYBF = measuredWindSpeedYBF + boatSpeedKmph
 
-        # Calculate wind speed in global frame. X is EAST. Y is NORTH.
-        trueWindSpeedXGF = trueWindSpeedXBF * math.sin(headingRadians) + trueWindSpeedYBF * math.cos(headingRadians)
-        trueWindSpeedYGF = trueWindSpeedYBF * math.sin(headingRadians) - trueWindSpeedXBF * math.cos(headingRadians)
+    # Calculate wind speed in global frame. X is EAST. Y is NORTH.
+    trueWindSpeedXGF = trueWindSpeedXBF * math.sin(headingRadians) + trueWindSpeedYBF * math.cos(headingRadians)
+    trueWindSpeedYGF = trueWindSpeedYBF * math.sin(headingRadians) - trueWindSpeedXBF * math.cos(headingRadians)
 
-        # Calculate global wind speed and direction
-        globalWindSpeed = (trueWindSpeedXGF**2 + trueWindSpeedYGF**2)**0.5
-        globalWindDirectionDegrees = math.degrees(math.atan2(trueWindSpeedYGF, trueWindSpeedXGF))
+    # Calculate global wind speed and direction
+    globalWindSpeed = (trueWindSpeedXGF**2 + trueWindSpeedYGF**2)**0.5
+    globalWindDirectionDegrees = math.degrees(math.atan2(trueWindSpeedYGF, trueWindSpeedXGF))
 
-        return globalWindSpeed, globalWindDirectionDegrees
+    return globalWindSpeed, globalWindDirectionDegrees
 
 
 def globalWindToMeasuredWind(globalWindSpeed, globalWindDirectionDegrees, boatSpeed, headingDegrees):
