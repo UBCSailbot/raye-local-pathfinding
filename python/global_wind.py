@@ -1,6 +1,8 @@
 #! /usr/bin/env python
 import rospy
 import math
+import time
+import sys
 from sailbot_msg.msg import GPS, windSensor, globalWind
 from MOCK_AIS import AIS_PUBLISH_PERIOD_SECONDS
 
@@ -16,11 +18,14 @@ class GlobalWind:
         boatSpeed (float): speed of the boat
         headingDegrees (float): angle of the boat in global frame. 0 degrees is East. 90 degrees is North.
        '''
+        self.isFirstRun = True
+        
         self.measuredWindSpeed = None
         self.measuredWindDirection = None
         self.boatSpeed = None
         self.headingDegrees = None
 
+        rospy.init_node('global_wind', anonymous=True)
         rospy.Subscriber("GPS", GPS, self.GPSCallback)
         rospy.Subscriber("windSensor", windSensor, self.windSensorCallback)
 
@@ -38,7 +43,11 @@ class GlobalWind:
         Returns:
         float, float pair representing the globalWindSpeed (same units as input speed), globalWindDirectionDegrees
         '''
-        measuredWindRadians = math.radians(self.measuredWindDirectionDegrees)
+        if self.isFirstRun:
+            self.waitForFirstSensorData()
+            self.isFirstRun = False
+        
+        measuredWindRadians = math.radians(self.measuredWindDirection)
         headingRadians = math.radians(self.headingDegrees)
 
         # GF = global frame. BF = boat frame
@@ -59,6 +68,32 @@ class GlobalWind:
         globalWindDirectionDegrees = math.degrees(math.atan2(trueWindSpeedYGF, trueWindSpeedXGF))
 
         return globalWindSpeed, globalWindDirectionDegrees
+
+    def waitForFirstSensorData(self):
+        """Waits until first sensor data have been received by subscribers"""
+        while self.isMissingFirstSensorData():
+            # Exit if shutdown
+            if rospy.is_shutdown():
+                rospy.loginfo("rospy.is_shutdown() is True. Exiting")
+                sys.exit()
+            else:
+                rospy.loginfo("Waiting for sailbot to receive first sensor data")
+                rospy.loginfo("self.measuredWindSpeed is None? {}. self.measuredWindDirection is None? {}. "
+                              "self.boatSpeed is None? {}. self.headingDegrees is None? {}. "
+                              .format(self.measuredWindSpeed is None, self.measuredWindDirection is None,
+                                      self.boatSpeed is None, self.headingDegrees is None))
+                time.sleep(1)
+
+        rospy.loginfo("First sensor data received")
+
+    def isMissingFirstSensorData(self):
+        """Checks if the subscribers have all received their first messages
+
+        Returns:
+           bool True iff the subscribers have all received their first messages
+        """
+        return (self.measuredWindSpeed is None or self.measuredWindDirection is None or
+                self.boatSpeed is None or self.headingDegrees is None)
 
 
 if __name__ == '__main__':
