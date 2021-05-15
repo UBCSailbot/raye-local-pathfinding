@@ -17,7 +17,7 @@ class BoatState:
     Attributes:
         position (sailbot_msg.msg._latlon.latlon): latlon that is the current latlon position of the boat
         globalWindDirectionDegrees (float): direction that the wind is going
-                                              (0 degrees = going to right of boat, 90 degrees = going to front of boat)
+                                            (0 degrees = going east, 90 degrees = going north)
         globalWindSpeedKmph (float): global wind speed
         AISData (sailbot_msg.msg._AISMsg.AISMsg): AIS message with information about nearby boats
         headingDegrees (float): direction that the boat is heading towards

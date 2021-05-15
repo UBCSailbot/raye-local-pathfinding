@@ -4,20 +4,12 @@ import time
 import sys
 from utilities import measuredWindToGlobalWind
 from sailbot_msg.msg import GPS, windSensor, globalWind
-from MOCK_AIS import AIS_PUBLISH_PERIOD_SECONDS
 
-CHECK_PERIOD = AIS_PUBLISH_PERIOD_SECONDS
+GLOBAL_WIND_PUSH_PERIOD_SECONDS = 1.0
 
 
 class GlobalWind:
     def __init__(self):
-        '''
-        measuredWindSpeed (float): speed of the wind measured from the boat. All speed values must be in the same units.
-        measuredWindDirectionDegrees (float): angle of the measured with wrt the boat.
-                                             0 degrees is wind blowing to the right. 90 degrees is wind blowing forward.
-        boatSpeed (float): speed of the boat
-        headingDegrees (float): angle of the boat in global frame. 0 degrees is East. 90 degrees is North.
-       '''
         self.isFirstRun = True
 
         self.measuredWindSpeed = None
@@ -41,7 +33,7 @@ class GlobalWind:
         '''Calculate the global wind based on the measured wind and the boat velocity
 
         Returns:
-        float, float pair representing the globalWindSpeed (same units as input speed), globalWindDirectionDegrees
+           float, float pair representing the globalWindSpeed (same units as input speed), globalWindDirectionDegrees
         '''
         if self.isFirstRun:
             self.waitForFirstSensorData()
@@ -80,7 +72,7 @@ class GlobalWind:
 if __name__ == '__main__':
     global_wind_conversion = GlobalWind()
     global_wind_pub = rospy.Publisher('global_wind', globalWind, queue_size=4)
-    rate = rospy.Rate(1 / CHECK_PERIOD)
+    rate = rospy.Rate(1.0 / GLOBAL_WIND_PUSH_PERIOD_SECONDS)
 
     while not rospy.is_shutdown():
         speed, direction = global_wind_conversion.measuredWindToGlobalWind()

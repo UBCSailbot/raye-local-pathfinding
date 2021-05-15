@@ -18,14 +18,14 @@ class TestSailbot(unittest.TestCase):
 
         # Setup publishers
         self.gpsPublisher = rospy.Publisher("GPS", msg.GPS, queue_size=4)
-        self.globalWindSensorPublisher = rospy.Publisher("global_wind", msg.globalWind, queue_size=4)
+        self.globalWindPublisher = rospy.Publisher("global_wind", msg.globalWind, queue_size=4)
         self.AISPublisher = rospy.Publisher("AIS", msg.AISMsg, queue_size=4)
         self.globalPathPublisher = rospy.Publisher("globalPath", msg.path, queue_size=4)
 
         # Wait for connections to be made
         while self.gpsPublisher.get_num_connections() == 0:
             rospy.sleep(0.001)
-        while self.globalWindSensorPublisher.get_num_connections() == 0:
+        while self.globalWindPublisher.get_num_connections() == 0:
             rospy.sleep(0.001)
         while self.AISPublisher.get_num_connections() == 0:
             rospy.sleep(0.001)
@@ -43,7 +43,7 @@ class TestSailbot(unittest.TestCase):
 
         # Publish messages
         self.gpsPublisher.publish(gpsMsg)
-        self.globalWindSensorPublisher.publish(globalWindMsg)
+        self.globalWindPublisher.publish(globalWindMsg)
         self.AISPublisher.publish(AISMsg)
         self.globalPathPublisher.publish(globalPathMsg)
         rospy.sleep(1)
@@ -75,7 +75,7 @@ class TestSailbot(unittest.TestCase):
         rospy.sleep(0.1)
         self.assertIsNone(self.sailbot.getCurrentState())
 
-        self.globalWindSensorPublisher.publish(globalWindMsg)
+        self.globalWindPublisher.publish(globalWindMsg)
         rospy.sleep(0.1)
         self.assertIsNone(self.sailbot.getCurrentState())
 
@@ -106,7 +106,7 @@ class TestSailbot(unittest.TestCase):
 
         # Publish non global path messages
         self.gpsPublisher.publish(gpsMsg)
-        self.globalWindSensorPublisher.publish(globalWindMsg)
+        self.globalWindPublisher.publish(globalWindMsg)
         self.AISPublisher.publish(AISMsg)
         rospy.sleep(1)
 
