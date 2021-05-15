@@ -222,10 +222,8 @@ if __name__ == '__main__':
 
     # Show wind speed text and ocean current speed text
     windArrowCenter = (xNLim + 1.5 * arrowLength, yPLim - 1.5 * arrowLength)  # Upper left
-    globalWindSpeedKmph, globalWindDirectionDegrees = utils.measuredWindToGlobalWind(
-        state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
     windSpeedText = axes.text(windArrowCenter[0], windArrowCenter[1] + 1.5 * fractionOfPlotLength,
-                              "Global Wind Speed Kmph: {}".format(globalWindSpeedKmph), ha='center')
+                              "Global Wind Speed Kmph: {}".format(state.globalWindSpeedKmph), ha='center')
 
     oceanCurrentArrowCenter = (xPLim - 1.5 * arrowLength, yPLim - 1.5 * arrowLength)  # Upper right
     oceanCurrentSpeedText = axes.text(oceanCurrentArrowCenter[0],
@@ -296,10 +294,8 @@ if __name__ == '__main__':
 
         # Update wind speed text
         windArrowCenter = (xNLim + 1.5 * arrowLength, yPLim - 1.5 * arrowLength)
-        globalWindSpeedKmph, globalWindDirectionDegrees = utils.measuredWindToGlobalWind(
-            state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
         windSpeedText.set_position((windArrowCenter[0], windArrowCenter[1] + 1.5 * fractionOfPlotLength))
-        windSpeedText.set_text("Wind Speed Kmph: {}".format(globalWindSpeedKmph))
+        windSpeedText.set_text("Wind Speed Kmph: {}".format(state.globalWindSpeedKmph))
 
         # Update ocean current speed text
         oceanCurrentArrowCenter = (xPLim - 1.5 * arrowLength, yPLim - 1.5 * arrowLength)
@@ -326,12 +322,12 @@ if __name__ == '__main__':
         # Add boats and wind speed arrow and ocean current arrow
         for ship in shipsXY:
             ship.addPatch(axes)
-        globalWindDirectionRadians = math.radians(globalWindDirectionDegrees)
+        globalWindDirectionRadians = math.radians(state.globalWindDirectionDegrees)
         windArrowStart = (windArrowCenter[0] - 0.5 * fractionOfPlotLength * math.cos(globalWindDirectionRadians),
                           windArrowCenter[1] - 0.5 * fractionOfPlotLength * math.sin(globalWindDirectionRadians))
         windDirection = patches.FancyArrow(windArrowStart[0], windArrowStart[1],
-                                           fractionOfPlotLength * math.cos(math.radians(globalWindDirectionDegrees)),
-                                           fractionOfPlotLength * math.sin(math.radians(globalWindDirectionDegrees)),
+                                           fractionOfPlotLength * math.cos(math.radians(state.globalWindDirectionDegrees)),
+                                           fractionOfPlotLength * math.sin(math.radians(state.globalWindDirectionDegrees)),
                                            width=fractionOfPlotLength / 4)
         axes.add_patch(windDirection)
 
