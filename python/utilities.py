@@ -351,6 +351,7 @@ def setInitialSpeedup():
     speedupPublisher.publish(initial_speedup)
     time.sleep(1)
 
+# add useless comment here TODO REMOVE
 
 # Smallest signed angle (degrees)
 def ssa_deg(angle):
