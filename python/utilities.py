@@ -50,8 +50,14 @@ COST_THRESHOLD_PER_KM = 650
 MIN_NUM_SPEEDUP_SUBS_BEFORE_PUBLISHING = 6
 
 
-def takeScreenshot():
+def takeScreenshot(return_path_to_file=False):
     '''Take a screenshot and save it to a png file.
+
+    Args:
+       return_path_to_file (bool): If True, will return path to saved screenshot file
+
+    Returns:
+       str path to saved screenshot file if return_path_to_file is True, else nothing
 
     Note: The first time this is called, it will create the following folder structure if it does not already exist:
           images/(%b-%d-%Y)/(%H-%M-%S) where %b-%d-%Y is a date string and %H-%M-%S is a time string.
@@ -87,6 +93,8 @@ def takeScreenshot():
     rospy.loginfo("Taking screenshot...")
     myScreenshot.save(fullImagePath)
     rospy.loginfo("Screenshot saved to {}".format(fullImagePath))
+    if return_path_to_file:
+        return fullImagePath
 
 
 def latlonToXY(latlon, referenceLatlon):

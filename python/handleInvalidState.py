@@ -119,6 +119,7 @@ def moveGlobalWaypointUntilValid(state, isLast, otherWaypoint):
     referenceLatlon = state.globalWaypoint
     goalLatlon = state.globalWaypoint
     goalX, goalY = utils.latlonToXY(goalLatlon, referenceLatlon)
+
     otherX, otherY = utils.latlonToXY(otherWaypoint, referenceLatlon)
 
     while not checkGoalValidity(state, goalLatlon):
