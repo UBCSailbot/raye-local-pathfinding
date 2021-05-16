@@ -39,8 +39,10 @@ class GlobalWind:
             self.waitForFirstSensorData()
             self.isFirstRun = False
 
-        return measuredWindToGlobalWind(self.measuredWindDirection, self.measuredWindSpeed, self.boatSpeed,
-                                        self.headingDegrees)
+        return measuredWindToGlobalWind(measuredWindSpeed=self.measuredWindSpeed,
+                                        measuredWindDirectionDegrees=self.measuredWindDirection,
+                                        boatSpeed=self.boatSpeed,
+                                        headingDegrees=self.headingDegrees)
 
     def waitForFirstSensorData(self):
         """Waits until first sensor data have been received by subscribers"""
