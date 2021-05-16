@@ -112,12 +112,8 @@ class TestUtilities(unittest.TestCase):
 
     def test_measuredWindToGlobalWind_advanced(self):
         # Setup test parameters
-        headingDegrees = 20
-        boatSpeedKmph = 4
-        measuredWindDirectionDegrees = 10
-        measuredWindSpeedKmph = 2
         globalWindSpeedKmph, globalWindDirectionDegrees = utils.measuredWindToGlobalWind(
-            measuredWindSpeedKmph, measuredWindDirectionDegrees, boatSpeedKmph, headingDegrees)
+            measuredWindSpeed=2, measuredWindDirectionDegrees=10, boatSpeed=4, headingDegrees=20)
         self.assertAlmostEqual(4.7726691528, globalWindSpeedKmph, places=3)
         self.assertAlmostEqual(-4.373700424, globalWindDirectionDegrees, places=3)
 
@@ -150,12 +146,9 @@ class TestUtilities(unittest.TestCase):
 
     def test_globalWindToMeasuredWind_advanced(self):
         # Setup test parameters
-        headingDegrees = 120
-        boatSpeedKmph = 14
-        globalWindDirectionDegrees = 12
-        globalWindSpeedKmph = 11
         measuredWindSpeedKmph, measuredWindDirectionDegrees = utils.globalWindToMeasuredWind(
-            globalWindSpeedKmph, globalWindDirectionDegrees, boatSpeedKmph, headingDegrees)
+            globalWindSpeed=11, globalWindDirectionDegrees=12, boatSpeed=14,
+            headingDegrees=120)
 
         self.assertAlmostEqual(20.30214851358062, measuredWindSpeedKmph, places=3)
         self.assertAlmostEqual(-58.98273894650611, measuredWindDirectionDegrees, places=3)
@@ -167,7 +160,8 @@ class TestUtilities(unittest.TestCase):
         globalWindDirectionDegrees = 78
         globalWindSpeedKmph = 13
         measuredWindSpeedKmph, measuredWindDirectionDegrees = utils.globalWindToMeasuredWind(
-            globalWindSpeedKmph, globalWindDirectionDegrees, boatSpeedKmph, headingDegrees)
+            globalWindSpeed=globalWindSpeedKmph, globalWindDirectionDegrees=globalWindDirectionDegrees,
+            boatSpeed=boatSpeedKmph, headingDegrees=headingDegrees)
         calculatedGlobalWindSpeedKmph, calculatedGlobalWindDirectionDegrees = utils.measuredWindToGlobalWind(
             measuredWindSpeedKmph, measuredWindDirectionDegrees, boatSpeedKmph, headingDegrees)
 

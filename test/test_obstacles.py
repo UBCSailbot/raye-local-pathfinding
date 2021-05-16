@@ -26,8 +26,8 @@ class TestObstacles(unittest.TestCase):
         shipLatlon = utils.XYToLatlon(xy=(1, 0), referenceLatlon=referenceLatlon)
         ships = [AISShip(ID=1000, lat=shipLatlon.lat, lon=shipLatlon.lon, headingDegrees=utils.HEADING_WEST,
                          speedKmph=1)]
-        state = sbot.BoatState(globalWaypoint=latlon(1, 1), position=currentLatlon, measuredWindDirectionDegrees=0,
-                               measuredWindSpeedKmph=0, AISData=AISMsg(ships), headingDegrees=0, speedKmph=1)
+        state = sbot.BoatState(globalWaypoint=latlon(1, 1), position=currentLatlon, globalWindDirectionDegrees=0,
+                               globalWindSpeedKmph=0, AISData=AISMsg(ships), headingDegrees=0, speedKmph=1)
         obstacles = obs.getObstacles(state, referenceLatlon=referenceLatlon)
 
         # Uncomment below to see obstacles extended on a plot
@@ -44,8 +44,8 @@ class TestObstacles(unittest.TestCase):
         shipLatlon = utils.XYToLatlon(xy=(1, 1), referenceLatlon=referenceLatlon)
         ships = [AISShip(ID=1000, lat=shipLatlon.lat, lon=shipLatlon.lon,
                          headingDegrees=utils.HEADING_SOUTH, speedKmph=1)]
-        state = sbot.BoatState(globalWaypoint=latlon(1, 1), position=currentLatlon, measuredWindDirectionDegrees=0,
-                               measuredWindSpeedKmph=0, AISData=AISMsg(ships), headingDegrees=0, speedKmph=1)
+        state = sbot.BoatState(globalWaypoint=latlon(1, 1), position=currentLatlon, globalWindDirectionDegrees=0,
+                               globalWindSpeedKmph=0, AISData=AISMsg(ships), headingDegrees=0, speedKmph=1)
         obstacles = obs.getObstacles(state, referenceLatlon=referenceLatlon)
 
         # Uncomment below to see obstacles extended on a plot
@@ -64,8 +64,8 @@ class TestObstacles(unittest.TestCase):
         shipLatlon2 = utils.XYToLatlon(xy=(-1, -1), referenceLatlon=referenceLatlon)
         ship1 = AISShip(ID=1000, lat=shipLatlon.lat, lon=shipLatlon.lon, headingDegrees=270, speedKmph=1.5)
         ship2 = AISShip(ID=1001, lat=shipLatlon2.lat, lon=shipLatlon2.lon, headingDegrees=45, speedKmph=10)
-        state = sbot.BoatState(globalWaypoint=latlon(1, 1), position=currentLatlon, measuredWindDirectionDegrees=0,
-                               measuredWindSpeedKmph=0, AISData=AISMsg([ship1, ship2]), headingDegrees=0, speedKmph=1)
+        state = sbot.BoatState(globalWaypoint=latlon(1, 1), position=currentLatlon, globalWindDirectionDegrees=0,
+                               globalWindSpeedKmph=0, AISData=AISMsg([ship1, ship2]), headingDegrees=0, speedKmph=1)
         obstacles = obs.getObstacles(state, referenceLatlon=referenceLatlon)
 
         # Uncomment below to see obstacles extended on a plot

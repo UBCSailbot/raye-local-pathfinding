@@ -138,13 +138,11 @@ class OMPLPath:
     # Methods that modify the class
     def updateWindDirection(self, state):
         '''Change the wind direction of the OMPL objective function, which changes subsequent path cost calculations.'''
-        globalWindSpeedKmph, globalWindDirectionDegrees = utils.measuredWindToGlobalWind(
-            state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
         objective = self._ss.getOptimizationObjective()  # Assumes balanced objective
 
         for i in range(objective.getObjectiveCount()):
             if isinstance(objective.getObjective(i), ph.WindObjective):
-                objective.getObjective(i).windDirectionDegrees = globalWindDirectionDegrees
+                objective.getObjective(i).windDirectionDegrees = state.globalWindDirectionDegrees
                 return
 
         rospy.logwarn("updateWindDirection() was unsuccessful. Wind direction was not updated")
@@ -510,8 +508,6 @@ class Path:
         numLookAheadWaypoints = self._cleanNumLookAheadWaypoints(numLookAheadWaypoints)
 
         # Calculate global wind from measured wind and boat state
-        globalWindSpeedKmph, globalWindDirectionDegrees = utils.measuredWindToGlobalWind(
-            state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
 
         # Get relevant waypoints (boat position first, then the next
         # numLookAheadWaypoints startin from nextLocalWaypoint onwards)
@@ -530,19 +526,19 @@ class Path:
             requiredHeadingDegrees = math.degrees(math.atan2(waypoint[1] - prevWaypoint[1],
                                                              waypoint[0] - prevWaypoint[0]))
 
-            if ph.isDownwind(math.radians(globalWindDirectionDegrees), math.radians(requiredHeadingDegrees)):
+            if ph.isDownwind(math.radians(state.globalWindDirectionDegrees), math.radians(requiredHeadingDegrees)):
                 if showWarnings:
                     rospy.loginfo("Downwind sailing on path detected. globalWindDirectionDegrees: {}. "
                                   "requiredHeadingDegrees: {}. waypointIndex: {}"
-                                  .format(globalWindDirectionDegrees, requiredHeadingDegrees, waypointIndex))
+                                  .format(state.globalWindDirectionDegrees, requiredHeadingDegrees, waypointIndex))
                 upwindOrDownwind = True
                 break
 
-            elif ph.isUpwind(math.radians(globalWindDirectionDegrees), math.radians(requiredHeadingDegrees)):
+            elif ph.isUpwind(math.radians(state.globalWindDirectionDegrees), math.radians(requiredHeadingDegrees)):
                 if showWarnings:
                     rospy.loginfo("Upwind sailing on path detected. globalWindDirectionDegrees: {}. "
                                   "requiredHeadingDegrees: {}. waypointIndex: {}"
-                                  .format(globalWindDirectionDegrees, requiredHeadingDegrees, waypointIndex))
+                                  .format(state.globalWindDirectionDegrees, requiredHeadingDegrees, waypointIndex))
                 upwindOrDownwind = True
                 break
 
@@ -759,8 +755,6 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=Fals
     goal = utils.latlonToXY(state.globalWaypoint, referenceLatlon)
     dimensions = getXYLimits(start, goal)
     obstacles = obs.getObstacles(state, referenceLatlon)
-    globalWindSpeedKmph, globalWindDirectionDegrees = utils.measuredWindToGlobalWind(
-        state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
 
     # Run the planner multiple times and find the best one
     rospy.loginfo("Running createLocalPathSS. runtimeSeconds: {}. numRuns: {}. Total time: {} seconds"
@@ -770,7 +764,7 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=Fals
     # Useful to understand if the pathfinding problem is invalid or impossible
     shouldPlot = rospy.get_param('plot_pathfinding_problem', False)
     if shouldPlot:
-        plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, obstacles,
+        plotPathfindingProblem(state.globalWindDirectionDegrees, dimensions, start, goal, obstacles,
                                state.headingDegrees)
 
     # Take screenshot
@@ -785,7 +779,7 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=Fals
     for i in range(numRuns):
         # TODO: Incorporate globalWindSpeed into pathfinding?
         rospy.loginfo("Starting path-planning run number: {}".format(i))
-        solution = plan(runtimeSeconds, plannerType, globalWindDirectionDegrees,
+        solution = plan(runtimeSeconds, plannerType, state.globalWindDirectionDegrees,
                         dimensions, start, goal, obstacles, state.headingDegrees)
         if isValidSolution(solution, referenceLatlon, state):
             validSolutions.append(solution)
@@ -808,7 +802,7 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=Fals
             break
 
         rospy.logwarn("Attempting to rerun with longer runtime: {} seconds".format(runtimeSeconds))
-        solution = plan(runtimeSeconds, plannerType, globalWindDirectionDegrees,
+        solution = plan(runtimeSeconds, plannerType, state.globalWindDirectionDegrees,
                         dimensions, start, goal, obstacles, state.headingDegrees)
 
         if isValidSolution(solution, referenceLatlon, state):

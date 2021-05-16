@@ -40,6 +40,7 @@
     </include>
 
     <node pkg="local_pathfinding" type="main_loop.py" name="main_loop" output="$(arg main_loop_output)"/>
+    <node pkg="local_pathfinding" type="global_wind.py" name="global_wind" output="screen"/>
     <node pkg="local_pathfinding" type="local_path_visualizer.py" name="local_path_visualizer" />
     <node pkg="local_pathfinding" type="collision_checker.py" name="collision_checker" output="screen" />
     <node pkg="local_pathfinding" type="store_sailbot_gps.py" name="store_sailbot_gps" output="screen" />
