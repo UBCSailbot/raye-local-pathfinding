@@ -18,14 +18,14 @@ class TestSailbot(unittest.TestCase):
 
         # Setup publishers
         self.gpsPublisher = rospy.Publisher("GPS", msg.GPS, queue_size=4)
-        self.windSensorPublisher = rospy.Publisher("windSensor", msg.windSensor, queue_size=4)
+        self.globalWindPublisher = rospy.Publisher("global_wind", msg.globalWind, queue_size=4)
         self.AISPublisher = rospy.Publisher("AIS", msg.AISMsg, queue_size=4)
         self.globalPathPublisher = rospy.Publisher("globalPath", msg.path, queue_size=4)
 
         # Wait for connections to be made
         while self.gpsPublisher.get_num_connections() == 0:
             rospy.sleep(0.001)
-        while self.windSensorPublisher.get_num_connections() == 0:
+        while self.globalWindPublisher.get_num_connections() == 0:
             rospy.sleep(0.001)
         while self.AISPublisher.get_num_connections() == 0:
             rospy.sleep(0.001)
@@ -35,7 +35,7 @@ class TestSailbot(unittest.TestCase):
     def test_basic(self):
         # Setup messages
         gpsMsg = msg.GPS(10.1, 4.2, 60.3, 12.4)
-        windSensorMsg = msg.windSensor(87.5, 1.89)
+        globalWindMsg = msg.globalWind(87.5, 1.89)
         ships = [msg.AISShip(i, i, i, i, i) for i in range(10)]
         AISMsg = msg.AISMsg(ships)
         waypoints = [msg.latlon(i, i) for i in range(10)]
@@ -43,7 +43,7 @@ class TestSailbot(unittest.TestCase):
 
         # Publish messages
         self.gpsPublisher.publish(gpsMsg)
-        self.windSensorPublisher.publish(windSensorMsg)
+        self.globalWindPublisher.publish(globalWindMsg)
         self.AISPublisher.publish(AISMsg)
         self.globalPathPublisher.publish(globalPathMsg)
         rospy.sleep(1)
@@ -54,15 +54,15 @@ class TestSailbot(unittest.TestCase):
         self.assertAlmostEqual(state.position.lon, gpsMsg.lon, places=3)
         self.assertAlmostEqual(state.headingDegrees, gpsMsg.headingDegrees, places=3)
         self.assertAlmostEqual(state.speedKmph, gpsMsg.speedKmph, places=3)
-        self.assertAlmostEqual(state.measuredWindDirectionDegrees, windSensorMsg.measuredDirectionDegrees, places=3)
-        self.assertAlmostEqual(state.measuredWindSpeedKmph, windSensorMsg.measuredSpeedKmph, places=3)
+        self.assertAlmostEqual(state.globalWindDirectionDegrees, globalWindMsg.directionDegrees, places=3)
+        self.assertAlmostEqual(state.globalWindSpeedKmph, globalWindMsg.speedKmph, places=3)
         self.assertEqual(len(state.AISData.ships), len(ships))
         self.assertEqual(len(self.sailbot.globalPath), len(waypoints))
 
     def test_missing_data(self):
         # Setup messages
         gpsMsg = msg.GPS(10.1, 4.2, 60.3, 12.4)
-        windSensorMsg = msg.windSensor(87.5, 1.89)
+        globalWindMsg = msg.globalWind(87.5, 1.89)
         ships = [msg.AISShip(i, i, i, i, i) for i in range(10)]
         AISMsg = msg.AISMsg(ships)
         waypoints = [msg.latlon(i, i) for i in range(10)]
@@ -75,7 +75,7 @@ class TestSailbot(unittest.TestCase):
         rospy.sleep(0.1)
         self.assertIsNone(self.sailbot.getCurrentState())
 
-        self.windSensorPublisher.publish(windSensorMsg)
+        self.globalWindPublisher.publish(globalWindMsg)
         rospy.sleep(0.1)
         self.assertIsNone(self.sailbot.getCurrentState())
 
@@ -92,21 +92,21 @@ class TestSailbot(unittest.TestCase):
         self.assertAlmostEqual(state.position.lon, gpsMsg.lon, places=3)
         self.assertAlmostEqual(state.headingDegrees, gpsMsg.headingDegrees, places=3)
         self.assertAlmostEqual(state.speedKmph, gpsMsg.speedKmph, places=3)
-        self.assertAlmostEqual(state.measuredWindDirectionDegrees, windSensorMsg.measuredDirectionDegrees, places=3)
-        self.assertAlmostEqual(state.measuredWindSpeedKmph, windSensorMsg.measuredSpeedKmph, places=3)
+        self.assertAlmostEqual(state.globalWindDirectionDegrees, globalWindMsg.directionDegrees, places=3)
+        self.assertAlmostEqual(state.globalWindSpeedKmph, globalWindMsg.speedKmph, places=3)
         self.assertEqual(len(state.AISData.ships), len(ships))
         self.assertEqual(len(self.sailbot.globalPath), len(waypoints))
 
     def test_globalPath_detailed(self):
         # Setup non global path messages
         gpsMsg = msg.GPS(10.1, 4.2, 60.3, 12.4)
-        windSensorMsg = msg.windSensor(87.5, 1.89)
+        globalWindMsg = msg.globalWind(87.5, 1.89)
         ships = [msg.AISShip(i, i, i, i, i) for i in range(10)]
         AISMsg = msg.AISMsg(ships)
 
         # Publish non global path messages
         self.gpsPublisher.publish(gpsMsg)
-        self.windSensorPublisher.publish(windSensorMsg)
+        self.globalWindPublisher.publish(globalWindMsg)
         self.AISPublisher.publish(AISMsg)
         rospy.sleep(1)
 

@@ -205,14 +205,12 @@ def getLOSHeadingDegrees(position, previousWaypoint, currentWaypoint):
 
 def measuredWindToGlobalWind(measuredWindSpeed, measuredWindDirectionDegrees, boatSpeed, headingDegrees):
     '''Calculate the global wind based on the measured wind and the boat velocity
-
     Args:
        measuredWindSpeed (float): speed of the wind measured from the boat. All speed values must be in the same units.
        measuredWindDirectionDegrees (float): angle of the measured with wrt the boat.
                                              0 degrees is wind blowing to the right. 90 degrees is wind blowing forward.
        boatSpeed (float): speed of the boat
        headingDegrees (float): angle of the boat in global frame. 0 degrees is East. 90 degrees is North.
-
     Returns:
        float, float pair representing the globalWindSpeed (same units as input speed), globalWindDirectionDegrees
     '''

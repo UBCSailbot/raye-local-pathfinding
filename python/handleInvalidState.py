@@ -72,17 +72,14 @@ def generateSafeHeadingDegrees(state, invalidStartObstacle):
     potentialHeadingsDegrees = [obstacleHeadingDegrees + 90, obstacleHeadingDegrees - 90]
 
     for headingDegrees in potentialHeadingsDegrees:
-        _, globalWindDirectionDegrees = utils.measuredWindToGlobalWind(
-            state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph,
-            state.headingDegrees)
-        if not ph.isUpwind(math.radians(globalWindDirectionDegrees), math.radians(headingDegrees)):
+        if not ph.isUpwind(math.radians(state.globalWindDirectionDegrees), math.radians(headingDegrees)):
             rospy.logwarn("Found heading to safety: {}".format(headingDegrees))
             return headingDegrees
 
     # if all else fails, go downwind
     rospy.logwarn("Couldn't find conventional heading to safety, using downwind direction: {}"
-                  .format(globalWindDirectionDegrees))
-    return globalWindDirectionDegrees
+                  .format(state.globalWindDirectionDegrees))
+    return state.globalWindDirectionDegrees
 
 
 def checkGoalValidity(state, goalLatlon=None):

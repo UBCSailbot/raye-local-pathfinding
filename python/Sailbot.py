@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import rospy
 import handleInvalidState as his
-from sailbot_msg.msg import AISMsg, GPS, path, latlon, windSensor
+from sailbot_msg.msg import AISMsg, GPS, path, latlon, globalWind
 from geopy.distance import distance
 import time
 import sys
@@ -16,35 +16,35 @@ class BoatState:
 
     Attributes:
         position (sailbot_msg.msg._latlon.latlon): latlon that is the current latlon position of the boat
-        measuredWindDirectionDegrees (float): measured direction that the wind is going towards wrt the boat
-                                              (0 degrees = going to right of boat, 90 degrees = going to front of boat)
-        measuredWindSpeedKmph (float): measured speed of the wind wrt to boat
+        globalWindDirectionDegrees (float): direction that the wind is going
+                                            (0 degrees = going east, 90 degrees = going north)
+        globalWindSpeedKmph (float): global wind speed
         AISData (sailbot_msg.msg._AISMsg.AISMsg): AIS message with information about nearby boats
         headingDegrees (float): direction that the boat is heading towards
                                 (0 degrees = going east, 90 degrees = going north)
         speedKmph (float): speed that the boat is moving
         globalWaypoint (sailbot_msg.msg._latlon.latlon): global waypoint latlon that the sailbot should be going towards
     """
-    def __init__(self, globalWaypoint, position, measuredWindDirectionDegrees, measuredWindSpeedKmph, AISData,
+    def __init__(self, globalWaypoint, position, globalWindDirectionDegrees, globalWindSpeedKmph, AISData,
                  headingDegrees, speedKmph):
         self.globalWaypoint = globalWaypoint
         self.position = position
-        self.measuredWindDirectionDegrees = measuredWindDirectionDegrees
-        self.measuredWindSpeedKmph = measuredWindSpeedKmph
         self.AISData = AISData
         self.headingDegrees = headingDegrees
         self.speedKmph = speedKmph
+        self.globalWindDirectionDegrees = globalWindDirectionDegrees
+        self.globalWindSpeedKmph = globalWindSpeedKmph
 
     # AISData currently printing out a list of all ships and their attributes
     def __str__(self):
         return (("Global waypoint: {0}\n"
                  "Current position: {1}\n"
-                 "Wind direction degrees: {2}\n"
-                 "Wind speed kmph: {3}\n"
+                 "Global wind direction degrees: {2}\n"
+                 "Global wind speed kmph: {3}\n"
                  "AISData: {4}\n"
                  "Heading degrees: {5}\n"
-                 "Speed kmph: {6}\n") .format(self.globalWaypoint, self.position, self.measuredWindDirectionDegrees,
-                                              self.measuredWindSpeedKmph, self.AISData.ships, self.headingDegrees,
+                 "Speed kmph: {6}\n") .format(self.globalWaypoint, self.position, self.globalWindDirectionDegrees,
+                                              self.globalWindSpeedKmph, self.AISData.ships, self.headingDegrees,
                                               self.speedKmph))
 
 
@@ -63,7 +63,7 @@ class Sailbot:
         globalPath (sailbot_msg.msg._latlon.latlon[]): global path list of latlon waypoints that sailbot should follow
 
         GPSLastUpdate (float): time.time() when the GPS was last updated
-        windSensorLastUpdate (float): time.time() when the wind sensor was last updated
+        globalWindLastUpdate (float): time.time() when the global wind was last updated
         AISLastUpdate (float): time.time() when the AIS was last updated
         globalPathLastUpdate (float): time.time() when the global path was last updated
 
@@ -76,16 +76,16 @@ class Sailbot:
     def __init__(self, nodeName):
         # Sensor data and global path
         self.position = None
-        self.measuredWindDirectionDegrees = None
-        self.measuredWindSpeedKmph = None
         self.AISData = None
         self.headingDegrees = None
         self.speedKmph = None
         self.globalPath = None
+        self.globalWindDirectionDegrees = None
+        self.globalWindSpeedKmph = None
 
         # Sensor data and global path last received time
         self.GPSLastUpdate = None
-        self.windSensorLastUpdate = None
+        self.globalWindLastUpdate = None
         self.AISLastUpdate = None
         self.globalPathLastUpdate = None
 
@@ -95,7 +95,7 @@ class Sailbot:
 
         rospy.init_node(nodeName, anonymous=True)
         rospy.Subscriber("GPS", GPS, self.GPSCallback)
-        rospy.Subscriber("windSensor", windSensor, self.windSensorCallback)
+        rospy.Subscriber("global_wind", globalWind, self.globalWindCallback)
         rospy.Subscriber("AIS", AISMsg, self.AISCallback)
         rospy.Subscriber("globalPath", path, self.globalPathCallback)
 
@@ -126,8 +126,8 @@ class Sailbot:
             rospy.logwarn("Setting globalWaypoint to be the last element of the globalPath")
             self.globalPathIndex = len(self.globalPath) - 1
 
-        state = BoatState(self.globalPath[self.globalPathIndex], self.position, self.measuredWindDirectionDegrees,
-                          self.measuredWindSpeedKmph, self.AISData, self.headingDegrees, self.speedKmph)
+        state = BoatState(self.globalPath[self.globalPathIndex], self.position, self.globalWindDirectionDegrees,
+                          self.globalWindSpeedKmph, self.AISData, self.headingDegrees, self.speedKmph)
 
         global goalWasInvalid
         global movedGlobalWaypoint
@@ -155,10 +155,10 @@ class Sailbot:
         self.speedKmph = data.speedKmph
         self.GPSLastUpdate = time.time()
 
-    def windSensorCallback(self, data):
-        self.measuredWindDirectionDegrees = data.measuredDirectionDegrees
-        self.measuredWindSpeedKmph = data.measuredSpeedKmph
-        self.windSensorLastUpdate = time.time()
+    def globalWindCallback(self, data):
+        self.globalWindDirectionDegrees = data.directionDegrees
+        self.globalWindSpeedKmph = data.speedKmph
+        self.globalWindLastUpdate = time.time()
 
     def AISCallback(self, data):
         self.AISData = data
@@ -213,15 +213,15 @@ class Sailbot:
 
         current_time = time.time()
         GPSStaleLimitSeconds = 60
-        windSensorStaleLimitSeconds = 60
+        globalWindStaleLimitSeconds = 60
         AISStaleLimitSeconds = 60
         globalPathStaleLimitSeconds = 60
         if current_time - self.GPSLastUpdate > GPSStaleLimitSeconds:
             rospy.logwarn("GPS stale. Not updated for {} seconds ({} limit)"
                           .format(current_time - self.GPSLastUpdate, GPSStaleLimitSeconds))
-        if current_time - self.windSensorLastUpdate > windSensorStaleLimitSeconds:
+        if current_time - self.globalWindLastUpdate > globalWindStaleLimitSeconds:
             rospy.logwarn("windSensor stale. Not updated for {} seconds ({} limit)"
-                          .format(current_time - self.windSensorLastUpdate, windSensorStaleLimitSeconds))
+                          .format(current_time - self.globalWindLastUpdate, globalWindStaleLimitSeconds))
         if current_time - self.AISLastUpdate > AISStaleLimitSeconds:
             rospy.logwarn("AIS stale. Not updated for {} seconds ({} limit)"
                           .format(current_time - self.AISLastUpdate, AISStaleLimitSeconds))
@@ -238,12 +238,12 @@ class Sailbot:
                 sys.exit()
             else:
                 rospy.loginfo("Waiting for sailbot to receive first sensor data and global path")
-                rospy.loginfo("self.position is None? {}. self.measuredWindDirectionDegrees is None? {}. "
-                              "self.measuredWindSpeedKmph is None? {}. self.AISData is None? {}. "
+                rospy.loginfo("self.position is None? {}. self.globalWindDirectionDegrees is None? {}. "
+                              "self.globalWindSpeedKmph is None? {}. self.AISData is None? {}. "
                               "self.headingDegrees is None? {}. self.speedKmph is None? {}. "
                               "self.globalPath is None? {}."
-                              .format(self.position is None, self.measuredWindDirectionDegrees is None,
-                                      self.measuredWindSpeedKmph is None, self.AISData is None,
+                              .format(self.position is None, self.globalWindDirectionDegrees is None,
+                                      self.globalWindSpeedKmph is None, self.AISData is None,
                                       self.headingDegrees is None, self.speedKmph is None, self.globalPath is None))
                 time.sleep(1)
 
@@ -255,8 +255,8 @@ class Sailbot:
         Returns:
            bool True iff the subscribers have all received their first messages
         """
-        return (self.position is None or self.measuredWindDirectionDegrees is None or
-                self.measuredWindSpeedKmph is None or self.AISData is None or
+        return (self.position is None or self.globalWindDirectionDegrees is None or
+                self.globalWindSpeedKmph is None or self.AISData is None or
                 self.headingDegrees is None or self.speedKmph is None or self.globalPath is None)
 
 

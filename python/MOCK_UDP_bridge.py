@@ -4,7 +4,7 @@ import rospy
 import socket
 
 import sailbot_msg.msg as msg
-from utilities import headingToBearingDegrees, measuredWindToGlobalWind
+from utilities import headingToBearingDegrees
 
 try:
     import aislib as ais
@@ -33,7 +33,7 @@ class MOCK_UDPBridge:
         rospy.init_node('UDPBridge', anonymous=True)
         rospy.Subscriber("GPS", msg.GPS, self.gpsCallback)
         rospy.Subscriber("AIS", msg.AISMsg, self.aisCallback)
-        rospy.Subscriber("windSensor", msg.windSensor, self.windCallback)
+        rospy.Subscriber("global_wind", msg.globalWind, self.globalWindCallback)
         rospy.Subscriber("globalPath", msg.path, self.globalPathCallback)
         rospy.Subscriber("localPath", msg.path, self.localPathCallback)
         self.gps = None
@@ -56,12 +56,11 @@ class MOCK_UDPBridge:
             aismsg = ais.AIS(aisreport)
             sock.sendto(aismsg.build_payload(), (UDP_IP, UDP_PORT))
 
-    def windCallback(self, data):
-        if self.gps is not None:
-            globalWindSpeedKmph, globalWindDirectionDegrees = measuredWindToGlobalWind(
-                data.measuredSpeedKmph, data.measuredDirectionDegrees, self.gps.speedKmph, self.gps.headingDegrees)
-            nmea_msg = nmea.MWV('--', 'MWV', (str(globalWindDirectionDegrees), 'T', str(globalWindSpeedKmph), 'M', 'A'))
-            sock.sendto(str(nmea_msg), (UDP_IP, UDP_PORT))
+    def globalWindCallback(self, data):
+        globalWindSpeedKmph = data.speedKmph
+        globalWindDirectionDegrees = data.directionDegrees
+        nmea_msg = nmea.MWV('--', 'MWV', (str(globalWindDirectionDegrees), 'T', str(globalWindSpeedKmph), 'M', 'A'))
+        sock.sendto(str(nmea_msg), (UDP_IP, UDP_PORT))
 
     def globalPathCallback(self, data):
         '''
