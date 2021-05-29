@@ -1,4 +1,4 @@
-# CircleCi Configuration for local_pathfinding
+# CircleCi Configuration for local-pathfinding
 
 version: 2.1
 
@@ -48,18 +48,18 @@ commands:
   setup_and_build_workspace:
     description: "Set Up And Build Workspace"
     steps:
-      - run: mkdir -p /catkin_ws/src/local_pathfinding
-      - run: mkdir -p /catkin_ws/src/sailbot_msg
+      - run: mkdir -p /catkin_ws/src/local-pathfinding
+      - run: mkdir -p /catkin_ws/src/sailbot-msg
       - run: source /opt/ros/melodic/setup.bash && cd /catkin_ws && catkin_make
       - checkout:
-          path: /catkin_ws/src/local_pathfinding
-      - run: git clone https://github.com/UBCSailbot/sailbot-msg.git /catkin_ws/src/sailbot_msg
+          path: /catkin_ws/src/local-pathfinding
+      - run: git clone https://github.com/UBCSailbot/sailbot-msg.git /catkin_ws/src/sailbot-msg
       - run: source /opt/ros/melodic/setup.bash && cd /catkin_ws && catkin_make
 
   install_and_run_flake8:
     description: "Install And Run Flake8"
     steps:
-      - run: pip install flake8 && flake8 --statistics --max-line-length 120 /catkin_ws/src/local_pathfinding
+      - run: pip install flake8 && flake8 --statistics --max-line-length 120 /catkin_ws/src/local-pathfinding
 
   run_tests:
     description: "Run Tests"
