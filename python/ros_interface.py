@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import rospy
 from sailbot_msg.msg import Sensors, windSensor, GPS  # does the sailbot_msg name need to be updated?
 
@@ -66,11 +67,11 @@ class RosInterface:
         self.past_wind_direction = self.wind_direction
 
         # GPS sensors - use can, ais, or both? which takes priority? true heading / track made good usage?
-        self.gps_lat_decimalDegrees = self.getTrustedAvg(self.past_gps_lat,
+        self.gps_lat_decimalDegrees = self.getTrustedAvg(self.past_gps_lat_decimalDegrees,
                                                          [self.convertCoordinates(data.gps_can_latitude_degreeMinutes),
                                                           self.convertCoordinates(data.gps_ais_latitude_degreeMinutes)
                                                           ])
-        self.gps_lon_decimalDegrees = self.getTrustedAvg(self.past_gps_lon,
+        self.gps_lon_decimalDegrees = self.getTrustedAvg(self.past_gps_lon_decimalDegrees,
                                                          [self.convertCoordinates(data.gps_can_longitude_degreeMinutes),
                                                           self.convertCoordinates(data.gps_ais_longitude_degreeMinutes)
                                                           ])
