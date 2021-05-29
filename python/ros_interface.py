@@ -9,9 +9,9 @@ ERROR = 0.2  # If signals need different margin of errors; modify as required
 """
 Conversion Notes:
 - Sensors data types are int32 or float32, GPS and windSensor are float64, so no loss of precision
-- wind_speedKmph, gps_speedKmph: knots -> km/h
+- gps_heading_degrees: (0 is north, 90 is east, etc - cw - degrees) -> (0 is east, 90 is north, etc - ccw - degrees)
 - wind_direction: (0 is forward, 90 is right, etc - cw - degrees) -> (0 is right, 90 is bow, etc - ccw - degrees)
-- heading_degrees: (0 is north, 90 is east, etc - cw - degrees) -> (0 is east, 90 is north, etc - ccw - degrees)
+- gps_speedKmph, wind_speedKmph: knots -> km/h
 """
 
 
@@ -86,22 +86,27 @@ class RosInterface:
                                                      self.convertDegrees(data.wind_sensor_2_angle_degrees),
                                                      self.convertDegrees(data.wind_sensor_3_angle_degrees)])
 
-    # (0 is up, 90 is right, etc - cw - degrees) -> (0 is right, 90 is up, etc - ccw - degrees)
     def convertDegrees(self, degree):
+        '''Convert degree convention from (0 is up, 90 is right, etc - cw - degrees)
+        to (0 is right, 90 is up, etc - ccw - degrees)
+        '''
         converted = -1 * degree + 90
         return converted if converted >= 0 else converted + 360
 
     def getTrustedAndAvg(self, pastValue, vals):
+        '''Averages the trust values, or defaults to the first term in vals if pastValue is 0 or not initialized'''
         err_free_vals = self.getTrusted(pastValue, vals)
         if not err_free_vals:
-            rospy.logwarn("Values don't match with pastValue, or if pastValue is none or 0, defaulting to first sensor")
+            rospy.logwarn("Values don't match with pastValue, or if pastValue is None or 0, defaulting to first sensor")
             return vals[0]
         else:
             return float(sum(err_free_vals)) / len(err_free_vals)
 
-    # assumes sensor readings are consistent, first sensor initial reading is accurate
-    # could modify past value to be the average of the past few outputs (store in list)
     def getTrusted(self, pastValue, vals):
+        '''Returns vals without None, 0, and outlier terms
+            - Assumes sensor readings are consistent and first sensor initial reading is accurate
+            - Could modify past value to be the average of the past few outputs (store in list)
+        '''
         errorFreeVals = []
         for value in vals:
             if pastValue is not None and pastValue != 0 and abs(float((pastValue - value)) / pastValue) < ERROR:
