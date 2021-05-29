@@ -49,7 +49,8 @@ class RosInterface:
     def pub(self):
         if self.initialized:
             self.translate()
-            self.pubGPS.publish(self.gps_lat, self.gps_lon, self.gps_headingDegrees, self.gps_speedKmph)
+            self.pubGPS.publish(self.gps_lat_decimalDegrees, self.gps_lon_decimalDegrees,
+                                self.gps_headingDegrees, self.gps_speedKmph)
             self.pubWind.publish(self.wind_direction, self.wind_speedKmph)
         else:
             rospy.logwarn("Tried to publish sensor values, but not initialized yet. Waiting for first sensor message.")
