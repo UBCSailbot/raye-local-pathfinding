@@ -2,7 +2,7 @@
 <launch>
     <!-- main_loop logs. Can be 'log' to be stored in log file or 'screen' to be printed to screen. -->
     <arg name="main_loop_output" default="screen" />
-    <arg name="wandb" default="true" />
+    <arg name="wandb" default="false" />
 
     <!-- Setup mocks. View launch_all_mocks.launch for argument descriptions. -->
     <arg name="initial_speedup" default="1.0" />
