@@ -2,29 +2,30 @@
 
 [![CircleCI](https://circleci.com/gh/UBCSailbot/local-pathfinding.svg?style=shield&circle-token=d1bf596ed78d6a5d3744417a589e9ea71128364b)](https://circleci.com/gh/UBCSailbot/local-pathfinding)
 
-The main planning code in python can be found in the `python` directory. This code is meant to provide a baseline for the C++ implementation.
+The main planning code in python can be found in the `python` directory.
 
 Inputs:
-- Measured wind from sensors
-- Other AIS-enabled ships are considered obstacles
+- Measured wind
 - Heading
-- GPS location (with speed)
-- Output from global path planner
+- GPS location
+- Speed
+- Other AIS-enabled ships
+- Global path
 
 Outputs:
-- Desired heading (for the MPC controller)
+- Desired heading (for the downstream controller)
 
 ## How to run
 
-Be sure to run the installation instruction [here](install/README.md) before running.
+  Be sure to run the installation instruction [here](install/README.md) before running.
 
 ### Running Local Pathfinding Main Loop + Mock Inputs + Visualizer 
 
-The easiest way to run the local pathfinding system with ROS is to use multiple terminals. For each terminal, you will need to run `source ~/catkin_ws/devel/setup.bash` before running other commands. To run the full pathfinding simulation, you can run: `roslaunch local_pathfinding all.launch initial_speedup:=10 obstacle_type:="wedge"`. This runs:
+The easiest way to run the local pathfinding system with ROS is to use multiple terminals. For each terminal, you will need to run `source ~/catkin_ws/devel/setup.bash` before running other commands (you can put this in your `~/.bashrc` file as well to do this automatically. To run the full pathfinding simulation, you can run: `roslaunch local_pathfinding all.launch initial_speedup:=10"`. This runs:
 
-* __The local pathfinding main loop__, which reads in published sensor data, decides if it needs to recalculate a new local path, and then publishes a desired heading to the MPC controller.
+* __The local pathfinding main loop__, which reads in published sensor data, decides if it needs to recalculate a new local path, and then publishes a desired heading to be used by the controller.
 
-* __The local path visualizer__, which uses Matplotlib to visualize the boat's position and heading, the local path, the other boats, and the wind speed and direction.
+* __The local path visualizer__, which uses `matplotlib` to visualize the boat's position and heading, the local path, the other boats, and the wind speed and direction.
 
 * __The mock inputs__, which are a placeholder for the real inputs from sensors and the controller.
 
@@ -86,7 +87,6 @@ During a simulation, you can run:
 
 * `rosparam set /obstacle_type <selected_obstacle_type>` (replace <selected_obstacle_type> with the one you want) to change the obstacle representation type. Accepted values are described in the arguments section above.
 
-
 * To add or remove AIS boats, you can refer to the instructions [here](python/README.md).
 
 #### Seeing more information about a simulation
@@ -115,4 +115,4 @@ To ensure that the codebase stays clean, we will be using [flake8](https://flake
 
 ### Continuous Integration
 
-To ensure that the code continues to work as we make changes, we have setup continuous integration with CircleCI. It pulls the Dockerhub image for ROS and OMPL, sets up the workspace, and runs the lint and tests. View `.circleci` to see how this is done.
+To ensure that the code continues to work as we make changes, we have setup continuous integration with CircleCI. It pulls the Dockerhub image for ROS and OMPL, sets up the workspace, and runs the lint and tests. Click [here](.circleci/config.yml) to see how this is done.
