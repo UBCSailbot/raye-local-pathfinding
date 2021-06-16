@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
+<!-- All setup for MOCK systems only to be run in simulation, NOT on real boat -->
 <launch>
-    <!-- Sets speedup, which increases boat speeds -->
+    <!-- Sets speedup, which increases simulation speed -->
     <arg name="initial_speedup" default="1.0" />
     <param name="initial_speedup" type="double" value="$(arg initial_speedup)" />
 
@@ -20,29 +21,13 @@
     <arg name="wind_file" default="" />
     <param name="wind_file" type="string" value="$(arg wind_file)" />
 
-    <!-- Sets the obstacle representation type, accepted types are: "ellipse", "wedge","circles", "hybrid_circle", and "hybrid_ellipse" (full list in getObstacles())-->
-    <arg name="obstacle_type" default="hybrid_circle" />
-    <param name="obstacle_type" type="string" value="$(arg obstacle_type)" />
-
     <!-- Sets the num_ais_ships -->
     <arg name="num_ais_ships" default="5" />
     <param name="num_ais_ships" type="int" value="$(arg num_ais_ships)" />
 
-    <!-- Set if screenshots should be taken or not -->
-    <arg name="screenshot" default="false" />
-    <param name="screenshot" type="bool" value="$(arg screenshot)" />
-
-    <!-- Set if pathfinding problem should be plotted or not -->
-    <arg name="plot_pathfinding_problem" default="false" />
-    <param name="plot_pathfinding_problem" type="bool" value="$(arg plot_pathfinding_problem)" />
-
     <!-- Sets random seed. Will only set seed if it is an integer. -->
     <arg name="random_seed" default="" />
     <param name="random_seed" type="string" value="$(arg random_seed)" />
-
-    <!-- Sets planner type, accepted types include: "RRTStar", "RRTSharp","RRTXStatic" (full list in allocatePlanner()) -->
-    <arg name="planner_type" default="RRTStar" />
-    <param name="planner_type" type="string" value="$(arg planner_type)" />
 
     <!-- Sets if changes in heading and speed should be smooth or not -->
     <arg name="smooth_changes" default="true" />

@@ -4,18 +4,30 @@
     <arg name="main_loop_output" default="screen" />
     <arg name="wandb" default="false" />
 
+    <!-- Sets the obstacle representation type, accepted types are: "ellipse", "wedge","circles", "hybrid_circle", and "hybrid_ellipse" (full list in getObstacles())-->
+    <arg name="obstacle_type" default="hybrid_circle" />
+    <param name="obstacle_type" type="string" value="$(arg obstacle_type)" />
+
+    <!-- Set if screenshots should be taken or not -->
+    <arg name="screenshot" default="false" />
+    <param name="screenshot" type="bool" value="$(arg screenshot)" />
+
+    <!-- Set if pathfinding problem should be plotted or not -->
+    <arg name="plot_pathfinding_problem" default="false" />
+    <param name="plot_pathfinding_problem" type="bool" value="$(arg plot_pathfinding_problem)" />
+
+    <!-- Sets planner type, accepted types include: "RRTStar", "RRTSharp","RRTXStatic" (full list in allocatePlanner()) -->
+    <arg name="planner_type" default="RRTStar" />
+    <param name="planner_type" type="string" value="$(arg planner_type)" />
+
     <!-- Setup mocks. View launch_all_mocks.launch for argument descriptions. -->
     <arg name="initial_speedup" default="1.0" />
     <arg name="num_ais_ships" default="5" />
-    <arg name="obstacle_type" default="hybrid_circle" />
     <arg name="ais_file" default="" />
     <arg name="gps_file" default="" />
     <arg name="goal_file" default="" />
     <arg name="wind_file" default="" />
-    <arg name="screenshot" default="false" />
-    <arg name="plot_pathfinding_problem" default="false" />
     <arg name="random_seed" default="" />
-    <arg name="planner_type" default="RRTStar" />
     <arg name="smooth_changes" default="true" />
     <arg name="ocean_current_speed" default="0.0" />
     <arg name="ocean_current_direction" default="0.0" />
@@ -43,3 +55,4 @@
     <node pkg="local_pathfinding" type="local_path_visualizer.py" name="local_path_visualizer" />
     <node pkg="local_pathfinding" type="wandb_log.py" name="wandb_log" if="$(arg wandb)" output="screen" />
 </launch>
+
