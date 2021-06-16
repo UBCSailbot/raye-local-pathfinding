@@ -6,14 +6,15 @@ from sailbot_msg.msg import Sensors, windSensor, GPS  # does the sailbot_msg nam
 CHECK_PERIOD_SECONDS = 0.1  # How often fields are updated
 MIN_TO_DEGREES = 1.0 / 60
 KNOTS_TO_KMPH = 1.852
-ERROR = 0.2  # If signals need different margin of errors; modify as required
+MAX_ALLOWABLE_PERCENT_ERROR = 0.2  # If signals need different margin of errors; modify as required
 
 """
 Conversion Notes:
 - Sensors data types are int32 or float32, GPS and windSensor are float64, so no loss of precision
-- gps_lat_decimalDegrees, gps_lon_decimalDegrees: degrees and decimal minutes (DDMM.MMMMMMM) -> decimal degrees
+- gps_lat_decimalDegrees and gps_lon_decimalDegrees: already in decimal degrees (minutes conversion done upstream)
 - gps_heading_degrees: (0 is north, 90 is east, etc - cw - degrees) -> (0 is east, 90 is north, etc - ccw - degrees)
 - wind_direction: (0 is forward, 90 is right, etc - cw - degrees) -> (0 is right, 90 is bow, etc - ccw - degrees)
+- note that same angle coordinate conversion is needed for both gps_heading_degrees and wind_direction
 - gps_speedKmph, wind_speedKmph: knots -> km/h
 """
 
@@ -27,6 +28,7 @@ class RosInterface:
         self.initialized = False
         self.data = None
 
+        # Current state
         self.gps_lat_decimalDegrees = None
         self.gps_lon_decimalDegrees = None
         self.gps_headingDegrees = None
@@ -34,6 +36,7 @@ class RosInterface:
         self.wind_speedKmph = None
         self.wind_direction = None
 
+        # Past state
         self.past_gps_lat_decimalDegrees = None
         self.past_gps_lon_decimalDegrees = None
         self.past_gps_headingDegrees = None
@@ -52,6 +55,7 @@ class RosInterface:
             self.pubGPS.publish(self.gps_lat_decimalDegrees, self.gps_lon_decimalDegrees,
                                 self.gps_headingDegrees, self.gps_speedKmph)
             self.pubWind.publish(self.wind_direction, self.wind_speedKmph)
+            rospy.loginfo("Publishing to GPS and windSensor with self.gps_lat_decimalDegrees = {}, self.gps_lon_decimalDegrees = {}, self.gps_headingDegrees = {}, self.gps_speedKmph = {}, self.wind_direction = {}, self.wind_speedKmph = {}".format(self.gps_lat_decimalDegrees, self.gps_lon_decimalDegrees, self.gps_headingDegrees, self.gps_speedKmph, self.wind_direction, self.wind_speedKmph))
         else:
             rospy.logwarn("Tried to publish sensor values, but not initialized yet. Waiting for first sensor message.")
 
@@ -69,16 +73,16 @@ class RosInterface:
 
         # GPS sensors - use can, ais, or both? which takes priority? true heading / track made good usage?
         self.gps_lat_decimalDegrees = self.getTrustedAvg(self.past_gps_lat_decimalDegrees,
-                                                         [self.convertCoordinates(data.gps_can_latitude_degreeMinutes),
-                                                          self.convertCoordinates(data.gps_ais_latitude_degreeMinutes)
+                                                         [data.gps_can_latitude_degrees,
+                                                          data.gps_ais_latitude_degrees
                                                           ])
         self.gps_lon_decimalDegrees = self.getTrustedAvg(self.past_gps_lon_decimalDegrees,
-                                                         [self.convertCoordinates(data.gps_can_longitude_degreeMinutes),
-                                                          self.convertCoordinates(data.gps_ais_longitude_degreeMinutes)
+                                                         [data.gps_can_longitude_degrees,
+                                                          data.gps_ais_longitude_degrees
                                                           ])
         self.gps_headingDegrees = self.getTrustedAvg(self.past_gps_headingDegrees,
-                                                     [self.convertDegrees(data.gps_can_true_heading_degrees),
-                                                      self.convertDegrees(data.gps_ais_true_heading_degrees)])
+                                                     [self.convertAngleCoordinates(data.gps_can_true_heading_degrees),
+                                                      self.convertAngleCoordinates(data.gps_ais_true_heading_degrees)])
         self.gps_speedKmph = self.getTrustedAvg(self.past_gps_speedKmph,
                                                 [data.gps_can_groundspeed_knots * KNOTS_TO_KMPH,
                                                  data.gps_ais_groundspeed_knots * KNOTS_TO_KMPH])
@@ -88,16 +92,11 @@ class RosInterface:
                                                   data.wind_sensor_2_speed_knots * KNOTS_TO_KMPH,
                                                   data.wind_sensor_3_speed_knots * KNOTS_TO_KMPH])
         self.wind_direction = self.getTrustedAvg(self.past_wind_direction,
-                                                 [self.convertDegrees(data.wind_sensor_1_angle_degrees),
-                                                  self.convertDegrees(data.wind_sensor_2_angle_degrees),
-                                                  self.convertDegrees(data.wind_sensor_3_angle_degrees)])
+                                                 [self.convertAngleCoordinates(data.wind_sensor_1_angle_degrees),
+                                                  self.convertAngleCoordinates(data.wind_sensor_2_angle_degrees),
+                                                  self.convertAngleCoordinates(data.wind_sensor_3_angle_degrees)])
 
-    def convertCoordinates(self, coord):
-        '''Convert coordinate units from degrees and decimal minutes (DDMM.MMMMMMM) to decimal degrees'''
-        coordStr = str(coord)
-        return int(coordStr[0:2]) + float(coordStr[2:]) * MIN_TO_DEGREES
-
-    def convertDegrees(self, degree):
+    def convertAngleCoordinates(self, degree):
         '''Convert degree convention from (0 is up, 90 is right, etc - cw - degrees)
         to (0 is right, 90 is up, etc - ccw - degrees)
         '''
@@ -106,23 +105,26 @@ class RosInterface:
 
     def getTrustedAvg(self, pastValue, vals):
         '''Averages the trust values, or defaults to the first term in vals if pastValue is 0 or not initialized'''
-        err_free_vals = self.getTrusted(pastValue, vals)
-        if not err_free_vals:
+        trustedVals = self.getTrusted(pastValue, vals)
+        if len(trustedVals) == 0:
             rospy.logwarn("Values don't match with pastValue, or if pastValue is None or 0, defaulting to first sensor")
             return vals[0]
         else:
-            return float(sum(err_free_vals)) / len(err_free_vals)
+            return float(sum(trustedVals)) / len(trustedVals)
 
     def getTrusted(self, pastValue, vals):
-        '''Returns vals without None, 0, and outlier terms
+        '''Returns vals without outlier terms like None
             - Assumes sensor readings are consistent and first sensor initial reading is accurate
             - Could modify past value to be the average of the past few outputs (store in list)
         '''
-        errorFreeVals = []
+        if pastValue is None or pastValue == 0:
+            return vals
+
+        trustedVals = []
         for value in vals:
-            if pastValue is not None and pastValue != 0 and abs(float((pastValue - value)) / pastValue) < ERROR:
-                errorFreeVals.append(value)
-        return errorFreeVals
+            if value is not None and abs(float(pastValue - value) / pastValue) < MAX_ALLOWABLE_PERCENT_ERROR:
+                trustedVals.append(value)
+        return trustedVals
 
 
 if __name__ == "__main__":
