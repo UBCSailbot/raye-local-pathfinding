@@ -79,14 +79,15 @@ class MOCK_ControllerAndSailbot:
 
     def desiredHeadingCallback(self, data):
         rospy.loginfo(data)
+        headingDegreesNewCoordinates = (-1) * data.headingDegrees + 90
         if self.smoothChanges:
-            self.headingSetpoint = data.headingDegrees
+            self.headingSetpoint = headingDegreesNewCoordinates
             error_mag = abs(ssa_deg(self.headingSetpoint - self.headingDegrees))
             # Heading change >= 135 has maximum effect (speed is divided by 3)
             # Heading change <= 45 has no effect on speed
             self.speedKmph = self.speedKmph / max(1, min(3, error_mag / 45))
         else:
-            self.headingDegrees = data.headingDegrees
+            self.headingDegrees = headingDegreesNewCoordinates
 
     def changeGPSCallback(self, data):
         rospy.loginfo("Received change GPS message = {}".format(data))
