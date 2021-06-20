@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 
 # Constants
 MAIN_LOOP_PERIOD_SECONDS = 0.5
+SMALL_TURN_DEGREES = 10
 
 # Global variable to receive path update request messages
 localPathUpdateRequested = False
@@ -188,13 +189,17 @@ if __name__ == '__main__':
                     desiredHeadingPublisher)
                 lastTimePathCreated = _lastTimePathCreated
 
-                # Update local path if new one is better than old AND it reaches the goal
+                # Update local path if new one is better than old AND it reaches the goal AND the turn to it is small
                 currentPathCost = localPath.getCost()
                 newPathCost = _localPath.getCost()
                 newPathReachesGoal = _localPath.reachesGoalLatlon(state.globalWaypoint)
-                rospy.loginfo("currentPathCost = {}. newPathCost = {}. newPathReachesGoal = {}."
-                              .format(currentPathCost, newPathCost, newPathReachesGoal))
-                if newPathCost < currentPathCost and newPathReachesGoal:
+                smallTurnToNewPath = utils.angleDegreesBetweenLatlons(localPath.getNextWaypoint(),
+                                                                      _localPath.getNextWaypoint(), state.position) \
+                    < SMALL_TURN_DEGREES
+                rospy.loginfo("currentPathCost = {}. newPathCost = {}. newPathReachesGoal = {}. "
+                              "smallTurnToNewPath = {}.".format(currentPathCost, newPathCost, newPathReachesGoal,
+                                                                smallTurnToNewPath))
+                if newPathCost < currentPathCost and newPathReachesGoal and smallTurnToNewPath:
                     rospy.loginfo("Updating to new local path")
                     localPath = _localPath
                 else:

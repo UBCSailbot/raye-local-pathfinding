@@ -97,6 +97,22 @@ def takeScreenshot(return_path_to_file=False):
         return fullImagePath
 
 
+def angleDegreesBetweenLatlons(latlon1, latlon2, referenceLatlon):
+    '''Calulates the angle between the XY coordinates of two latlons, given referenceLatlon located at (0,0)
+
+    Args:
+        latlon1 (sailbot_msg.msg._latlon.latlon): The first latlon to calculate the degree of
+        latlon2 (sailbot_msg.msg._latlon.latlon): The second latlon to calculate the degree of
+        referenceLatlon (sailbot_msg.msg._latlon.latlon): The latlon that will be located at (0, 0)
+
+    Returns:
+        float representing the absolute angle between the two latlons in degrees
+    '''
+    x1, y1 = latlonToXY(latlon1, referenceLatlon)
+    x2, y2 = latlonToXY(latlon2, referenceLatlon)
+    return abs(math.tan(y2 / x2) - math.tan(y1 / x1)) * 180 / math.pi
+
+
 def latlonToXY(latlon, referenceLatlon):
     '''Calculate the xy (km) coordinates of the given latlon, given the referenceLatlon located at (0,0)
 
