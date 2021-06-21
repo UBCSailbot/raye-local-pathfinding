@@ -290,16 +290,33 @@ def headingToBearingDegrees(headingDegrees):
 
     Note: Heading is defined using cartesian coordinates. 0 degrees is East. 90 degrees in North. 270 degrees is South.
           Bearing is defined differently. 0 degrees is North. 90 degrees is East. 180 degrees is South.
-          Heading is used for most of this code-based, but bearing is used for interfacing with the geopy module.
+          Heading is used for most of this code-based, but bearing is used for interfacing with the geopy module and
+          other code external to local-pathfinding.
 
     Args:
-       xy (list of two floats): The xy (km) coordinates whose latlon coordinates will be calculated.
-       referenceLatlon (sailbot_msg.msg._latlon.latlon): The latlon that will be located at (0,0) wrt xy.
+       headingDegrees (float): heading in degrees
 
     Returns:
-       sailbot_msg.msg._latlon.latlon representing the position of xy in latlon coordinates
+       float representing the same angle in bearing coordinates
     '''
     return -headingDegrees + 90
+
+
+def bearingToHeadingDegrees(bearingDegrees):
+    '''Calculates the heading angle given the bearing angle.
+
+    Note: Heading is defined using cartesian coordinates. 0 degrees is East. 90 degrees in North. 270 degrees is South.
+          Bearing is defined differently. 0 degrees is North. 90 degrees is East. 180 degrees is South.
+          Heading is used for most of this code-based, but bearing is used for interfacing with the geopy module and
+          other code external to local-pathfinding.
+
+    Args:
+       bearingDegrees (float): heading in degrees
+
+    Returns:
+       float representing the same angle in heading coordinates
+    '''
+    return -bearingDegrees + 90
 
 
 def isValid(xy, obstacles):

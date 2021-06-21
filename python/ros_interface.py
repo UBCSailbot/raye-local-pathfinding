@@ -1,17 +1,22 @@
+#!/usr/bin/env python
 import rospy
 from sailbot_msg.msg import Sensors, windSensor, GPS
+from utilities import bearingToHeadingDegrees
 
 # Constants
 CHECK_PERIOD_SECONDS = 0.1  # How often fields are updated
+MIN_TO_DEGREES = 1.0 / 60
 KNOTS_TO_KMPH = 1.852
-ERROR = 0.2  # If signals need different margin of errors, modify as required
+MAX_ALLOWABLE_PERCENT_ERROR = 0.2  # If signals need different margin of errors; modify as required
 
 """
 Conversion Notes:
-- wind_speedKmph, wind_direction, wind_headingDegrees, gps_speedKmph: int32 -> float64 (no loss of precision)
-- wind_speedKmph, gps_speedKmph: knots -> km/h
+- Sensors data types are int32 or float32, GPS and windSensor are float64, so no loss of precision
+- gps_lat_decimalDegrees and gps_lon_decimalDegrees: already in decimal degrees (minutes conversion done upstream)
+- gps_heading_degrees: (0 is north, 90 is east, etc - cw - degrees) -> (0 is east, 90 is north, etc - ccw - degrees)
 - wind_direction: (0 is forward, 90 is right, etc - cw - degrees) -> (0 is right, 90 is bow, etc - ccw - degrees)
-- heading_degrees: (0 is north, 90 is east, etc - cw - degrees) -> (0 is east, 90 is north, etc - ccw - degrees)
+- note that same angle coordinate conversion is needed for both gps_heading_degrees and wind_direction
+- gps_speedKmph, wind_speedKmph: knots -> km/h
 """
 
 
@@ -24,19 +29,21 @@ class RosInterface:
         self.initialized = False
         self.data = None
 
-        self.wind_speedKmph = None
-        self.wind_direction = None
-        self.gps_lat = None
-        self.gps_lon = None
+        # Current state
+        self.gps_lat_decimalDegrees = None
+        self.gps_lon_decimalDegrees = None
         self.gps_headingDegrees = None
         self.gps_speedKmph = None
+        self.wind_speedKmph = None
+        self.wind_direction = None
 
-        self.past_wind_speedKmph = None
-        self.past_wind_direction = None
-        self.past_gps_lat = None
-        self.past_gps_lon = None
+        # Past state
+        self.past_gps_lat_decimalDegrees = None
+        self.past_gps_lon_decimalDegrees = None
         self.past_gps_headingDegrees = None
         self.past_gps_speedKmph = None
+        self.past_wind_speedKmph = None
+        self.past_wind_direction = None
 
     def sensorsCallback(self, data):
         if not self.initialized:
@@ -46,65 +53,76 @@ class RosInterface:
     def pub(self):
         if self.initialized:
             self.translate()
-            self.pubGPS.publish(self.gps_lat, self.gps_lon, self.gps_headingDegrees, self.gps_speedKmph)
+            self.pubGPS.publish(self.gps_lat_decimalDegrees, self.gps_lon_decimalDegrees,
+                                self.gps_headingDegrees, self.gps_speedKmph)
             self.pubWind.publish(self.wind_direction, self.wind_speedKmph)
+            rospy.loginfo("Publishing to GPS and windSensor with self.gps_lat_decimalDegrees = {}, "
+                          "self.gps_lon_decimalDegrees = {}, self.gps_headingDegrees = {}, self.gps_speedKmph = {}, "
+                          "self.wind_direction = {}, self.wind_speedKmph = {}"
+                          .format(self.gps_lat_decimalDegrees, self.gps_lon_decimalDegrees, self.gps_headingDegrees,
+                                  self.gps_speedKmph, self.wind_direction, self.wind_speedKmph))
         else:
-            rospy.logwarn("Tried to publish sensor values, but not initialized yet. Waiting for first sensor message.")
+            rospy.loginfo("Tried to publish sensor values, but not initialized yet. Waiting for first sensor message.")
 
     # Translate from many sensor outputs to one signal, checking error margin, averaging, and converting units
     def translate(self):
         data = self.data
 
         # Past values
-        self.past_gps_lat = self.gps_lat
-        self.past_gps_lon = self.gps_lon
+        self.past_gps_lat_decimalDegrees = self.gps_lat_decimalDegrees
+        self.past_gps_lon_decimalDegrees = self.gps_lon_decimalDegrees
         self.past_gps_headingDegrees = self.gps_headingDegrees
         self.past_gps_speedKmph = self.gps_speedKmph
         self.past_wind_speedKmph = self.wind_speedKmph
         self.past_wind_direction = self.wind_direction
 
-        # GPS sensors
-        self.gps_lat = self.getTrustedAndAvg(self.past_gps_lat,
-                                             [data.gps_0_latitude, data.gps_1_latitude])
-        self.gps_lon = self.getTrustedAndAvg(self.past_gps_lon,
-                                             [data.gps_0_longitude, data.gps_1_longitude])
-        self.gps_headingDegrees = self.getTrustedAndAvg(self.past_gps_headingDegrees,
-                                                        [self.convertDegrees(data.gps_0_true_heading),
-                                                         self.convertDegrees(data.gps_1_true_heading)])
-        self.gps_speedKmph = self.getTrustedAndAvg(self.past_gps_speedKmph,
-                                                   [data.gps_0_groundspeed * KNOTS_TO_KMPH,
-                                                    data.gps_1_groundspeed * KNOTS_TO_KMPH])
+        # GPS sensors - use can, ais, or both? which takes priority? true heading / track made good usage?
+        self.gps_lat_decimalDegrees = self.getTrustedAvg(self.past_gps_lat_decimalDegrees,
+                                                         [data.gps_can_latitude_degrees,
+                                                          data.gps_ais_latitude_degrees
+                                                          ])
+        self.gps_lon_decimalDegrees = self.getTrustedAvg(self.past_gps_lon_decimalDegrees,
+                                                         [data.gps_can_longitude_degrees,
+                                                          data.gps_ais_longitude_degrees
+                                                          ])
+        self.gps_headingDegrees = self.getTrustedAvg(self.past_gps_headingDegrees,
+                                                     [bearingToHeadingDegrees(data.gps_can_true_heading_degrees),
+                                                      bearingToHeadingDegrees(data.gps_ais_true_heading_degrees)])
+        self.gps_speedKmph = self.getTrustedAvg(self.past_gps_speedKmph,
+                                                [data.gps_can_groundspeed_knots * KNOTS_TO_KMPH,
+                                                 data.gps_ais_groundspeed_knots * KNOTS_TO_KMPH])
         # Wind sensors
-        self.wind_speedKmph = self.getTrustedAndAvg(self.past_wind_speedKmph,
-                                                    [data.wind_sensor_0_speed * KNOTS_TO_KMPH,
-                                                     data.wind_sensor_1_speed * KNOTS_TO_KMPH,
-                                                     data.wind_sensor_2_speed * KNOTS_TO_KMPH])
-        self.wind_direction = self.getTrustedAndAvg(self.past_wind_direction,
-                                                    [self.convertDegrees(data.wind_sensor_0_direction),
-                                                     self.convertDegrees(data.wind_sensor_1_direction),
-                                                     self.convertDegrees(data.wind_sensor_2_direction)])
+        self.wind_speedKmph = self.getTrustedAvg(self.past_wind_speedKmph,
+                                                 [data.wind_sensor_1_speed_knots * KNOTS_TO_KMPH,
+                                                  data.wind_sensor_2_speed_knots * KNOTS_TO_KMPH,
+                                                  data.wind_sensor_3_speed_knots * KNOTS_TO_KMPH])
+        self.wind_direction = self.getTrustedAvg(self.past_wind_direction,
+                                                 [bearingToHeadingDegrees(data.wind_sensor_1_angle_degrees),
+                                                  bearingToHeadingDegrees(data.wind_sensor_2_angle_degrees),
+                                                  bearingToHeadingDegrees(data.wind_sensor_3_angle_degrees)])
 
-    # (0 is up, 90 is right, etc - cw - degrees) -> (0 is right, 90 is up, etc - ccw - degrees)
-    def convertDegrees(self, degree):
-        converted = -1 * degree + 90
-        return converted if converted >= 0 else converted + 360
-
-    def getTrustedAndAvg(self, pastValue, vals):
-        err_free_vals = self.getTrusted(pastValue, vals)
-        if not err_free_vals:
-            rospy.logwarn("Values don't match with pastValue, or if pastValue is none or 0, defaulting to first sensor")
+    def getTrustedAvg(self, pastValue, vals):
+        '''Averages the trust values, or defaults to the first term in vals if pastValue is 0 or not initialized'''
+        trustedVals = self.getTrusted(pastValue, vals)
+        if len(trustedVals) == 0:
+            rospy.logwarn("Values don't match with pastValue, or if pastValue is None or 0, defaulting to first sensor")
             return vals[0]
         else:
-            return float(sum(err_free_vals)) / len(err_free_vals)
+            return float(sum(trustedVals)) / len(trustedVals)
 
-    # assumes sensor readings are consistent, first sensor initial reading is accurate
-    # could modify past value to be the average of the past few outputs (store in list)
     def getTrusted(self, pastValue, vals):
-        errorFreeVals = []
+        '''Returns vals without outlier terms like None
+            - Assumes sensor readings are consistent and first sensor initial reading is accurate
+            - Could modify past value to be the average of the past few outputs (store in list)
+        '''
+        if pastValue is None or pastValue == 0:
+            return vals
+
+        trustedVals = []
         for value in vals:
-            if pastValue is not None and pastValue != 0 and abs(float((pastValue - value)) / pastValue) < ERROR:
-                errorFreeVals.append(value)
-        return errorFreeVals
+            if value is not None and abs(float(pastValue - value) / pastValue) < MAX_ALLOWABLE_PERCENT_ERROR:
+                trustedVals.append(value)
+        return trustedVals
 
 
 if __name__ == "__main__":
