@@ -131,7 +131,7 @@ def abs_angle_dist_radians(angle1_radians, angle2_radians):
 
 
 def abs_angle_dist_degrees(angle1_degrees, angle2_degrees):
-    return abs_angle_dist_radians(math.radians(angle1_degrees), math.radians(angle2_degrees))
+    return math.degrees(abs_angle_dist_radians(math.radians(angle1_degrees), math.radians(angle2_degrees)))
 
 
 def get_clearance_objective(si):
