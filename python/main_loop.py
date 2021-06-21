@@ -193,13 +193,12 @@ if __name__ == '__main__':
                 currentPathCost = localPath.getCost()
                 newPathCost = _localPath.getCost()
                 newPathReachesGoal = _localPath.reachesGoalLatlon(state.globalWaypoint)
-                smallTurnToNewPath = utils.angleDegreesBetweenLatlons(localPath.getNextWaypoint(),
-                                                                      _localPath.getNextWaypoint(), state.position) \
-                    < SMALL_TURN_DEGREES
+                absAngleToNewPath = utils.absAngleDegreesBetweenLatlons(localPath.getNextWaypoint(),
+                                                                        _localPath.getNextWaypoint(), state.position)
                 rospy.loginfo("currentPathCost = {}. newPathCost = {}. newPathReachesGoal = {}. "
-                              "smallTurnToNewPath = {}.".format(currentPathCost, newPathCost, newPathReachesGoal,
-                                                                smallTurnToNewPath))
-                if newPathCost < currentPathCost and newPathReachesGoal and smallTurnToNewPath:
+                              "absAngleToNewPath = {}.".format(currentPathCost, newPathCost, newPathReachesGoal,
+                                                               absAngleToNewPath))
+                if newPathCost < currentPathCost and newPathReachesGoal and absAngleToNewPath < SMALL_TURN_DEGREES:
                     rospy.loginfo("Updating to new local path")
                     localPath = _localPath
                 else:
