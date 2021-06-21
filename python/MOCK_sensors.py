@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import rospy
-import json
 
 from std_msgs.msg import Float64
 import sailbot_msg.msg as msg
@@ -147,4 +146,3 @@ if __name__ == '__main__':
         sensorManager.update()
         sensorManager.publish()
         r.sleep()
-
