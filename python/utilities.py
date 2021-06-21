@@ -111,7 +111,7 @@ def absAngleDegreesBetweenLatlons(latlon1, latlon2, referenceLatlon):
     '''
     x1, y1 = latlonToXY(latlon1, referenceLatlon)
     x2, y2 = latlonToXY(latlon2, referenceLatlon)
-    return plans.abs_angle_dist_radians(math.atan2(y2, x2), math.atan2(y1, x1)) * 180 / math.pi
+    return math.degrees(plans.abs_angle_dist_radians(math.atan2(y2, x2), math.atan2(y1, x1)))
 
 
 def latlonToXY(latlon, referenceLatlon):
