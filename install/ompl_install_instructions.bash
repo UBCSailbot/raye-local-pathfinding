@@ -58,7 +58,7 @@ ${SUDO}apt-get update && \
         scrot \
         vim
 
-${SUDO}pip2 install geopy pyautogui
+${SUDO}pip2 install geopy pyautogui wandb
 
 # Run remaining installation script (note there are some redundant commands, but it wastes minimal amount of time) and generate Python bindings
 ${SUDO}./install-ompl-ubuntu.sh --python

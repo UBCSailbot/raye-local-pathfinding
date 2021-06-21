@@ -162,6 +162,8 @@ if __name__ == '__main__':
             sys.exit()
         else:
             rospy.loginfo("Waiting to receive first ROS messages")
+            rospy.loginfo("localPath is None = {}, nextLocalWaypoint is None = {}, nextGlobalWaypoint is None = {}"
+                          .format(localPath is None, nextLocalWaypoint, nextGlobalWaypoint is None))
             time.sleep(1)
     sailbot.waitForFirstSensorDataAndGlobalPath()
     rospy.loginfo("ROS message received. Starting visualization")
