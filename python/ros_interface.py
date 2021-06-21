@@ -5,7 +5,6 @@ from utilities import bearingToHeadingDegrees
 
 # Constants
 CHECK_PERIOD_SECONDS = 0.1  # How often fields are updated
-MIN_TO_DEGREES = 1.0 / 60
 KNOTS_TO_KMPH = 1.852
 MAX_ALLOWABLE_PERCENT_ERROR = 0.2  # If signals need different margin of errors; modify as required
 
