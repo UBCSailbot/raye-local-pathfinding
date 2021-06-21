@@ -207,7 +207,9 @@ if __name__ == '__main__':
         else:
             desiredHeadingDegrees = utils.getDesiredHeadingDegrees(state.position, localPath.getNextWaypoint())
 
-        desiredHeadingDegreesNewCoordinates = (-1) * desiredHeadingDegrees + 90
+        # Internal local_pathfinding uses East=0, North=90
+        # rostopic uses North=0, East=90
+        desiredHeadingDegreesNewCoordinates = utils.headingToBearingDegrees(desiredHeadingDegrees)
         desiredHeadingPublisher.publish(msg.heading(desiredHeadingDegreesNewCoordinates))
 
         # Publish local path

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import rospy
-from sailbot_msg.msg import Sensors, windSensor, GPS  # does the sailbot_msg name need to be updated?
+from sailbot_msg.msg import Sensors, windSensor, GPS
+from utilities import bearingToHeadingDegrees
 
 # Constants
 CHECK_PERIOD_SECONDS = 0.1  # How often fields are updated
@@ -55,9 +56,13 @@ class RosInterface:
             self.pubGPS.publish(self.gps_lat_decimalDegrees, self.gps_lon_decimalDegrees,
                                 self.gps_headingDegrees, self.gps_speedKmph)
             self.pubWind.publish(self.wind_direction, self.wind_speedKmph)
-            rospy.loginfo("Publishing to GPS and windSensor with self.gps_lat_decimalDegrees = {}, self.gps_lon_decimalDegrees = {}, self.gps_headingDegrees = {}, self.gps_speedKmph = {}, self.wind_direction = {}, self.wind_speedKmph = {}".format(self.gps_lat_decimalDegrees, self.gps_lon_decimalDegrees, self.gps_headingDegrees, self.gps_speedKmph, self.wind_direction, self.wind_speedKmph))
+            rospy.loginfo("Publishing to GPS and windSensor with self.gps_lat_decimalDegrees = {}, "
+                          "self.gps_lon_decimalDegrees = {}, self.gps_headingDegrees = {}, self.gps_speedKmph = {}, "
+                          "self.wind_direction = {}, self.wind_speedKmph = {}"
+                          .format(self.gps_lat_decimalDegrees, self.gps_lon_decimalDegrees, self.gps_headingDegrees,
+                                  self.gps_speedKmph, self.wind_direction, self.wind_speedKmph))
         else:
-            rospy.logwarn("Tried to publish sensor values, but not initialized yet. Waiting for first sensor message.")
+            rospy.loginfo("Tried to publish sensor values, but not initialized yet. Waiting for first sensor message.")
 
     # Translate from many sensor outputs to one signal, checking error margin, averaging, and converting units
     def translate(self):
@@ -81,8 +86,8 @@ class RosInterface:
                                                           data.gps_ais_longitude_degrees
                                                           ])
         self.gps_headingDegrees = self.getTrustedAvg(self.past_gps_headingDegrees,
-                                                     [self.convertAngleCoordinates(data.gps_can_true_heading_degrees),
-                                                      self.convertAngleCoordinates(data.gps_ais_true_heading_degrees)])
+                                                     [bearingToHeadingDegrees(data.gps_can_true_heading_degrees),
+                                                      bearingToHeadingDegrees(data.gps_ais_true_heading_degrees)])
         self.gps_speedKmph = self.getTrustedAvg(self.past_gps_speedKmph,
                                                 [data.gps_can_groundspeed_knots * KNOTS_TO_KMPH,
                                                  data.gps_ais_groundspeed_knots * KNOTS_TO_KMPH])
@@ -92,16 +97,9 @@ class RosInterface:
                                                   data.wind_sensor_2_speed_knots * KNOTS_TO_KMPH,
                                                   data.wind_sensor_3_speed_knots * KNOTS_TO_KMPH])
         self.wind_direction = self.getTrustedAvg(self.past_wind_direction,
-                                                 [self.convertAngleCoordinates(data.wind_sensor_1_angle_degrees),
-                                                  self.convertAngleCoordinates(data.wind_sensor_2_angle_degrees),
-                                                  self.convertAngleCoordinates(data.wind_sensor_3_angle_degrees)])
-
-    def convertAngleCoordinates(self, degree):
-        '''Convert degree convention from (0 is up, 90 is right, etc - cw - degrees)
-        to (0 is right, 90 is up, etc - ccw - degrees)
-        '''
-        converted = -1 * degree + 90
-        return converted if converted >= 0 else converted + 360
+                                                 [bearingToHeadingDegrees(data.wind_sensor_1_angle_degrees),
+                                                  bearingToHeadingDegrees(data.wind_sensor_2_angle_degrees),
+                                                  bearingToHeadingDegrees(data.wind_sensor_3_angle_degrees)])
 
     def getTrustedAvg(self, pastValue, vals):
         '''Averages the trust values, or defaults to the first term in vals if pastValue is 0 or not initialized'''

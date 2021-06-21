@@ -5,7 +5,7 @@ import json
 from std_msgs.msg import Float64
 import sailbot_msg.msg as msg
 import geopy.distance
-from utilities import headingToBearingDegrees, PORT_RENFREW_LATLON, ssa_deg
+from utilities import headingToBearingDegrees, bearingToHeadingDegrees, PORT_RENFREW_LATLON, ssa_deg
 
 # Constants
 GPS_PUBLISH_PERIOD_SECONDS = 0.1  # Keep below 1.0 for smoother boat motion
@@ -79,7 +79,11 @@ class MOCK_ControllerAndSailbot:
 
     def desiredHeadingCallback(self, data):
         rospy.loginfo(data)
-        headingDegreesNewCoordinates = (-1) * data.headingDegrees + 90
+
+        # rostopic uses North=0, East=90
+        # Internal local_pathfinding uses East=0, North=90
+        headingDegreesNewCoordinates = bearingToHeadingDegrees(data.headingDegrees)
+
         if self.smoothChanges:
             self.headingSetpoint = headingDegreesNewCoordinates
             error_mag = abs(ssa_deg(self.headingSetpoint - self.headingDegrees))
