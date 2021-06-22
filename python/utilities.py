@@ -5,6 +5,7 @@ import os
 import rospy
 import time
 import math
+import planner_helpers as plans
 from geopy.distance import distance
 from std_msgs.msg import Float64
 from sailbot_msg.msg import latlon
@@ -95,6 +96,22 @@ def takeScreenshot(return_path_to_file=False):
     rospy.loginfo("Screenshot saved to {}".format(fullImagePath))
     if return_path_to_file:
         return fullImagePath
+
+
+def absAngleDegreesBetweenLatlons(latlon1, latlon2, referenceLatlon):
+    '''Calculates the absolute angle between the XY coordinates of two latlons, given referenceLatlon located at (0,0)
+
+    Args:
+        latlon1 (sailbot_msg.msg._latlon.latlon): The first latlon to calculate the degree of
+        latlon2 (sailbot_msg.msg._latlon.latlon): The second latlon to calculate the degree of
+        referenceLatlon (sailbot_msg.msg._latlon.latlon): The latlon that will be located at (0, 0)
+
+    Returns:
+        float representing the absolute angle between the two latlons in degrees
+    '''
+    x1, y1 = latlonToXY(latlon1, referenceLatlon)
+    x2, y2 = latlonToXY(latlon2, referenceLatlon)
+    return math.degrees(plans.abs_angle_dist_radians(math.atan2(y2, x2), math.atan2(y1, x1)))
 
 
 def latlonToXY(latlon, referenceLatlon):
