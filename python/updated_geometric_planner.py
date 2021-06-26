@@ -14,6 +14,12 @@ class MyValidStateSampler(ob.ValidStateSampler):
         self.name_ = "my sampler"
         self.rng_ = ou.RNG()
         self.si = si
+        self.xy_grid = None
+        self.i = 0
+        #self.prev_x_low = None
+        #self.prev_y_low = None
+        #self.prev_x_high = None
+        #self.prev_y_high = None
 
     # Generate a sample in the valid part of the R^3 state space.
     # Valid states satisfy the following constraints:
@@ -28,13 +34,30 @@ class MyValidStateSampler(ob.ValidStateSampler):
         y_low = self.si.getStateSpace().getBounds().low[1]
         x_high = self.si.getStateSpace().getBounds().high[0]
         y_high = self.si.getStateSpace().getBounds().high[1]
-        x = self.rng_.uniformReal(x_low, x_high)
-        y = 1000000
+
+        n = 3 #three sampled points
+        #if self.xy_grid = None:
+        #if self.i < 3: x = (self.i*(x_high)/(x_low))/(n-1) + x_low
+        #if self.i < 3: y = (self.i*(y_high)/(y_low))/(n-1) + y_low
+        #self.i = self.i + 1
+        for k in range(n):
+            x = (k*(x_high)/(x_low))/(n-1) + x_low
+            y = (k*(y_high)/(y_low))/(n-1) + y_low
+            rospy.loginfo(x)
+            rospy.loginfo(y)
+            state.setXY(x, y)
+                    
+        # How to make a evenly spaced grid of points             
+
+        #x = self.rng_.uniformReal(x_low, x_high)
         #while y > x:
             #y = self.rng_.uniformReal(y_low, y_high)
-        y = int(self.rng_.uniformReal(y_low, y_high))
-        x = int(self.rng_.uniformReal(x_low, x_high))
-        state.setXY(x, y)
+        #y = int(self.rng_.uniformReal(y_low, y_high))
+        #x = int(self.rng_.uniformReal(x_low, x_high))
+        #rospy.loginfo(x)
+        #rospy.loginfo(y)
+        #state.setXY(x, y)
+        
 
         return True
 
