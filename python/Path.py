@@ -608,15 +608,17 @@ def incrementTempInvalidSolutions():
     temp_invalid_solutions += 1
 
 
-def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=False,
+def createPath(state, runtimeSeconds=None, numRuns=None, resetSpeedupDuringPlan=False,
                maxAllowableRuntimeSeconds=MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS):
     '''Create a Path from state.position to state.globalWaypoint. Runs OMPL pathfinding multiple times and returns
     the best path.
 
     Args:
        state (BoatState): Current state of the boat, which contains all necessary information to perform pathfinding
-       runtimeSeconds (float): Number of seconds that the each pathfinding attempt should run
+       runtimeSeconds (float): Number of seconds that the each pathfinding attempt should run.
+                               If None, read from rospy param "runtime_seconds"
        numRuns (int): Number of pathfinding attempts that are run in normal case
+                      If None, read from rospy param "num_runs"
        resetSpeedupDuringPlan (bool): Decides if pathfinding should set the speedup value to 1.0 during the pathfinding
        maxAllowableRuntimeSeconds (double): Maximum total time that this method should take to run. Will take longer
                                             than runtimeSeconds*numRuns only if pathfinding is unable to find a path.
@@ -720,22 +722,12 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=Fals
                     bestSolutionPath = unsimplifiedPath
                     minCost = unsimplifiedCost
 
-                # Check simplified path
-                solution.simplifySolution()
-                simplifiedPath = solution.getSolutionPath()
-                setAverageDistanceBetweenWaypoints(simplifiedPath)
-                simplifiedCost = simplifiedPath.cost(solution.getOptimizationObjective()).value()
-                if simplifiedCost < minCost:
-                    # Double check that simplified path is valid
-                    simplifiedPathObject = Path(OMPLPath(solution, simplifiedPath, referenceLatlon))
-                    hasObstacleOnPath = simplifiedPathObject.obstacleOnPath(state)
-                    hasUpwindOrDownwindOnPath = simplifiedPathObject.upwindOrDownwindOnPath(state)
-                    isStillValid = not hasObstacleOnPath and not hasUpwindOrDownwindOnPath
-                    if isStillValid:
-                        bestSolution = solution
-                        bestSolutionPath = simplifiedPath
-                        minCost = simplifiedCost
         return bestSolution, bestSolutionPath, minCost
+
+    if runtimeSeconds is None:
+        runtimeSeconds = rospy.get_param('runtime_seconds', default=2.0)
+    if numRuns is None:
+        numRuns = rospy.get_param('num_runs', default=1)
 
     ou.setLogLevel(ou.LOG_WARN)
     # Set speedup to 1.0 during planning

@@ -1,6 +1,8 @@
 <?xml version="1.0"?>
 <launch>
     <!-- Main loop and interface. View main_loop_and_interface.launch for argument descriptions. -->
+    <arg name="num_runs" default="2" />
+    <arg name="runtime_seconds" default="2.0" />
     <arg name="main_loop_output" default="screen" />
     <arg name="ros_interface_output" default="log" />
     <arg name="global_wind_output" default="log" />
@@ -10,6 +12,8 @@
     <arg name="planner_type" default="RRTStar" />
     <arg name="enable_los" default="false" />
     <include file="$(find local_pathfinding)/launch/main_loop_and_interface.launch">
+      <arg name="num_runs" value="$(arg num_runs)" />
+      <arg name="runtime_seconds" value="$(arg runtime_seconds)" />
       <arg name="main_loop_output" value="$(arg main_loop_output)"/>
       <arg name="ros_interface_output" value="$(arg ros_interface_output)"/>
       <arg name="global_wind_output" value="$(arg global_wind_output)"/>

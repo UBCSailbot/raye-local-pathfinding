@@ -8,6 +8,44 @@ import planner_helpers as ph
 VALIDITY_CHECKING_RESOLUTION_KM = 0.05
 
 
+class GridStateSampler(ob.StateSampler):
+    def __init__(self, space):
+        super(GridStateSampler, self).__init__(space)
+        self.name_ = "GridStateSampler"
+        self.rng_ = ou.RNG()
+        self.space = space
+
+        # Store bounds of state space
+        self.x_lo, self.x_hi = self.space.getBounds().low[0], self.space.getBounds().high[0]
+        self.y_lo, self.y_hi = self.space.getBounds().low[1], self.space.getBounds().high[1]
+
+        # Set grid density (n x n) on state bounds
+        # TODO: Set as parameter
+        self.n = 6
+
+        # TODO: Remove this after testing
+        import time
+        self.last_time = time.time()
+        self.i = 0
+
+    def sampleUniform(self, state):
+        # TODO: Remove this after testing
+        import time
+        new_time = time.time()
+        print("TYLER: In sampleUniform number {}, {}".format(self.i, new_time - self.last_time))
+        self.i += 1
+        self.last_time = new_time
+
+        # Sample random point from grid
+        # idx = 0 means lo, idx = n = hi
+        x_idx = self.rng_.uniformInt(0, self.n)
+        y_idx = self.rng_.uniformInt(0, self.n)
+        x = self.x_lo + (self.x_hi - self.x_lo) * x_idx / self.n
+        y = self.y_lo + (self.y_hi - self.y_lo) * y_idx / self.n
+        state.setXY(x, y)
+        return True
+
+
 def absolute_distance_between_angles(angle1, angle2):
     fabs = math.fabs(math.atan2(math.sin(angle1 - angle2), math.cos(angle1 - angle2)))
     return fabs
@@ -134,6 +172,9 @@ def plan(run_time, planner_type, wind_direction_degrees, dimensions, start_pos, 
     bounds.setHigh(0, x_max)
     bounds.setHigh(1, y_max)
     space.setBounds(bounds)
+
+    # Use custom state sampler
+    space.setStateSamplerAllocator(ob.StateSamplerAllocator(GridStateSampler))
 
     # Define a simple setup class
     ss = og.SimpleSetup(space)
