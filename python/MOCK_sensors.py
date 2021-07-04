@@ -40,7 +40,6 @@ class MOCK_SensorManager:
         # Inputs for testing
         rospy.Subscriber('speedup', Float64, self.speedupCallback)
         rospy.Subscriber("changeGPS", msg.GPS, self.changeGPSCallback)
-        rospy.Subscriber("changeGlobalWind", msg.globalWind, self.changeGlobalWindCallback)
 
     def update(self):
         # Travel based on boat speed
@@ -64,6 +63,8 @@ class MOCK_SensorManager:
         self.lat = destination.latitude
 
         # Update wind
+        self.globalWindSpeedKmph = rospy.get_param('globalWindSpeedKmph', default=self.globalWindSpeedKmph)
+        self.globalWindDirectionDegrees = rospy.get_param('globalWindDirectionDegrees', default=self.globalWindDirectionDegrees)
         self.measuredWindSpeedKmph, self.measuredWindDirectionDegrees = globalWindToMeasuredWind(
             self.globalWindSpeedKmph, self.globalWindDirectionDegrees, self.speedKmph, self.headingDegrees)
 
@@ -127,11 +128,6 @@ class MOCK_SensorManager:
         self.lon = data.lon
         self.headingDegrees = data.headingDegrees
         self.speedKmph = data.speedKmph
-
-    def changeGlobalWindCallback(self, data):
-        rospy.loginfo("Received change global wind message = {}".format(data))
-        self.globalWindSpeedKmph = data.speedKmph
-        self.globalWindDirectionDegrees = data.directionDegrees
 
 
 if __name__ == '__main__':

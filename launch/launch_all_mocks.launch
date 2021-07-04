@@ -39,6 +39,12 @@
     <param name="ocean_current_speed" type="double" value="$(arg ocean_current_speed)" />
     <param name="ocean_current_direction" type="double" value="$(arg ocean_current_direction)" />
 
+    <!-- Sets the global wind speed and direction -->
+    <arg name="globalWindSpeedKmph" default="1.0" />
+    <arg name="globalWindDirectionDegrees" default="45.0" />
+    <param name="globalWindSpeedKmph" type="double" value="$(arg globalWindSpeedKmph)" />
+    <param name="globalWindDirectionDegrees" type="double" value="$(arg globalWindDirectionDegrees)" />
+
     <node pkg="local_pathfinding" type="MOCK_wind_sensor.py" name="MOCK_wind_sensor" />
     <node pkg="local_pathfinding" type="MOCK_controller_and_boat.py" name="MOCK_controller_and_boat" />
     <node pkg="local_pathfinding" type="MOCK_AIS.py" name="MOCK_AIS" />
