@@ -3,8 +3,12 @@
     <!-- Sets the number of runs and runtime used for each planning call -->
     <arg name="num_runs" default="2" />
     <arg name="runtime_seconds" default="2.0" />
+    <arg name="state_sampler" default="" />
+    <arg name="grid_n" default="10" />
     <param name="num_runs" type="int" value="$(arg num_runs)" />
     <param name="runtime_seconds" type="double" value="$(arg runtime_seconds)" />
+    <param name="state_sampler" type="string" value="$(arg state_sampler)" />
+    <param name="grid_n" type="int" value="$(arg grid_n)" />
 
     <!-- Sets where the output goes from the modules -->
     <arg name="main_loop_output" default="screen" />

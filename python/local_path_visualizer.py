@@ -105,8 +105,7 @@ def getPerpPlot(isStartEast, slope, y_intercept, destinationXY):
         return [destinationX - 5, destinationX + 5], [y_intercept, y_intercept]
     elif not slope:
         offset = WAYPOINT_REACHED_DISTANCE if isStartEast else -1 * WAYPOINT_REACHED_DISTANCE
-        return [destinationX + offset, destinationX + offset],
-        [destinationY - 5, destinationY + 5]
+        return [destinationX + offset, destinationX + offset], [destinationY - 5, destinationY + 5]
     else:
         # methods for boundary line
         def y(x):

@@ -1,4 +1,5 @@
 import math
+import rospy
 from ompl import util as ou
 from ompl import base as ob
 from ompl import geometric as og
@@ -20,39 +21,14 @@ class GridStateSampler(ob.StateSampler):
         self.y_lo, self.y_hi = self.space.getBounds().low[1], self.space.getBounds().high[1]
 
         # Set grid density (n x n) on state bounds
-        # TODO: Set as parameter
-        self.n = 10
-
-        # TODO: Remove this after testing
-        import time
-        self.last_time = time.time()
-        self.i = 0
-        self.cache = set()
-        self.counter = 0
+        self.n = rospy.get_param('grid_n', default=10)
+        rospy.loginfo("GridStateSampler using nxn grid with n = {}".format(self.n))
 
     def sampleUniform(self, state):
-        # TODO: Remove this after testing
-        import time
-        new_time = time.time()
-        # print("TYLER: In sampleUniform number {}, {}".format(self.i, new_time - self.last_time))
-        self.i += 1
-        self.last_time = new_time
-
         # Sample random point from grid
         # idx = 0 means lo, idx = n = hi
-        while True:
-            x_idx = self.rng_.uniformInt(0, self.n)
-            y_idx = self.rng_.uniformInt(0, self.n)
-            if (x_idx, y_idx) not in self.cache:
-                break
-            if len(self.cache) >= (self.n+1)**2:
-                self.cache = set()
-                self.n *= 2
-                break
-            self.counter += 1
-            print("Found {} repeats".format(self.counter))
-            print("Found {}/{} states".format(len(self.cache), self.n*self.n))
-        self.cache.add((x_idx, y_idx))
+        x_idx = self.rng_.uniformInt(0, self.n)
+        y_idx = self.rng_.uniformInt(0, self.n)
         x = self.x_lo + (self.x_hi - self.x_lo) * x_idx / self.n
         y = self.y_lo + (self.y_hi - self.y_lo) * y_idx / self.n
         state.setXY(x, y)
@@ -173,6 +149,7 @@ def indexOfObstacleOnPath(positionXY, nextLocalWaypointIndex, numLookAheadWaypoi
 
 
 def plan(run_time, planner_type, wind_direction_degrees, dimensions, start_pos, goal_pos, obstacles, heading_degrees,
+         state_sampler='',
          objective_type='WeightedLengthAndClearanceCombo'):
     # Construct the robot state space in which we're planning
     space = ob.SE2StateSpace()
@@ -187,7 +164,11 @@ def plan(run_time, planner_type, wind_direction_degrees, dimensions, start_pos, 
     space.setBounds(bounds)
 
     # Use custom state sampler
-    space.setStateSamplerAllocator(ob.StateSamplerAllocator(GridStateSampler))
+    if len(state_sampler) > 0:
+        if 'grid' in state_sampler.lower():
+            space.setStateSamplerAllocator(ob.StateSamplerAllocator(GridStateSampler))
+        else:
+            print("WARNING: Unknown state_sampler = {}".format(state_sampler))
 
     # Define a simple setup class
     ss = og.SimpleSetup(space)

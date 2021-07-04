@@ -744,10 +744,13 @@ def createPath(state, runtimeSeconds=None, numRuns=None, resetSpeedupDuringPlan=
     goal = utils.latlonToXY(state.globalWaypoint, referenceLatlon)
     dimensions = getXYLimits(start, goal)
     obstacles = obs.getObstacles(state, referenceLatlon)
+    stateSampler = rospy.get_param('state_sampler', default='')
 
     # Run the planner multiple times and find the best one
     rospy.loginfo("Running createLocalPathSS. runtimeSeconds: {}. numRuns: {}. Total time: {} seconds"
                   .format(runtimeSeconds, numRuns, runtimeSeconds * numRuns))
+    rospy.loginfo("Using stateSampler = {}".format(stateSampler) if len(stateSampler) > 0
+                  else "Using default state sampler")
 
     # Create non-blocking plot showing the setup of the pathfinding problem.
     # Useful to understand if the pathfinding problem is invalid or impossible
@@ -769,7 +772,7 @@ def createPath(state, runtimeSeconds=None, numRuns=None, resetSpeedupDuringPlan=
         # TODO: Incorporate globalWindSpeed into pathfinding?
         rospy.loginfo("Starting path-planning run number: {}".format(i))
         solution = plan(runtimeSeconds, plannerType, state.globalWindDirectionDegrees,
-                        dimensions, start, goal, obstacles, state.headingDegrees)
+                        dimensions, start, goal, obstacles, state.headingDegrees, stateSampler)
         if isValidSolution(solution, referenceLatlon, state):
             validSolutions.append(solution)
         else:
@@ -792,7 +795,7 @@ def createPath(state, runtimeSeconds=None, numRuns=None, resetSpeedupDuringPlan=
 
         rospy.logwarn("Attempting to rerun with longer runtime: {} seconds".format(runtimeSeconds))
         solution = plan(runtimeSeconds, plannerType, state.globalWindDirectionDegrees,
-                        dimensions, start, goal, obstacles, state.headingDegrees)
+                        dimensions, start, goal, obstacles, state.headingDegrees, stateSampler)
 
         if isValidSolution(solution, referenceLatlon, state):
             validSolutions.append(solution)
