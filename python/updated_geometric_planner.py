@@ -21,25 +21,38 @@ class GridStateSampler(ob.StateSampler):
 
         # Set grid density (n x n) on state bounds
         # TODO: Set as parameter
-        self.n = 6
+        self.n = 10
 
         # TODO: Remove this after testing
         import time
         self.last_time = time.time()
         self.i = 0
+        self.cache = set()
+        self.counter = 0
 
     def sampleUniform(self, state):
         # TODO: Remove this after testing
         import time
         new_time = time.time()
-        print("TYLER: In sampleUniform number {}, {}".format(self.i, new_time - self.last_time))
+        # print("TYLER: In sampleUniform number {}, {}".format(self.i, new_time - self.last_time))
         self.i += 1
         self.last_time = new_time
 
         # Sample random point from grid
         # idx = 0 means lo, idx = n = hi
-        x_idx = self.rng_.uniformInt(0, self.n)
-        y_idx = self.rng_.uniformInt(0, self.n)
+        while True:
+            x_idx = self.rng_.uniformInt(0, self.n)
+            y_idx = self.rng_.uniformInt(0, self.n)
+            if (x_idx, y_idx) not in self.cache:
+                break
+            if len(self.cache) >= (self.n+1)**2:
+                self.cache = set()
+                self.n *= 2
+                break
+            self.counter += 1
+            print("Found {} repeats".format(self.counter))
+            print("Found {}/{} states".format(len(self.cache), self.n*self.n))
+        self.cache.add((x_idx, y_idx))
         x = self.x_lo + (self.x_hi - self.x_lo) * x_idx / self.n
         y = self.y_lo + (self.y_hi - self.y_lo) * y_idx / self.n
         state.setXY(x, y)
