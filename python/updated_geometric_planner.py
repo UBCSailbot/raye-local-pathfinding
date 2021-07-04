@@ -150,7 +150,7 @@ def indexOfObstacleOnPath(positionXY, nextLocalWaypointIndex, numLookAheadWaypoi
 
 def plan(run_time, planner_type, wind_direction_degrees, dimensions, start_pos, goal_pos, obstacles, heading_degrees,
          state_sampler='',
-         objective_type='WeightedLengthAndClearanceCombo'):
+         objective_type='sailing'):
     # Construct the robot state space in which we're planning
     space = ob.SE2StateSpace()
 

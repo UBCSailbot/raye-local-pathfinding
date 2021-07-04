@@ -155,7 +155,6 @@ if __name__ == '__main__':
 
             generateNewLocalPathToCompare = (costTooHigh or isLocalWaypointReached or isTimeLimitExceeded
                                              or localPathUpdateRequested)
-            generateNewLocalPathToCompare = True
             if generateNewLocalPathToCompare:
                 rospy.loginfo("Generating new local path to compare to current local path. Reason: costTooHigh? {}. "
                               "isLocalWaypointReached? {}. isTimeLimitExceeded? {}. localPathUpdateRequested? {}."
