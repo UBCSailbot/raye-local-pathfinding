@@ -79,7 +79,9 @@ During a simulation, you can run:
 
 * `rostopic pub /changeGPS` then press TAB repeatedly to get a default message. Edit the message to get sailbot position that you want. This will change the sailbot position.
 
-* `rosparam set /globalWindDirectionDegrees 70` to update the global wind direction.
+* `rosparam set /global_wind_direction_degrees 70` to update the global wind direction.
+
+* `rosparam set /global_wind_speed_kmph 5` to update the global wind speed.
 
 * `rosparam set /plot_pathfinding_problem true` to start plotting the pathfinding problem at each call to `createPath`. Can change `true` to `false` to turn it off.
 

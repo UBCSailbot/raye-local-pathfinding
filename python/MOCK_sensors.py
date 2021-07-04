@@ -40,6 +40,7 @@ class MOCK_SensorManager:
         rospy.Subscriber("changeGPS", msg.GPS, self.changeGPSCallback)
 
     def update(self):
+        # TODO: Use rospy.get_param('smooth_changes', default=True) to use PID controller on heading and speed
         speedup = rospy.get_param('speedup', default=1.0)
 
         # Travel based on boat speed
@@ -63,8 +64,8 @@ class MOCK_SensorManager:
         self.lat = destination.latitude
 
         # Update wind
-        self.globalWindSpeedKmph = rospy.get_param('globalWindSpeedKmph', default=self.globalWindSpeedKmph)
-        self.globalWindDirectionDegrees = rospy.get_param('globalWindDirectionDegrees', default=self.globalWindDirectionDegrees)
+        self.globalWindSpeedKmph = rospy.get_param('global_wind_speed_kmph', default=self.globalWindSpeedKmph)
+        self.globalWindDirectionDegrees = rospy.get_param('global_wind_direction_degrees', default=self.globalWindDirectionDegrees)
         self.measuredWindSpeedKmph, self.measuredWindDirectionDegrees = globalWindToMeasuredWind(
             self.globalWindSpeedKmph, self.globalWindDirectionDegrees, self.speedKmph, self.headingDegrees)
 

@@ -5,18 +5,22 @@
     <arg name="speedup" default="1.0" />
     <param name="speedup" type="double" value="$(arg speedup)" />
 
+    <!-- Sets the global wind speed and direction -->
+    <arg name="global_wind_speed_kmph" default="1.0" />
+    <arg name="global_wind_direction_degrees" default="45.0" />
+    <param name="global_wind_speed_kmph" type="double" value="$(arg global_wind_speed_kmph)" />
+    <param name="global_wind_direction_degrees" type="double" value="$(arg global_wind_direction_degrees)" />
+
     <!-- Sets ocean current speed and direction -->
     <arg name="ocean_current_speed" default="0.0" />
     <arg name="ocean_current_direction" default="0.0" />
     <param name="ocean_current_speed" type="double" value="$(arg ocean_current_speed)" />
     <param name="ocean_current_direction" type="double" value="$(arg ocean_current_direction)" />
 
-    <!-- Sets the global wind speed and direction -->
-    <arg name="globalWindSpeedKmph" default="1.0" />
-    <arg name="globalWindDirectionDegrees" default="45.0" />
-    <param name="globalWindSpeedKmph" type="double" value="$(arg globalWindSpeedKmph)" />
-    <param name="globalWindDirectionDegrees" type="double" value="$(arg globalWindDirectionDegrees)" />
-
+    <!-- Sets if changes in heading and speed should be smooth or not -->
+    <arg name="smooth_changes" default="true" />
+    <param name="smooth_changes" type="bool" value="$(arg smooth_changes)" />
+  
     <node pkg="local_pathfinding" type="MOCK_sensors.py" name="MOCK_sensors" />
 </launch>
 

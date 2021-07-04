@@ -21,6 +21,10 @@
     <arg name="planner_type" default="RRTStar" />
     <param name="planner_type" type="string" value="$(arg planner_type)" />
 
+    <!-- Use LOS heading -->
+    <arg name="enable_los" default="false" />
+    <param name="enable_los" type="bool" value="$(arg enable_los)" />
+
     <node pkg="local_pathfinding" type="main_loop.py" name="main_loop" output="$(arg main_loop_output)"/>
     <node pkg="local_pathfinding" type="ros_interface.py" name="ros_interface" output="$(arg ros_interface_output)"/>
     <node pkg="local_pathfinding" type="global_wind.py" name="global_wind" output="$(arg global_wind_output)"/>
