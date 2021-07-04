@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<!-- All setup for MOCK sensors only to be run in simulation, NOT on real boat -->
+<launch>
+    <!-- MOCK sensors -->
+    <arg name="speedup" default="1.0" />
+    <arg name="ocean_current_speed" default="0.0" />
+    <arg name="ocean_current_direction" default="0.0" />
+    <arg name="globalWindSpeedKmph" default="1.0" />
+    <arg name="globalWindDirectionDegrees" default="45.0" />
+    <include file="$(find local_pathfinding)/launch/MOCK_sensors.launch">
+      <arg name="speedup" value="$(arg speedup)"/>
+      <arg name="ocean_current_speed" default="$(arg ocean_current_speed)" />
+      <arg name="ocean_current_direction" default="$(arg ocean_current_direction)" />
+      <arg name="globalWindSpeedKmph" default="$(arg globalWindSpeedKmph)" />
+      <arg name="globalWindDirectionDegrees" default="$(arg globalWindDirectionDegrees)" />
+    </include>
+
+    <!-- MOCK AIS -->
+    <arg name="num_ais_ships" default="5" />
+    <arg name="random_seed" default="" />
+    <include file="$(find local_pathfinding)/launch/MOCK_AIS.launch">
+      <arg name="speedup" value="$(arg speedup)"/>
+      <arg name="num_ais_ships" default="$(arg num_ais_ships)" />
+      <arg name="random_seed" default="$(arg random_seed)" />
+    </include>
+
+    <node pkg="local_pathfinding" type="MOCK_global_planner.py" name="MOCK_global_planner" />
+</launch>

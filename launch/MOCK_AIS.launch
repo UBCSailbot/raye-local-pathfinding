@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<!-- All setup for MOCK AIS only to be run in simulation, NOT on real boat -->
+<launch>
+    <!-- Sets speedup, which increases simulation speed -->
+    <arg name="speedup" default="1.0" />
+    <param name="speedup" type="double" value="$(arg speedup)" />
+
+    <!-- Sets ais_file, the FULL path of a JSON file to be read to set the initial AIS ship positions -->
+    <arg name="ais_file" default="" />
+    <param name="ais_file" type="string" value="$(arg ais_file)" />
+
+    <!-- Sets the num_ais_ships -->
+    <arg name="num_ais_ships" default="5" />
+    <param name="num_ais_ships" type="int" value="$(arg num_ais_ships)" />
+
+    <!-- Sets random seed. Will only set seed if it is an integer. -->
+    <arg name="random_seed" default="" />
+    <param name="random_seed" type="string" value="$(arg random_seed)" />
+
+    <node pkg="local_pathfinding" type="MOCK_AIS.py" name="MOCK_AIS" />
+</launch>

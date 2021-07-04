@@ -20,6 +20,10 @@
     <arg name="planner_type" default="RRTStar" />
     <param name="planner_type" type="string" value="$(arg planner_type)" />
 
+    <!-- Use LOS heading -->
+    <arg name="enable_los" default="false" />
+    <param name="enable_los" type="bool" value="$(arg enable_los)" />
+
     <!-- Setup mocks. View launch_all_mocks.launch for argument descriptions. -->
     <arg name="speedup" default="1.0" />
     <arg name="num_ais_ships" default="5" />
@@ -31,10 +35,8 @@
     <arg name="smooth_changes" default="true" />
     <arg name="ocean_current_speed" default="0.0" />
     <arg name="ocean_current_direction" default="0.0" />
-    <arg name="enable_los" default="false" />
     <arg name="globalWindSpeedKmph" default="1.0" />
     <arg name="globalWindDirectionDegrees" default="45.0" />
-    <param name="enable_los" type="bool" value="$(arg enable_los)" />
     <include file="$(find local_pathfinding)/launch/launch_all_mocks.launch">
       <arg name="speedup" value="$(arg speedup)"/>
       <arg name="num_ais_ships" value="$(arg num_ais_ships)"/>
