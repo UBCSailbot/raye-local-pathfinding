@@ -18,7 +18,6 @@ class MOCK_ControllerAndSailbot:
     def __init__(self, lat, lon, headingDegrees, speedKmph):
         self.lat = lat
         self.lon = lon
-        self.speedup = 1.0
         self.headingDegrees = headingDegrees
         self.headingSetpoint = headingDegrees
         self.speedKmph = speedKmph
@@ -31,13 +30,13 @@ class MOCK_ControllerAndSailbot:
         self.publisher = rospy.Publisher("GPS", msg.GPS, queue_size=4)
         rospy.Subscriber("heading_degrees", msg.heading, self.desiredHeadingCallback)
         rospy.Subscriber("changeGPS", msg.GPS, self.changeGPSCallback)
-        rospy.Subscriber('speedup', Float64, self.speedupCallback)
         rospy.Subscriber("windSensor", msg.windSensor, self.windSensorCallback)
 
     def move(self):
+        speedup = rospy.get_param('speedup', default=1.0)
         # Travel based on boat speed
         kmTraveledPerPeriod = self.speedKmph * self.publishPeriodSeconds / 3600.0
-        kmTraveledPerPeriod *= self.speedup  # Move greater distances with speedup
+        kmTraveledPerPeriod *= speedup  # Move greater distances with speedup
         distanceTraveled = geopy.distance.distance(kilometers=kmTraveledPerPeriod)
         destination = distanceTraveled.destination(point=(self.lat, self.lon),
                                                    bearing=headingToBearingDegrees(self.headingDegrees))
@@ -48,7 +47,7 @@ class MOCK_ControllerAndSailbot:
         oceanCurrentSpeedKmph = rospy.get_param('ocean_current_speed', default=0.0)
         oceanCurrentDirectionDegress = rospy.get_param('ocean_current_direction', default=0.0)
         oceanCurrentKmTraveledPerPeriod = oceanCurrentSpeedKmph * self.publishPeriodSeconds / 3600.0
-        oceanCurrentKmTraveledPerPeriod *= self.speedup  # Move greater distances with speedup
+        oceanCurrentKmTraveledPerPeriod *= speedup  # Move greater distances with speedup
         distanceTraveled = geopy.distance.distance(kilometers=oceanCurrentKmTraveledPerPeriod)
         destination = distanceTraveled.destination(point=(self.lat, self.lon),
                                                    bearing=headingToBearingDegrees(oceanCurrentDirectionDegress))
@@ -58,7 +57,7 @@ class MOCK_ControllerAndSailbot:
         if self.smoothChanges:
             # Heading
             error = ssa_deg(self.headingSetpoint - self.headingDegrees)
-            gain = min(1, TURNING_GAIN * self.publishPeriodSeconds * self.speedup)
+            gain = min(1, TURNING_GAIN * self.publishPeriodSeconds * speedup)
             self.headingDegrees = (self.headingDegrees + gain * error) % 360
 
             # Speed
@@ -70,7 +69,7 @@ class MOCK_ControllerAndSailbot:
                 print(self.speedSetpoint)
 
             error = self.speedSetpoint - self.speedKmph
-            gain = min(1, SPEED_CHANGE_GAIN * self.publishPeriodSeconds * self.speedup)
+            gain = min(1, SPEED_CHANGE_GAIN * self.publishPeriodSeconds * speedup)
             self.speedKmph += gain * error
 
     def windSensorCallback(self, data):
@@ -99,9 +98,6 @@ class MOCK_ControllerAndSailbot:
         self.lon = data.lon
         self.headingDegrees = data.headingDegrees
         self.speedKmph = data.speedKmph
-
-    def speedupCallback(self, data):
-        self.speedup = data.data
 
 
 if __name__ == '__main__':

@@ -23,7 +23,6 @@ class MOCK_SensorManager:
         # Initialize starting values
         self.lat = startLat
         self.lon = startLon
-        self.speedup = 1.0
         self.headingDegrees = startHeadingDegrees
         self.speedKmph = startSpeedKmph
         self.globalWindSpeedKmph = startGlobalWindSpeedKmph
@@ -38,13 +37,14 @@ class MOCK_SensorManager:
         rospy.Subscriber("heading_degrees", msg.heading, self.desiredHeadingCallback)
 
         # Inputs for testing
-        rospy.Subscriber('speedup', Float64, self.speedupCallback)
         rospy.Subscriber("changeGPS", msg.GPS, self.changeGPSCallback)
 
     def update(self):
+        speedup = rospy.get_param('speedup', default=1.0)
+
         # Travel based on boat speed
         kmTraveledPerPeriod = self.speedKmph * self.publishPeriodSeconds / 3600.0
-        kmTraveledPerPeriod *= self.speedup  # Move greater distances with speedup
+        kmTraveledPerPeriod *= speedup  # Move greater distances with speedup
         distanceTraveled = geopy.distance.distance(kilometers=kmTraveledPerPeriod)
         destination = distanceTraveled.destination(point=(self.lat, self.lon),
                                                    bearing=headingToBearingDegrees(self.headingDegrees))
@@ -55,7 +55,7 @@ class MOCK_SensorManager:
         oceanCurrentSpeedKmph = rospy.get_param('ocean_current_speed', default=0.0)
         oceanCurrentDirectionDegress = rospy.get_param('ocean_current_direction', default=0.0)
         oceanCurrentKmTraveledPerPeriod = oceanCurrentSpeedKmph * self.publishPeriodSeconds / 3600.0
-        oceanCurrentKmTraveledPerPeriod *= self.speedup  # Move greater distances with speedup
+        oceanCurrentKmTraveledPerPeriod *= speedup  # Move greater distances with speedup
         distanceTraveled = geopy.distance.distance(kilometers=oceanCurrentKmTraveledPerPeriod)
         destination = distanceTraveled.destination(point=(self.lat, self.lon),
                                                    bearing=headingToBearingDegrees(oceanCurrentDirectionDegress))
@@ -118,9 +118,6 @@ class MOCK_SensorManager:
         # rostopic uses North=0, East=90
         # Internal local_pathfinding uses East=0, North=90
         self.headingDegrees = bearingToHeadingDegrees(data.headingDegrees)
-
-    def speedupCallback(self, data):
-        self.speedup = data.data
 
     def changeGPSCallback(self, data):
         rospy.loginfo("Received change GPS message = {}".format(data))

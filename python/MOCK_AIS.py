@@ -82,14 +82,12 @@ class MOCK_AISEnvironment:
         rospy.Subscriber('/new_boats', AISShip, self.new_boat_callback)
         rospy.Subscriber('/delete_boats', Int32, self.remove_boat_callback)
         rospy.Subscriber('/GPS', GPS, self.gps_callback)
-        rospy.Subscriber('speedup', Float64, self.speedup_callback)
 
         # Set random seed. Must be called AFTER rospy.init_node and BEFORE making random ships
         self.set_random_seed()
 
         # Create ships
         self.publishPeriodSeconds = AIS_PUBLISH_PERIOD_SECONDS
-        self.speedup = 1.0
         self.ships = []
         if ais_file:
             f = open(ais_file, 'r')
@@ -115,8 +113,9 @@ class MOCK_AISEnvironment:
             rospy.loginfo("randomSeed = {}. Not setting seed".format(randomSeed))
 
     def move_ships(self):
+        speedup = rospy.get_param('speedup', default=1.0)
         for i in range(self.numShips):
-            self.ships[i].move(self.speedup)
+            self.ships[i].move(speedup)
             if isinstance(self.ships[i], RandomShip):
                 if distance((self.ships[i].lat, self.ships[i].lon), (self.sailbot_lat, self.sailbot_lon)).km > 60.0:
                     rospy.loginfo("MMSI " + str(self.ships[i].id) +
@@ -142,9 +141,6 @@ class MOCK_AISEnvironment:
     def gps_callback(self, msg):
         self.sailbot_lat = msg.lat
         self.sailbot_lon = msg.lon
-
-    def speedup_callback(self, msg):
-        self.speedup = msg.data
 
 
 if __name__ == '__main__':

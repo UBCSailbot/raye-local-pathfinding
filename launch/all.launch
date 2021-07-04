@@ -21,7 +21,7 @@
     <param name="planner_type" type="string" value="$(arg planner_type)" />
 
     <!-- Setup mocks. View launch_all_mocks.launch for argument descriptions. -->
-    <arg name="initial_speedup" default="1.0" />
+    <arg name="speedup" default="1.0" />
     <arg name="num_ais_ships" default="5" />
     <arg name="ais_file" default="" />
     <arg name="gps_file" default="" />
@@ -36,7 +36,7 @@
     <arg name="globalWindDirectionDegrees" default="45.0" />
     <param name="enable_los" type="bool" value="$(arg enable_los)" />
     <include file="$(find local_pathfinding)/launch/launch_all_mocks.launch">
-      <arg name="initial_speedup" value="$(arg initial_speedup)"/>
+      <arg name="speedup" value="$(arg speedup)"/>
       <arg name="num_ais_ships" value="$(arg num_ais_ships)"/>
       <arg name="ais_file" value="$(arg ais_file)"/>
       <arg name="gps_file" value="$(arg gps_file)"/>

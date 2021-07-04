@@ -20,10 +20,6 @@ localPathUpdateRequested = False
 # Global variable to receive path update force messages
 localPathUpdateForced = False
 
-# Global variable for speedup
-speedup = 1.0
-
-
 def localPathUpdateRequestedCallback(data):
     global localPathUpdateRequested
     rospy.loginfo("localPathUpdateRequested message received.")
@@ -34,12 +30,6 @@ def localPathUpdateForcedCallback(data):
     global localPathUpdateForced
     rospy.loginfo("localPathUpdateForced message received.")
     localPathUpdateForced = True
-
-
-def speedupCallback(data):
-    global speedup
-    speedup = data.data
-    rospy.loginfo("speedup message of {} received.".format(speedup))
 
 
 def createNewLocalPath(sailbot, maxAllowableRuntimeSeconds, desiredHeadingPublisher):
@@ -58,8 +48,7 @@ def createNewLocalPath(sailbot, maxAllowableRuntimeSeconds, desiredHeadingPublis
     state = his.getValidStateMoveToSafetyIfNeeded(sailbot, desiredHeadingPublisher)
 
     # Composition of functions used every time when updating local path
-    global speedup
-    localPath = Path.createPath(state, resetSpeedupDuringPlan=True, speedupBeforePlan=speedup,
+    localPath = Path.createPath(state, resetSpeedupDuringPlan=True,
                                 maxAllowableRuntimeSeconds=maxAllowableRuntimeSeconds)
     lastTimePathCreated = time.time()
     return localPath, lastTimePathCreated
@@ -75,7 +64,6 @@ if __name__ == '__main__':
     # Subscribe to requestLocalPathUpdate
     rospy.Subscriber('requestLocalPathUpdate', Bool, localPathUpdateRequestedCallback)
     rospy.Subscriber('forceLocalPathUpdate', Bool, localPathUpdateForcedCallback)
-    rospy.Subscriber('speedup', Float64, speedupCallback)
 
     # Create ros publisher for the desired heading for the controller
     desiredHeadingPublisher = rospy.Publisher('heading_degrees', msg.heading, queue_size=4)
@@ -92,10 +80,6 @@ if __name__ == '__main__':
 
     # Wait until first sensor data + globalPath is received
     sailbot.waitForFirstSensorDataAndGlobalPath()
-
-    # Set the initial speedup value. Best done here in main_loop to ensure the timing.
-    # Should be published before loop begins.
-    utils.setInitialSpeedup()
 
     rospy.loginfo("Starting main loop")
 
@@ -165,7 +149,7 @@ if __name__ == '__main__':
             # Check if new local path should be generated and compared to current local path
             costTooHigh = utils.pathCostThresholdExceeded(localPath)
             isLocalWaypointReached = localPath.nextWaypointReached(state.position)
-            isTimeLimitExceeded = utils.timeLimitExceeded(lastTimePathCreated, speedup)
+            isTimeLimitExceeded = utils.timeLimitExceeded(lastTimePathCreated, rospy.get_param('speedup', default=1.0))
 
             generateNewLocalPathToCompare = (costTooHigh or isLocalWaypointReached or isTimeLimitExceeded
                                              or localPathUpdateRequested)

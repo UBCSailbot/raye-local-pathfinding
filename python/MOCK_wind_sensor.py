@@ -32,15 +32,6 @@ defaultGlobalWindSpeedKmph = random.randint(MIN_GLOBAL_WIND_SPEED_KMPH, MAX_GLOB
 defaultGlobalWindDirectionDegrees = 90
 
 
-# Global variable for speedup
-speedup = 1.0
-
-
-def speedupCallback(data):
-    global speedup
-    speedup = data.data
-
-
 def talker():
     global boatHeadingDegrees
     global boatSpeedKmph
@@ -75,7 +66,6 @@ def talker():
 if __name__ == '__main__':
     try:
         rospy.Subscriber("GPS", GPS, gpsCallback)
-        rospy.Subscriber("speedup", Float64, speedupCallback)
         talker()
     except rospy.ROSInterruptException:
         pass

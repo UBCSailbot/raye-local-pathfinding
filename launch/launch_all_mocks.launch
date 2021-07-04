@@ -2,8 +2,8 @@
 <!-- All setup for MOCK systems only to be run in simulation, NOT on real boat -->
 <launch>
     <!-- Sets speedup, which increases simulation speed -->
-    <arg name="initial_speedup" default="1.0" />
-    <param name="initial_speedup" type="double" value="$(arg initial_speedup)" />
+    <arg name="speedup" default="1.0" />
+    <param name="speedup" type="double" value="$(arg speedup)" />
 
     <!-- Sets ais_file, the FULL path of a JSON file to be read to set the initial AIS ship positions -->
     <arg name="ais_file" default="" />

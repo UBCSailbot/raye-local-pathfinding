@@ -49,15 +49,6 @@ def previousLocalWaypointCallback(data):
     previousLocalWaypoint = data
 
 
-# Global variable for speedup
-speedup = 1.0
-
-
-def speedupCallback(data):
-    global speedup
-    speedup = data.data
-
-
 def getXYLimits(xy0, xy1):
     # Set xy for figure
     xPLim = max([xy0[0], xy1[0]])
@@ -151,7 +142,6 @@ if __name__ == '__main__':
     rospy.Subscriber("previousLocalWaypoint", latlon, previousLocalWaypointCallback)
     rospy.Subscriber("nextGlobalWaypoint", latlon, nextGlobalWaypointCallback)
     rospy.Subscriber("previousGlobalWaypoint", latlon, previousGlobalWaypointCallback)
-    rospy.Subscriber("speedup", Float64, speedupCallback)
     r = rospy.Rate(1.0 / VISUALIZER_UPDATE_PERIOD_SECONDS)
 
     # Wait for first messages
@@ -216,7 +206,7 @@ if __name__ == '__main__':
     plt.grid(True)
     axes.set_xlabel('X distance to next global waypoint (km)')
     axes.set_ylabel('Y distance to next global waypoint (km)')
-    axes.set_title('Local Path Visualizer (speedup = {})'.format(speedup))
+    axes.set_title('Local Path Visualizer (speedup = {})'.format(rospy.get_param('speedup', default=1.0)))
     axes.set_aspect(aspect=1)
 
     fractionOfPlotLen = min(xPLim - xNLim, yPLim - yNLim) / 15
@@ -319,7 +309,7 @@ if __name__ == '__main__':
                                                       round(nextGlobalWaypoint.lon, LATLON_TEXT_DECIMAL_PLACES)))
 
         # Update speedup text
-        axes.set_title('Local Path Visualizer (speedup = {})'.format(speedup))
+        axes.set_title('Local Path Visualizer (speedup = {})'.format(rospy.get_param('speedup', default=1.0)))
 
         # Add boats and wind speed arrow and ocean current arrow
         for ship in shipsXY:
