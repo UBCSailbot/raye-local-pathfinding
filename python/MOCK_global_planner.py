@@ -4,7 +4,6 @@ import json
 import time
 from utilities import MAUI_LATLON
 
-from std_msgs.msg import Float64
 import sailbot_msg.msg as msg
 from geopy.distance import distance
 

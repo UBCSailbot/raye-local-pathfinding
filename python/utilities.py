@@ -7,7 +7,6 @@ import time
 import math
 import planner_helpers as plans
 from geopy.distance import distance
-from std_msgs.msg import Float64
 from sailbot_msg.msg import latlon
 
 # Location constants

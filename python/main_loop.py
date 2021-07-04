@@ -20,6 +20,7 @@ localPathUpdateRequested = False
 # Global variable to receive path update force messages
 localPathUpdateForced = False
 
+
 def localPathUpdateRequestedCallback(data):
     global localPathUpdateRequested
     rospy.loginfo("localPathUpdateRequested message received.")
@@ -50,6 +51,7 @@ def createNewLocalPath(sailbot, maxAllowableRuntimeSeconds, desiredHeadingPublis
     # Composition of functions used every time when updating local path
     localPath = Path.createPath(state, resetSpeedupDuringPlan=True,
                                 maxAllowableRuntimeSeconds=maxAllowableRuntimeSeconds)
+    # TODO: Use counter and publishing period instead of time to work with speedup
     lastTimePathCreated = time.time()
     return localPath, lastTimePathCreated
 

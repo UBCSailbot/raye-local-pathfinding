@@ -3,7 +3,6 @@ import rospy
 import random
 import json
 
-from std_msgs.msg import Float64
 from geopy.distance import distance
 from utilities import headingToBearingDegrees, PORT_RENFREW_LATLON
 from std_msgs.msg import Int32

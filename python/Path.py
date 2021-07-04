@@ -13,7 +13,6 @@ from matplotlib import patches
 from ompl import util as ou
 from updated_geometric_planner import plan
 from ompl import geometric as og
-from std_msgs.msg import Float64
 
 # Constants
 UPWIND_DOWNWIND_TIME_LIMIT_SECONDS = 2.0

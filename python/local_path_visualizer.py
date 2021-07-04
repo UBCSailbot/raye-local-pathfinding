@@ -3,7 +3,6 @@ import sys
 import rospy
 import math
 from Path import getPerpLine, WAYPOINT_REACHED_DISTANCE
-from std_msgs.msg import Float64
 from sailbot_msg.msg import path, latlon
 import utilities as utils
 import obstacles as obs

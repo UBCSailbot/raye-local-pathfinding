@@ -20,7 +20,7 @@
     <!-- Sets if changes in heading and speed should be smooth or not -->
     <arg name="smooth_changes" default="true" />
     <param name="smooth_changes" type="bool" value="$(arg smooth_changes)" />
-  
+
     <node pkg="local_pathfinding" type="MOCK_sensors.py" name="MOCK_sensors" />
 </launch>
 

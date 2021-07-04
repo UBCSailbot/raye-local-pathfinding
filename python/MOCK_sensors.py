@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import rospy
 
-from std_msgs.msg import Float64
 import sailbot_msg.msg as msg
 import geopy.distance
 from utilities import headingToBearingDegrees, bearingToHeadingDegrees, PORT_RENFREW_LATLON, globalWindToMeasuredWind
@@ -65,7 +64,8 @@ class MOCK_SensorManager:
 
         # Update wind
         self.globalWindSpeedKmph = rospy.get_param('global_wind_speed_kmph', default=self.globalWindSpeedKmph)
-        self.globalWindDirectionDegrees = rospy.get_param('global_wind_direction_degrees', default=self.globalWindDirectionDegrees)
+        self.globalWindDirectionDegrees = rospy.get_param('global_wind_direction_degrees',
+                                                          default=self.globalWindDirectionDegrees)
         self.measuredWindSpeedKmph, self.measuredWindDirectionDegrees = globalWindToMeasuredWind(
             self.globalWindSpeedKmph, self.globalWindDirectionDegrees, self.speedKmph, self.headingDegrees)
 
