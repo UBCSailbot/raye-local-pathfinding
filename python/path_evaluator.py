@@ -9,6 +9,7 @@ import rospy
 NUMBER_TESTS = 5
 WANDB = True
 
+
 def evaluate(state):
     # Run pathfinding multiple times
     paths = [Path.createPath(state) for _ in range(NUMBER_TESTS)]
