@@ -18,7 +18,7 @@ do
 for random_seed in "1" "12"
 do
 echo "roslaunch local_pathfinding path_evaluator.launch num_runs:=$num_runs runtime_seconds:=$runtime_seconds state_sampler:=$state_sampler grid_n:=$grid_n planner_type:=$planner_type global_wind_direction_degrees:=$global_wind_direction_degrees num_ais_ships:=$num_ais_ships random_seed:=$random_seed"
-timeout 120 roslaunch local_pathfinding path_evaluator.launch num_runs:=$num_runs runtime_seconds:=$runtime_seconds state_sampler:=$state_sampler grid_n:=$grid_n planner_type:=$planner_type global_wind_direction_degrees:=$global_wind_direction_degrees num_ais_ships:=$num_ais_ships random_seed:=$random_seed
+timeout 120 roslaunch local_pathfinding path_evaluator.launch num_runs:=$num_runs runtime_seconds:=$runtime_seconds state_sampler:=$state_sampler grid_n:=$grid_n planner_type:=$planner_type global_wind_direction_degrees:=$global_wind_direction_degrees num_ais_ships:=$num_ais_ships random_seed:=$random_seed || :
 done
 done
 done
