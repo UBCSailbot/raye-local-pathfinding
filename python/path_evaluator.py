@@ -51,7 +51,7 @@ if __name__ == '__main__':
     # Setup wandb
     if WANDB:
         os.environ["WANDB_SILENT"] = "true"  # Avoid small wandb bug
-        wandb.init(entity='ubcsailbot', project='path-evaluation-1')
+        wandb.init(entity='ubcsailbot', project='path-evaluation-2')
         config = wandb.config
         params = {name: rospy.get_param(name) for name in rospy.get_param_names()}
         config.update(params)
