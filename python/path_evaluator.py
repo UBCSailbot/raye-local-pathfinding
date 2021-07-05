@@ -9,20 +9,7 @@ import rospy
 NUMBER_TESTS = 5
 WANDB = True
 
-if __name__ == '__main__':
-    # Setup wandb
-    if WANDB:
-        os.environ["WANDB_SILENT"] = "true"  # Avoid small wandb bug
-        wandb.init(entity='ubcsailbot', project='path-evaluation-1')
-        config = wandb.config
-        params = {name: rospy.get_param(name) for name in rospy.get_param_names()}
-        config.update(params)
-
-    # Setup subscribers
-    sailbot = sbot.Sailbot(nodeName='path_evaluator')
-    sailbot.waitForFirstSensorDataAndGlobalPath()
-    state = sailbot.getCurrentState()
-
+def evaluate(state):
     # Run pathfinding multiple times
     paths = [Path.createPath(state) for _ in range(NUMBER_TESTS)]
 
@@ -59,4 +46,19 @@ if __name__ == '__main__':
         wandb.log({'AveragePathCost': averagePathCost})
         wandb.log({'StdPathCost': stdPathCost})
 
-    rospy.signal_shutdown("Path evaluator complete")
+
+if __name__ == '__main__':
+    # Setup wandb
+    if WANDB:
+        os.environ["WANDB_SILENT"] = "true"  # Avoid small wandb bug
+        wandb.init(entity='ubcsailbot', project='path-evaluation-1')
+        config = wandb.config
+        params = {name: rospy.get_param(name) for name in rospy.get_param_names()}
+        config.update(params)
+
+    # Setup subscribers
+    sailbot = sbot.Sailbot(nodeName='path_evaluator')
+    sailbot.waitForFirstSensorDataAndGlobalPath()
+    state = sailbot.getCurrentState()
+
+    evaluate(state)

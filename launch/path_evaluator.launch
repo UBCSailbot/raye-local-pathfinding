@@ -12,7 +12,7 @@
     <param name="state_sampler" type="string" value="$(arg state_sampler)" />
     <param name="grid_n" type="int" value="$(arg grid_n)" />
     <param name="obstacle_type" type="string" value="$(arg obstacle_type)" />
-    <param name="planner_type" type="int" value="$(arg planner_type)" />
+    <param name="planner_type" type="string" value="$(arg planner_type)" />
     <node pkg="local_pathfinding" type="path_evaluator.py" name="path_evaluator" output="screen"/>
 
     <!-- Setup mocks. View launch_all_mocks.launch for argument descriptions. -->
