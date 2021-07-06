@@ -21,7 +21,7 @@ Outputs:
 
 ### Running Local Pathfinding Main Loop + Mock Inputs + Visualizer 
 
-The easiest way to run the local pathfinding system with ROS is to use multiple terminals. For each terminal, you will need to run `source ~/catkin_ws/devel/setup.bash` before running other commands (you can put this in your `~/.bashrc` file as well to do this automatically. To run the full pathfinding simulation, you can run: `roslaunch local_pathfinding all.launch initial_speedup:=10"`. This runs:
+The easiest way to run the local pathfinding system with ROS is to use multiple terminals. For each terminal, you will need to run `source ~/catkin_ws/devel/setup.bash` before running other commands (you can put this in your `~/.bashrc` file as well to do this automatically. To run the full pathfinding simulation, you can run: `roslaunch local_pathfinding all.launch speedup:=10"`. This runs:
 
 * __The local pathfinding main loop__, which reads in published sensor data, decides if it needs to recalculate a new local path, and then publishes a desired heading to be used by the controller.
 
@@ -45,7 +45,7 @@ You can also open OpenCPN to visualize the path finding progression over the ent
 
 All of the arguments below are optional for `all.launch`.
 
-* `initial_speedup` - Float value that changes the speed at which the simulation is run. Default: `1.0`
+* `speedup` - Float value that changes the speed at which the simulation is run. Default: `1.0`
 
 * `obstacle_type` - String value that changes the obstacle representation of AIS ships. Accepted types are: `"ellipse"`, `"wedge"`,`"circles"`, `"hybrid_circle"`, and `"hybrid_ellipse"`. Default: `"hybrid_circle"`
 
@@ -77,9 +77,11 @@ During a simulation, you can run:
 
 * `rostopic pub /forceLocalPathUpdate` then press TAB repeatedly to get a default messsage. Then send it to force a local path change, which will change the path, regardless if the new path is lower cost than the current one or not.
 
-* `rostopic pub /changeGlobalWind` then press TAB repeatedly to get a default messsage. Edit the message to get the wind speed and direction you want. This will change the global wind.
+* `rostopic pub /changeGPS` then press TAB repeatedly to get a default message. Edit the message to get sailbot position that you want. This will change the sailbot position.
 
-* `rostopic pub /changeGPS` then press TAB repeatedly to get a default messsage. Edit the message to get sailbot position that you want. This will change the sailbot position.
+* `rosparam set /global_wind_direction_degrees 70` to update the global wind direction.
+
+* `rosparam set /global_wind_speed_kmph 5` to update the global wind speed.
 
 * `rosparam set /plot_pathfinding_problem true` to start plotting the pathfinding problem at each call to `createPath`. Can change `true` to `false` to turn it off.
 

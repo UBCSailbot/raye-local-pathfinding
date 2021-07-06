@@ -4,7 +4,6 @@ import json
 import time
 from utilities import MAUI_LATLON
 
-from std_msgs.msg import Float64
 import sailbot_msg.msg as msg
 from geopy.distance import distance
 
@@ -23,15 +22,6 @@ def gpsCallback(data):
     global boatLon
     boatLat = data.lat
     boatLon = data.lon
-
-
-# Global variable for speedup
-speedup = 1.0
-
-
-def speedupCallback(data):
-    global speedup
-    speedup = data.data
 
 
 def create_path(init, goal):
@@ -68,7 +58,6 @@ def create_path(init, goal):
 def MOCK_global():
     global boatLat
     global boatLon
-    global speedup
 
     rospy.init_node('MOCK_global_planner', anonymous=True)
     pub = rospy.Publisher("globalPath", msg.path, queue_size=4)
@@ -76,9 +65,6 @@ def MOCK_global():
 
     # Subscribe to GPS to publish new global paths based on boat position
     rospy.Subscriber("GPS", msg.GPS, gpsCallback)
-
-    # Subscribe to speedup
-    rospy.Subscriber("speedup", Float64, speedupCallback)
 
     # Wait to get boat position
     while boatLat is None or boatLon is None:
@@ -103,8 +89,7 @@ def MOCK_global():
     # Publish new global path periodically
     # Publish new global path more often with speedup
     republish_counter = 0
-    newGlobalPathPeriodSecondsSpeedup = NEW_GLOBAL_PATH_PERIOD_SECONDS / speedup
-    numPublishPeriodsPerUpdate = int(newGlobalPathPeriodSecondsSpeedup / PUBLISH_PERIOD_SECONDS)
+    numPublishPeriodsPerUpdate = int(NEW_GLOBAL_PATH_PERIOD_SECONDS / PUBLISH_PERIOD_SECONDS)
     while not rospy.is_shutdown():
         # Send updated global path
         if republish_counter >= numPublishPeriodsPerUpdate:
@@ -112,7 +97,8 @@ def MOCK_global():
             init = [boatLat, boatLon]
             path = create_path(init, goal)
         else:
-            republish_counter += 1
+            speedup = rospy.get_param('speedup', default=1.0)
+            republish_counter += speedup
 
         pub.publish(msg.path(path))
         r.sleep()

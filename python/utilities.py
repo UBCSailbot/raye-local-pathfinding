@@ -7,7 +7,6 @@ import time
 import math
 import planner_helpers as plans
 from geopy.distance import distance
-from std_msgs.msg import Float64
 from sailbot_msg.msg import latlon
 
 # Location constants
@@ -46,9 +45,6 @@ BOAT_BACKWARD = 270
 
 # Constants for pathfinding updates
 COST_THRESHOLD_PER_KM = 650
-
-# Constant for number of speedup subscribers needed before publishing initial_speedup
-MIN_NUM_SPEEDUP_SUBS_BEFORE_PUBLISHING = 6
 
 
 def takeScreenshot(return_path_to_file=False):
@@ -350,38 +346,6 @@ def pathCostThresholdExceeded(path):
     rospy.loginfo("pathCost = {}. Cost threshold for this length = {}"
                   .format(pathCost, costThreshold))
     return pathCost > costThreshold
-
-
-def setInitialSpeedup():
-    '''Wait until there are enough speedup subscribers before publishing initial speedup.
-    Assumes 1.0 if "initial_speedup" parameter not set.
-
-    Note: Expects that rospy.init_node() has already been called before.
-    '''
-    initial_speedup = rospy.get_param('initial_speedup', default=1.0)
-    speedupPublisher = rospy.Publisher('speedup', Float64, queue_size=4)
-
-    # If initial speedup is about 1.0, don't need to do anything here
-    if abs(initial_speedup - 1.0) < 0.1:
-        return
-
-    # Wait for other nodes before publishing
-    numConnections = speedupPublisher.get_num_connections()
-    while numConnections < MIN_NUM_SPEEDUP_SUBS_BEFORE_PUBLISHING:
-        rospy.loginfo("{} speedup subscribers found. Waiting for at least {} speedup subscribers "
-                      "before publishing initial speedup"
-                      .format(numConnections, MIN_NUM_SPEEDUP_SUBS_BEFORE_PUBLISHING))
-        time.sleep(1)
-
-        # Calculate number of connections at the end of each loop
-        numConnections = speedupPublisher.get_num_connections()
-
-    # Publish message, then must wait to ensure other nodes receive the message before continuing
-    rospy.loginfo("{} speedup subscribers found, which is greater than or equal to the required {} speedup subscribers"
-                  .format(numConnections, MIN_NUM_SPEEDUP_SUBS_BEFORE_PUBLISHING))
-    rospy.loginfo("Publishing initial_speedup = {}".format(initial_speedup))
-    speedupPublisher.publish(initial_speedup)
-    time.sleep(1)
 
 
 # Smallest signed angle (degrees)

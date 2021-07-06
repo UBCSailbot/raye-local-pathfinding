@@ -13,7 +13,6 @@ from matplotlib import patches
 from ompl import util as ou
 from updated_geometric_planner import plan
 from ompl import geometric as og
-from std_msgs.msg import Float64
 
 # Constants
 UPWIND_DOWNWIND_TIME_LIMIT_SECONDS = 2.0
@@ -609,7 +608,7 @@ def incrementTempInvalidSolutions():
     temp_invalid_solutions += 1
 
 
-def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=False, speedupBeforePlan=1.0,
+def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=False,
                maxAllowableRuntimeSeconds=MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS):
     '''Create a Path from state.position to state.globalWaypoint. Runs OMPL pathfinding multiple times and returns
     the best path.
@@ -619,8 +618,6 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=Fals
        runtimeSeconds (float): Number of seconds that the each pathfinding attempt should run
        numRuns (int): Number of pathfinding attempts that are run in normal case
        resetSpeedupDuringPlan (bool): Decides if pathfinding should set the speedup value to 1.0 during the pathfinding
-       speedupBeforePlan (double): Only used if resetSpeedupDuringPlan is True. At the end of pathfinding,
-                                   publishes this speedup value
        maxAllowableRuntimeSeconds (double): Maximum total time that this method should take to run. Will take longer
                                             than runtimeSeconds*numRuns only if pathfinding is unable to find a path.
 
@@ -742,11 +739,11 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=Fals
 
     ou.setLogLevel(ou.LOG_WARN)
     # Set speedup to 1.0 during planning
+    speedupBeforePlan = rospy.get_param('speedup', default=1.0)
     if resetSpeedupDuringPlan:
         speedupDuringPlan = 1.0
         rospy.loginfo("Setting speedup to this value during planning = {}".format(speedupDuringPlan))
-        publisher = rospy.Publisher('speedup', Float64, queue_size=4)
-        publisher.publish(speedupDuringPlan)
+        rospy.set_param('speedup', speedupDuringPlan)
 
     # Get setup parameters from state for ompl plan()
     # Convert all latlons to NE in km wrt referenceLatlon
@@ -819,7 +816,6 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=Fals
     # Reset speedup back to original value
     if resetSpeedupDuringPlan:
         rospy.loginfo("Setting speedup back to its value before planning = {}".format(speedupBeforePlan))
-        publisher = rospy.Publisher('speedup', Float64, queue_size=4)
-        publisher.publish(speedupBeforePlan)
+        rospy.set_param('speedup', speedupBeforePlan)
 
     return Path(OMPLPath(bestSolution, bestSolutionPath, referenceLatlon))
