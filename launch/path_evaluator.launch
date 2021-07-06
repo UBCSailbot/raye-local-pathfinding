@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<launch>
+    <!-- Pathfinding parameters -->
+    <arg name="num_runs" default="2" />
+    <arg name="runtime_seconds" default="2.0" />
+    <arg name="state_sampler" default="" />
+    <arg name="grid_n" default="10" />
+    <arg name="obstacle_type" default="hybrid_circle" />
+    <arg name="planner_type" default="RRTStar" />
+    <param name="num_runs" type="int" value="$(arg num_runs)" />
+    <param name="runtime_seconds" type="double" value="$(arg runtime_seconds)" />
+    <param name="state_sampler" type="string" value="$(arg state_sampler)" />
+    <param name="grid_n" type="int" value="$(arg grid_n)" />
+    <param name="obstacle_type" type="string" value="$(arg obstacle_type)" />
+    <param name="planner_type" type="string" value="$(arg planner_type)" />
+    <node pkg="local_pathfinding" type="path_evaluator.py" name="path_evaluator" output="screen"/>
+
+    <!-- Setup mocks. View launch_all_mocks.launch for argument descriptions. -->
+    <arg name="global_wind_speed_kmph" default="1.0" />
+    <arg name="global_wind_direction_degrees" default="45.0" />
+    <arg name="num_ais_ships" default="5" />
+    <arg name="random_seed" default="" />
+    <include file="$(find local_pathfinding)/launch/launch_all_mocks.launch">
+      <arg name="global_wind_speed_kmph" value="$(arg global_wind_speed_kmph)" />
+      <arg name="global_wind_direction_degrees" value="$(arg global_wind_direction_degrees)" />
+      <arg name="num_ais_ships" value="$(arg num_ais_ships)"/>
+      <arg name="random_seed" value="$(arg random_seed)" />
+    </include>
+
+    <!-- Interface and global wind conversion -->
+    <node pkg="local_pathfinding" type="ros_interface.py" name="ros_interface"/>
+    <node pkg="local_pathfinding" type="global_wind.py" name="global_wind"/>
+</launch>
+
+

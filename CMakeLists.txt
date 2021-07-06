@@ -159,6 +159,8 @@ install(PROGRAMS
   python/local_path_visualizer.py
   python/json_dumper.py
   python/path_storer.py
+  python/main_loop.py
+  python/path_evaluator.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
