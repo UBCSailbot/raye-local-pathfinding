@@ -35,7 +35,7 @@ class MyValidStateSampler(ob.ValidStateSampler):
         x_high = self.si.getStateSpace().getBounds().high[0]
         y_high = self.si.getStateSpace().getBounds().high[1]
 
-        n = 3 #three sampled points
+        n = 10 #three sampled points
         #if self.xy_grid = None:
         #if self.i < 3: x = (self.i*(x_high)/(x_low))/(n-1) + x_low
         #if self.i < 3: y = (self.i*(y_high)/(y_low))/(n-1) + y_low
