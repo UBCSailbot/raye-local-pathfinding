@@ -10,13 +10,13 @@ from utilities import takeScreenshot
 from PIL import Image
 
 UPDATE_TIME_SECONDS = 1.0
-SCREENSHOT_PERIOD_SECONDS = 10.0
+SCREENSHOT_PERIOD_SECONDS = 3600.0
 
 
 if __name__ == '__main__':
     os.environ["WANDB_SILENT"] = "true"  # Avoid small wandb bug
     rospy.init_node('wandb_log')
-    wandb.init(entity='ubcsailbot', project='sailbot-test-2')
+    wandb.init(entity='ubcsailbot', project='sailbot-test-tyler-1')
 
     # Log parameters
     config = wandb.config
