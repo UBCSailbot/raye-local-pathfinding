@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 
 # Hyperparameter grid search
-for total_runtime in 1.0 2.0
+for total_runtime in 4.0 8.0
 do
-for runtime_seconds in 0.25 0.5 1.0
+for runtime_seconds in 1.0 2.0 4.0
 do
 for grid_n in 10 15
 do
-for planner_type in "bfmtstar" "prmstar" "lazyprmstar" "informedrrtstar" "rrtxstatic" "rrtsharp" "rrtconnect" "lbtrrt" "lazylbtrrt"
+for planner_type in "prmstar" "lazyprmstar" "rrtxstatic" "rrtsharp" "rrtconnect" "lbtrrt" "lazylbtrrt"
 do
 for global_wind_direction_degrees in 0 30 45 90
 do
