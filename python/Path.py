@@ -625,6 +625,7 @@ def createPath(state, runtimeSeconds=None, numRuns=None, resetSpeedupDuringPlan=
 
     Returns:
        Path object representing the path from state.position to state.globalWaypoint
+       Returns None if cannot find a single valid solution in the given maxAllowableRuntimeSeconds
     '''
     # Helper methods
     def getXYLimits(start, goal, extraLengthFraction=0.6):
@@ -788,10 +789,10 @@ def createPath(state, runtimeSeconds=None, numRuns=None, resetSpeedupDuringPlan=
 
         # If valid solution can't be found for large runtime, then stop searching
         if totalRuntimeSeconds >= maxAllowableRuntimeSeconds:
-            rospy.logwarn("No valid solution can be found in under {} seconds. Using invalid solution."
-                          .format(maxAllowableRuntimeSeconds))
+            rospy.logerr("No valid solution can be found in under {} seconds. Returning None."
+                         .format(maxAllowableRuntimeSeconds))
             incrementCountInvalidSolutions()
-            break
+            return None
 
         rospy.logwarn("Attempting to rerun with longer runtime: {} seconds".format(runtimeSeconds))
         solution = plan(runtimeSeconds, plannerType, state.globalWindDirectionDegrees,

@@ -33,7 +33,7 @@ def localPathUpdateForcedCallback(data):
     localPathUpdateForced = True
 
 
-def createNewLocalPath(sailbot, maxAllowableRuntimeSeconds, desiredHeadingPublisher):
+def createNewLocalPath(sailbot, maxAllowableRuntimeSeconds, desiredHeadingPublisher, prevLocalPath):
     '''Ensures sailbot is in a valid starting state, then creates a local path.
     If sailbot not in a valid state, use his.getValidStateMoveToSafetyIfNeeded to move to safety first.
 
@@ -53,6 +53,12 @@ def createNewLocalPath(sailbot, maxAllowableRuntimeSeconds, desiredHeadingPublis
                                 maxAllowableRuntimeSeconds=maxAllowableRuntimeSeconds)
     # TODO: Use counter and publishing period instead of time to work with speedup
     lastTimePathCreated = time.time()
+
+    # Handle no path found with previous solution
+    if localPath is None:
+        rospy.logerr("Could not find a new localPath within {} seconds. Using previous localPath."
+                     .format(maxAllowableRuntimeSeconds))
+        return prevLocalPath, lastTimePathCreated
     return localPath, lastTimePathCreated
 
 
@@ -87,8 +93,8 @@ if __name__ == '__main__':
 
     # Create first path and track time of updates
     state = sailbot.getCurrentState()
-    localPath, lastTimePathCreated = createNewLocalPath(sailbot, Path.MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS,
-                                                        desiredHeadingPublisher)
+    # No prev path to fall back on, so give lots of time
+    localPath, lastTimePathCreated = createNewLocalPath(sailbot, float('inf'), desiredHeadingPublisher, None)
     desiredHeadingDegrees = utils.getDesiredHeadingDegrees(state.position, localPath.getNextWaypoint())
     sailbot.newGlobalPathReceived = False
 
@@ -145,7 +151,7 @@ if __name__ == '__main__':
             # Update local path
             localPath, lastTimePathCreated = createNewLocalPath(
                 sailbot, Path.MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS / 2.0,
-                desiredHeadingPublisher)
+                desiredHeadingPublisher, localPath)
 
         else:
             # Check if new local path should be generated and compared to current local path
@@ -171,8 +177,8 @@ if __name__ == '__main__':
 
                 # Create new local path to compare
                 _localPath, _lastTimePathCreated = createNewLocalPath(
-                    sailbot, Path.MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS,
-                    desiredHeadingPublisher)
+                    sailbot, Path.MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS / 2.0,
+                    desiredHeadingPublisher, localPath)
                 lastTimePathCreated = _lastTimePathCreated
 
                 # Update local path if new one is better than old AND it reaches the goal AND the turn to it is small
