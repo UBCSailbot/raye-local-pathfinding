@@ -34,11 +34,11 @@ The pathfinding tries to avoid large turns, avoid sailing upwind or downwind, an
 
 The path can be viewed with the local path visualizer, which is shown below.
 
-![alt text](images/local_path_visualizer.png?raw=true "Local Path Visualizer")
+![local_path_visualizer](https://user-images.githubusercontent.com/26510814/125177065-cbc11880-e18d-11eb-823b-64b4e9492e56.png)
 
 You can also open OpenCPN to visualize the path finding progression over the entire map. The OpenCPN set up instructions can be found [here](install/visualisation.md)
 
-![alt text](images/opencpn_visualizer.png?raw=true "OpenCPN Visualizer")
+![opencpn_visualizer](https://user-images.githubusercontent.com/26510814/125177064-cb288200-e18d-11eb-8ffd-29df13ef60e3.png)
 
 #### Arguments for all.launch
 
