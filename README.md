@@ -34,9 +34,9 @@ The easiest way to run the local pathfinding system with ROS is to use multiple 
 
 The pathfinding tries to avoid large turns, avoid sailing upwind or downwind, and minimize the path length. It prefers straight line paths if possible, but when the wind does not permit, it will generate paths with tacking maneuvers. The cost function to create these tacking paths was developed from a sailboat reactive planning paper, which can be found [here](docs/Tacking_Paper.pdf).
 
-The path can be viewed with the local path visualizer, which is shown below.
+The local path visualizer creates a visualization of the system, which is shown below. The red triangle is the autonomous sailboat, the star is the next global waypoint, the light red circle/wedges are other boats, the dark blue circle/wedges are the projected positions of other boats, and the top left arrow shows the direction of the wind. Note that the local path avoid sailing upwind by sailing at a 45 degree angle with respect to the wind and that the local path only avoids the projected positions of other boats, which incentivizes it to sail behind other boats.
 
-![local_path_visualizer](https://user-images.githubusercontent.com/26510814/125177065-cbc11880-e18d-11eb-823b-64b4e9492e56.png)
+![Figure_1-1](https://user-images.githubusercontent.com/26510814/125178013-89033e80-e195-11eb-95f3-0143269f00fa.png)
 
 You can also open OpenCPN to visualize the path finding progression over the entire map. The OpenCPN set up instructions can be found [here](install/visualisation.md)
 
