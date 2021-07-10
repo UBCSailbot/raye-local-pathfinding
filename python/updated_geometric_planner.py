@@ -59,6 +59,19 @@ def allocatePlanner(si, plannerType):
         return og.RRTXstatic(si)
     elif plannerType.lower() == "rrtsharp":
         return og.RRTsharp(si)
+
+    # multi-query
+    elif plannerType.lower() == "lazyprmstar":
+        return og.LazyPRMstar(si)
+
+    # single-query
+    elif plannerType.lower() == "rrtconnect":
+        return og.RRTConnect(si)
+    elif plannerType.lower() == "lbtrrt":
+        return og.LBTRRT(si)
+    elif plannerType.lower() == "lazylbtrrt":
+        return og.LazyLBTRRT(si)
+
     else:
         ou.OMPL_ERROR("Planner-type is not implemented in allocation function.")
 
