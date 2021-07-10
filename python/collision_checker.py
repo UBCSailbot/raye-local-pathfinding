@@ -35,29 +35,32 @@ class CollisionChecker:
         self.ships = data.ships
 
     def check_for_collisions(self):
-        self.check_radius(0, self.collision_radius, self.collidingBoats, self.times_collided, "collision")
+        if self.check_radius(0, self.collision_radius, self.collidingBoats, "collision"):
+            self.times_collided = self.times_collided + 1
 
     def check_for_warnings(self):
-        self.check_radius(self.collision_radius, self.warn_radius, self.warningBoats, self.times_warned, "warning")
+        if self.check_radius(self.collision_radius, self.warn_radius, self.warningBoats, "warning"):
+            self.times_warned = self.times_warned + 1
 
     # min_radius is inclusive, max_radius is exclusive
-    def check_radius(self, min_radius, max_radius, boat_list, counter, message):
+    def check_radius(self, min_radius, max_radius, boat_list, message):
         for ship in self.ships:
             dist = distance((ship.lat, ship.lon), (self.lat, self.lon)).km
 
             if min_radius <= dist < max_radius:
                 if ship.ID not in boat_list:
-                    counter += 1
                     boat_list.append(ship.ID)
                     rospy.logfatal("Obstacle {} is in {} radius. Actual distance to boat: {}km."
                                    .format(ship.ID, message, dist))
                     utilities.takeScreenshot()
+                    return True
 
             elif dist >= max_radius:
                 if ship.ID in boat_list:
                     boat_list.remove(ship.ID)
                     rospy.logwarn("Obstacle {} has moved outside {} radius, {} left."
                                   .format(ship.ID, message, len(boat_list)))
+        return False
 
     def get_times_collided(self):
         return self.times_collided
