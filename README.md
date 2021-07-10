@@ -7,12 +7,12 @@ The main planning code in python can be found in the `python` directory.
 ROS Topic Inputs:
 - `/sensors` - Sensors message containing GPS, wind sensor, accelerometer data, and more. 
 - `/AIS` - AISMsg message containing latlon, heading, and speed information about other ships
-- `/global_path` - path message containing a list of latlon waypoints
+- `/globalPath` - path message containing a list of latlon waypoints
 
 ROS Topic Outputs:
 - `/desired_heading_degrees` - heading message containing the desired heading the autonomous boat should follow (for downstream controller)
 
-![UBC Sailbot Local Pathfinding Diagram July 10, 2021](https://user-images.githubusercontent.com/26510814/125176907-57d24080-e18c-11eb-8c0f-27ca0b037bda.png)
+![UBC Sailbot Local Pathfinding Diagram July 10 2021 png](https://user-images.githubusercontent.com/26510814/125177488-feb8db80-e190-11eb-8d72-b7960b9380c3.png)
 
 ## How to run
 
@@ -27,6 +27,8 @@ The easiest way to run the local pathfinding system with ROS is to use multiple 
 * __The local path visualizer__, which uses `matplotlib` to visualize the boat's position and heading, the local path, the other boats, and the wind speed and direction.
 
 * __The mock inputs__, which are a placeholder for the real inputs.
+
+![UBC Sailbot Local Pathfinding All Launch July 10 2021](https://user-images.githubusercontent.com/26510814/125177912-a1bf2480-e194-11eb-9cd7-5d96f8c81bf0.png)
 
 #### Visualizing the simulation
 
