@@ -27,7 +27,8 @@ The easiest way to run the local pathfinding system with ROS is to use multiple 
 * __The local path visualizer__, which uses `matplotlib` to visualize the boat's position and heading, the local path, the other boats, and the wind speed and direction.
 
 * __The mock inputs__, which are a placeholder for the real inputs.
-![UBC Sailbot Local Pathfinding All Launch July 10 2021 (1)](https://user-images.githubusercontent.com/26510814/125178193-3460c300-e197-11eb-82ce-6c2363e672d3.png)
+
+![UBC Sailbot Local Pathfinding All Launch July 10 2021 (2)](https://user-images.githubusercontent.com/26510814/125213256-802e6d80-e266-11eb-9d7a-0f1830df9335.png)
 
 #### Visualizing the simulation
 
