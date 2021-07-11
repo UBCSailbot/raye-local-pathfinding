@@ -1,30 +1,30 @@
 <?xml version="1.0"?>
 <launch>
     <!-- Main loop and interface. View main_loop_and_interface.launch for argument descriptions. -->
-    <arg name="num_runs" default="2" />
-    <arg name="runtime_seconds" default="2.0" />
-    <arg name="state_sampler" default="" />
-    <arg name="grid_n" default="10" />
+    <arg name="num_runs" default="8" />
+    <arg name="runtime_seconds" default="0.125" />
+    <arg name="state_sampler" default="grid" />
+    <arg name="grid_n" default="15" />
+    <arg name="planner_type" default="lazyprmstar" />
     <arg name="main_loop_output" default="screen" />
     <arg name="ros_interface_output" default="log" />
     <arg name="global_wind_output" default="log" />
     <arg name="obstacle_type" default="hybrid_circle" />
     <arg name="screenshot" default="false" />
     <arg name="plot_pathfinding_problem" default="false" />
-    <arg name="planner_type" default="RRTStar" />
     <arg name="enable_los" default="false" />
     <include file="$(find local_pathfinding)/launch/main_loop_and_interface.launch">
       <arg name="num_runs" value="$(arg num_runs)" />
       <arg name="runtime_seconds" value="$(arg runtime_seconds)" />
       <arg name="state_sampler" value="$(arg state_sampler)" />
       <arg name="grid_n" value="$(arg grid_n)" />
+      <arg name="planner_type" value="$(arg planner_type)"/>
       <arg name="main_loop_output" value="$(arg main_loop_output)"/>
       <arg name="ros_interface_output" value="$(arg ros_interface_output)"/>
       <arg name="global_wind_output" value="$(arg global_wind_output)"/>
       <arg name="obstacle_type" value="$(arg obstacle_type)"/>
       <arg name="screenshot" value="$(arg screenshot)"/>
       <arg name="plot_pathfinding_problem" value="$(arg plot_pathfinding_problem)"/>
-      <arg name="planner_type" value="$(arg planner_type)"/>
       <arg name="enable_los" value="$(arg enable_los)" />
     </include>
 

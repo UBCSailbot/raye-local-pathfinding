@@ -21,7 +21,7 @@ class GridStateSampler(ob.StateSampler):
         self.y_lo, self.y_hi = self.space.getBounds().low[1], self.space.getBounds().high[1]
 
         # Set grid density (n x n) on state bounds
-        self.n = rospy.get_param('grid_n', default=10)
+        self.n = rospy.get_param('grid_n', default=15)
         rospy.loginfo("GridStateSampler using nxn grid with n = {}".format(self.n))
 
     def sampleUniform(self, state):

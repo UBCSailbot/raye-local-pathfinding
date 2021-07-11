@@ -1,18 +1,18 @@
 <?xml version="1.0"?>
 <launch>
     <!-- Pathfinding parameters -->
-    <arg name="num_runs" default="2" />
-    <arg name="runtime_seconds" default="2.0" />
-    <arg name="state_sampler" default="" />
-    <arg name="grid_n" default="10" />
+    <arg name="num_runs" default="8" />
+    <arg name="runtime_seconds" default="0.125" />
+    <arg name="state_sampler" default="grid" />
+    <arg name="grid_n" default="15" />
+    <arg name="planner_type" default="lazyprmstar" />
     <arg name="obstacle_type" default="hybrid_circle" />
-    <arg name="planner_type" default="RRTStar" />
     <param name="num_runs" type="int" value="$(arg num_runs)" />
     <param name="runtime_seconds" type="double" value="$(arg runtime_seconds)" />
     <param name="state_sampler" type="string" value="$(arg state_sampler)" />
     <param name="grid_n" type="int" value="$(arg grid_n)" />
-    <param name="obstacle_type" type="string" value="$(arg obstacle_type)" />
     <param name="planner_type" type="string" value="$(arg planner_type)" />
+    <param name="obstacle_type" type="string" value="$(arg obstacle_type)" />
     <node pkg="local_pathfinding" type="path_evaluator.py" name="path_evaluator" output="screen"/>
 
     <!-- Setup mocks. View launch_all_mocks.launch for argument descriptions. -->
