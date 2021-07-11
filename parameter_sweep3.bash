@@ -10,7 +10,7 @@ do
             continue
         fi
         num_runs=$(echo "$total_runtime / $runtime_seconds" | bc)
-        for grid_n in 10 15
+        for grid_n in 10 15 20 25
         do
             for planner_type in "lazyprmstar"
             do
