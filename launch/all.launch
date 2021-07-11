@@ -1,17 +1,17 @@
 <?xml version="1.0"?>
 <launch>
     <!-- Main loop and interface. View main_loop_and_interface.launch for argument descriptions. -->
-    <arg name="num_runs" default="2" />
-    <arg name="runtime_seconds" default="2.0" />
-    <arg name="state_sampler" default="" />
-    <arg name="grid_n" default="10" />
+    <arg name="num_runs" default="8" />
+    <arg name="runtime_seconds" default="0.125" />
+    <arg name="state_sampler" default="grid" />
+    <arg name="grid_n" default="15" />
     <arg name="main_loop_output" default="screen" />
     <arg name="ros_interface_output" default="log" />
     <arg name="global_wind_output" default="log" />
     <arg name="obstacle_type" default="hybrid_circle" />
     <arg name="screenshot" default="false" />
     <arg name="plot_pathfinding_problem" default="false" />
-    <arg name="planner_type" default="RRTStar" />
+    <arg name="planner_type" default="lazyprmstar" />
     <arg name="enable_los" default="false" />
     <include file="$(find local_pathfinding)/launch/main_loop_and_interface.launch">
       <arg name="num_runs" value="$(arg num_runs)" />

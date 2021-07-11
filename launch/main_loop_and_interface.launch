@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 <launch>
     <!-- Sets the number of runs and runtime used for each planning call -->
-    <arg name="num_runs" default="2" />
-    <arg name="runtime_seconds" default="2.0" />
-    <arg name="state_sampler" default="" />
-    <arg name="grid_n" default="10" />
+    <arg name="num_runs" default="8" />
+    <arg name="runtime_seconds" default="0.125" />
+    <arg name="state_sampler" default="grid" />
+    <arg name="grid_n" default="15" />
     <param name="num_runs" type="int" value="$(arg num_runs)" />
     <param name="runtime_seconds" type="double" value="$(arg runtime_seconds)" />
     <param name="state_sampler" type="string" value="$(arg state_sampler)" />
@@ -28,7 +28,7 @@
     <param name="plot_pathfinding_problem" type="bool" value="$(arg plot_pathfinding_problem)" />
 
     <!-- Sets planner type, accepted types include: "RRTStar", "RRTSharp","RRTXStatic" (full list in allocatePlanner()) -->
-    <arg name="planner_type" default="RRTStar" />
+    <arg name="planner_type" default="lazyprmstar" />
     <param name="planner_type" type="string" value="$(arg planner_type)" />
 
     <!-- Use LOS heading -->

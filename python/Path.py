@@ -725,9 +725,9 @@ def createPath(state, runtimeSeconds=None, numRuns=None, resetSpeedupDuringPlan=
         return bestSolution, bestSolutionPath, minCost
 
     if runtimeSeconds is None:
-        runtimeSeconds = rospy.get_param('runtime_seconds', default=2.0)
+        runtimeSeconds = rospy.get_param('runtime_seconds', default=0.125)
     if numRuns is None:
-        numRuns = rospy.get_param('num_runs', default=1)
+        numRuns = rospy.get_param('num_runs', default=8)
 
     ou.setLogLevel(ou.LOG_WARN)
     # Set speedup to 1.0 during planning
@@ -744,7 +744,7 @@ def createPath(state, runtimeSeconds=None, numRuns=None, resetSpeedupDuringPlan=
     goal = utils.latlonToXY(state.globalWaypoint, referenceLatlon)
     dimensions = getXYLimits(start, goal)
     obstacles = obs.getObstacles(state, referenceLatlon)
-    stateSampler = rospy.get_param('state_sampler', default='')
+    stateSampler = rospy.get_param('state_sampler', default='grid')
 
     # Run the planner multiple times and find the best one
     rospy.loginfo("Running createLocalPathSS. runtimeSeconds: {}. numRuns: {}. Total time: {} seconds"
@@ -767,7 +767,7 @@ def createPath(state, runtimeSeconds=None, numRuns=None, resetSpeedupDuringPlan=
     # Look for solutions
     validSolutions = []
     invalidSolutions = []
-    plannerType = rospy.get_param('planner_type', 'RRTStar')
+    plannerType = rospy.get_param('planner_type', 'lazyprmstar')
     for i in range(numRuns):
         # TODO: Incorporate globalWindSpeed into pathfinding?
         rospy.loginfo("Starting path-planning run number: {}".format(i))
