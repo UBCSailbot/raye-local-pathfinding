@@ -1,14 +1,16 @@
 <?xml version="1.0"?>
 <launch>
-    <!-- Sets the number of runs and runtime used for each planning call -->
+    <!-- Sets planner parameters like the number of runs and runtime used for each planning call -->
     <arg name="num_runs" default="8" />
     <arg name="runtime_seconds" default="0.125" />
     <arg name="state_sampler" default="grid" />
     <arg name="grid_n" default="15" />
+    <arg name="planner_type" default="lazyprmstar" />
     <param name="num_runs" type="int" value="$(arg num_runs)" />
     <param name="runtime_seconds" type="double" value="$(arg runtime_seconds)" />
     <param name="state_sampler" type="string" value="$(arg state_sampler)" />
     <param name="grid_n" type="int" value="$(arg grid_n)" />
+    <param name="planner_type" type="string" value="$(arg planner_type)" />
 
     <!-- Sets where the output goes from the modules -->
     <arg name="main_loop_output" default="screen" />
@@ -26,10 +28,6 @@
     <!-- Set if pathfinding problem should be plotted or not -->
     <arg name="plot_pathfinding_problem" default="false" />
     <param name="plot_pathfinding_problem" type="bool" value="$(arg plot_pathfinding_problem)" />
-
-    <!-- Sets planner type, accepted types include: "RRTStar", "RRTSharp","RRTXStatic" (full list in allocatePlanner()) -->
-    <arg name="planner_type" default="lazyprmstar" />
-    <param name="planner_type" type="string" value="$(arg planner_type)" />
 
     <!-- Use LOS heading -->
     <arg name="enable_los" default="false" />
