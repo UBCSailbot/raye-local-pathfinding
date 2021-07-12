@@ -22,7 +22,7 @@ Run the installation instructions [here](install/README.md) before running.
 
 The easiest way to run the local pathfinding system with ROS is to use multiple terminals. For each terminal, you will need to run `source ~/catkin_ws/devel/setup.bash` before running other commands (you can put this in your `~/.bashrc` file as well to do this automatically). To run the full pathfinding simulation, you can run: `roslaunch local_pathfinding all.launch"`. This runs:
 
-* __The local pathfinding main loop__, which reads in published sensor data, decides if it needs to recalculate a new local path, and then publishes a desired heading to be used by the controller.
+* __The local pathfinding system__, which includes the main_loop, ros_interface, and global_wind nodes. This systems listens to input ROS topics, decides if it needs to recalculate a new local path, and then publishes a desired heading to be used by the downstream controller.
 
 * __The local path visualizer__, which uses `matplotlib` to visualize the boat's position and heading, the local path, the other boats, and the wind speed and direction.
 
