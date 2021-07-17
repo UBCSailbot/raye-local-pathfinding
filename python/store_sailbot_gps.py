@@ -19,14 +19,17 @@ ABS_PATH_TO_OUTPUT_SAILBOT_GPS_DISPLACEMENT = os.path.join(ABS_PATH_TO_OUTPUT_DI
 
 
 class SailbotGPSData:
-    def __init__(self):
-        rospy.init_node('SailbotGPSData')
+    def __init__(self, create_ros_node=True):
+        if create_ros_node:
+            rospy.init_node('SailbotGPSData', anonymous=True)
         # Subscribe to the GPS data, invoke the callback function every time the data is changed
         rospy.Subscriber('/GPS', GPS, self.GPS_callback)
 
         # Get initial values for Lat and Lon and simulation start time
         self.latInitial = rospy.wait_for_message('/GPS', GPS).lat
         self.lonInitial = rospy.wait_for_message('/GPS', GPS).lon
+        self.lat = self.latInitial
+        self.lon = self.lonInitial
 
         # Array to hold all the Lat and Lon values
         self.latArray = list()

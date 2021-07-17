@@ -130,6 +130,10 @@ def abs_angle_dist_radians(angle1_radians, angle2_radians):
     return fabs
 
 
+def abs_angle_dist_degrees(angle1_degrees, angle2_degrees):
+    return math.degrees(abs_angle_dist_radians(math.radians(angle1_degrees), math.radians(angle2_degrees)))
+
+
 def get_clearance_objective(si):
     return ClearanceObjective(si)
 
@@ -144,7 +148,7 @@ def get_threshold_path_length_objective(si):
     return obj
 
 
-def getBalancedObjective(si, windDirectionDegrees, headingDegrees):
+def getSailingObjective(si, windDirectionDegrees, headingDegrees):
     lengthObj = ob.PathLengthOptimizationObjective(si)
     minTurnObj = MinTurningObjective(si, headingDegrees)
     windObj = WindObjective(si, windDirectionDegrees)
@@ -171,10 +175,10 @@ def allocate_objective(si, objectiveType, windDirectionDegrees=None, headingDegr
         return get_path_length_objective(si)
     elif objectiveType.lower() == "thresholdpathlength":
         return get_threshold_path_length_objective(si)
-    elif objectiveType.lower() == "weightedlengthandclearancecombo":
+    elif objectiveType.lower() == "sailing":
         if windDirectionDegrees is None or headingDegrees is None:
             raise ValueError("allocate_objective requires windDirectionDegrees and headingDegrees"
-                             "parameters for weightedlengthandclearancecombo")
-        return getBalancedObjective(si, windDirectionDegrees, headingDegrees)
+                             "parameters for sailing")
+        return getSailingObjective(si, windDirectionDegrees, headingDegrees)
     else:
         ou.OMPL_ERROR("Optimization-objective is not implemented in allocation function.")

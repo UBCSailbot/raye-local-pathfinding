@@ -13,7 +13,6 @@ from matplotlib import patches
 from ompl import util as ou
 from updated_geometric_planner import plan
 from ompl import geometric as og
-from std_msgs.msg import Float64
 
 # Constants
 UPWIND_DOWNWIND_TIME_LIMIT_SECONDS = 2.0
@@ -138,13 +137,11 @@ class OMPLPath:
     # Methods that modify the class
     def updateWindDirection(self, state):
         '''Change the wind direction of the OMPL objective function, which changes subsequent path cost calculations.'''
-        globalWindSpeedKmph, globalWindDirectionDegrees = utils.measuredWindToGlobalWind(
-            state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
         objective = self._ss.getOptimizationObjective()  # Assumes balanced objective
 
         for i in range(objective.getObjectiveCount()):
             if isinstance(objective.getObjective(i), ph.WindObjective):
-                objective.getObjective(i).windDirectionDegrees = globalWindDirectionDegrees
+                objective.getObjective(i).windDirectionDegrees = state.globalWindDirectionDegrees
                 return
 
         rospy.logwarn("updateWindDirection() was unsuccessful. Wind direction was not updated")
@@ -465,10 +462,11 @@ class Path:
 
     # assumes there are at least 2 elements in self._latlons
     def lastWaypointReached(self, positionLatlon):
-        previousWaypointLatlon = self._latlons[-2]
-        nextWaypointLatlon = self._latlons[-1]
+        # last waypoint reached implies the next waypoint is the last waypoint in self._latlons
+        if self._nextWaypointIndex != len(self._latlons) - 1:
+            return False
 
-        return self.waypointReached(positionLatlon, previousWaypointLatlon, nextWaypointLatlon)
+        return self.nextWaypointReached(positionLatlon)
 
     def _cleanNumLookAheadWaypoints(self, numLookAheadWaypoints):
         '''Ensure nextLocalWaypointIndex + numLookAheadWaypoints is in bounds
@@ -509,8 +507,6 @@ class Path:
         numLookAheadWaypoints = self._cleanNumLookAheadWaypoints(numLookAheadWaypoints)
 
         # Calculate global wind from measured wind and boat state
-        globalWindSpeedKmph, globalWindDirectionDegrees = utils.measuredWindToGlobalWind(
-            state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
 
         # Get relevant waypoints (boat position first, then the next
         # numLookAheadWaypoints startin from nextLocalWaypoint onwards)
@@ -529,19 +525,19 @@ class Path:
             requiredHeadingDegrees = math.degrees(math.atan2(waypoint[1] - prevWaypoint[1],
                                                              waypoint[0] - prevWaypoint[0]))
 
-            if ph.isDownwind(math.radians(globalWindDirectionDegrees), math.radians(requiredHeadingDegrees)):
+            if ph.isDownwind(math.radians(state.globalWindDirectionDegrees), math.radians(requiredHeadingDegrees)):
                 if showWarnings:
                     rospy.loginfo("Downwind sailing on path detected. globalWindDirectionDegrees: {}. "
                                   "requiredHeadingDegrees: {}. waypointIndex: {}"
-                                  .format(globalWindDirectionDegrees, requiredHeadingDegrees, waypointIndex))
+                                  .format(state.globalWindDirectionDegrees, requiredHeadingDegrees, waypointIndex))
                 upwindOrDownwind = True
                 break
 
-            elif ph.isUpwind(math.radians(globalWindDirectionDegrees), math.radians(requiredHeadingDegrees)):
+            elif ph.isUpwind(math.radians(state.globalWindDirectionDegrees), math.radians(requiredHeadingDegrees)):
                 if showWarnings:
                     rospy.loginfo("Upwind sailing on path detected. globalWindDirectionDegrees: {}. "
                                   "requiredHeadingDegrees: {}. waypointIndex: {}"
-                                  .format(globalWindDirectionDegrees, requiredHeadingDegrees, waypointIndex))
+                                  .format(state.globalWindDirectionDegrees, requiredHeadingDegrees, waypointIndex))
                 upwindOrDownwind = True
                 break
 
@@ -612,23 +608,24 @@ def incrementTempInvalidSolutions():
     temp_invalid_solutions += 1
 
 
-def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=False, speedupBeforePlan=1.0,
+def createPath(state, runtimeSeconds=None, numRuns=None, resetSpeedupDuringPlan=False,
                maxAllowableRuntimeSeconds=MAX_ALLOWABLE_PATHFINDING_TOTAL_RUNTIME_SECONDS):
     '''Create a Path from state.position to state.globalWaypoint. Runs OMPL pathfinding multiple times and returns
     the best path.
 
     Args:
        state (BoatState): Current state of the boat, which contains all necessary information to perform pathfinding
-       runtimeSeconds (float): Number of seconds that the each pathfinding attempt should run
+       runtimeSeconds (float): Number of seconds that the each pathfinding attempt should run.
+                               If None, read from rospy param "runtime_seconds"
        numRuns (int): Number of pathfinding attempts that are run in normal case
+                      If None, read from rospy param "num_runs"
        resetSpeedupDuringPlan (bool): Decides if pathfinding should set the speedup value to 1.0 during the pathfinding
-       speedupBeforePlan (double): Only used if resetSpeedupDuringPlan is True. At the end of pathfinding,
-                                   publishes this speedup value
        maxAllowableRuntimeSeconds (double): Maximum total time that this method should take to run. Will take longer
                                             than runtimeSeconds*numRuns only if pathfinding is unable to find a path.
 
     Returns:
        Path object representing the path from state.position to state.globalWaypoint
+       Returns None if cannot find a single valid solution in the given maxAllowableRuntimeSeconds
     '''
     # Helper methods
     def getXYLimits(start, goal, extraLengthFraction=0.6):
@@ -726,30 +723,20 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=Fals
                     bestSolutionPath = unsimplifiedPath
                     minCost = unsimplifiedCost
 
-                # Check simplified path
-                solution.simplifySolution()
-                simplifiedPath = solution.getSolutionPath()
-                setAverageDistanceBetweenWaypoints(simplifiedPath)
-                simplifiedCost = simplifiedPath.cost(solution.getOptimizationObjective()).value()
-                if simplifiedCost < minCost:
-                    # Double check that simplified path is valid
-                    simplifiedPathObject = Path(OMPLPath(solution, simplifiedPath, referenceLatlon))
-                    hasObstacleOnPath = simplifiedPathObject.obstacleOnPath(state)
-                    hasUpwindOrDownwindOnPath = simplifiedPathObject.upwindOrDownwindOnPath(state)
-                    isStillValid = not hasObstacleOnPath and not hasUpwindOrDownwindOnPath
-                    if isStillValid:
-                        bestSolution = solution
-                        bestSolutionPath = simplifiedPath
-                        minCost = simplifiedCost
         return bestSolution, bestSolutionPath, minCost
+
+    if runtimeSeconds is None:
+        runtimeSeconds = rospy.get_param('runtime_seconds', default=0.125)
+    if numRuns is None:
+        numRuns = rospy.get_param('num_runs', default=8)
 
     ou.setLogLevel(ou.LOG_WARN)
     # Set speedup to 1.0 during planning
+    speedupBeforePlan = rospy.get_param('speedup', default=1.0)
     if resetSpeedupDuringPlan:
         speedupDuringPlan = 1.0
         rospy.loginfo("Setting speedup to this value during planning = {}".format(speedupDuringPlan))
-        publisher = rospy.Publisher('speedup', Float64, queue_size=4)
-        publisher.publish(speedupDuringPlan)
+        rospy.set_param('speedup', speedupDuringPlan)
 
     # Get setup parameters from state for ompl plan()
     # Convert all latlons to NE in km wrt referenceLatlon
@@ -758,18 +745,19 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=Fals
     goal = utils.latlonToXY(state.globalWaypoint, referenceLatlon)
     dimensions = getXYLimits(start, goal)
     obstacles = obs.getObstacles(state, referenceLatlon)
-    globalWindSpeedKmph, globalWindDirectionDegrees = utils.measuredWindToGlobalWind(
-        state.measuredWindSpeedKmph, state.measuredWindDirectionDegrees, state.speedKmph, state.headingDegrees)
+    stateSampler = rospy.get_param('state_sampler', default='grid')
 
     # Run the planner multiple times and find the best one
     rospy.loginfo("Running createLocalPathSS. runtimeSeconds: {}. numRuns: {}. Total time: {} seconds"
                   .format(runtimeSeconds, numRuns, runtimeSeconds * numRuns))
+    rospy.loginfo("Using stateSampler = {}".format(stateSampler) if len(stateSampler) > 0
+                  else "Using default state sampler")
 
     # Create non-blocking plot showing the setup of the pathfinding problem.
     # Useful to understand if the pathfinding problem is invalid or impossible
     shouldPlot = rospy.get_param('plot_pathfinding_problem', False)
     if shouldPlot:
-        plotPathfindingProblem(globalWindDirectionDegrees, dimensions, start, goal, obstacles,
+        plotPathfindingProblem(state.globalWindDirectionDegrees, dimensions, start, goal, obstacles,
                                state.headingDegrees)
 
     # Take screenshot
@@ -780,12 +768,12 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=Fals
     # Look for solutions
     validSolutions = []
     invalidSolutions = []
-    plannerType = rospy.get_param('planner_type', 'RRTStar')
+    plannerType = rospy.get_param('planner_type', 'lazyprmstar')
     for i in range(numRuns):
         # TODO: Incorporate globalWindSpeed into pathfinding?
         rospy.loginfo("Starting path-planning run number: {}".format(i))
-        solution = plan(runtimeSeconds, plannerType, globalWindDirectionDegrees,
-                        dimensions, start, goal, obstacles, state.headingDegrees)
+        solution = plan(runtimeSeconds, plannerType, state.globalWindDirectionDegrees,
+                        dimensions, start, goal, obstacles, state.headingDegrees, stateSampler)
         if isValidSolution(solution, referenceLatlon, state):
             validSolutions.append(solution)
         else:
@@ -801,14 +789,14 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=Fals
 
         # If valid solution can't be found for large runtime, then stop searching
         if totalRuntimeSeconds >= maxAllowableRuntimeSeconds:
-            rospy.logwarn("No valid solution can be found in under {} seconds. Using invalid solution."
-                          .format(maxAllowableRuntimeSeconds))
+            rospy.logerr("No valid solution can be found in under {} seconds. Returning None."
+                         .format(maxAllowableRuntimeSeconds))
             incrementCountInvalidSolutions()
-            break
+            return None
 
         rospy.logwarn("Attempting to rerun with longer runtime: {} seconds".format(runtimeSeconds))
-        solution = plan(runtimeSeconds, plannerType, globalWindDirectionDegrees,
-                        dimensions, start, goal, obstacles, state.headingDegrees)
+        solution = plan(runtimeSeconds, plannerType, state.globalWindDirectionDegrees,
+                        dimensions, start, goal, obstacles, state.headingDegrees, stateSampler)
 
         if isValidSolution(solution, referenceLatlon, state):
             validSolutions.append(solution)
@@ -824,7 +812,6 @@ def createPath(state, runtimeSeconds=1.0, numRuns=2, resetSpeedupDuringPlan=Fals
     # Reset speedup back to original value
     if resetSpeedupDuringPlan:
         rospy.loginfo("Setting speedup back to its value before planning = {}".format(speedupBeforePlan))
-        publisher = rospy.Publisher('speedup', Float64, queue_size=4)
-        publisher.publish(speedupBeforePlan)
+        rospy.set_param('speedup', speedupBeforePlan)
 
     return Path(OMPLPath(bestSolution, bestSolutionPath, referenceLatlon))

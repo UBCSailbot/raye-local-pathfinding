@@ -3,6 +3,7 @@
 import local_imports  # Must be first import, as it adds python directory to path
 from geopy.distance import distance
 import utilities as utils
+from planner_helpers import abs_angle_dist_degrees
 from sailbot_msg.msg import latlon
 import rostest
 import unittest
@@ -72,19 +73,51 @@ class TestUtilities(unittest.TestCase):
         desiredHeading = utils.getDesiredHeadingDegrees(position=position, localWaypoint=eastDestination)
         self.assertAlmostEqual(desiredHeading, utils.HEADING_EAST, places=1)
 
-    def test_headingToBearingDegrees(self):
+    def test_bearingToHeadingDegrees(self):
         # Basic tests
-        self.assertAlmostEqual(utils.BEARING_NORTH % 360, utils.headingToBearingDegrees(utils.HEADING_NORTH) % 360,
+        self.assertAlmostEqual(abs_angle_dist_degrees(utils.bearingToHeadingDegrees(utils.BEARING_NORTH),
+                                                      utils.HEADING_NORTH),
+                               0,
                                places=3)
-        self.assertAlmostEqual(utils.BEARING_SOUTH % 360, utils.headingToBearingDegrees(utils.HEADING_SOUTH) % 360,
+        self.assertAlmostEqual(abs_angle_dist_degrees(utils.bearingToHeadingDegrees(utils.BEARING_SOUTH),
+                                                      utils.HEADING_SOUTH),
+                               0,
                                places=3)
-        self.assertAlmostEqual(utils.BEARING_EAST % 360, utils.headingToBearingDegrees(utils.HEADING_EAST) % 360,
+        self.assertAlmostEqual(abs_angle_dist_degrees(utils.bearingToHeadingDegrees(utils.BEARING_EAST),
+                                                      utils.HEADING_EAST),
+                               0,
                                places=3)
 
         # Advanced test
         bearingDirection = (2 * utils.BEARING_SOUTH + 1 * utils.BEARING_WEST) / 3
         headingDirection = (2 * utils.HEADING_SOUTH + 1 * utils.HEADING_WEST) / 3
-        self.assertAlmostEqual(bearingDirection % 360, utils.headingToBearingDegrees(headingDirection) % 360, places=3)
+        self.assertAlmostEqual(abs_angle_dist_degrees(utils.bearingToHeadingDegrees(bearingDirection),
+                                                      headingDirection),
+                               0,
+                               places=3)
+
+    def test_headingToBearingDegrees(self):
+        # Basic tests
+        self.assertAlmostEqual(abs_angle_dist_degrees(utils.BEARING_NORTH,
+                                                      utils.headingToBearingDegrees(utils.HEADING_NORTH)),
+                               0,
+                               places=3)
+        self.assertAlmostEqual(abs_angle_dist_degrees(utils.BEARING_SOUTH,
+                                                      utils.headingToBearingDegrees(utils.HEADING_SOUTH)),
+                               0,
+                               places=3)
+        self.assertAlmostEqual(abs_angle_dist_degrees(utils.BEARING_EAST,
+                                                      utils.headingToBearingDegrees(utils.HEADING_EAST)),
+                               0,
+                               places=3)
+
+        # Advanced test
+        bearingDirection = (2 * utils.BEARING_SOUTH + 1 * utils.BEARING_WEST) / 3
+        headingDirection = (2 * utils.HEADING_SOUTH + 1 * utils.HEADING_WEST) / 3
+        self.assertAlmostEqual(abs_angle_dist_degrees(bearingDirection,
+                                                      utils.headingToBearingDegrees(headingDirection)),
+                               0,
+                               places=3)
 
     def test_measuredWindToGlobalWind_basic(self):
         # (Boat moving + no measured wind) => (global wind velocity == boat velocity)
@@ -112,12 +145,8 @@ class TestUtilities(unittest.TestCase):
 
     def test_measuredWindToGlobalWind_advanced(self):
         # Setup test parameters
-        headingDegrees = 20
-        boatSpeedKmph = 4
-        measuredWindDirectionDegrees = 10
-        measuredWindSpeedKmph = 2
         globalWindSpeedKmph, globalWindDirectionDegrees = utils.measuredWindToGlobalWind(
-            measuredWindSpeedKmph, measuredWindDirectionDegrees, boatSpeedKmph, headingDegrees)
+            measuredWindSpeed=2, measuredWindDirectionDegrees=10, boatSpeed=4, headingDegrees=20)
         self.assertAlmostEqual(4.7726691528, globalWindSpeedKmph, places=3)
         self.assertAlmostEqual(-4.373700424, globalWindDirectionDegrees, places=3)
 
@@ -150,12 +179,9 @@ class TestUtilities(unittest.TestCase):
 
     def test_globalWindToMeasuredWind_advanced(self):
         # Setup test parameters
-        headingDegrees = 120
-        boatSpeedKmph = 14
-        globalWindDirectionDegrees = 12
-        globalWindSpeedKmph = 11
         measuredWindSpeedKmph, measuredWindDirectionDegrees = utils.globalWindToMeasuredWind(
-            globalWindSpeedKmph, globalWindDirectionDegrees, boatSpeedKmph, headingDegrees)
+            globalWindSpeed=11, globalWindDirectionDegrees=12, boatSpeed=14,
+            headingDegrees=120)
 
         self.assertAlmostEqual(20.30214851358062, measuredWindSpeedKmph, places=3)
         self.assertAlmostEqual(-58.98273894650611, measuredWindDirectionDegrees, places=3)
@@ -167,7 +193,8 @@ class TestUtilities(unittest.TestCase):
         globalWindDirectionDegrees = 78
         globalWindSpeedKmph = 13
         measuredWindSpeedKmph, measuredWindDirectionDegrees = utils.globalWindToMeasuredWind(
-            globalWindSpeedKmph, globalWindDirectionDegrees, boatSpeedKmph, headingDegrees)
+            globalWindSpeed=globalWindSpeedKmph, globalWindDirectionDegrees=globalWindDirectionDegrees,
+            boatSpeed=boatSpeedKmph, headingDegrees=headingDegrees)
         calculatedGlobalWindSpeedKmph, calculatedGlobalWindDirectionDegrees = utils.measuredWindToGlobalWind(
             measuredWindSpeedKmph, measuredWindDirectionDegrees, boatSpeedKmph, headingDegrees)
 

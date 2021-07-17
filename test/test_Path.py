@@ -27,7 +27,7 @@ class TestPath(unittest.TestCase):
 
         # Create dummy path and change private variables directly
         state = sbot.BoatState(globalWaypoint=latlon(0.2, 0.2), position=latlon(0, 0),
-                               measuredWindDirectionDegrees=90, measuredWindSpeedKmph=10,
+                               globalWindDirectionDegrees=90, globalWindSpeedKmph=10,
                                AISData=AISMsg(), headingDegrees=0, speedKmph=0)
         path = createPath(state, runtimeSeconds=1, numRuns=2)
         spaceInformation = path.getSpaceInformation()
@@ -88,24 +88,18 @@ class TestPath(unittest.TestCase):
 
     def test_upwindOrDownwindOnPath(self):
         # Create simple path from latlon(0,0) to latlon(0.2,0.2)
-        measuredWindSpeedKmph, measuredWindDirectionDegrees = utils.globalWindToMeasuredWind(
-            globalWindSpeed=10, globalWindDirectionDegrees=90, boatSpeed=0, headingDegrees=0)
         state = sbot.BoatState(globalWaypoint=latlon(0.2, 0.2), position=latlon(0, 0),
-                               measuredWindDirectionDegrees=measuredWindDirectionDegrees,
-                               measuredWindSpeedKmph=measuredWindSpeedKmph,
+                               globalWindDirectionDegrees=90,
+                               globalWindSpeedKmph=10,
                                AISData=AISMsg(), headingDegrees=0, speedKmph=0)
         path = createPath(state, runtimeSeconds=1, numRuns=2)
         desiredHeadingDegrees = utils.getDesiredHeadingDegrees(state.position, path.getNextWaypoint())
 
         # Set state with global wind direction nearly same as boat current direction (sailing downwind)
         downwindGlobalWindDirectionDegrees = desiredHeadingDegrees + DOWNWIND_MAX_ANGLE_DEGREES / 2
-
-        measuredWindSpeedKmph, measuredWindDirectionDegrees = utils.globalWindToMeasuredWind(
-            globalWindSpeed=10, globalWindDirectionDegrees=downwindGlobalWindDirectionDegrees, boatSpeed=1,
-            headingDegrees=120)
         downwindState = sbot.BoatState(globalWaypoint=latlon(0.2, 0.2), position=latlon(0, 0),
-                                       measuredWindDirectionDegrees=measuredWindDirectionDegrees,
-                                       measuredWindSpeedKmph=measuredWindSpeedKmph,
+                                       globalWindDirectionDegrees=downwindGlobalWindDirectionDegrees,
+                                       globalWindSpeedKmph=10,
                                        AISData=AISMsg(), headingDegrees=120, speedKmph=1)
         # Needs to maintain downwind for time limit before returning true
         self.assertFalse(path.upwindOrDownwindOnPath(downwindState, numLookAheadWaypoints=1))
@@ -114,13 +108,9 @@ class TestPath(unittest.TestCase):
 
         # Set state with global wind direction nearly 180 degrees from boat current direction (sailing upwind)
         upwindGlobalWindDirectionDegrees = desiredHeadingDegrees + 180 + UPWIND_MAX_ANGLE_DEGREES / 2
-
-        measuredWindSpeedKmph, measuredWindDirectionDegrees = utils.globalWindToMeasuredWind(
-            globalWindSpeed=10, globalWindDirectionDegrees=upwindGlobalWindDirectionDegrees, boatSpeed=1,
-            headingDegrees=120)
         upwindState = sbot.BoatState(globalWaypoint=latlon(0.2, 0.2), position=latlon(0, 0),
-                                     measuredWindDirectionDegrees=measuredWindDirectionDegrees,
-                                     measuredWindSpeedKmph=measuredWindSpeedKmph,
+                                     globalWindDirectionDegrees=upwindGlobalWindDirectionDegrees,
+                                     globalWindSpeedKmph=10,
                                      AISData=AISMsg(), headingDegrees=120, speedKmph=1)
         self.assertFalse(path.upwindOrDownwindOnPath(upwindState, numLookAheadWaypoints=1))
         time.sleep(UPWIND_DOWNWIND_TIME_LIMIT_SECONDS * 1.5)
@@ -128,13 +118,9 @@ class TestPath(unittest.TestCase):
 
         # Set state so the boat is not going downwind or upwind
         validGlobalWindDirectionDegrees = desiredHeadingDegrees + DOWNWIND_MAX_ANGLE_DEGREES * 2
-
-        measuredWindSpeedKmph, measuredWindDirectionDegrees = utils.globalWindToMeasuredWind(
-            globalWindSpeed=10, globalWindDirectionDegrees=validGlobalWindDirectionDegrees, boatSpeed=1,
-            headingDegrees=120)
         validState = sbot.BoatState(globalWaypoint=latlon(0.2, 0.2), position=latlon(0, 0),
-                                    measuredWindDirectionDegrees=measuredWindDirectionDegrees,
-                                    measuredWindSpeedKmph=measuredWindSpeedKmph,
+                                    globalWindDirectionDegrees=validGlobalWindDirectionDegrees,
+                                    globalWindSpeedKmph=10,
                                     AISData=AISMsg(), headingDegrees=120, speedKmph=1)
         self.assertFalse(path.upwindOrDownwindOnPath(validState, numLookAheadWaypoints=1))
         time.sleep(UPWIND_DOWNWIND_TIME_LIMIT_SECONDS * 1.5)
@@ -144,13 +130,9 @@ class TestPath(unittest.TestCase):
         newPosition = latlon(0.2, 0)
         desiredHeadingDegrees = utils.getDesiredHeadingDegrees(newPosition, path.getNextWaypoint())
         validGlobalWindDirectionDegrees = desiredHeadingDegrees + UPWIND_MAX_ANGLE_DEGREES * 2
-
-        measuredWindSpeedKmph, measuredWindDirectionDegrees = utils.globalWindToMeasuredWind(
-            globalWindSpeed=10, globalWindDirectionDegrees=validGlobalWindDirectionDegrees, boatSpeed=1,
-            headingDegrees=120)
         validState = sbot.BoatState(globalWaypoint=latlon(0.2, 0.2), position=newPosition,
-                                    measuredWindDirectionDegrees=measuredWindDirectionDegrees,
-                                    measuredWindSpeedKmph=measuredWindSpeedKmph,
+                                    globalWindDirectionDegrees=validGlobalWindDirectionDegrees,
+                                    globalWindSpeedKmph=10,
                                     AISData=AISMsg(), headingDegrees=120, speedKmph=1)
         self.assertFalse(path.upwindOrDownwindOnPath(validState, numLookAheadWaypoints=1))
         time.sleep(UPWIND_DOWNWIND_TIME_LIMIT_SECONDS * 1.5)
@@ -160,13 +142,9 @@ class TestPath(unittest.TestCase):
         newPosition = latlon(0, 0.2)
         desiredHeadingDegrees = utils.getDesiredHeadingDegrees(newPosition, path.getNextWaypoint())
         downwindGlobalWindDirectionDegrees = desiredHeadingDegrees + DOWNWIND_MAX_ANGLE_DEGREES / 2
-
-        measuredWindSpeedKmph, measuredWindDirectionDegrees = utils.globalWindToMeasuredWind(
-            globalWindSpeed=10, globalWindDirectionDegrees=downwindGlobalWindDirectionDegrees, boatSpeed=1,
-            headingDegrees=120)
         invalidState = sbot.BoatState(globalWaypoint=latlon(0.2, 0.2), position=newPosition,
-                                      measuredWindDirectionDegrees=measuredWindDirectionDegrees,
-                                      measuredWindSpeedKmph=measuredWindSpeedKmph,
+                                      globalWindDirectionDegrees=downwindGlobalWindDirectionDegrees,
+                                      globalWindSpeedKmph=10,
                                       AISData=AISMsg(), headingDegrees=120, speedKmph=1)
         self.assertFalse(path.upwindOrDownwindOnPath(invalidState, numLookAheadWaypoints=1))
         time.sleep(UPWIND_DOWNWIND_TIME_LIMIT_SECONDS * 1.5)
@@ -176,11 +154,9 @@ class TestPath(unittest.TestCase):
         '''To visualize the obstacleOnPath check, go to updated_geometric_planner.py
            and uncomment the plotting in indexOfObstacleOnPath()'''
         # Create simple path from latlon(0,0) to latlon(0.2,0.2)
-        measuredWindSpeedKmph, measuredWindDirectionDegrees = utils.globalWindToMeasuredWind(
-            globalWindSpeed=10, globalWindDirectionDegrees=90, boatSpeed=0, headingDegrees=0)
         state = sbot.BoatState(globalWaypoint=latlon(0.2, 0.2), position=latlon(0, 0),
-                               measuredWindDirectionDegrees=measuredWindDirectionDegrees,
-                               measuredWindSpeedKmph=measuredWindSpeedKmph,
+                               globalWindDirectionDegrees=90,
+                               globalWindSpeedKmph=10,
                                AISData=AISMsg(), headingDegrees=0, speedKmph=0)
         path = createPath(state, runtimeSeconds=1, numRuns=2)
 
@@ -243,11 +219,9 @@ class TestPath(unittest.TestCase):
         '''To visualize the obstacleOnPath check, go to updated_geometric_planner.py
            and uncomment the plotting in indexOfObstacleOnPath()'''
         # Create simple path from latlon(0,0) to latlon(0.2,0.2)
-        measuredWindSpeedKmph, measuredWindDirectionDegrees = utils.globalWindToMeasuredWind(
-            globalWindSpeed=10, globalWindDirectionDegrees=90, boatSpeed=0, headingDegrees=0)
         state = sbot.BoatState(globalWaypoint=latlon(0.2, 0.2), position=latlon(0, 0),
-                               measuredWindDirectionDegrees=measuredWindDirectionDegrees,
-                               measuredWindSpeedKmph=measuredWindSpeedKmph,
+                               globalWindDirectionDegrees=90,
+                               globalWindSpeedKmph=10,
                                AISData=AISMsg(), headingDegrees=0, speedKmph=0)
         path = createPath(state, runtimeSeconds=1, numRuns=2)
         omplPath = path.getOMPLPath()
@@ -341,10 +315,8 @@ class TestPath(unittest.TestCase):
         # Create simple straight line path (no need for tacking because of wind is 90 degrees, goal is 0 degrees)
         start = latlon(0, 0)
         goal = latlon(0, 0.2)
-        measuredWindSpeedKmph, measuredWindDegrees = utils.globalWindToMeasuredWind(
-            globalWindSpeed=10, globalWindDirectionDegrees=90, boatSpeed=0, headingDegrees=0)
-        state = sbot.BoatState(globalWaypoint=goal, position=start, measuredWindDirectionDegrees=measuredWindDegrees,
-                               measuredWindSpeedKmph=measuredWindSpeedKmph, AISData=AISMsg(), headingDegrees=0,
+        state = sbot.BoatState(globalWaypoint=goal, position=start, globalWindDirectionDegrees=90,
+                               globalWindSpeedKmph=10, AISData=AISMsg(), headingDegrees=0,
                                speedKmph=0)
         path = createPath(state, runtimeSeconds=0.5, numRuns=2, maxAllowableRuntimeSeconds=1)
         latlons = path.getLatlons()
@@ -368,10 +340,8 @@ class TestPath(unittest.TestCase):
         # Create tacking path (requires tacking because of wind is 45 degrees, goal is 45 degrees)
         start = latlon(0, 0)
         goal = latlon(0.2, 0.2)
-        measuredWindSpeedKmph, measuredWindDegrees = utils.globalWindToMeasuredWind(
-            globalWindSpeed=10, globalWindDirectionDegrees=45, boatSpeed=0, headingDegrees=0)
-        state = sbot.BoatState(globalWaypoint=goal, position=start, measuredWindDirectionDegrees=measuredWindDegrees,
-                               measuredWindSpeedKmph=measuredWindSpeedKmph, AISData=AISMsg(), headingDegrees=0,
+        state = sbot.BoatState(globalWaypoint=goal, position=start, globalWindDirectionDegrees=45,
+                               globalWindSpeedKmph=10, AISData=AISMsg(), headingDegrees=0,
                                speedKmph=0)
         path = createPath(state, runtimeSeconds=0.5, numRuns=2, maxAllowableRuntimeSeconds=1)
         latlons = path.getLatlons()

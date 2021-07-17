@@ -5,7 +5,6 @@ import json
 import urllib2
 import time
 
-from std_msgs.msg import Float64
 from geopy.distance import distance
 from utilities import headingToBearingDegrees, PORT_RENFREW_LATLON
 from std_msgs.msg import Int32
@@ -97,7 +96,6 @@ class MOCK_AISEnvironment:
         rospy.Subscriber('/new_boats', AISShip, self.new_boat_callback)
         rospy.Subscriber('/delete_boats', Int32, self.remove_boat_callback)
         rospy.Subscriber('/GPS', GPS, self.gps_callback)
-        rospy.Subscriber('speedup', Float64, self.speedup_callback)
 
         # Set random seed. Must be called AFTER rospy.init_node and BEFORE making random ships
         self.set_random_seed()
@@ -105,7 +103,6 @@ class MOCK_AISEnvironment:
         # Create ships
         self.last_real_ship_pull = time.time() # The timestamp for the last time we downloaded new ship positions
         self.publishPeriodSeconds = AIS_PUBLISH_PERIOD_SECONDS
-        self.speedup = 1.0
         self.ships = []
 
         if ais_file:
@@ -133,8 +130,9 @@ class MOCK_AISEnvironment:
             rospy.loginfo("randomSeed = {}. Not setting seed".format(randomSeed))
 
     def move_ships(self):
+        speedup = rospy.get_param('speedup', default=1.0)
         for i in range(self.numShips):
-            self.ships[i].move(self.speedup)
+            self.ships[i].move(speedup)
             if isinstance(self.ships[i], RandomShip):
                 if distance((self.ships[i].lat, self.ships[i].lon), (self.sailbot_lat, self.sailbot_lon)).km > 60.0:
                     rospy.loginfo("MMSI " + str(self.ships[i].id) +
@@ -163,9 +161,6 @@ class MOCK_AISEnvironment:
     def gps_callback(self, msg):
         self.sailbot_lat = msg.lat
         self.sailbot_lon = msg.lon
-
-    def speedup_callback(self, msg):
-        self.speedup = msg.data
 
     def get_real_ships(self):
         lat = self.sailbot_lat

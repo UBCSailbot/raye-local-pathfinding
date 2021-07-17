@@ -5,8 +5,8 @@ import os
 import rospy
 import time
 import math
+import planner_helpers as plans
 from geopy.distance import distance
-from std_msgs.msg import Float64
 from sailbot_msg.msg import latlon
 
 # Location constants
@@ -46,12 +46,15 @@ BOAT_BACKWARD = 270
 # Constants for pathfinding updates
 COST_THRESHOLD_PER_KM = 650
 
-# Constant for number of speedup subscribers needed before publishing initial_speedup
-MIN_NUM_SPEEDUP_SUBS_BEFORE_PUBLISHING = 6
 
-
-def takeScreenshot():
+def takeScreenshot(return_path_to_file=False):
     '''Take a screenshot and save it to a png file.
+
+    Args:
+       return_path_to_file (bool): If True, will return path to saved screenshot file
+
+    Returns:
+       str path to saved screenshot file if return_path_to_file is True, else nothing
 
     Note: The first time this is called, it will create the following folder structure if it does not already exist:
           images/(%b-%d-%Y)/(%H-%M-%S) where %b-%d-%Y is a date string and %H-%M-%S is a time string.
@@ -87,6 +90,24 @@ def takeScreenshot():
     rospy.loginfo("Taking screenshot...")
     myScreenshot.save(fullImagePath)
     rospy.loginfo("Screenshot saved to {}".format(fullImagePath))
+    if return_path_to_file:
+        return fullImagePath
+
+
+def absAngleDegreesBetweenLatlons(latlon1, latlon2, referenceLatlon):
+    '''Calculates the absolute angle between the XY coordinates of two latlons, given referenceLatlon located at (0,0)
+
+    Args:
+        latlon1 (sailbot_msg.msg._latlon.latlon): The first latlon to calculate the degree of
+        latlon2 (sailbot_msg.msg._latlon.latlon): The second latlon to calculate the degree of
+        referenceLatlon (sailbot_msg.msg._latlon.latlon): The latlon that will be located at (0, 0)
+
+    Returns:
+        float representing the absolute angle between the two latlons in degrees
+    '''
+    x1, y1 = latlonToXY(latlon1, referenceLatlon)
+    x2, y2 = latlonToXY(latlon2, referenceLatlon)
+    return math.degrees(plans.abs_angle_dist_radians(math.atan2(y2, x2), math.atan2(y1, x1)))
 
 
 def latlonToXY(latlon, referenceLatlon):
@@ -197,14 +218,12 @@ def getLOSHeadingDegrees(position, previousWaypoint, currentWaypoint):
 
 def measuredWindToGlobalWind(measuredWindSpeed, measuredWindDirectionDegrees, boatSpeed, headingDegrees):
     '''Calculate the global wind based on the measured wind and the boat velocity
-
     Args:
        measuredWindSpeed (float): speed of the wind measured from the boat. All speed values must be in the same units.
        measuredWindDirectionDegrees (float): angle of the measured with wrt the boat.
                                              0 degrees is wind blowing to the right. 90 degrees is wind blowing forward.
        boatSpeed (float): speed of the boat
        headingDegrees (float): angle of the boat in global frame. 0 degrees is East. 90 degrees is North.
-
     Returns:
        float, float pair representing the globalWindSpeed (same units as input speed), globalWindDirectionDegrees
     '''
@@ -267,16 +286,33 @@ def headingToBearingDegrees(headingDegrees):
 
     Note: Heading is defined using cartesian coordinates. 0 degrees is East. 90 degrees in North. 270 degrees is South.
           Bearing is defined differently. 0 degrees is North. 90 degrees is East. 180 degrees is South.
-          Heading is used for most of this code-based, but bearing is used for interfacing with the geopy module.
+          Heading is used for most of this code-based, but bearing is used for interfacing with the geopy module and
+          other code external to local-pathfinding.
 
     Args:
-       xy (list of two floats): The xy (km) coordinates whose latlon coordinates will be calculated.
-       referenceLatlon (sailbot_msg.msg._latlon.latlon): The latlon that will be located at (0,0) wrt xy.
+       headingDegrees (float): heading in degrees
 
     Returns:
-       sailbot_msg.msg._latlon.latlon representing the position of xy in latlon coordinates
+       float representing the same angle in bearing coordinates
     '''
     return -headingDegrees + 90
+
+
+def bearingToHeadingDegrees(bearingDegrees):
+    '''Calculates the heading angle given the bearing angle.
+
+    Note: Heading is defined using cartesian coordinates. 0 degrees is East. 90 degrees in North. 270 degrees is South.
+          Bearing is defined differently. 0 degrees is North. 90 degrees is East. 180 degrees is South.
+          Heading is used for most of this code-based, but bearing is used for interfacing with the geopy module and
+          other code external to local-pathfinding.
+
+    Args:
+       bearingDegrees (float): heading in degrees
+
+    Returns:
+       float representing the same angle in heading coordinates
+    '''
+    return -bearingDegrees + 90
 
 
 def isValid(xy, obstacles):
@@ -310,38 +346,6 @@ def pathCostThresholdExceeded(path):
     rospy.loginfo("pathCost = {}. Cost threshold for this length = {}"
                   .format(pathCost, costThreshold))
     return pathCost > costThreshold
-
-
-def setInitialSpeedup():
-    '''Wait until there are enough speedup subscribers before publishing initial speedup.
-    Assumes 1.0 if "initial_speedup" parameter not set.
-
-    Note: Expects that rospy.init_node() has already been called before.
-    '''
-    initial_speedup = rospy.get_param('initial_speedup', default=1.0)
-    speedupPublisher = rospy.Publisher('speedup', Float64, queue_size=4)
-
-    # If initial speedup is about 1.0, don't need to do anything here
-    if abs(initial_speedup - 1.0) < 0.1:
-        return
-
-    # Wait for other nodes before publishing
-    numConnections = speedupPublisher.get_num_connections()
-    while numConnections < MIN_NUM_SPEEDUP_SUBS_BEFORE_PUBLISHING:
-        rospy.loginfo("{} speedup subscribers found. Waiting for at least {} speedup subscribers "
-                      "before publishing initial speedup"
-                      .format(numConnections, MIN_NUM_SPEEDUP_SUBS_BEFORE_PUBLISHING))
-        time.sleep(1)
-
-        # Calculate number of connections at the end of each loop
-        numConnections = speedupPublisher.get_num_connections()
-
-    # Publish message, then must wait to ensure other nodes receive the message before continuing
-    rospy.loginfo("{} speedup subscribers found, which is greater than or equal to the required {} speedup subscribers"
-                  .format(numConnections, MIN_NUM_SPEEDUP_SUBS_BEFORE_PUBLISHING))
-    rospy.loginfo("Publishing initial_speedup = {}".format(initial_speedup))
-    speedupPublisher.publish(initial_speedup)
-    time.sleep(1)
 
 
 # Smallest signed angle (degrees)
