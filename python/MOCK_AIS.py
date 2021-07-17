@@ -11,32 +11,46 @@ from sailbot_msg.msg import AISShip, AISMsg, GPS
 
 # Constants
 AIS_PUBLISH_PERIOD_SECONDS = 0.1  # Keep below 1.0 for smoother boat motion
-NUM_AIS_SHIPS = rospy.get_param('num_ais_ships', default=5)
 
 
-class RandomShip:
-    def __init__(self, id, sailbot_lat, sailbot_lon, publishPeriodSeconds):
-        self.id = id
-        self.headingDegrees = random.randint(0, 360)
-        self.speedKmph = random.randint(0, 15)
+def createRandomSimulatedShip(referenceLat, referenceLon, mmsi=None):
+    '''Creates a random simulated ship near the reference lat lon.
+       Sets a random speed and heading and distance from reference.
 
-        # Set AIS boat position to be in about 50km radius around sailbot
-        distanceFromSailbotKm = distance(kilometers=abs(random.randint(5, 50)))
-        boatLatlon = distanceFromSailbotKm.destination(point=(sailbot_lat, sailbot_lon),
-                                                       bearing=random.randint(0, 360))
-        self.lat = boatLatlon.latitude
-        self.lon = boatLatlon.longitude
+    Args:
+       referenceLat (float): Latitude that the ship should be near
+       referenceLon (float): Longitude that the ship should be near
+       mmsi (int/str): mmsi of the ship, if None, then uses random int
 
-        self.publishPeriodSeconds = publishPeriodSeconds
+    Returns:
+       SimulatedShip near the reference latlon
+    '''
 
-    def move(self, speedup):
-        # Travel greater distance with speedup
-        distanceTraveledKm = distance(kilometers=self.speedKmph * self.publishPeriodSeconds / 3600 * speedup)
-        boatLatlon = distanceTraveledKm.destination(point=(self.lat, self.lon),
-                                                    bearing=headingToBearingDegrees(self.headingDegrees))
+    def getRandomNearbyLatlon(referenceLatlon, minDistKm, maxDistKm):
+        referenceLat, referenceLon = referenceLatlon
+        randomDistFromReferenceKm = abs(random.uniform(minDistKm, maxDistKm))
+        randomBearingDegrees = random.uniform(0, 360)
+        nearbyLatlon = distance(kilometers=randomDistFromReferenceKm).destination(point=(referenceLat, referenceLon),
+                                                                                  bearing=randomBearingDegrees)
+        return (nearbyLatlon.latitude, nearbyLatlon.longitude)
 
-        self.lon = boatLatlon.longitude
-        self.lat = boatLatlon.latitude
+    randomLat, randomLon = getRandomNearbyLatlon(referenceLatlon=(referenceLat, referenceLon),
+                                                 minDistKm=5, maxDistKm=50)
+    randomHeadingDegrees = random.randint(0, 360)
+    randomSpeedKmph = random.randint(0, 15)
+    if mmsi is None:
+        mmsi = random.randint(0, 100000)
+    return SimulatedShip(MMSI=mmsi, lat=randomLat, lon=randomLon, heading=randomHeadingDegrees, speed=randomSpeedKmph)
+
+
+class Ship:
+    '''Base class for storing ship data'''
+    def __init__(self, MMSI, lat, lon, heading, speed):
+        self.id = MMSI
+        self.lat = lat
+        self.lon = lon
+        self.headingDegrees = heading
+        self.speedKmph = speed
 
     def make_ros_message(self):
         return AISShip(self.id, self.lat, self.lon, self.headingDegrees, self.speedKmph)
@@ -45,36 +59,25 @@ class RandomShip:
         return [self.id, self.lat, self.lon, self.headingDegrees, self.speedKmph]
 
 
-class Ship:
-    def __init__(self, id, boat_lat, boat_lon, heading, speed, publishPeriodSeconds):
-        self.id = id
-        self.lat = boat_lat
-        self.lon = boat_lon
-        self.headingDegrees = heading
-        self.speedKmph = speed
-        self.publishPeriodSeconds = publishPeriodSeconds
+class RealShip(Ship):
+    '''Real ship from real AIS data'''
+    pass
 
-    def move(self, speedup):
-        # Travel greater distance with speedup
-        distanceTraveledKm = distance(kilometers=self.speedKmph * self.publishPeriodSeconds / 3600 * speedup)
-        boatLatlon = distanceTraveledKm.destination(point=(self.lat, self.lon),
-                                                    bearing=headingToBearingDegrees(self.headingDegrees))
 
-        self.lon = boatLatlon.longitude
+class SimulatedShip(Ship):
+    '''Simulated ship that can be moved over time by the simulation'''
+    def move(self, movement_time_seconds):
+        distanceTraveledKm = self.speedKmph * movement_time_seconds / 3600
+        bearingOfTravelDegrees = headingToBearingDegrees(self.headingDegrees)
+        boatLatlon = distance(kilometers=distanceTraveledKm).destination(point=(self.lat, self.lon),
+                                                                         bearing=bearingOfTravelDegrees)
         self.lat = boatLatlon.latitude
-
-    def make_ros_message(self):
-        return AISShip(
-            self.id,
-            self.lat,
-            self.lon,
-            self.headingDegrees,
-            self.speedKmph)
+        self.lon = boatLatlon.longitude
 
 
 class MOCK_AISEnvironment:
-    # Just a class to keep track of the ships surrounding the sailbot
-    def __init__(self, lat, lon, ais_file):
+    '''Class to keep track of ships surroudning the sailbot'''
+    def __init__(self, sailbot_lat, sailbot_lon):
         # Setup ros objects
         rospy.init_node('MOCK_AIS', anonymous=True)
         self.publisher = rospy.Publisher("AIS", AISMsg, queue_size=4)
@@ -88,19 +91,24 @@ class MOCK_AISEnvironment:
         # Create ships
         self.publishPeriodSeconds = AIS_PUBLISH_PERIOD_SECONDS
         self.ships = []
+
+        # Use stored boats
+        ais_file = rospy.get_param('ais_file', default=None)
         if ais_file:
             f = open(ais_file, 'r')
             ship_list = json.load(f)
             self.numShips = len(ship_list)
             for ship in ship_list:
-                self.ships.append(Ship(*ship, publishPeriodSeconds=self.publishPeriodSeconds))
-        else:
-            self.numShips = NUM_AIS_SHIPS
-            for i in range(self.numShips):
-                self.ships.append(RandomShip(i, lat, lon, self.publishPeriodSeconds))
+                self.ships.append(SimulatedShip(*ship))
 
-        self.sailbot_lat = lat
-        self.sailbot_lon = lon
+        # Create random new boats
+        else:
+            self.numShips = rospy.get_param('num_ais_ships', default=5)
+            for i in range(self.numShips):
+                self.ships.append(createRandomSimulatedShip(referenceLat=sailbot_lat, referenceLon=sailbot_lon, mmsi=i))
+
+        self.sailbot_lat = sailbot_lat
+        self.sailbot_lon = sailbot_lon
 
     def set_random_seed(self):
         randomSeed = rospy.get_param('random_seed', "")
@@ -109,28 +117,31 @@ class MOCK_AISEnvironment:
             random.seed(randomSeed)
             rospy.loginfo("randomSeed = {}. Setting seed".format(randomSeed))
         except ValueError:
-            rospy.loginfo("randomSeed = {}. Not setting seed".format(randomSeed))
+            rospy.logwarn("randomSeed = {}. Not setting seed".format(randomSeed))
 
     def move_ships(self):
         speedup = rospy.get_param('speedup', default=1.0)
+        movement_time_seconds = speedup * self.publishPeriodSeconds
+
         for i in range(self.numShips):
-            self.ships[i].move(speedup)
-            if isinstance(self.ships[i], RandomShip):
+            self.ships[i].move(movement_time_seconds)
+
+            # If simulated ship out of range, remove and add new one
+            if isinstance(self.ships[i], SimulatedShip):
                 if distance((self.ships[i].lat, self.ships[i].lon), (self.sailbot_lat, self.sailbot_lon)).km > 60.0:
-                    rospy.loginfo("MMSI " + str(self.ships[i].id) +
+                    mmsi = self.ships[i].id
+                    rospy.loginfo("MMSI " + str(mmsi) +
                                   " went out of bounds, moving it closer to the sailbot")
                     del self.ships[i]
-                    self.ships.insert(i, RandomShip(i, self.sailbot_lat, self.sailbot_lon, self.publishPeriodSeconds))
+                    self.ships.insert(i, createRandomSimulatedShip(referenceLat=self.sailbot_lat,
+                                                                   referenceLon=self.sailbot_lon, mmsi=i))
 
     def make_ros_message(self):
         rospy.loginfo([ship.id for ship in self.ships])
-        ship_list = []
-        for i in range(self.numShips):
-            ship_list.append(self.ships[i].make_ros_message())
-        return AISMsg(ship_list)
+        return AISMsg([ship.make_ros_message() for ship in self.ships])
 
     def new_boat_callback(self, msg):
-        self.ships.append(Ship(msg.ID, msg.lat, msg.lon, msg.headingDegrees, msg.speedKmph, self.publishPeriodSeconds))
+        self.ships.append(SimulatedShip(msg.ID, msg.lat, msg.lon, msg.headingDegrees, msg.speedKmph))
         self.numShips += 1
 
     def remove_boat_callback(self, msg):
@@ -143,10 +154,7 @@ class MOCK_AISEnvironment:
 
 
 if __name__ == '__main__':
-    # Get ais_file parameter
-    ais_file = rospy.get_param('ais_file', default=None)
-
-    ais_env = MOCK_AISEnvironment(PORT_RENFREW_LATLON.lat, PORT_RENFREW_LATLON.lon, ais_file)
+    ais_env = MOCK_AISEnvironment(PORT_RENFREW_LATLON.lat, PORT_RENFREW_LATLON.lon)
     r = rospy.Rate(1.0 / ais_env.publishPeriodSeconds)  # hz
 
     while not rospy.is_shutdown():
