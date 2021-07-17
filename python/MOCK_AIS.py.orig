@@ -6,7 +6,7 @@ import urllib2
 import time
 
 from geopy.distance import distance
-from utilities import headingToBearingDegrees, bearingToHeadingDegrees, PORT_RENFREW_LATLON
+from utilities import headingToBearingDegrees, PORT_RENFREW_LATLON
 from std_msgs.msg import Int32
 
 from sailbot_msg.msg import AISShip, AISMsg, GPS
@@ -35,6 +35,7 @@ def createRandomSimulatedShip(referenceLat, referenceLon, mmsi=None):
         nearbyLatlon = distance(kilometers=randomDistFromReferenceKm).destination(point=(referenceLat, referenceLon),
                                                                                   bearing=randomBearingDegrees)
         return (nearbyLatlon.latitude, nearbyLatlon.longitude)
+<<<<<<< HEAD
 
     randomLat, randomLon = getRandomNearbyLatlon(referenceLatlon=(referenceLat, referenceLon),
                                                  minDistKm=5, maxDistKm=50)
@@ -44,6 +45,17 @@ def createRandomSimulatedShip(referenceLat, referenceLon, mmsi=None):
         mmsi = random.randint(0, 100000)
     return SimulatedShip(MMSI=mmsi, lat=randomLat, lon=randomLon, heading=randomHeadingDegrees, speed=randomSpeedKmph)
 
+=======
+
+    randomLat, randomLon = getRandomNearbyLatlon(referenceLatlon=(referenceLat, referenceLon),
+                                                 minDistKm=5, maxDistKm=50)
+    randomHeadingDegrees = random.randint(0, 360)
+    randomSpeedKmph = random.randint(0, 15)
+    if mmsi is None:
+        mmsi = random.randint(0, 100000)
+    return SimulatedShip(MMSI=mmsi, lat=randomLat, lon=randomLon, heading=randomHeadingDegrees, speed=randomSpeedKmph)
+
+>>>>>>> master
 
 class Ship:
     '''Base class for storing ship data'''
@@ -80,11 +92,14 @@ class SimulatedShip(Ship):
 class MOCK_AISEnvironment:
     '''Class to keep track of ships surroudning the sailbot'''
     def __init__(self, sailbot_lat, sailbot_lon):
+<<<<<<< HEAD
         self.use_real_ships = rospy.get_param('use_real_ships', default=False)
         self.token = rospy.get_param('AIS_token', default='')
         self.sailbot_lat = sailbot_lat
         self.sailbot_lon = sailbot_lon
 
+=======
+>>>>>>> master
         # Setup ros objects
         rospy.init_node('MOCK_AIS', anonymous=True)
         self.publisher = rospy.Publisher("AIS", AISMsg, queue_size=4)
@@ -108,14 +123,24 @@ class MOCK_AISEnvironment:
             self.numShips = len(ship_list)
             for ship in ship_list:
                 self.ships.append(SimulatedShip(*ship))
+<<<<<<< HEAD
         elif self.use_real_ships:
             self.last_real_ship_pull = time.time()  # The timestamp for the last time we downloaded new ship positions
             self.get_real_ships()
+=======
+
+>>>>>>> master
         # Create random new boats
         else:
             self.numShips = rospy.get_param('num_ais_ships', default=5)
             for i in range(self.numShips):
                 self.ships.append(createRandomSimulatedShip(referenceLat=sailbot_lat, referenceLon=sailbot_lon, mmsi=i))
+<<<<<<< HEAD
+=======
+
+        self.sailbot_lat = sailbot_lat
+        self.sailbot_lon = sailbot_lon
+>>>>>>> master
 
     def set_random_seed(self):
         randomSeed = rospy.get_param('random_seed', "")
@@ -144,10 +169,8 @@ class MOCK_AISEnvironment:
                                                                    referenceLon=self.sailbot_lon, mmsi=i))
 
     def make_ros_message(self):
-        if self.use_real_ships:
-            return AISMsg([ship.make_ros_message() for ship in self.real_ships])
-        else:
-            return AISMsg([ship.make_ros_message() for ship in self.ships])
+        rospy.loginfo([ship.id for ship in self.ships])
+        return AISMsg([ship.make_ros_message() for ship in self.ships])
 
     def new_boat_callback(self, msg):
         self.ships.append(SimulatedShip(msg.ID, msg.lat, msg.lon, msg.headingDegrees, msg.speedKmph))
@@ -197,11 +220,14 @@ class MOCK_AISEnvironment:
             new_ship = RealShip(int(real_ship[u'mmsi']),
                                 float(real_ship[u'latitude']),
                                 float(real_ship[u'longitude']),
-                                bearingToHeadingDegrees(float(real_ship[u'cog'])),
+                                float(real_ship[u'cog']),
                                 float(real_ship[u'sog']) * 0.54)
             self.real_ships.append(new_ship)
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> master
 if __name__ == '__main__':
     ais_env = MOCK_AISEnvironment(PORT_RENFREW_LATLON.lat, PORT_RENFREW_LATLON.lon)
     r = rospy.Rate(1.0 / ais_env.publishPeriodSeconds)  # hz
