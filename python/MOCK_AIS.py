@@ -70,8 +70,9 @@ class Ship:
             self.id,
             self.lat,
             self.lon,
-            (90.0 -self.headingDegrees) % 360,
+            (90.0 - self.headingDegrees) % 360,
             self.speedKmph)
+
 
 class RealShip(Ship):
     def __init__(self, MMSI, lat, lon, heading, speed):
@@ -101,7 +102,7 @@ class MOCK_AISEnvironment:
         self.set_random_seed()
 
         # Create ships
-        self.last_real_ship_pull = time.time() # The timestamp for the last time we downloaded new ship positions
+        self.last_real_ship_pull = time.time()  # The timestamp for the last time we downloaded new ship positions
         self.publishPeriodSeconds = AIS_PUBLISH_PERIOD_SECONDS
         self.ships = []
 
@@ -112,13 +113,12 @@ class MOCK_AISEnvironment:
             for ship in ship_list:
                 self.ships.append(Ship(*ship, publishPeriodSeconds=self.publishPeriodSeconds))
         elif self.use_real_ships:
-            self.last_real_ship_pull = time.time() # The timestamp for the last time we downloaded new ship positions
+            self.last_real_ship_pull = time.time()  # The timestamp for the last time we downloaded new ship positions
             self.get_real_ships()
         else:
             self.numShips = NUM_AIS_SHIPS
             for i in range(self.numShips):
                 self.ships.append(RandomShip(i, lat, lon, self.publishPeriodSeconds))
-
 
     def set_random_seed(self):
         randomSeed = rospy.get_param('random_seed', "")
@@ -167,23 +167,22 @@ class MOCK_AISEnvironment:
         lon = self.sailbot_lon
         space = "%20"
         pos_list = ""
-        pos_list += str(lon-0.2) + space + str(lat-0.2) + space # bot left
-        pos_list += str(lon-0.2) + space + str(lat+0.2) + space # top left
-        pos_list += str(lon+0.2) + space + str(lat+0.2) + space # top right
-        pos_list += str(lon+0.2) + space + str(lat-0.2) + space # bot right
-        pos_list += str(lon-0.2) + space + str(lat-0.2)         # bot left
-
+        pos_list += str(lon-0.2) + space + str(lat-0.2) + space  # bot left
+        pos_list += str(lon-0.2) + space + str(lat+0.2) + space  # top left
+        pos_list += str(lon+0.2) + space + str(lat+0.2) + space  # top right
+        pos_list += str(lon+0.2) + space + str(lat-0.2) + space  # bot right
+        pos_list += str(lon-0.2) + space + str(lat-0.2)          # bot left
 
         url = 'https://services.exactearth.com/gws/wms?service=WFS&version=1.1.0&authKey=' + self.token
-        url += '&request=GetFeature&typeName=exactAIS:LVI&outputFormat=json&filter=<Filter%20xmlns:gml="http://www.opengis.net/gml">'
-        url += '<Intersects><PropertyName>position</PropertyName><gml:Polygon%20xmlns:gml="http://www.opengis.net/gml"%20srsName="EPSG:4326">'
-        url += '<gml:exterior><gml:LinearRing><gml:posList>' + pos_list 
+        url += '&request=GetFeature&typeName=exactAIS:LVI&outputFormat=json&filter=<Filter%20xmlns:gml="http://www.opengis.net/gml">'  # noqa: E501
+        url += '<Intersects><PropertyName>position</PropertyName><gml:Polygon%20xmlns:gml="http://www.opengis.net/gml"%20srsName="EPSG:4326">'  # noqa: E501
+        url += '<gml:exterior><gml:LinearRing><gml:posList>' + pos_list
         url += '</gml:posList></gml:LinearRing></gml:exterior></gml:Polygon></Intersects></Filter>'
         request = urllib2.Request(url)
         # Set the user agent to something so our request is accepted
-        #request.add_header("User-Agent", "Mozilla/5.0 (Windows NT 6.0; WOW64; rv:24.0) Gecko/20100101 Firefox/24.0")
-        #request.add_header("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:72.0) Gecko/20100101 Firefox/72.0")
-        #request.add_header("User-Agent", "Mozilla/5.0 (Linux; Android 7.0; SM-G892A Build/NRD90M; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/60.0.3112.107 Mobile Safari/537.36")
+        # request.add_header("User-Agent", "Mozilla/5.0 (Windows NT 6.0; WOW64; rv:24.0) Gecko/20100101 Firefox/24.0")
+        # request.add_header("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:72.0) Gecko/20100101 Firefox/72.0")
+        # request.add_header("User-Agent", "Mozilla/5.0 (Linux; Android 7.0; SM-G892A Build/NRD90M; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/60.0.3112.107 Mobile Safari/537.36")  # noqa: E501
         print("Querying the server")
         data = urllib2.urlopen(request)
         data = data.read()
@@ -212,7 +211,7 @@ if __name__ == '__main__':
     r = rospy.Rate(1.0 / ais_env.publishPeriodSeconds)  # hz
 
     while not rospy.is_shutdown():
-        #rospy.loginfo(ais_env.real_ships)
+        # rospy.loginfo(ais_env.real_ships)
         if ais_env.use_real_ships:
             timestamp = time.time()
             # If it's been more than two minutes since last time we downloaded real ship
