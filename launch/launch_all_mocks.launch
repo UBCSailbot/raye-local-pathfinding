@@ -35,14 +35,17 @@
     <param name="goal_file" type="string" value="$(arg goal_file)" />
     <param name="wind_file" type="string" value="$(arg wind_file)" />
 
-    <!-- Use real ships from exactAIS (don't simulate ships) -->
-    <arg name="use_real_ships" default="false" />
+    <!-- exactAIS data will be used iff a token is supplied -->
     <arg name="AIS_token" default="" />
-    <param name="use_real_ships" type="bool" value="$(arg use_real_ships)" />
     <param name="AIS_token" type="string" value="$(arg AIS_token)" />
+    <group if="$(eval bool(arg('AIS_token')))">
+      <node pkg="local_pathfinding" type="MOCK_exactAIS.py" name="MOCK_exactAIS" output="screen" />
+    </group>
+    <group unless="$(eval bool(arg('AIS_token')))">
+      <node pkg="local_pathfinding" type="MOCK_AIS.py" name="MOCK_AIS" output="screen" />
+    </group>
 
     <param name="speedup" type="double" value="$(arg speedup)" />
-    <node pkg="local_pathfinding" type="MOCK_AIS.py" name="MOCK_AIS" output="screen" />
     <node pkg="local_pathfinding" type="MOCK_global_planner.py" name="MOCK_global_planner" />
     <node pkg="local_pathfinding" type="MOCK_UDP_bridge.py" name="MOCK_UDP_bridge" />
     <node pkg="local_pathfinding" type="addBoat.py" name="addBoat" />
