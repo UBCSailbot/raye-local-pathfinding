@@ -41,7 +41,6 @@
     <arg name="gps_file" default="" />
     <arg name="goal_file" default="" />
     <arg name="wind_file" default="" />
-    <arg name="use_real_ships" default="false" />
     <arg name="AIS_token" default="" />
     <include file="$(find local_pathfinding)/launch/launch_all_mocks.launch">
       <arg name="speedup" value="$(arg speedup)"/>
@@ -56,7 +55,6 @@
       <arg name="gps_file" value="$(arg gps_file)"/>
       <arg name="goal_file" value="$(arg goal_file)"/>
       <arg name="wind_file" value="$(arg wind_file)"/>
-      <arg name="use_real_ships" default="$(arg use_real_ships)" />
       <arg name="AIS_token" default="$(arg AIS_token)" />
     </include>
 
