@@ -9,7 +9,7 @@ from geopy.distance import distance
 
 # Constants for this class
 PUBLISH_PERIOD_SECONDS = 10.0  # Can keep high to simulate real global pathfinding
-NEW_GLOBAL_PATH_PERIOD_SECONDS = 3600.0 * 24
+NEW_GLOBAL_PATH_PERIOD_SECONDS = 10.0
 AVG_WAYPOINT_DISTANCE_KM = 30  # TODO: Set this to match global pathfinding
 
 # Global variables for tracking boat position
@@ -55,21 +55,21 @@ def create_path(init, goal):
     return path
 
 
-def getGoalLatLon():
+def getGoalLatLon(defaultLat, defaultLon):
     # Read in goalLat and goalLon
     try:
-        goalLat = rospy.get_param('goal_lat', default=MAUI_LATLON.lat)
+        goalLat = rospy.get_param('goal_lat', default=defaultLat)
         goalLat = float(goalLat)
     except ValueError:
         rospy.logwarn("Invalid goalLat must be a float, but received goalLat = {}".format(goalLat))
-        goalLat = MAUI_LATLON.lat
+        goalLat = defaultLat
         rospy.logwarn("Defaulting to goalLat = {}".format(goalLat))
     try:
-        goalLon = rospy.get_param('goal_lon', default=MAUI_LATLON.lon)
+        goalLon = rospy.get_param('goal_lon', default=defaultLon)
         goalLon = float(goalLon)
     except ValueError:
         rospy.logwarn("Invalid goalLon must be a float, but received goalLon = {}".format(goalLon))
-        goalLon = MAUI_LATLON.lon
+        goalLon = defaultLon
         rospy.logwarn("Defaulting to goalLon = {}".format(goalLon))
     return (goalLat, goalLon)
 
@@ -101,7 +101,7 @@ def MOCK_global():
             lon = record[1]
             goal = [lat, lon]
     else:
-        goal = getGoalLatLon()
+        goal = getGoalLatLon(defaultLat=MAUI_LATLON.lat, defaultLon=MAUI_LATLON.lon)
 
     path = create_path(init, goal)
 
@@ -114,6 +114,7 @@ def MOCK_global():
         if republish_counter >= numPublishPeriodsPerUpdate:
             republish_counter = 0
             init = [boatLat, boatLon]
+            goal = getGoalLatLon(defaultLat=goal[0], defaultLon=goal[1])
             path = create_path(init, goal)
         else:
             speedup = rospy.get_param('speedup', default=1.0)
