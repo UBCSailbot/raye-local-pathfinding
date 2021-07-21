@@ -55,6 +55,25 @@ def create_path(init, goal):
     return path
 
 
+def getGoalLatLon():
+    # Read in goalLat and goalLon
+    try:
+        goalLat = rospy.get_param('goal_lat', default=MAUI_LATLON.lat)
+        goalLat = float(goalLat)
+    except ValueError:
+        rospy.logwarn("Invalid goalLat must be a float, but received goalLat = {}".format(goalLat))
+        goalLat = MAUI_LATLON.lat
+        rospy.logwarn("Defaulting to goalLat = {}".format(goalLat))
+    try:
+        goalLon = rospy.get_param('goal_lon', default=MAUI_LATLON.lon)
+        goalLon = float(goalLon)
+    except ValueError:
+        rospy.logwarn("Invalid goalLon must be a float, but received goalLon = {}".format(goalLon))
+        goalLon = MAUI_LATLON.lon
+        rospy.logwarn("Defaulting to goalLon = {}".format(goalLon))
+    return (goalLat, goalLon)
+
+
 def MOCK_global():
     global boatLat
     global boatLon
@@ -82,7 +101,7 @@ def MOCK_global():
             lon = record[1]
             goal = [lat, lon]
     else:
-        goal = [MAUI_LATLON.lat, MAUI_LATLON.lon]
+        goal = getGoalLatLon()
 
     path = create_path(init, goal)
 

@@ -39,6 +39,8 @@
     <arg name="random_seed" default="" />
     <arg name="start_lat" default="" />
     <arg name="start_lon" default="" />
+    <arg name="goal_lat" default="" />
+    <arg name="goal_lon" default="" />
     <arg name="ais_file" default="" />
     <arg name="gps_file" default="" />
     <arg name="goal_file" default="" />
@@ -55,6 +57,8 @@
       <arg name="random_seed" value="$(arg random_seed)" />
       <arg name="start_lat" value="$(arg start_lat)" />
       <arg name="start_lon" value="$(arg start_lon)" />
+      <arg name="goal_lat" value="$(arg goal_lat)" />
+      <arg name="goal_lon" value="$(arg goal_lon)" />
       <arg name="ais_file" value="$(arg ais_file)"/>
       <arg name="gps_file" value="$(arg gps_file)"/>
       <arg name="goal_file" value="$(arg goal_file)"/>
