@@ -34,26 +34,28 @@
     <arg name="global_wind_direction_degrees" default="45.0" />
     <arg name="ocean_current_speed" default="0.0" />
     <arg name="ocean_current_direction" default="0.0" />
+    <arg name="smooth_changes" default="true" />
     <arg name="num_ais_ships" default="5" />
     <arg name="random_seed" default="" />
-    <arg name="smooth_changes" default="true" />
     <arg name="ais_file" default="" />
     <arg name="gps_file" default="" />
     <arg name="goal_file" default="" />
     <arg name="wind_file" default="" />
+    <arg name="AIS_token" default="" />
     <include file="$(find local_pathfinding)/launch/launch_all_mocks.launch">
       <arg name="speedup" value="$(arg speedup)"/>
       <arg name="global_wind_speed_kmph" value="$(arg global_wind_speed_kmph)" />
       <arg name="global_wind_direction_degrees" value="$(arg global_wind_direction_degrees)" />
       <arg name="ocean_current_speed" value="$(arg ocean_current_speed)" />
       <arg name="ocean_current_direction" value="$(arg ocean_current_direction)" />
+      <arg name="smooth_changes" value="$(arg smooth_changes)" />
       <arg name="num_ais_ships" value="$(arg num_ais_ships)"/>
+      <arg name="random_seed" value="$(arg random_seed)" />
       <arg name="ais_file" value="$(arg ais_file)"/>
       <arg name="gps_file" value="$(arg gps_file)"/>
       <arg name="goal_file" value="$(arg goal_file)"/>
       <arg name="wind_file" value="$(arg wind_file)"/>
-      <arg name="random_seed" value="$(arg random_seed)" />
-      <arg name="smooth_changes" value="$(arg smooth_changes)" />
+      <arg name="AIS_token" default="$(arg AIS_token)" />
     </include>
 
     <!-- Wandb logger -->

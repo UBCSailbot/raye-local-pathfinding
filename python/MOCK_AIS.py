@@ -59,11 +59,6 @@ class Ship:
         return [self.id, self.lat, self.lon, self.headingDegrees, self.speedKmph]
 
 
-class RealShip(Ship):
-    '''Real ship from real AIS data'''
-    pass
-
-
 class SimulatedShip(Ship):
     '''Simulated ship that can be moved over time by the simulation'''
     def move(self, movement_time_seconds):
@@ -78,6 +73,9 @@ class SimulatedShip(Ship):
 class MOCK_AISEnvironment:
     '''Class to keep track of ships surroudning the sailbot'''
     def __init__(self, sailbot_lat, sailbot_lon):
+        self.sailbot_lat = sailbot_lat
+        self.sailbot_lon = sailbot_lon
+
         # Setup ros objects
         rospy.init_node('MOCK_AIS', anonymous=True)
         self.publisher = rospy.Publisher("AIS", AISMsg, queue_size=4)
@@ -100,15 +98,11 @@ class MOCK_AISEnvironment:
             self.numShips = len(ship_list)
             for ship in ship_list:
                 self.ships.append(SimulatedShip(*ship))
-
         # Create random new boats
         else:
             self.numShips = rospy.get_param('num_ais_ships', default=5)
             for i in range(self.numShips):
                 self.ships.append(createRandomSimulatedShip(referenceLat=sailbot_lat, referenceLon=sailbot_lon, mmsi=i))
-
-        self.sailbot_lat = sailbot_lat
-        self.sailbot_lon = sailbot_lon
 
     def set_random_seed(self):
         randomSeed = rospy.get_param('random_seed', "")
@@ -137,7 +131,6 @@ class MOCK_AISEnvironment:
                                                                    referenceLon=self.sailbot_lon, mmsi=i))
 
     def make_ros_message(self):
-        rospy.loginfo([ship.id for ship in self.ships])
         return AISMsg([ship.make_ros_message() for ship in self.ships])
 
     def new_boat_callback(self, msg):
@@ -158,7 +151,8 @@ if __name__ == '__main__':
     r = rospy.Rate(1.0 / ais_env.publishPeriodSeconds)  # hz
 
     while not rospy.is_shutdown():
-        data = ais_env.make_ros_message()
         ais_env.move_ships()
+
+        data = ais_env.make_ros_message()
         ais_env.publisher.publish(data)
         r.sleep()
