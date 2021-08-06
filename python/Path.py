@@ -740,7 +740,7 @@ def createPath(state, runtimeSeconds=None, numRuns=None, resetSpeedupDuringPlan=
 
     # Get setup parameters from state for ompl plan()
     # Convert all latlons to NE in km wrt referenceLatlon
-    referenceLatlon = state.globalWaypoint
+    referenceLatlon = state.position
     start = utils.latlonToXY(state.position, referenceLatlon)
     goal = utils.latlonToXY(state.globalWaypoint, referenceLatlon)
     dimensions = getXYLimits(start, goal)
