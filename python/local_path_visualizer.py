@@ -195,7 +195,7 @@ if __name__ == '__main__':
     # Making the tail half of the visualizer
     positionPlotTail, = axes.plot(positionXY[0] - 1 * math.cos(math.radians(state.headingDegrees)),
                                   positionXY[1] - 1 * math.sin(math.radians(state.headingDegrees)),
-                                  marker=(5, 0, state.headingDegrees - 90), color='r', markersize=.7 * markersize)
+                                  marker=(5, 0, state.headingDegrees - 90), color='r', markersize=0.7 * markersize)
 
     # Setup plot xy limits and labels
     axes.set_xlim(xNLim, xPLim)
@@ -272,6 +272,7 @@ if __name__ == '__main__':
             if 'nextGlobalWaypointPlot' in globals():
                 nextGlobalWaypointPlot.set_xdata(nextGlobalWaypointXY[0])
                 nextGlobalWaypointPlot.set_ydata(nextGlobalWaypointXY[1])
+                nextGlobalWaypointPlot.set_markersize(markersize)
                 globalWaypointReachedPlot.set_xdata(glob_X)
                 globalWaypointReachedPlot.set_ydata(glob_Y)
             else:
@@ -284,6 +285,7 @@ if __name__ == '__main__':
             if 'nextLocalWaypointPlot' in globals():
                 nextLocalWaypointPlot.set_xdata(nextLocalWaypointXY[0])
                 nextLocalWaypointPlot.set_ydata(nextLocalWaypointXY[1])
+                nextLocalWaypointPlot.set_markersize(markersize)
                 waypointReachedPlot.set_xdata(lineX)
                 waypointReachedPlot.set_ydata(lineY)
             else:
@@ -295,6 +297,7 @@ if __name__ == '__main__':
             if 'localPathPlot' in globals():
                 localPathPlot.set_xdata(localPathX)
                 localPathPlot.set_ydata(localPathY)
+                localPathPlot.set_markersize(markersize / 2)
             else:
                 localPathPlot, = axes.plot(localPathX, localPathY, marker='.', color='g', markersize=markersize / 2,
                                            linewidth=2)  # Green dots
@@ -302,9 +305,11 @@ if __name__ == '__main__':
         positionPlot.set_xdata(positionXY[0])
         positionPlot.set_ydata(positionXY[1])
         positionPlot.set_marker((3, 0, state.headingDegrees - 90))  # Creates a triangle with correct 'heading'
+        positionPlot.set_markersize(markersize)
         positionPlotTail.set_xdata(positionXY[0] - 1 * math.cos(math.radians(state.headingDegrees)))
         positionPlotTail.set_ydata(positionXY[1] - 1 * math.sin(math.radians(state.headingDegrees)))
         positionPlotTail.set_marker((5, 0, state.headingDegrees - 90))  # Creates a tail for the visualizer
+        positionPlotTail.set_markersize(0.7 * markersize)
 
         fractionOfPlotLen = min(xPLim - xNLim, yPLim - yNLim) / 15
         arrowLength = fractionOfPlotLen
