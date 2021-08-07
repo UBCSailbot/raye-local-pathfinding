@@ -173,28 +173,28 @@ if __name__ == '__main__':
 
     # Plot if the required variables are defined
     if 'nextGlobalWaypointXY' in globals():
-        nextGlobalWaypointPlot, = axes.plot(nextGlobalWaypointXY[0], nextGlobalWaypointXY[1],
+        nextGlobalWaypointPlot, = axes.plot(nextGlobalWaypointXY[0], nextGlobalWaypointXY[1], zorder=3,
                                             marker='*', color='y', markersize=markersize)  # Yellow star
         glob_X, glob_Y = getPerpPlot(glob_isStartEast, glob_slope, glob_y, nextGlobalWaypointXY)
-        globalWaypointReachedPlot, = axes.plot(glob_X, glob_Y, color='r')
+        globalWaypointReachedPlot, = axes.plot(glob_X, glob_Y, zorder=5, color='r')  # Red line
 
     if 'nextLocalWaypointXY' in globals():
-        nextLocalWaypointPlot, = axes.plot(nextLocalWaypointXY[0], nextLocalWaypointXY[1],
+        nextLocalWaypointPlot, = axes.plot(nextLocalWaypointXY[0], nextLocalWaypointXY[1], zorder=2,
                                            marker='X', color='g', markersize=markersize)  # Green X
         lineX, lineY = getPerpPlot(isStartEast, slope, y_intercept, nextLocalWaypointXY)
-        waypointReachedPlot, = axes.plot(lineX, lineY, color='b')
+        waypointReachedPlot, = axes.plot(lineX, lineY, zorder=4, color='b')  # Blue line
 
     if 'localPathXY' in globals():
-        localPathPlot, = axes.plot(localPathX, localPathY, marker='.', color='g', markersize=markersize / 2,
+        localPathPlot, = axes.plot(localPathX, localPathY, zorder=1, marker='.', color='g', markersize=markersize / 2,
                                    linewidth=2)  # Green dots
 
     # Red triangle with correct heading. The (-90) is because the triangle
     # default heading 0 points North, but this heading has 0 be East.
-    positionPlot, = axes.plot(positionXY[0], positionXY[1],
+    positionPlot, = axes.plot(positionXY[0], positionXY[1], zorder=6,
                               marker=(3, 0, state.headingDegrees - 90), color='r', markersize=markersize)
     # Making the tail half of the visualizer
     positionPlotTail, = axes.plot(positionXY[0] - 1 * math.cos(math.radians(state.headingDegrees)),
-                                  positionXY[1] - 1 * math.sin(math.radians(state.headingDegrees)),
+                                  positionXY[1] - 1 * math.sin(math.radians(state.headingDegrees)), zorder=6,
                                   marker=(5, 0, state.headingDegrees - 90), color='r', markersize=0.7 * markersize)
 
     # Setup plot xy limits and labels
@@ -276,9 +276,9 @@ if __name__ == '__main__':
                 globalWaypointReachedPlot.set_xdata(glob_X)
                 globalWaypointReachedPlot.set_ydata(glob_Y)
             else:
-                nextGlobalWaypointPlot, = axes.plot(nextGlobalWaypointXY[0], nextGlobalWaypointXY[1],
+                nextGlobalWaypointPlot, = axes.plot(nextGlobalWaypointXY[0], nextGlobalWaypointXY[1], zorder=3,
                                                     marker='*', color='y', markersize=markersize)  # Yellow star
-                globalWaypointReachedPlot, = axes.plot(glob_X, glob_Y, color='r')
+                globalWaypointReachedPlot, = axes.plot(glob_X, glob_Y, zorder=5, color='r')  # Red line
 
         if 'nextLocalWaypointXY' in globals():
             lineX, lineY = getPerpPlot(isStartEast, slope, y_intercept, nextLocalWaypointXY)
@@ -289,9 +289,9 @@ if __name__ == '__main__':
                 waypointReachedPlot.set_xdata(lineX)
                 waypointReachedPlot.set_ydata(lineY)
             else:
-                nextLocalWaypointPlot, = axes.plot(nextLocalWaypointXY[0], nextLocalWaypointXY[1],
+                nextLocalWaypointPlot, = axes.plot(nextLocalWaypointXY[0], nextLocalWaypointXY[1], zorder=2,
                                                    marker='X', color='g', markersize=markersize)  # Green X
-                waypointReachedPlot, = axes.plot(lineX, lineY, color='b')
+                waypointReachedPlot, = axes.plot(lineX, lineY, zorder=4, color='b')  # Blue line
 
         if 'localPathXY' in globals():
             if 'localPathPlot' in globals():
@@ -299,8 +299,8 @@ if __name__ == '__main__':
                 localPathPlot.set_ydata(localPathY)
                 localPathPlot.set_markersize(markersize / 2)
             else:
-                localPathPlot, = axes.plot(localPathX, localPathY, marker='.', color='g', markersize=markersize / 2,
-                                           linewidth=2)  # Green dots
+                localPathPlot, = axes.plot(localPathX, localPathY, zorder=1, marker='.', color='g',
+                                           markersize=markersize / 2, linewidth=2)  # Green dots
 
         positionPlot.set_xdata(positionXY[0])
         positionPlot.set_ydata(positionXY[1])
