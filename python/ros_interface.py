@@ -13,8 +13,8 @@ MAX_ALLOWABLE_PERCENT_ERROR = 0.2  # If signals need different margin of errors;
 Conversion Notes:
 - Sensors data types are int32 or float32, GPS and windSensor are float64, so no loss of precision
 - gps_lat_decimalDegrees and gps_lon_decimalDegrees: already in decimal degrees (minutes conversion done upstream)
-- gps_heading_degrees: (0 is north, 90 is east, etc - cw - degrees) -> (0 is east, 90 is north, etc - ccw - degrees)
-- measured_wind_direction: (0 is forward, 90 is right, etc - cw - degrees) -> (0 is right, 90 is bow, etc - ccw - degrees)
+- gps_heading_degrees: (0 is north, 90 is east - cw - degrees) -> (0 is east, 90 is north - ccw - degrees)
+- measured_wind_direction: (0 is forward, 90 is right - cw - degrees) -> (0 is right, 90 is bow - ccw - degrees)
 - note that same angle coordinate conversion is needed for both gps_heading_degrees and measured_wind_direction
 - gps_speedKmph, measured_wind_speedKmph: knots -> km/h
 """
