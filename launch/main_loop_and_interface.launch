@@ -15,7 +15,6 @@
     <!-- Sets where the output goes from the modules -->
     <arg name="main_loop_output" default="screen" />
     <arg name="ros_interface_output" default="log" />
-    <arg name="global_wind_output" default="log" />
 
     <!-- Sets the obstacle representation type, accepted types are: "ellipse", "wedge","circles", "hybrid_circle", and "hybrid_ellipse" (full list in getObstacles())-->
     <arg name="obstacle_type" default="hybrid_circle" />
@@ -35,6 +34,5 @@
 
     <node pkg="local_pathfinding" type="main_loop.py" name="main_loop" output="$(arg main_loop_output)"/>
     <node pkg="local_pathfinding" type="ros_interface.py" name="ros_interface" output="$(arg ros_interface_output)"/>
-    <node pkg="local_pathfinding" type="global_wind.py" name="global_wind" output="$(arg global_wind_output)"/>
 </launch>
 

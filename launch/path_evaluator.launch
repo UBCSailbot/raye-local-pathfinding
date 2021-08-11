@@ -14,6 +14,7 @@
     <param name="planner_type" type="string" value="$(arg planner_type)" />
     <param name="obstacle_type" type="string" value="$(arg obstacle_type)" />
     <node pkg="local_pathfinding" type="path_evaluator.py" name="path_evaluator" output="screen"/>
+    <node pkg="local_pathfinding" type="ros_interface.py" name="ros_interface"/>
 
     <!-- Setup mocks. View launch_all_mocks.launch for argument descriptions. -->
     <arg name="global_wind_speed_kmph" default="1.0" />
@@ -26,10 +27,6 @@
       <arg name="num_ais_ships" value="$(arg num_ais_ships)"/>
       <arg name="random_seed" value="$(arg random_seed)" />
     </include>
-
-    <!-- Interface and global wind conversion -->
-    <node pkg="local_pathfinding" type="ros_interface.py" name="ros_interface"/>
-    <node pkg="local_pathfinding" type="global_wind.py" name="global_wind"/>
 </launch>
 
 
