@@ -9,11 +9,29 @@ from utilities import headingToBearingDegrees, bearingToHeadingDegrees, PORT_REN
 # Constants
 KNOTS_TO_KMPH = 1.852
 SENSORS_PUBLISH_PERIOD_SECONDS = 0.1  # Keep below 1.0 for smoother boat motion
-START_LAT, START_LON = PORT_RENFREW_LATLON.lat, PORT_RENFREW_LATLON.lon
 START_BOAT_SPEED_KMPH = 14.4  # Boat should move at about 4m/s = 14.4 km/h
 START_BOAT_HEADING_DEGREES = 180
 START_GLOBAL_WIND_DIRECTION_DEGREES = 0
 START_GLOBAL_WIND_SPEED_KMPH = 10
+
+
+def getStartLatLon(defaultLat, defaultLon):
+    # Read in startLat and startLon
+    try:
+        startLat = rospy.get_param('start_lat', default=defaultLat)
+        startLat = float(startLat)
+    except ValueError:
+        rospy.logwarn("Invalid startLat must be a float, but received startLat = {}".format(startLat))
+        startLat = defaultLat
+        rospy.logwarn("Defaulting to startLat = {}".format(startLat))
+    try:
+        startLon = rospy.get_param('start_lon', default=defaultLon)
+        startLon = float(startLon)
+    except ValueError:
+        rospy.logwarn("Invalid startLon must be a float, but received startLon = {}".format(startLon))
+        startLon = defaultLon
+        rospy.logwarn("Defaulting to startLon = {}".format(startLon))
+    return (startLat, startLon)
 
 
 class MOCK_SensorManager:
@@ -129,7 +147,8 @@ class MOCK_SensorManager:
 
 
 if __name__ == '__main__':
-    sensorManager = MOCK_SensorManager(startLat=START_LAT, startLon=START_LON,
+    startLat, startLon = getStartLatLon(defaultLat=PORT_RENFREW_LATLON.lat, defaultLon=PORT_RENFREW_LATLON.lon)
+    sensorManager = MOCK_SensorManager(startLat=startLat, startLon=startLon,
                                        startHeadingDegrees=START_BOAT_HEADING_DEGREES,
                                        startSpeedKmph=START_BOAT_SPEED_KMPH,
                                        startGlobalWindSpeedKmph=START_GLOBAL_WIND_SPEED_KMPH,

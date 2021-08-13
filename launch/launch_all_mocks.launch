@@ -25,6 +25,16 @@
     <arg name="random_seed" default="" />
     <param name="random_seed" type="string" value="$(arg random_seed)" />
 
+    <!-- Sets start and goal latlon -->
+    <arg name="start_lat" default="" />
+    <arg name="start_lon" default="" />
+    <arg name="goal_lat" default="" />
+    <arg name="goal_lon" default="" />
+    <param name="start_lat" type="string" value="$(arg start_lat)" />
+    <param name="start_lon" type="string" value="$(arg start_lon)" />
+    <param name="goal_lat" type="string" value="$(arg goal_lat)" />
+    <param name="goal_lon" type="string" value="$(arg goal_lon)" />
+
     <!-- Sets ais_file, the FULL path of a JSON file to be read to set the initial AIS ship positions, initial sailbot position, goal position, initial wind condition -->
     <arg name="ais_file" default="" />
     <arg name="gps_file" default="" />
