@@ -46,7 +46,7 @@ def obstacleOnStart(state):
        ObstacleInterface object that is at the start state causing it to be invalid, else returns None
        If there are multiple obstacles on start, this just returns one of them
     '''
-    referenceLatlon = state.position
+    referenceLatlon = state.globalWaypoint
     obstacles = obs.getObstacles(state, referenceLatlon)
     for obstacle in obstacles:
         xy = utils.latlonToXY(state.position, referenceLatlon)
@@ -93,7 +93,7 @@ def checkGoalValidity(state, goalLatlon=None):
        bool True iff there is no obstacle projected to be on the state's goal waypoint
     '''
     if goalLatlon is None:
-        goalLatlon = state.position
+        goalLatlon = state.globalWaypoint
 
     referenceLatlon = goalLatlon
     obstacles = obs.getObstacles(state, referenceLatlon)
@@ -116,7 +116,7 @@ def moveGlobalWaypointUntilValid(state, isLast, otherWaypoint):
     Returns:
         goalLatlon (latlon) such that checkGoalValidity(state, newGoal) is true
     '''
-    referenceLatlon = state.position
+    referenceLatlon = state.globalWaypoint
     goalLatlon = state.globalWaypoint
     goalX, goalY = utils.latlonToXY(goalLatlon, referenceLatlon)
 
