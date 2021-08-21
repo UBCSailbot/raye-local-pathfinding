@@ -185,6 +185,9 @@ if __name__ == '__main__':
         waypointReachedPlot, = axes.plot(lineX, lineY, zorder=4, color='b')  # Blue line
 
     if 'localPathXY' in globals():
+        # resize markersize when localPath is initialized
+        markersize = min(xPLim - xNLim, yPLim - yNLim) / 2
+
         localPathPlot, = axes.plot(localPathX, localPathY, zorder=1, marker='.', color='g', markersize=markersize / 2,
                                    linewidth=2)  # Green dots
 
@@ -267,7 +270,6 @@ if __name__ == '__main__':
                 xPLim, xNLim, yPLim, yNLim = getXYLimits(positionXY, nextGlobalWaypointXY)
                 axes.set_xlim(xNLim, xPLim)
                 axes.set_ylim(yNLim, yPLim)
-                markersize = min(xPLim - xNLim, yPLim - yNLim) / 2
 
             glob_X, glob_Y = getPerpPlot(glob_isStartEast, glob_slope, glob_y, nextGlobalWaypointXY)
             if 'nextGlobalWaypointPlot' in globals():
@@ -299,6 +301,9 @@ if __name__ == '__main__':
             localPathPlot.set_ydata(localPathY)
             localPathPlot.set_markersize(markersize / 2)
         elif 'localPathXY' in globals():
+            # resize markersize when localPath is initialized
+            markersize = min(xPLim - xNLim, yPLim - yNLim) / 2
+
             localPathPlot, = axes.plot(localPathX, localPathY, zorder=1, marker='.', color='g',
                                        markersize=markersize / 2, linewidth=2)  # Green dots
 
