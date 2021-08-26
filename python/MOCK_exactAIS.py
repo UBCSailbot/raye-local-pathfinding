@@ -3,6 +3,7 @@ import rospy
 import json
 import urllib2
 import time
+import datetime
 
 from utilities import bearingToHeadingDegrees, PORT_RENFREW_LATLON, XYToLatlon
 
@@ -80,15 +81,39 @@ class MOCK_AISEnvironment:
             return
         ships = json.loads(data)
         self.real_ships = []
+        self.ais_ships_log = []
         for real_ship in ships['features']:
             # Speed is given in knots
             real_ship = real_ship[u'properties']
+
             new_ship = RealShip(int(real_ship[u'mmsi']),
                                 float(real_ship[u'latitude']),
                                 float(real_ship[u'longitude']),
                                 bearingToHeadingDegrees(float(real_ship[u'cog'])),
                                 float(real_ship[u'sog']) * 0.54)
             self.real_ships.append(new_ship)
+
+            log_ship = {
+                'ship_class': {
+                    'id': real_ship[u'mmsi'],
+                    'lat': real_ship[u'latitude'],
+                    'lon': real_ship[u'longitude'],
+                    'headingDegrees': real_ship[u'cog'],
+                    'speedKmph': float(real_ship[u'sog']) * 0.54
+                },
+                'length': real_ship[u'length'],
+                'width': real_ship[u'width']
+            }
+            self.ais_ships_log.append(log_ship)
+        self.log_ais_ships()
+
+    def log_ais_ships(self):
+        now = datetime.datetime.now()
+        timestamp = str(now.hour) + str(now.minute) + str(now.second)
+        log_path = 'ais_ships_log/{}.json'.format(timestamp)
+        with open(log_path, 'w') as f:
+            json.dump(self.ais_ships_log, f, indent=2)
+        rospy.loginfo('Created AIS ships log at {}'.format(log_path))
 
 
 if __name__ == '__main__':
