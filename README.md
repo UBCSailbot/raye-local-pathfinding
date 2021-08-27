@@ -48,9 +48,9 @@ All of the arguments below are optional for `all.launch`. Below is a non-exhaust
 
 * `speedup` - Float value that changes the speed at which the simulation is run. Default: `1.0`
 
-* `global_wind_direction_degrees 70` - Float value that sets the global wind direction.
+* `global_wind_direction_degrees` - Float value that sets the global wind direction.
 
-* `global_wind_speed_kmph 5` - Float value that sets the global wind speed.
+* `global_wind_speed_kmph` - Float value that sets the global wind speed.
 
 * `obstacle_type` - String value that changes the obstacle representation of AIS ships. Accepted types are: `"ellipse"`, `"wedge"`,`"circles"`, `"hybrid_circle"`, and `"hybrid_ellipse"`. Default: `"hybrid_circle"`
 
