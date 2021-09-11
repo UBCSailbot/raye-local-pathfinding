@@ -9,7 +9,6 @@ The installation process consists of installing OMPL with Python bindings, insta
 2. Find the location that you want to create a ROS workspace (eg. home directory: `cd ~`)
 
 3. Create a ROS workspace: `mkdir -p catkin_ws/src` `cd catkin_ws` `catkin_make`
-    * If `catkin_make` doesn't work, verify that the commands in "Environment setup" of the installation instructions have been executed
 
 4. Clone this repository in the src folder: `cd src` `git clone https://github.com/UBCSailbot/local-pathfinding.git`
 
