@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import sys
 import rospy
 import math
 from Path import getPerpLine, WAYPOINT_REACHED_DISTANCE
@@ -9,7 +8,6 @@ import obstacles as obs
 import Sailbot as sbot
 from matplotlib import pyplot as plt
 from matplotlib import patches
-import time
 
 # Constants
 VISUALIZER_UPDATE_PERIOD_SECONDS = 0.1
@@ -142,61 +140,66 @@ if __name__ == '__main__':
     rospy.Subscriber("previousGlobalWaypoint", latlon, previousGlobalWaypointCallback)
     r = rospy.Rate(1.0 / VISUALIZER_UPDATE_PERIOD_SECONDS)
 
-    # Wait for first messages
-    while localPath is None or nextLocalWaypoint is None or nextGlobalWaypoint is None:
-        # Exit if shutdown
-        if rospy.is_shutdown():
-            rospy.loginfo("rospy.is_shutdown() is True. Exiting")
-            sys.exit()
-        else:
-            rospy.loginfo("Waiting to receive first ROS messages")
-            rospy.loginfo("localPath is None = {}, nextLocalWaypoint is None = {}, nextGlobalWaypoint is None = {}"
-                          .format(localPath is None, nextLocalWaypoint, nextGlobalWaypoint is None))
-            time.sleep(1)
     sailbot.waitForFirstSensorDataAndGlobalPath()
     rospy.loginfo("ROS message received. Starting visualization")
 
-    # Convert values from latlon to XY, relative to the referenceLatlon
     state = sailbot.getCurrentState()
-    referenceLatlon = nextGlobalWaypoint  # Ensure that this matches createLocalPathSS referenceLatlon for best results
-    positionXY = utils.latlonToXY(state.position, referenceLatlon)
-    nextGlobalWaypointXY = utils.latlonToXY(nextGlobalWaypoint, referenceLatlon)
-    previousGlobalWaypointXY = utils.latlonToXY(previousGlobalWaypoint, referenceLatlon)
-    nextLocalWaypointXY = utils.latlonToXY(nextLocalWaypoint, referenceLatlon)
-    previousLocalWaypointXY = utils.latlonToXY(previousLocalWaypoint, referenceLatlon)
-    localPathXY = [utils.latlonToXY(localWaypoint, referenceLatlon) for localWaypoint in localPath]
-    localPathX = [xy[0] for xy in localPathXY]
-    localPathY = [xy[1] for xy in localPathXY]
+    referenceLatlon = nextGlobalWaypoint
 
-    _, isStartEast, slope, y_intercept = getPerpLine(previousLocalWaypointXY, nextLocalWaypointXY)
-    _, glob_isStartEast, glob_slope, glob_y = getPerpLine(previousGlobalWaypointXY, nextGlobalWaypointXY, True)
+    # Convert values from latlon to XY, relative to the referenceLatlon
+    if nextGlobalWaypoint:  # check that nextGlobalWaypoint is available
+        nextGlobalWaypointXY = utils.latlonToXY(nextGlobalWaypoint, referenceLatlon)
+        previousGlobalWaypointXY = utils.latlonToXY(previousGlobalWaypoint, referenceLatlon)
+        _, glob_isStartEast, glob_slope, glob_y = getPerpLine(previousGlobalWaypointXY, nextGlobalWaypointXY, True)
+
+        if nextLocalWaypoint:
+            nextLocalWaypointXY = utils.latlonToXY(nextLocalWaypoint, referenceLatlon)
+            previousLocalWaypointXY = utils.latlonToXY(previousLocalWaypoint, referenceLatlon)
+            _, isStartEast, slope, y_intercept = getPerpLine(previousLocalWaypointXY, nextLocalWaypointXY)
+
+        if localPath:
+            localPathXY = [utils.latlonToXY(localWaypoint, referenceLatlon) for localWaypoint in localPath]
+            localPathX = [xy[0] for xy in localPathXY]
+            localPathY = [xy[1] for xy in localPathXY]
+
+        positionXY = utils.latlonToXY(state.position, referenceLatlon)
 
     # Create plot with waypoints and boat
-    xPLim, xNLim, yPLim, yNLim = getXYLimits(positionXY, nextGlobalWaypointXY)
+    # Initialize plot limits to hardcoded values if nextGlobalWaypointXY has not yet been initialized
+    xPLim, xNLim, yPLim, yNLim = getXYLimits(positionXY, nextGlobalWaypointXY) \
+        if 'nextGlobalWaypointXY' in globals() else (30.0, 10.0, 30.0, 10.0)
     markersize = min(xPLim - xNLim, yPLim - yNLim) / 2
     axes = plt.gca()
-    localPathPlot, = axes.plot(localPathX, localPathY,
-                               marker='.', color='g', markersize=markersize / 2, linewidth=2)  # Small green dots
-    nextGlobalWaypointPlot, = axes.plot(nextGlobalWaypointXY[0], nextGlobalWaypointXY[1],
-                                        marker='*', color='y', markersize=markersize)          # Yellow star
-    nextLocalWaypointPlot, = axes.plot(nextLocalWaypointXY[0], nextLocalWaypointXY[1],
-                                       marker='X', color='g', markersize=markersize)           # Green X
 
-    lineX, lineY = getPerpPlot(isStartEast, slope, y_intercept, nextLocalWaypointXY)
-    waypointReachedPlot, = axes.plot(lineX, lineY, color='b')
+    # Plot if the required variables are defined
+    if 'nextGlobalWaypointXY' in globals():
+        nextGlobalWaypointPlot, = axes.plot(nextGlobalWaypointXY[0], nextGlobalWaypointXY[1], zorder=3,
+                                            marker='*', color='y', markersize=markersize)  # Yellow star
+        glob_X, glob_Y = getPerpPlot(glob_isStartEast, glob_slope, glob_y, nextGlobalWaypointXY)
+        globalWaypointReachedPlot, = axes.plot(glob_X, glob_Y, zorder=5, color='r')  # Red line
 
-    glob_X, glob_Y = getPerpPlot(glob_isStartEast, glob_slope, glob_y, nextGlobalWaypointXY)
-    globalWaypointReachedPlot, = axes.plot(glob_X, glob_Y, color='r')
+    if 'nextLocalWaypointXY' in globals():
+        nextLocalWaypointPlot, = axes.plot(nextLocalWaypointXY[0], nextLocalWaypointXY[1], zorder=2,
+                                           marker='X', color='g', markersize=markersize)  # Green X
+        lineX, lineY = getPerpPlot(isStartEast, slope, y_intercept, nextLocalWaypointXY)
+        waypointReachedPlot, = axes.plot(lineX, lineY, zorder=4, color='b')  # Blue line
 
-    # Red triangle with correct heading. The (-90) is because the triangle
-    # default heading 0 points North, but this heading has 0 be East.
-    positionPlot, = axes.plot(positionXY[0], positionXY[1],
-                              marker=(3, 0, state.headingDegrees - 90), color='r', markersize=markersize)
+    if 'localPathXY' in globals():
+        # resize markersize when localPath is initialized
+        markersize = min(xPLim - xNLim, yPLim - yNLim) / 2
 
-    # Making the tail half of the visualizer
-    positionPlotTail, = axes.plot(positionXY[0] - 1 * math.cos(math.radians(state.headingDegrees)),
-                                  positionXY[1] - 1 * math.sin(math.radians(state.headingDegrees)),
-                                  marker=(5, 0, state.headingDegrees - 90), color='r', markersize=.7 * markersize)
+        localPathPlot, = axes.plot(localPathX, localPathY, zorder=1, marker='.', color='g', markersize=markersize / 2,
+                                   linewidth=2)  # Green dots
+
+    if 'positionXY' in globals():
+        # Red triangle with correct heading. The (-90) is because the triangle
+        # default heading 0 points North, but this heading has 0 be East.
+        positionPlot, = axes.plot(positionXY[0], positionXY[1], zorder=6,
+                                  marker=(3, 0, state.headingDegrees - 90), color='r', markersize=markersize)
+        # Making the tail half of the visualizer
+        positionPlotTail, = axes.plot(positionXY[0] - 1 * math.cos(math.radians(state.headingDegrees)),
+                                      positionXY[1] - 1 * math.sin(math.radians(state.headingDegrees)), zorder=6,
+                                      marker=(5, 0, state.headingDegrees - 90), color='r', markersize=0.7 * markersize)
 
     # Setup plot xy limits and labels
     axes.set_xlim(xNLim, xPLim)
@@ -221,63 +224,105 @@ if __name__ == '__main__':
                                       "Ocean Current Speed Kmph: {}"
                                       .format(rospy.get_param("ocean_current_speed", default=0)), ha='center')
 
-    # Show position and global waypoint text
-    positionLatlonText = axes.text(positionXY[0], positionXY[1] + 0.5 * fractionOfPlotLen,
-                                   "(Lat: {}, Lon: {}) {} kmph"
-                                   .format(round(state.position.lat, LATLON_TEXT_DECIMAL_PLACES),
-                                           round(state.position.lon, LATLON_TEXT_DECIMAL_PLACES),
-                                           round(state.speedKmph, LATLON_TEXT_DECIMAL_PLACES)), ha='center')
-    nextGlobalWaypointLatlonText = axes.text(nextGlobalWaypointXY[0],
-                                             nextGlobalWaypointXY[1] + 0.5 * fractionOfPlotLen,
-                                             "(Lat: {}, Lon: {})"
-                                             .format(round(nextGlobalWaypoint.lat, LATLON_TEXT_DECIMAL_PLACES),
-                                                     round(nextGlobalWaypoint.lon, LATLON_TEXT_DECIMAL_PLACES)),
-                                             ha='center')
+    # Show position and global waypoint text if they required variables are defined
+    if 'nextGlobalWaypointXY' in globals():
+        nextGlobalWaypointLatlonText = axes.text(nextGlobalWaypointXY[0],
+                                                 nextGlobalWaypointXY[1] + 0.5 * fractionOfPlotLen,
+                                                 "(Lat: {}, Lon: {})"
+                                                 .format(round(nextGlobalWaypoint.lat, LATLON_TEXT_DECIMAL_PLACES),
+                                                         round(nextGlobalWaypoint.lon, LATLON_TEXT_DECIMAL_PLACES)),
+                                                 ha='center')
+
+    if 'positionXY' in globals():
+        positionLatlonText = axes.text(positionXY[0], positionXY[1] + 0.5 * fractionOfPlotLen,
+                                       "(Lat: {}, Lon: {}) {} kmph"
+                                       .format(round(state.position.lat, LATLON_TEXT_DECIMAL_PLACES),
+                                               round(state.position.lon, LATLON_TEXT_DECIMAL_PLACES),
+                                               round(state.speedKmph, LATLON_TEXT_DECIMAL_PLACES)), ha='center')
 
     while not rospy.is_shutdown():
         state = sailbot.getCurrentState()
-        referenceLatlon = nextGlobalWaypoint  # Ensure this matches createLocalPathSS referenceLatlon for best results
+        referenceLatlon = nextGlobalWaypoint
 
         # Convert values from latlon to XY, relative to the referenceLatlon
-        positionXY = utils.latlonToXY(state.position, referenceLatlon)
-        nextGlobalWaypointXY = utils.latlonToXY(nextGlobalWaypoint, referenceLatlon)
-        nextLocalWaypointXY = utils.latlonToXY(nextLocalWaypoint, referenceLatlon)
-        previousLocalWaypointXY = utils.latlonToXY(previousLocalWaypoint, referenceLatlon)
-        localPathXY = [utils.latlonToXY(localWaypoint, referenceLatlon) for localWaypoint in localPath]
-        localPathX = [xy[0] for xy in localPathXY]
-        localPathY = [xy[1] for xy in localPathXY]
-        shipsXY = obs.getObstacles(state, referenceLatlon)
+        if nextGlobalWaypoint:
+            nextGlobalWaypointXY = utils.latlonToXY(nextGlobalWaypoint, referenceLatlon)
+            previousGlobalWaypointXY = utils.latlonToXY(previousGlobalWaypoint, referenceLatlon)
+            _, glob_isStartEast, glob_slope, glob_y = getPerpLine(previousGlobalWaypointXY, nextGlobalWaypointXY, True)
 
-        _, isStartEast, slope, y_intercept = getPerpLine(previousLocalWaypointXY, nextLocalWaypointXY)
-        _, glob_isStartEast, glob_slope, glob_y = getPerpLine(previousGlobalWaypointXY, nextGlobalWaypointXY, True)
+            if nextLocalWaypoint:
+                nextLocalWaypointXY = utils.latlonToXY(nextLocalWaypoint, referenceLatlon)
+                previousLocalWaypointXY = utils.latlonToXY(previousLocalWaypoint, referenceLatlon)
+                _, isStartEast, slope, y_intercept = getPerpLine(previousLocalWaypointXY, nextLocalWaypointXY)
 
-        # Update plots
-        localPathPlot.set_xdata(localPathX)
-        localPathPlot.set_ydata(localPathY)
-        nextGlobalWaypointPlot.set_xdata(nextGlobalWaypointXY[0])
-        nextGlobalWaypointPlot.set_ydata(nextGlobalWaypointXY[1])
-        nextLocalWaypointPlot.set_xdata(nextLocalWaypointXY[0])
-        nextLocalWaypointPlot.set_ydata(nextLocalWaypointXY[1])
-        positionPlot.set_xdata(positionXY[0])
-        positionPlot.set_ydata(positionXY[1])
-        positionPlot.set_marker((3, 0, state.headingDegrees - 90))  # Creates a triangle with correct 'heading'
-        positionPlotTail.set_xdata(positionXY[0] - 1 * math.cos(math.radians(state.headingDegrees)))
-        positionPlotTail.set_ydata(positionXY[1] - 1 * math.sin(math.radians(state.headingDegrees)))
-        positionPlotTail.set_marker((5, 0, state.headingDegrees - 90))  # Creates a tail for the visualizer
+            if localPath:
+                localPathXY = [utils.latlonToXY(localWaypoint, referenceLatlon) for localWaypoint in localPath]
+                localPathX = [xy[0] for xy in localPathXY]
+                localPathY = [xy[1] for xy in localPathXY]
 
-        lineX, lineY = getPerpPlot(isStartEast, slope, y_intercept, nextLocalWaypointXY)
-        waypointReachedPlot.set_xdata(lineX)
-        waypointReachedPlot.set_ydata(lineY)
+            positionXY = utils.latlonToXY(state.position, referenceLatlon)
+            shipsXY = obs.getObstacles(state, referenceLatlon)
 
-        glob_X, glob_Y = getPerpPlot(glob_isStartEast, glob_slope, glob_y, nextGlobalWaypointXY)
-        globalWaypointReachedPlot.set_xdata(glob_X)
-        globalWaypointReachedPlot.set_ydata(glob_Y)
+        # Update plots, or plot them if they don't yet exist and the required variables are defined
+        if 'nextGlobalWaypointXY' in globals():
+            # Resize axes and markers if needed
+            if needAxesResized(positionXY, nextGlobalWaypointXY, xPLim, xNLim, yPLim, yNLim):
+                xPLim, xNLim, yPLim, yNLim = getXYLimits(positionXY, nextGlobalWaypointXY)
+                axes.set_xlim(xNLim, xPLim)
+                axes.set_ylim(yNLim, yPLim)
 
-        # Resize axes if needed
-        if needAxesResized(positionXY, nextGlobalWaypointXY, xPLim, xNLim, yPLim, yNLim):
-            xPLim, xNLim, yPLim, yNLim = getXYLimits(positionXY, nextGlobalWaypointXY)
-            axes.set_xlim(xNLim, xPLim)
-            axes.set_ylim(yNLim, yPLim)
+            glob_X, glob_Y = getPerpPlot(glob_isStartEast, glob_slope, glob_y, nextGlobalWaypointXY)
+            if 'nextGlobalWaypointPlot' in globals():
+                nextGlobalWaypointPlot.set_xdata(nextGlobalWaypointXY[0])
+                nextGlobalWaypointPlot.set_ydata(nextGlobalWaypointXY[1])
+                nextGlobalWaypointPlot.set_markersize(markersize)
+                globalWaypointReachedPlot.set_xdata(glob_X)
+                globalWaypointReachedPlot.set_ydata(glob_Y)
+            else:
+                nextGlobalWaypointPlot, = axes.plot(nextGlobalWaypointXY[0], nextGlobalWaypointXY[1], zorder=3,
+                                                    marker='*', color='y', markersize=markersize)  # Yellow star
+                globalWaypointReachedPlot, = axes.plot(glob_X, glob_Y, zorder=5, color='r')  # Red line
+
+        if 'nextLocalWaypointXY' in globals():
+            lineX, lineY = getPerpPlot(isStartEast, slope, y_intercept, nextLocalWaypointXY)
+            if 'nextLocalWaypointPlot' in globals():
+                nextLocalWaypointPlot.set_xdata(nextLocalWaypointXY[0])
+                nextLocalWaypointPlot.set_ydata(nextLocalWaypointXY[1])
+                nextLocalWaypointPlot.set_markersize(markersize)
+                waypointReachedPlot.set_xdata(lineX)
+                waypointReachedPlot.set_ydata(lineY)
+            else:
+                nextLocalWaypointPlot, = axes.plot(nextLocalWaypointXY[0], nextLocalWaypointXY[1], zorder=2,
+                                                   marker='X', color='g', markersize=markersize)  # Green X
+                waypointReachedPlot, = axes.plot(lineX, lineY, zorder=4, color='b')  # Blue line
+
+        if 'localPathPlot' in globals():
+            localPathPlot.set_xdata(localPathX)
+            localPathPlot.set_ydata(localPathY)
+            localPathPlot.set_markersize(markersize / 2)
+        elif 'localPathXY' in globals():
+            # resize markersize when localPath is initialized
+            markersize = min(xPLim - xNLim, yPLim - yNLim) / 2
+
+            localPathPlot, = axes.plot(localPathX, localPathY, zorder=1, marker='.', color='g',
+                                       markersize=markersize / 2, linewidth=2)  # Green dots
+
+        if 'positionPlot' in globals():
+            positionPlot.set_xdata(positionXY[0])
+            positionPlot.set_ydata(positionXY[1])
+            positionPlot.set_marker((3, 0, state.headingDegrees - 90))  # Creates a triangle with correct 'heading'
+            positionPlot.set_markersize(markersize)
+            positionPlotTail.set_xdata(positionXY[0] - 1 * math.cos(math.radians(state.headingDegrees)))
+            positionPlotTail.set_ydata(positionXY[1] - 1 * math.sin(math.radians(state.headingDegrees)))
+            positionPlotTail.set_marker((5, 0, state.headingDegrees - 90))  # Creates a tail for the visualizer
+            positionPlotTail.set_markersize(0.7 * markersize)
+        elif 'positionXY' in globals():
+            positionPlot, = axes.plot(positionXY[0], positionXY[1], zorder=6,
+                                      marker=(3, 0, state.headingDegrees - 90), color='r', markersize=markersize)
+            positionPlotTail, = axes.plot(positionXY[0] - 1 * math.cos(math.radians(state.headingDegrees)),
+                                          positionXY[1] - 1 * math.sin(math.radians(state.headingDegrees)), zorder=6,
+                                          marker=(5, 0, state.headingDegrees - 90), color='r',
+                                          markersize=0.7 * markersize)
 
         fractionOfPlotLen = min(xPLim - xNLim, yPLim - yNLim) / 15
         arrowLength = fractionOfPlotLen
@@ -294,24 +339,42 @@ if __name__ == '__main__':
         oceanCurrentSpeedText.set_text("Ocean Current Speed Kmph: {}"
                                        .format(rospy.get_param("ocean_current_speed", default=0)))
 
-        # Update position and global waypoint text
-        positionLatlonText.set_position((positionXY[0], positionXY[1] + 0.5 * fractionOfPlotLen))
-        positionLatlonText.set_text("(Lat: {}, Lon: {}) {} kmph"
-                                    .format(round(state.position.lat, LATLON_TEXT_DECIMAL_PLACES),
-                                            round(state.position.lon, LATLON_TEXT_DECIMAL_PLACES),
-                                            round(state.speedKmph, LATLON_TEXT_DECIMAL_PLACES)))
-        nextGlobalWaypointLatlonText.set_position(
-            (nextGlobalWaypointXY[0], nextGlobalWaypointXY[1] + 0.5 * fractionOfPlotLen))
-        nextGlobalWaypointLatlonText.set_text("(Lat: {}, Lon: {})"
-                                              .format(round(nextGlobalWaypoint.lat, LATLON_TEXT_DECIMAL_PLACES),
-                                                      round(nextGlobalWaypoint.lon, LATLON_TEXT_DECIMAL_PLACES)))
+        # Update position and global waypoint text,
+        # or show them if they don't yet exist and the required variables are defined
+        if 'nextGlobalWaypointLatlonText' in globals():
+            nextGlobalWaypointLatlonText.set_position(
+                (nextGlobalWaypointXY[0], nextGlobalWaypointXY[1] + 0.5 * fractionOfPlotLen))
+            nextGlobalWaypointLatlonText.set_text("(Lat: {}, Lon: {})"
+                                                  .format(round(nextGlobalWaypoint.lat, LATLON_TEXT_DECIMAL_PLACES),
+                                                          round(nextGlobalWaypoint.lon, LATLON_TEXT_DECIMAL_PLACES)))
+        elif 'nextGlobalWaypointXY' in globals():
+            nextGlobalWaypointLatlonText = axes.text(nextGlobalWaypointXY[0],
+                                                     nextGlobalWaypointXY[1] + 0.5 * fractionOfPlotLen,
+                                                     "(Lat: {}, Lon: {})"
+                                                     .format(round(nextGlobalWaypoint.lat, LATLON_TEXT_DECIMAL_PLACES),
+                                                             round(nextGlobalWaypoint.lon, LATLON_TEXT_DECIMAL_PLACES)),
+                                                     ha='center')
+
+        if 'positionLatlonText' in globals():
+            positionLatlonText.set_position((positionXY[0], positionXY[1] + 0.5 * fractionOfPlotLen))
+            positionLatlonText.set_text("(Lat: {}, Lon: {}) {} kmph"
+                                        .format(round(state.position.lat, LATLON_TEXT_DECIMAL_PLACES),
+                                                round(state.position.lon, LATLON_TEXT_DECIMAL_PLACES),
+                                                round(state.speedKmph, LATLON_TEXT_DECIMAL_PLACES)))
+        elif 'positionXY' in globals():
+            positionLatlonText = axes.text(positionXY[0], positionXY[1] + 0.5 * fractionOfPlotLen,
+                                           "(Lat: {}, Lon: {}) {} kmph"
+                                           .format(round(state.position.lat, LATLON_TEXT_DECIMAL_PLACES),
+                                                   round(state.position.lon, LATLON_TEXT_DECIMAL_PLACES),
+                                                   round(state.speedKmph, LATLON_TEXT_DECIMAL_PLACES)), ha='center')
 
         # Update speedup text
         axes.set_title('Local Path Visualizer (speedup = {})'.format(rospy.get_param('speedup', default=1.0)))
 
         # Add boats and wind speed arrow and ocean current arrow
-        for ship in shipsXY:
-            ship.addPatch(axes)
+        if 'shipsXY' in globals():
+            for ship in shipsXY:
+                ship.addPatch(axes)
         globalWindDirectionRadians = math.radians(state.globalWindDirectionDegrees)
         windArrowStart = (windArrowCenter[0] - 0.5 * fractionOfPlotLen * math.cos(globalWindDirectionRadians),
                           windArrowCenter[1] - 0.5 * fractionOfPlotLen * math.sin(globalWindDirectionRadians))
