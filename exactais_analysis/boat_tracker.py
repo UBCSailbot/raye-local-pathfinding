@@ -10,24 +10,25 @@ SECONDS_PER_MINUTE = 60
 
 
 if __name__ == '__main__':
+    # TODO: save bounding box that boat started from
     parser = argparse.ArgumentParser(description='Saves lists of speed and heading of a boat to json files,'
                                                  'polled every minute')
     parser.add_argument('token', help='ExactAIS token')
-    parser.add_argument('index', type=int,
-                        help='Index (int) of the ship to track from the ships list in between Vancouver and Maui')
     parser.add_argument('time', type=int, help='Time in minutes (int) that the boat will be tracked for')
+    parser.add_argument('bounding_box', help='Coordinate of bounding box to get boat from, i.e. 01 for (0,1)')
     args = parser.parse_args()
 
+    bb_coord = '({},{})'.format(args.bounding_box[0], args.bounding_box[1])
     bounding_box_dict = get_bounding_box_strings(MAUI_LAT, MAUI_LON, VAN_ISL_LAT, VAN_ISL_LON, dimension=5)
 
     for key, bounding_box_string in bounding_box_dict.items():
-        if key.startswith('(2,2): '):  # (2,2) is the middle square in 5x5 0-indexed grid
+        if key.startswith('{}: '.format(bb_coord)):
             initial_ships_data = get_exactais_ships(args.token, bounding_box_string)
             break
 
-    tracked_boat_properties = initial_ships_data[args.index]['properties']
+    tracked_boat_properties = initial_ships_data[0]['properties']  # track first boat in initial_ships_data
     tracked_boat_mmsi = tracked_boat_properties['mmsi']
-    print('start tracking boat with mmsi={}'.format(tracked_boat_mmsi))
+    print('tracking boat with mmsi={} in bounding box {} for {} min'.format(tracked_boat_mmsi, bb_coord, args.time))
 
     tb_speeds = []
     tb_headings = []
@@ -52,9 +53,9 @@ if __name__ == '__main__':
         print('found tracked boat at t={} min, sleeping for 1 min'.format(i))
         time.sleep(SECONDS_PER_MINUTE)
 
-    print('finished tracking boat with mmsi={}'.format(tracked_boat_mmsi))
+    print('finished tracking boat with mmsi={} at bounding box {}'.format(tracked_boat_mmsi, bb_coord))
 
-    file_path = 'boat_tracker_data/boat_{}.json'.format(tracked_boat_mmsi)
+    file_path = 'boat_tracker_data/bb_{}_mmsi_{}.json'.format(args.bounding_box, tracked_boat_mmsi)
     with open(file_path, 'w') as f:
         json.dump({'speeds': tb_speeds, 'headings': tb_headings}, f)
 
