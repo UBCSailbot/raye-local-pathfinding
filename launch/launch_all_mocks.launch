@@ -35,6 +35,10 @@
     <param name="goal_lat" type="string" value="$(arg goal_lat)" />
     <param name="goal_lon" type="string" value="$(arg goal_lon)" />
 
+    <!-- Sets sensor_noise -->
+    <arg name="sensor_noise" default="false" />
+    <param name="sensor_noise" value="$(arg sensor_noise)" />
+
     <!-- Sets ais_file, the FULL path of a JSON file to be read to set the initial AIS ship positions, initial sailbot position, goal position, initial wind condition -->
     <arg name="ais_file" default="" />
     <arg name="gps_file" default="" />

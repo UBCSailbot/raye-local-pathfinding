@@ -37,9 +37,16 @@ def getStartLatLon(defaultLat, defaultLon):
     return (startLat, startLon)
 
 
+def getSensorNoise():
+    # Read in sensor noise
+    sensorNoise = rospy.get_param('sensor_noise', default=False)
+    sensorNoise = bool(sensorNoise)
+    return sensorNoise
+
+
 class MOCK_SensorManager:
     def __init__(self, startLat, startLon, startHeadingDegrees, startSpeedKmph, startGlobalWindSpeedKmph,
-                 startGlobalWindDirectionDegrees):
+                 startGlobalWindDirectionDegrees, sensorNoise):
         # Initialize starting values
         self.lat = startLat
         self.lon = startLon
@@ -49,6 +56,7 @@ class MOCK_SensorManager:
         self.globalWindDirectionDegrees = startGlobalWindDirectionDegrees
         self.measuredWindSpeedKmph, self.measuredWindDirectionDegrees = globalWindToMeasuredWind(
             self.globalWindSpeedKmph, self.globalWindDirectionDegrees, self.speedKmph, self.headingDegrees)
+        self.sensorNoise = sensorNoise
         self.publishPeriodSeconds = SENSORS_PUBLISH_PERIOD_SECONDS
 
         # Setup ROS node inputs and outputs
@@ -134,8 +142,9 @@ class MOCK_SensorManager:
         # data.gyroscope_y_velocity_millidegreesps
         # data.gyroscope_z_velocity_millidegreesps
 
-        noisy_data = self.add_noise(data)
-        self.publisher.publish(noisy_data)
+        if self.sensorNoise:
+            data = self.add_noise(data)
+        self.publisher.publish(data)
 
     def add_noise(self, data):
         # Add noise to sensor data using numpy.random.normal. GPS and wind sensors have different standard deviations,
@@ -198,11 +207,13 @@ class MOCK_SensorManager:
 
 if __name__ == '__main__':
     startLat, startLon = getStartLatLon(defaultLat=PORT_RENFREW_LATLON.lat, defaultLon=PORT_RENFREW_LATLON.lon)
+    sensorNoise = getSensorNoise()
     sensorManager = MOCK_SensorManager(startLat=startLat, startLon=startLon,
                                        startHeadingDegrees=START_BOAT_HEADING_DEGREES,
                                        startSpeedKmph=START_BOAT_SPEED_KMPH,
                                        startGlobalWindSpeedKmph=START_GLOBAL_WIND_SPEED_KMPH,
-                                       startGlobalWindDirectionDegrees=START_GLOBAL_WIND_DIRECTION_DEGREES)
+                                       startGlobalWindDirectionDegrees=START_GLOBAL_WIND_DIRECTION_DEGREES,
+                                       sensorNoise=sensorNoise)
     r = rospy.Rate(float(1) / SENSORS_PUBLISH_PERIOD_SECONDS)
 
     while not rospy.is_shutdown():
