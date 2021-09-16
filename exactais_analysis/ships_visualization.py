@@ -1,17 +1,16 @@
 #! /usr/bin/env python
+import argparse
 import json
 import matplotlib.pyplot as plt
 
-from exactais_scraper import EXACTAIS_SHIPS_FN
+from ships_scraper import EXACTAIS_SHIPS_PATH
 
-HEATMAP_FN = 'heatmap.txt'
-
-# KNOTS_TO_KMPH = 0.539957
+HEATMAP_PATH = 'ships_data/heatmap.txt'
 
 
 def create_heatmap(exactais_ships):
     '''Create heatmap text file compatible with http://heatmapper.ca/geocoordinate/'''
-    f = open(HEATMAP_FN, 'w')
+    f = open(HEATMAP_PATH, 'w')
     f.write('{}\t{}\n'.format('Longitude', 'Latitude'))
     for bounding_box_ships in exactais_ships.values():
         for ship in bounding_box_ships:
@@ -22,14 +21,14 @@ def create_heatmap(exactais_ships):
 
 def create_histograms(exactais_ships):
     '''Create histograms of key attributes of `exactais_ships` using matplotlib'''
-    ships_speedKmph = []
+    ships_speedKnots = []
     ships_headingDegrees = []
     ships_length = []
     ships_width = []
     for bounding_box_ships in exactais_ships.values():
         for ship in bounding_box_ships:
             ship_properties = ship['properties']
-            ships_speedKmph.append(ship_properties['sog'])
+            ships_speedKnots.append(ship_properties['sog'])
             ships_headingDegrees.append(ship_properties['cog'])
             if ship_properties['length'] is not None and ship_properties['length'] != 0 and \
                     ship_properties['width'] is not None and ship_properties['width'] != 0:
@@ -39,7 +38,7 @@ def create_histograms(exactais_ships):
     # Print all ship's (length, width), used for manually checking their values
     # print([(ships_length[i], ships_width[i]) for i in range(len(ships_length))])
 
-    plot_histogram(data=ships_speedKmph, header='Speed (knots)')
+    plot_histogram(data=ships_speedKnots, header='Speed (knots)')
     plot_histogram(data=ships_headingDegrees, header='Heading (degrees)')
     plot_histogram(data=ships_length, header='Length (metres)')
     plot_histogram(data=ships_width, header='Width (metres)')
@@ -56,8 +55,15 @@ def plot_histogram(data, header, bins=10):
 
 
 if __name__ == '__main__':
-    with open(EXACTAIS_SHIPS_FN, 'r') as f:
+    parser = argparse.ArgumentParser(description='Visualizes ExactAIS ship data from ships_in_bounding_boxes.json')
+    parser.add_argument('--heatmap', action='store_true', help='create heatmap')
+    parser.add_argument('--histograms', action='store_true', help='create histograms')
+    args = parser.parse_args()
+
+    with open(EXACTAIS_SHIPS_PATH, 'r') as f:
         exactais_ships = json.load(f)
 
-    # create_heatmap(exactais_ships)
-    create_histograms(exactais_ships)
+    if args.heatmap:
+        create_heatmap(exactais_ships)
+    if args.histograms:
+        create_histograms(exactais_ships)

@@ -8,7 +8,7 @@ VAN_ISL_LON = -125.0
 MAUI_LAT = 21.0
 MAUI_LON = -156.0
 
-EXACTAIS_SHIPS_FN = 'exactais_ships.json'
+EXACTAIS_SHIPS_PATH = 'ships_data/ships_in_bounding_boxes.json'
 
 
 def get_bounding_box_strings(bot_left_lat, bot_left_lon, top_right_lat, top_right_lon, dimension):
@@ -69,7 +69,7 @@ def get_exactais_ships(token, bounding_box_string):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Saves relevant ExactAIS ship data to exactais_ships.json')
+    parser = argparse.ArgumentParser(description='Saves relevant ExactAIS ship data to ships_in_bounding_boxes.json')
     parser.add_argument('token', help='ExactAIS token')
     args = parser.parse_args()
 
@@ -80,5 +80,5 @@ if __name__ == '__main__':
         raw_ships_data = get_exactais_ships(args.token, bounding_box_string)
         exactais_ships[key] = raw_ships_data
 
-    with open(EXACTAIS_SHIPS_FN, 'w') as f:
+    with open(EXACTAIS_SHIPS_PATH, 'w') as f:
         json.dump(exactais_ships, f, indent=2)
