@@ -97,35 +97,31 @@ class MOCK_SensorManager:
 
         # data.sailencoder_degrees
 
-        data.wind_sensor_1_speed_knots = np.random.normal(self.measuredWindSpeedKmph / KNOTS_TO_KMPH, STDEV_WIND, 1)[0]
+        data.wind_sensor_1_speed_knots = np.random.normal(self.measuredWindSpeedKmph / KNOTS_TO_KMPH, STDEV_WIND)
         data.wind_sensor_1_angle_degrees = np.random.normal(headingToBearingDegrees(self.measuredWindDirectionDegrees),
-                                                            STDEV_WIND, 1)[0]
-        data.wind_sensor_2_speed_knots = np.random.normal(self.measuredWindSpeedKmph / KNOTS_TO_KMPH, STDEV_WIND, 1)[0]
+                                                            STDEV_WIND)
+        data.wind_sensor_2_speed_knots = np.random.normal(self.measuredWindSpeedKmph / KNOTS_TO_KMPH, STDEV_WIND)
         data.wind_sensor_2_angle_degrees = np.random.normal(headingToBearingDegrees(self.measuredWindDirectionDegrees),
-                                                            STDEV_WIND, 1)[0]
-        data.wind_sensor_3_speed_knots = np.random.normal(self.measuredWindSpeedKmph / KNOTS_TO_KMPH, STDEV_WIND, 1)[0]
+                                                            STDEV_WIND)
+        data.wind_sensor_3_speed_knots = np.random.normal(self.measuredWindSpeedKmph / KNOTS_TO_KMPH, STDEV_WIND)
         data.wind_sensor_3_angle_degrees = np.random.normal(headingToBearingDegrees(self.measuredWindDirectionDegrees),
-                                                            STDEV_WIND, 1)[0]
+                                                            STDEV_WIND)
 
         # data.gps_can_timestamp_utc
-        data.gps_can_latitude_degrees = np.random.normal(self.lat, STDEV_GPS, 1)[0]
-        data.gps_can_longitude_degrees = np.random.normal(self.lon, STDEV_GPS, 1)[0]
-        data.gps_can_groundspeed_knots = np.random.normal(self.speedKmph / KNOTS_TO_KMPH, STDEV_GPS, 1)[0]
-        data.gps_can_track_made_good_degrees = np.random.normal(headingToBearingDegrees(self.headingDegrees), STDEV_GPS,
-                                                                1)[0]
-        data.gps_can_true_heading_degrees = np.random.normal(headingToBearingDegrees(self.headingDegrees), STDEV_GPS,
-                                                             1)[0]
+        data.gps_can_latitude_degrees = np.random.normal(self.lat, STDEV_GPS)
+        data.gps_can_longitude_degrees = np.random.normal(self.lon, STDEV_GPS)
+        data.gps_can_groundspeed_knots = np.random.normal(self.speedKmph / KNOTS_TO_KMPH, STDEV_GPS)
+        data.gps_can_track_made_good_degrees = np.random.normal(headingToBearingDegrees(self.headingDegrees), STDEV_GPS)
+        data.gps_can_true_heading_degrees = np.random.normal(headingToBearingDegrees(self.headingDegrees), STDEV_GPS)
         # data.gps_can_magnetic_variation_degrees
         # data.gps_can_state
 
         # data.gps_ais_timestamp_utc
-        data.gps_ais_latitude_degrees = np.random.normal(self.lat, STDEV_GPS, 1)[0]
-        data.gps_ais_longitude_degrees = np.random.normal(self.lon, STDEV_GPS, 1)[0]
-        data.gps_ais_groundspeed_knots = np.random.normal(self.speedKmph / KNOTS_TO_KMPH, STDEV_GPS, 1)[0]
-        data.gps_ais_track_made_good_degrees = np.random.normal(headingToBearingDegrees(self.headingDegrees), STDEV_GPS,
-                                                                1)[0]
-        data.gps_ais_true_heading_degrees = np.random.normal(headingToBearingDegrees(self.headingDegrees), STDEV_GPS,
-                                                             1)[0]
+        data.gps_ais_latitude_degrees = np.random.normal(self.lat, STDEV_GPS)
+        data.gps_ais_longitude_degrees = np.random.normal(self.lon, STDEV_GPS)
+        data.gps_ais_groundspeed_knots = np.random.normal(self.speedKmph / KNOTS_TO_KMPH, STDEV_GPS)
+        data.gps_ais_track_made_good_degrees = np.random.normal(headingToBearingDegrees(self.headingDegrees), STDEV_GPS)
+        data.gps_ais_true_heading_degrees = np.random.normal(headingToBearingDegrees(self.headingDegrees), STDEV_GPS)
         # data.gps_ais_magnetic_variation_degrees
         # data.gps_ais_state
 
