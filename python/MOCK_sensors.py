@@ -91,37 +91,33 @@ class MOCK_SensorManager:
             self.globalWindSpeedKmph, self.globalWindDirectionDegrees, self.speedKmph, self.headingDegrees)
 
     def publish(self):
-        # add noise here
         # Populate sensors, leaving commented out the ones we don't know for now
         data = msg.Sensors()
 
         # data.sailencoder_degrees
 
-        data.wind_sensor_1_speed_knots = np.random.normal(self.measuredWindSpeedKmph / KNOTS_TO_KMPH, STDEV_WIND)
-        data.wind_sensor_1_angle_degrees = np.random.normal(headingToBearingDegrees(self.measuredWindDirectionDegrees),
-                                                            STDEV_WIND)
-        data.wind_sensor_2_speed_knots = np.random.normal(self.measuredWindSpeedKmph / KNOTS_TO_KMPH, STDEV_WIND)
-        data.wind_sensor_2_angle_degrees = np.random.normal(headingToBearingDegrees(self.measuredWindDirectionDegrees),
-                                                            STDEV_WIND)
-        data.wind_sensor_3_speed_knots = np.random.normal(self.measuredWindSpeedKmph / KNOTS_TO_KMPH, STDEV_WIND)
-        data.wind_sensor_3_angle_degrees = np.random.normal(headingToBearingDegrees(self.measuredWindDirectionDegrees),
-                                                            STDEV_WIND)
+        data.wind_sensor_1_speed_knots = self.measuredWindSpeedKmph / KNOTS_TO_KMPH
+        data.wind_sensor_1_angle_degrees = headingToBearingDegrees(self.measuredWindDirectionDegrees)
+        data.wind_sensor_2_speed_knots = self.measuredWindSpeedKmph / KNOTS_TO_KMPH
+        data.wind_sensor_2_angle_degrees = headingToBearingDegrees(self.measuredWindDirectionDegrees)
+        data.wind_sensor_3_speed_knots = self.measuredWindSpeedKmph / KNOTS_TO_KMPH
+        data.wind_sensor_3_angle_degrees = headingToBearingDegrees(self.measuredWindDirectionDegrees)
 
         # data.gps_can_timestamp_utc
-        data.gps_can_latitude_degrees = np.random.normal(self.lat, STDEV_GPS)
-        data.gps_can_longitude_degrees = np.random.normal(self.lon, STDEV_GPS)
-        data.gps_can_groundspeed_knots = np.random.normal(self.speedKmph / KNOTS_TO_KMPH, STDEV_GPS)
-        data.gps_can_track_made_good_degrees = np.random.normal(headingToBearingDegrees(self.headingDegrees), STDEV_GPS)
-        data.gps_can_true_heading_degrees = np.random.normal(headingToBearingDegrees(self.headingDegrees), STDEV_GPS)
+        data.gps_can_latitude_degrees = self.lat
+        data.gps_can_longitude_degrees = self.lon
+        data.gps_can_groundspeed_knots = self.speedKmph / KNOTS_TO_KMPH
+        data.gps_can_track_made_good_degrees = headingToBearingDegrees(self.headingDegrees)
+        data.gps_can_true_heading_degrees = headingToBearingDegrees(self.headingDegrees)
         # data.gps_can_magnetic_variation_degrees
         # data.gps_can_state
 
         # data.gps_ais_timestamp_utc
-        data.gps_ais_latitude_degrees = np.random.normal(self.lat, STDEV_GPS)
-        data.gps_ais_longitude_degrees = np.random.normal(self.lon, STDEV_GPS)
-        data.gps_ais_groundspeed_knots = np.random.normal(self.speedKmph / KNOTS_TO_KMPH, STDEV_GPS)
-        data.gps_ais_track_made_good_degrees = np.random.normal(headingToBearingDegrees(self.headingDegrees), STDEV_GPS)
-        data.gps_ais_true_heading_degrees = np.random.normal(headingToBearingDegrees(self.headingDegrees), STDEV_GPS)
+        data.gps_ais_latitude_degrees = self.lat
+        data.gps_ais_longitude_degrees = self.lon
+        data.gps_ais_groundspeed_knots = self.speedKmph / KNOTS_TO_KMPH
+        data.gps_ais_track_made_good_degrees = headingToBearingDegrees(self.headingDegrees)
+        data.gps_ais_true_heading_degrees = headingToBearingDegrees(self.headingDegrees)
         # data.gps_ais_magnetic_variation_degrees
         # data.gps_ais_state
 
@@ -138,7 +134,54 @@ class MOCK_SensorManager:
         # data.gyroscope_y_velocity_millidegreesps
         # data.gyroscope_z_velocity_millidegreesps
 
-        self.publisher.publish(data)
+        noisy_data = self.add_noise(data)
+        self.publisher.publish(noisy_data)
+
+    def add_noise(self, data):
+        # Add noise to sensor data using numpy.random.normal. GPS and wind sensors have different standard deviations,
+        # with GPS readings being much more accurate and consistent. Unused sensors are commented out.
+        noisy_data = msg.Sensors()
+
+        # data.sailencoder_degrees
+
+        noisy_data.wind_sensor_1_speed_knots = np.random.normal(data.wind_sensor_1_speed_knots, STDEV_WIND)
+        noisy_data.wind_sensor_1_angle_degrees = np.random.normal(data.wind_sensor_1_angle_degrees, STDEV_WIND)
+        noisy_data.wind_sensor_2_speed_knots = np.random.normal(data.wind_sensor_2_speed_knots, STDEV_WIND)
+        noisy_data.wind_sensor_2_angle_degrees = np.random.normal(data.wind_sensor_2_angle_degrees, STDEV_WIND)
+        noisy_data.wind_sensor_3_speed_knots = np.random.normal(data.wind_sensor_3_speed_knots, STDEV_WIND)
+        noisy_data.wind_sensor_3_angle_degrees = np.random.normal(data.wind_sensor_3_angle_degrees, STDEV_WIND)
+
+        # data.gps_can_timestamp_utc
+        noisy_data.gps_can_latitude_degrees = np.random.normal(data.gps_can_latitude_degrees, STDEV_GPS)
+        noisy_data.gps_can_longitude_degrees = np.random.normal(data.gps_can_longitude_degrees, STDEV_GPS)
+        noisy_data.gps_can_groundspeed_knots = np.random.normal(data.gps_can_groundspeed_knots, STDEV_GPS)
+        noisy_data.gps_can_track_made_good_degrees = np.random.normal(data.gps_can_track_made_good_degrees, STDEV_GPS)
+        noisy_data.gps_can_true_heading_degrees = np.random.normal(data.gps_can_true_heading_degrees, STDEV_GPS)
+        # data.gps_can_magnetic_variation_degrees
+        # data.gps_can_state
+
+        noisy_data.gps_ais_latitude_degrees = np.random.normal(data.gps_ais_latitude_degrees, STDEV_GPS)
+        noisy_data.gps_ais_longitude_degrees = np.random.normal(data.gps_ais_longitude_degrees, STDEV_GPS)
+        noisy_data.gps_ais_groundspeed_knots = np.random.normal(data.gps_ais_groundspeed_knots, STDEV_GPS)
+        noisy_data.gps_ais_track_made_good_degrees = np.random.normal(data.gps_ais_track_made_good_degrees, STDEV_GPS)
+        noisy_data.gps_ais_true_heading_degrees = np.random.normal(data.gps_ais_true_heading_degrees, STDEV_GPS)
+        # data.gps_ais_magnetic_variation_degrees
+        # data.gps_ais_state
+
+        # data.winch_main_angle_degrees
+        # data.winch_jib_angle_degrees
+        # data.rudder_port_angle_degrees
+        # data.rudder_stbd_angle_degrees
+
+        # data.accelerometer_x_force_millig
+        # data.accelerometer_y_force_millig
+        # data.accelerometer_z_force_millig
+
+        # data.gyroscope_x_velocity_millidegreesps
+        # data.gyroscope_y_velocity_millidegreesps
+        # data.gyroscope_z_velocity_millidegreesps
+
+        return noisy_data
 
     def desiredHeadingCallback(self, data):
         # rostopic uses North=0, East=90
