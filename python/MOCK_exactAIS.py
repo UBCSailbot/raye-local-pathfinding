@@ -108,7 +108,6 @@ class MOCK_AISEnvironment:
             }
             self.ais_ships_log.append(log_ship)
 
-
         if self.log_exactais:
             self.log_ais_ships()
 
