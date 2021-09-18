@@ -37,6 +37,7 @@
     <arg name="random_seed" default="" />
     <arg name="start_lat" default="" />
     <arg name="start_lon" default="" />
+    <arg name="sensor_noise" default="false" />
     <arg name="goal_lat" default="" />
     <arg name="goal_lon" default="" />
     <arg name="ais_file" default="" />
@@ -56,6 +57,7 @@
       <arg name="random_seed" value="$(arg random_seed)" />
       <arg name="start_lat" value="$(arg start_lat)" />
       <arg name="start_lon" value="$(arg start_lon)" />
+      <arg name="sensor_noise" value="$(arg sensor_noise)" />
       <arg name="goal_lat" value="$(arg goal_lat)" />
       <arg name="goal_lon" value="$(arg goal_lon)" />
       <arg name="ais_file" value="$(arg ais_file)"/>

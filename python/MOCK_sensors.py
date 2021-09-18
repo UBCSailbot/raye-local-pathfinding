@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import numpy as np
 import rospy
 
 import sailbot_msg.msg as msg
@@ -13,6 +14,8 @@ START_BOAT_SPEED_KMPH = 14.4  # Boat should move at about 4m/s = 14.4 km/h
 START_BOAT_HEADING_DEGREES = 180
 START_GLOBAL_WIND_DIRECTION_DEGREES = 0
 START_GLOBAL_WIND_SPEED_KMPH = 10
+STDEV_GPS = 0.00001
+STDEV_WIND = 0.1
 
 
 def getStartLatLon(defaultLat, defaultLon):
@@ -131,7 +134,55 @@ class MOCK_SensorManager:
         # data.gyroscope_y_velocity_millidegreesps
         # data.gyroscope_z_velocity_millidegreesps
 
+        if rospy.get_param('sensor_noise', default=False):
+            data = self.add_noise(data)
         self.publisher.publish(data)
+
+    def add_noise(self, data):
+        # Add noise to sensor data using numpy.random.normal. GPS and wind sensors have different standard deviations,
+        # with GPS readings being much more accurate and consistent. Unused sensors are commented out.
+        noisy_data = msg.Sensors()
+
+        # data.sailencoder_degrees
+
+        noisy_data.wind_sensor_1_speed_knots = np.random.normal(data.wind_sensor_1_speed_knots, STDEV_WIND)
+        noisy_data.wind_sensor_1_angle_degrees = np.random.normal(data.wind_sensor_1_angle_degrees, STDEV_WIND)
+        noisy_data.wind_sensor_2_speed_knots = np.random.normal(data.wind_sensor_2_speed_knots, STDEV_WIND)
+        noisy_data.wind_sensor_2_angle_degrees = np.random.normal(data.wind_sensor_2_angle_degrees, STDEV_WIND)
+        noisy_data.wind_sensor_3_speed_knots = np.random.normal(data.wind_sensor_3_speed_knots, STDEV_WIND)
+        noisy_data.wind_sensor_3_angle_degrees = np.random.normal(data.wind_sensor_3_angle_degrees, STDEV_WIND)
+
+        # data.gps_can_timestamp_utc
+        noisy_data.gps_can_latitude_degrees = np.random.normal(data.gps_can_latitude_degrees, STDEV_GPS)
+        noisy_data.gps_can_longitude_degrees = np.random.normal(data.gps_can_longitude_degrees, STDEV_GPS)
+        noisy_data.gps_can_groundspeed_knots = np.random.normal(data.gps_can_groundspeed_knots, STDEV_GPS)
+        noisy_data.gps_can_track_made_good_degrees = np.random.normal(data.gps_can_track_made_good_degrees, STDEV_GPS)
+        noisy_data.gps_can_true_heading_degrees = np.random.normal(data.gps_can_true_heading_degrees, STDEV_GPS)
+        # data.gps_can_magnetic_variation_degrees
+        # data.gps_can_state
+
+        noisy_data.gps_ais_latitude_degrees = np.random.normal(data.gps_ais_latitude_degrees, STDEV_GPS)
+        noisy_data.gps_ais_longitude_degrees = np.random.normal(data.gps_ais_longitude_degrees, STDEV_GPS)
+        noisy_data.gps_ais_groundspeed_knots = np.random.normal(data.gps_ais_groundspeed_knots, STDEV_GPS)
+        noisy_data.gps_ais_track_made_good_degrees = np.random.normal(data.gps_ais_track_made_good_degrees, STDEV_GPS)
+        noisy_data.gps_ais_true_heading_degrees = np.random.normal(data.gps_ais_true_heading_degrees, STDEV_GPS)
+        # data.gps_ais_magnetic_variation_degrees
+        # data.gps_ais_state
+
+        # data.winch_main_angle_degrees
+        # data.winch_jib_angle_degrees
+        # data.rudder_port_angle_degrees
+        # data.rudder_stbd_angle_degrees
+
+        # data.accelerometer_x_force_millig
+        # data.accelerometer_y_force_millig
+        # data.accelerometer_z_force_millig
+
+        # data.gyroscope_x_velocity_millidegreesps
+        # data.gyroscope_y_velocity_millidegreesps
+        # data.gyroscope_z_velocity_millidegreesps
+
+        return noisy_data
 
     def desiredHeadingCallback(self, data):
         # rostopic uses North=0, East=90
