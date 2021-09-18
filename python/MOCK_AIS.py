@@ -140,6 +140,18 @@ class MOCK_AISEnvironment:
     def gps_callback(self, msg):
         self.sailbot_lat = msg.lat
         self.sailbot_lon = msg.lon
+    
+    def check_new_num_ship(self, previous_num_ships):
+        updated_num_ships = rospy.get_param('num_ais_ships', default=5)
+        if updated_num_ships is not previous_num_ships:
+
+            self.ships = []
+            for i in range(self.numShips):
+                self.ships.append(RandomShip(i, self.sailbot_lat, self.sailbot_lon, self.publishPeriodSeconds))
+            return updated_num_ships
+        return previous_num_ships
+                
+
 
 
 if __name__ == '__main__':
@@ -149,8 +161,11 @@ if __name__ == '__main__':
     ais_env = MOCK_AISEnvironment(PORT_RENFREW_LATLON.lat, PORT_RENFREW_LATLON.lon, ais_file)
     r = rospy.Rate(1.0 / ais_env.publishPeriodSeconds)  # hz
 
+    prev_num_ais_ships = NUM_AIS_SHIPS
+
     while not rospy.is_shutdown():
         data = ais_env.make_ros_message()
+        prev_num_ais_ships = ais_env.check_new_num_ship(prev_num_ais_ships)
         ais_env.move_ships()
         ais_env.publisher.publish(data)
         r.sleep()
