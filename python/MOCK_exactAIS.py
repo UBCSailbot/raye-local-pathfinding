@@ -4,6 +4,7 @@ import json
 import urllib2
 import time
 import datetime
+import os
 
 from utilities import bearingToHeadingDegrees, PORT_RENFREW_LATLON, XYToLatlon
 
@@ -98,7 +99,7 @@ class MOCK_AISEnvironment:
                     'id': real_ship[u'mmsi'],
                     'lat': real_ship[u'latitude'],
                     'lon': real_ship[u'longitude'],
-                    'headingDegrees': real_ship[u'cog'],
+                    'headingDegrees': bearingToHeadingDegrees(float(real_ship[u'cog'])),
                     'speedKmph': float(real_ship[u'sog']) * 0.54
                 },
                 'length': real_ship[u'length'],
