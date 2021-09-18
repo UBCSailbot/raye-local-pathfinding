@@ -109,12 +109,17 @@ class MOCK_AISEnvironment:
         self.log_ais_ships()
 
     def log_ais_ships(self):
-        now = datetime.datetime.now()
-        timestamp = str(now.hour) + str(now.minute) + str(now.second)
-        log_path = 'ais_ships_log/{}.json'.format(timestamp)
+        # example: '2021-09-18 01:18:19.500744' -> '2021-09-18_01-18-19'
+        timestamp = str(datetime.datetime.now()).split('.')[0].replace(' ', '_').replace(':', '-')
+
+        dir_name = 'exactais_ships_log'
+        if not os.path.exists(dir_name):
+            os.mkdir(dir_name)
+
+        log_path = '{}/{}.json'.format(dir_name, timestamp)
         with open(log_path, 'w') as f:
             json.dump(self.ais_ships_log, f, indent=2)
-        rospy.loginfo('Created AIS ships log at {}'.format(log_path))
+        rospy.info('Created AIS ships log at {}'.format(os.path.abspath(log_path)))
 
 
 if __name__ == '__main__':
