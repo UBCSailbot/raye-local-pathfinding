@@ -3,6 +3,8 @@ import rospy
 import json
 import urllib2
 import time
+import datetime
+import os
 
 from utilities import bearingToHeadingDegrees, PORT_RENFREW_LATLON, XYToLatlon
 
@@ -23,6 +25,7 @@ class MOCK_AISEnvironment:
     '''Class to keep track of ships surrounding the sailbot'''
     def __init__(self, sailbot_lat, sailbot_lon):
         self.token = rospy.get_param('AIS_token', default='')
+        self.log_exactais = rospy.get_param('log_exactais', default='')
         self.sailbot_lat = sailbot_lat
         self.sailbot_lon = sailbot_lon
 
@@ -80,15 +83,46 @@ class MOCK_AISEnvironment:
             return
         ships = json.loads(data)
         self.real_ships = []
+        self.ais_ships_log = []
         for real_ship in ships['features']:
             # Speed is given in knots
             real_ship = real_ship[u'properties']
+
             new_ship = RealShip(int(real_ship[u'mmsi']),
                                 float(real_ship[u'latitude']),
                                 float(real_ship[u'longitude']),
                                 bearingToHeadingDegrees(float(real_ship[u'cog'])),
                                 float(real_ship[u'sog']) * 0.54)
             self.real_ships.append(new_ship)
+
+            log_ship = {
+                'ship_class': {
+                    'id': real_ship[u'mmsi'],
+                    'lat': real_ship[u'latitude'],
+                    'lon': real_ship[u'longitude'],
+                    'headingDegrees': bearingToHeadingDegrees(float(real_ship[u'cog'])),
+                    'speedKmph': float(real_ship[u'sog']) * 0.54
+                },
+                'length': real_ship[u'length'],
+                'width': real_ship[u'width']
+            }
+            self.ais_ships_log.append(log_ship)
+
+        if self.log_exactais:
+            self.log_ais_ships()
+
+    def log_ais_ships(self):
+        # example: '2021-09-18 01:18:19.500744' -> '2021-09-18_01-18-19'
+        timestamp = str(datetime.datetime.now()).split('.')[0].replace(' ', '_').replace(':', '-')
+
+        dir_name = 'exactais_ships_log'
+        if not os.path.exists(dir_name):
+            os.mkdir(dir_name)
+
+        log_path = '{}/{}.json'.format(dir_name, timestamp)
+        with open(log_path, 'w') as f:
+            json.dump(self.ais_ships_log, f, indent=2)
+        rospy.loginfo('Created AIS ships log at {}'.format(os.path.abspath(log_path)))
 
 
 if __name__ == '__main__':
