@@ -25,6 +25,7 @@ class MOCK_AISEnvironment:
     '''Class to keep track of ships surrounding the sailbot'''
     def __init__(self, sailbot_lat, sailbot_lon):
         self.token = rospy.get_param('AIS_token', default='')
+        self.log_exactais = rospy.get_param('log_exactais', default='')
         self.sailbot_lat = sailbot_lat
         self.sailbot_lon = sailbot_lon
 
@@ -106,7 +107,10 @@ class MOCK_AISEnvironment:
                 'width': real_ship[u'width']
             }
             self.ais_ships_log.append(log_ship)
-        self.log_ais_ships()
+
+
+        if self.log_exactais:
+            self.log_ais_ships()
 
     def log_ais_ships(self):
         # example: '2021-09-18 01:18:19.500744' -> '2021-09-18_01-18-19'
@@ -119,7 +123,7 @@ class MOCK_AISEnvironment:
         log_path = '{}/{}.json'.format(dir_name, timestamp)
         with open(log_path, 'w') as f:
             json.dump(self.ais_ships_log, f, indent=2)
-        rospy.info('Created AIS ships log at {}'.format(os.path.abspath(log_path)))
+        rospy.loginfo('Created AIS ships log at {}'.format(os.path.abspath(log_path)))
 
 
 if __name__ == '__main__':
