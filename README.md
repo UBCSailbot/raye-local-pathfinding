@@ -1,8 +1,8 @@
-# Python planning code 
+# Local Pathfinding 
 
 [![CircleCI](https://circleci.com/gh/UBCSailbot/local-pathfinding.svg?style=shield&circle-token=d1bf596ed78d6a5d3744417a589e9ea71128364b)](https://circleci.com/gh/UBCSailbot/local-pathfinding)
 
-The main planning code in python can be found in the `python` directory.
+The main planning code can be found in the `python` directory.
 
 ROS Topic Inputs:
 - `/sensors` - Sensors message containing GPS, wind sensor, accelerometer data, and more. 
@@ -28,7 +28,7 @@ The easiest way to run the local pathfinding system with ROS is to use multiple 
 
 * __The mock inputs__, which are a placeholder for the real inputs.
 
-![UBC Sailbot Local Pathfinding All Launch July 10 2021 (2)](https://user-images.githubusercontent.com/26510814/125213256-802e6d80-e266-11eb-9d7a-0f1830df9335.png)
+![UBC Sailbot Local Pathfinding All Launch Aug 11 2021](https://user-images.githubusercontent.com/26510814/129068295-df42f08d-37a3-4b7c-9e50-b219e24ed2b6.png)
 
 #### Visualizing the simulation
 
@@ -48,9 +48,9 @@ All of the arguments below are optional for `all.launch`. Below is a non-exhaust
 
 * `speedup` - Float value that changes the speed at which the simulation is run. Default: `1.0`
 
-* `global_wind_direction_degrees 70` - Float value that sets the global wind direction.
+* `global_wind_direction_degrees` - Float value that sets the global wind direction.
 
-* `global_wind_speed_kmph 5` - Float value that sets the global wind speed.
+* `global_wind_speed_kmph` - Float value that sets the global wind speed.
 
 * `obstacle_type` - String value that changes the obstacle representation of AIS ships. Accepted types are: `"ellipse"`, `"wedge"`,`"circles"`, `"hybrid_circle"`, and `"hybrid_ellipse"`. Default: `"hybrid_circle"`
 

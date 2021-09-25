@@ -93,6 +93,11 @@ if __name__ == '__main__':
 
     # Create first path and track time of updates
     state = sailbot.getCurrentState()
+
+    # Publish global waypoints first so that they can be visualized
+    nextGlobalWaypointPublisher.publish(state.globalWaypoint)
+    previousGlobalWaypointPublisher.publish(sailbot.globalPath[sailbot.globalPathIndex - 1])
+
     # No prev path to fall back on, so give lots of time
     localPath, lastTimePathCreated = createNewLocalPath(sailbot, float('inf'), desiredHeadingPublisher, None)
     desiredHeadingDegrees = utils.getDesiredHeadingDegrees(state.position, localPath.getNextWaypoint())

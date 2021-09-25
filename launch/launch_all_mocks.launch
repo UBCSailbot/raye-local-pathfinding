@@ -25,6 +25,16 @@
     <arg name="random_seed" default="" />
     <param name="random_seed" type="string" value="$(arg random_seed)" />
 
+    <!-- Sets start and goal latlon -->
+    <arg name="start_lat" default="" />
+    <arg name="start_lon" default="" />
+    <arg name="goal_lat" default="" />
+    <arg name="goal_lon" default="" />
+    <param name="start_lat" type="string" value="$(arg start_lat)" />
+    <param name="start_lon" type="string" value="$(arg start_lon)" />
+    <param name="goal_lat" type="string" value="$(arg goal_lat)" />
+    <param name="goal_lon" type="string" value="$(arg goal_lon)" />
+
     <!-- Sets ais_file, the FULL path of a JSON file to be read to set the initial AIS ship positions, initial sailbot position, goal position, initial wind condition -->
     <arg name="ais_file" default="" />
     <arg name="gps_file" default="" />
@@ -35,8 +45,19 @@
     <param name="goal_file" type="string" value="$(arg goal_file)" />
     <param name="wind_file" type="string" value="$(arg wind_file)" />
 
+    <!-- exactAIS data will be used iff a token is supplied -->
+    <arg name="AIS_token" default="" />
+    <param name="AIS_token" type="string" value="$(arg AIS_token)" />
+    <group if="$(eval bool(arg('AIS_token')))">
+      <node pkg="local_pathfinding" type="MOCK_exactAIS.py" name="MOCK_exactAIS" output="screen" />
+    </group>
+    <group unless="$(eval bool(arg('AIS_token')))">
+      <node pkg="local_pathfinding" type="MOCK_AIS.py" name="MOCK_AIS" output="screen" />
+    </group>
+
+    <arg name="log_exactais" default="false" />
+    <param name="log_exactais" value="$(arg log_exactais)" />
     <param name="speedup" type="double" value="$(arg speedup)" />
-    <node pkg="local_pathfinding" type="MOCK_AIS.py" name="MOCK_AIS" />
     <node pkg="local_pathfinding" type="MOCK_global_planner.py" name="MOCK_global_planner" />
     <node pkg="local_pathfinding" type="MOCK_UDP_bridge.py" name="MOCK_UDP_bridge" />
     <node pkg="local_pathfinding" type="addBoat.py" name="addBoat" />

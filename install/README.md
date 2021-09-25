@@ -4,17 +4,17 @@ The installation process consists of installing OMPL with Python bindings, insta
 
 ### Setting up ROS Workspace
 
-1. Install ROS Melodic on a Ubuntu 18.04 (or similar). http://wiki.ros.org/ROS/Tutorials/InstallingandConfiguringROSEnvironment
+1. Install ROS Melodic on Ubuntu 18.04 (or similar): http://wiki.ros.org/melodic/Installation
 
-2. Find the location that you want to create a ROS workspace (eg. `cd ~`)
+2. Find the location that you want to create a ROS workspace (eg. home directory: `cd ~`)
 
-3. Type the commands `mkdir -p catkin_ws/src` `cd catkin_ws` `catkin_make`.
+3. Create a ROS workspace: `mkdir -p catkin_ws/src` `cd catkin_ws` `catkin_make`
 
-4. Clone this repository in the src folder: `cd src` `git clone https://github.com/UBCSailbot/local-pathfinding.git`. 
+4. Clone this repository in the src folder: `cd src` `git clone https://github.com/UBCSailbot/local-pathfinding.git`
 
-5. Clone the sailbot-msgs repository in the src folder: `git clone https://github.com/UBCSailbot/sailbot-msg.git`.
+5. Clone the sailbot-msgs repository in the src folder: `git clone https://github.com/UBCSailbot/sailbot-msg.git`
 
-6. Go back to catkin\_ws and build and source. `cd ..` `catkin_make` `source devel/setup.bash`.
+6. Go back to catkin\_ws and build and source. `cd ..` `catkin_make` `source devel/setup.bash`
 
 
 ### Installing OMPL
