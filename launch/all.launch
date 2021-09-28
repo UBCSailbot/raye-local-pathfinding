@@ -9,6 +9,7 @@
     <arg name="main_loop_output" default="screen" />
     <arg name="ros_interface_output" default="log" />
     <arg name="obstacle_type" default="hybrid_circle" />
+    <arg name="land_latlons" default="[]" />
     <arg name="screenshot" default="false" />
     <arg name="plot_pathfinding_problem" default="false" />
     <arg name="enable_los" default="false" />
@@ -21,6 +22,7 @@
       <arg name="main_loop_output" value="$(arg main_loop_output)"/>
       <arg name="ros_interface_output" value="$(arg ros_interface_output)"/>
       <arg name="obstacle_type" value="$(arg obstacle_type)"/>
+      <arg name="land_latlons" value="$(arg land_latlons)"/>
       <arg name="screenshot" value="$(arg screenshot)"/>
       <arg name="plot_pathfinding_problem" value="$(arg plot_pathfinding_problem)"/>
       <arg name="enable_los" value="$(arg enable_los)" />

@@ -5,6 +5,8 @@ import utilities as utils
 from matplotlib import patches
 from sailbot_msg.msg import latlon
 from geopy.distance import distance
+from shapely.geometry import Point as ShapelyPoint
+from shapely.geometry.polygon import Polygon as ShapelyPolygon
 import rospy
 
 # Obstacle dimension constants
@@ -51,6 +53,13 @@ def getObstacles(state, referenceLatlon):
     elif obstacle_type == "hybrid_circle":
         for ship in ships:
             obstacles.append(HybridCircleObstacle(ship, position, referenceLatlon))
+
+    # create a land mass obstacle if land_latlons is not empty
+    land_latlons = eval(rospy.get_param('land_latlons', default='[]'))
+    if land_latlons:
+        # implement interface but override constructor
+        obstacles.append(GeneralPolygon(land_latlons, referenceLatlon))
+
     return obstacles
 
 
@@ -273,6 +282,28 @@ class HybridCircleObstacle(ObstacleInterface):
 
     def clearance(self, xy):
         return self.wedgeObstacle.clearance(xy)
+
+
+class GeneralPolygon(ObstacleInterface):
+    def __init__(self, land_latlons, referenceLatlon):
+        """ Initialize obstacle """
+        self.land_latlons = land_latlons
+        # are XYs and latlons a tuple of floats?
+        self.land_xys = [utils.latlonToXY(latlon(land_tuple[0], land_tuple[1]), referenceLatlon)
+                         for land_tuple in self.land_latlons]
+        self.shapely_polygon = ShapelyPolygon(self.land_xys)
+
+    def __str__(self):
+        return str(self.land_latlons)
+
+    def addPatch(self, axes, color='g', alpha=1.0):
+        axes.add_patch(patches.Polygon(self.land_xys), color=color, alpha=alpha)
+
+    def isValid(self, xy):
+        return self.shapely_polygon.contains(ShapelyPoint(xy[0], xy[1]))
+
+    def clearance(self, xy):
+        return self.shapely_polygon.exterior.distance(ShapelyPoint(xy[0], xy[1]))
 
 
 def getProjectedPosition(aisShip, sailbotPosition, referenceLatlon):
