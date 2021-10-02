@@ -25,7 +25,7 @@ __Setup Option 1 (Recommended): Installation on the host computer__
 
 Installation on the host computer requires running the commands that are in the Dockerfile directly on your computer. A bash script has been made with the same instructions as the Dockerfile to run this.
 
-* Navigate to the `install` directory: `cd install`
+* Navigate to the `install` directory of this repository: `cd src/local-pathfinding` `cd install`
 
 * Run the script as root: `sudo ./ompl_install_instructions.bash --sudo`
 
