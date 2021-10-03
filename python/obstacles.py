@@ -297,10 +297,13 @@ class GeneralPolygon(ObstacleInterface):
         return str(self.land_latlons)
 
     def addPatch(self, axes, color='g', alpha=1.0):
-        axes.add_patch(patches.Polygon(self.land_xys), color=color, alpha=alpha)
+        polygonPatch = patches.Polygon(self.land_xys)
+        polygonPatch.set_color(color)
+        polygonPatch.set_alpha(alpha)
+        axes.add_patch(polygonPatch)
 
     def isValid(self, xy):
-        return self.shapely_polygon.contains(ShapelyPoint(xy[0], xy[1]))
+        return not self.shapely_polygon.contains(ShapelyPoint(xy[0], xy[1]))
 
     def clearance(self, xy):
         return self.shapely_polygon.exterior.distance(ShapelyPoint(xy[0], xy[1]))
