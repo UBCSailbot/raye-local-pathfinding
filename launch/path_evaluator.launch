@@ -13,6 +13,7 @@
     <param name="state_sampler" type="string" value="$(arg state_sampler)" />
     <param name="grid_n" type="int" value="$(arg grid_n)" />
     <param name="planner_type" type="string" value="$(arg planner_type)" />
+    <param name="obstacle_type" type="string" value="$(arg obstacle_type)" />
     <param name="land_mass_file" value="$(arg land_mass_file)" />
     <node pkg="local_pathfinding" type="path_evaluator.py" name="path_evaluator" output="screen"/>
     <node pkg="local_pathfinding" type="ros_interface.py" name="ros_interface"/>
