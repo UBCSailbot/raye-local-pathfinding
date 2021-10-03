@@ -7,13 +7,13 @@
     <arg name="grid_n" default="15" />
     <arg name="planner_type" default="lazyprmstar" />
     <arg name="obstacle_type" default="hybrid_circle" />
-    <arg name="land_latlons" default="[]" />
+    <arg name="land_mass_file" default="" />
     <param name="num_runs" type="int" value="$(arg num_runs)" />
     <param name="runtime_seconds" type="double" value="$(arg runtime_seconds)" />
     <param name="state_sampler" type="string" value="$(arg state_sampler)" />
     <param name="grid_n" type="int" value="$(arg grid_n)" />
     <param name="planner_type" type="string" value="$(arg planner_type)" />
-    <param name="land_latlons" value="$(arg land_latlons)" />
+    <param name="land_mass_file" value="$(arg land_mass_file)" />
     <node pkg="local_pathfinding" type="path_evaluator.py" name="path_evaluator" output="screen"/>
     <node pkg="local_pathfinding" type="ros_interface.py" name="ros_interface"/>
 

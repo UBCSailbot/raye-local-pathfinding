@@ -21,8 +21,8 @@
     <param name="obstacle_type" type="string" value="$(arg obstacle_type)" />
 
     <!-- Sets the latlon list for the land obstacle -->
-    <arg name="land_latlons" default="[]" />
-    <param name="land_latlons" value="$(arg land_latlons)" />
+    <arg name="land_mass_file" default="" />
+    <param name="land_mass_file" value="$(arg land_mass_file)" />
 
     <!-- Set if screenshots should be taken or not -->
     <arg name="screenshot" default="false" />

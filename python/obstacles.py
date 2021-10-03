@@ -7,6 +7,7 @@ from sailbot_msg.msg import latlon
 from geopy.distance import distance
 from shapely.geometry import Point as ShapelyPoint
 from shapely.geometry.polygon import Polygon as ShapelyPolygon
+import os
 import rospy
 
 # Obstacle dimension constants
@@ -55,10 +56,16 @@ def getObstacles(state, referenceLatlon):
             obstacles.append(HybridCircleObstacle(ship, position, referenceLatlon))
 
     # create a land mass obstacle if land_latlons is not empty
-    land_latlons = eval(rospy.get_param('land_latlons', default='[]'))
-    if land_latlons:
-        # implement interface but override constructor
-        obstacles.append(GeneralPolygon(land_latlons, referenceLatlon))
+    # path relative to local-pathfinding directory
+    land_mass_file = rospy.get_param('land_mass_file', default='')
+    # absolute path of local-pathfinding directory from the absolute path to obstacles.py
+    base_path = os.path.abspath(__file__)[:os.path.abspath(__file__).find('python/')]
+    land_mass_file_abs_path = os.path.join(base_path, land_mass_file)
+
+    if os.path.exists(land_mass_file_abs_path):
+        obstacles.append(GeneralPolygon(land_mass_file_abs_path, referenceLatlon))
+    elif land_mass_file:
+        rospy.logfatal('Land mass file at {} does not exist'.format(land_mass_file_abs_path))
 
     return obstacles
 
@@ -285,12 +292,21 @@ class HybridCircleObstacle(ObstacleInterface):
 
 
 class GeneralPolygon(ObstacleInterface):
-    def __init__(self, land_latlons, referenceLatlon):
-        """ Initialize obstacle """
-        self.land_latlons = land_latlons
-        # are XYs and latlons a tuple of floats?
-        self.land_xys = [utils.latlonToXY(latlon(land_tuple[0], land_tuple[1]), referenceLatlon)
-                         for land_tuple in self.land_latlons]
+    def __init__(self, land_mass_file, referenceLatlon):
+        """ Initialize obstacle
+
+        Args:
+            land_mass_file (str): path to a file with the bounding latlons of the land mass to visualize
+                - Latlons in the format "lat,lon\n"
+                - Latlons next to each other in the list are neighbors in the land mass
+            referenceLatlon (sailbot_msg.msg._latlon.latlon): Position of the reference point that will be at (0,0)
+        """
+        with open(land_mass_file, 'r') as f:
+            lines = f.readlines()
+
+        self.land_latlons = [[float(coord) for coord in latlon_str.split(',')] for latlon_str in lines]
+        self.land_xys = [utils.latlonToXY(latlon(land_latlon_list[0], land_latlon_list[1]), referenceLatlon)
+                         for land_latlon_list in self.land_latlons]
         self.shapely_polygon = ShapelyPolygon(self.land_xys)
 
     def __str__(self):
