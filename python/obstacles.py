@@ -25,6 +25,9 @@ CURRENT_BOAT_COLOR = "red"
 PROJECTED_BOAT_COLOR = "blue"
 CURRENT_BOAT_TRANSPARENCY_ALPHA = 0.1  # Current position is more transparent
 
+# Absolute path to the local-pathfinding directory from the absolute path to this file
+LOCAL_DIR_ABS_PATH = os.path.abspath(__file__)[:os.path.abspath(__file__).find('python/')]
+
 
 def getObstacles(state, referenceLatlon):
     '''Creates a list of obstacles in xy coordinates. Uses the obstacle type from the rosparam "obstacle_type"
@@ -58,10 +61,7 @@ def getObstacles(state, referenceLatlon):
     # create a land mass obstacle if land_latlons is not empty
     # path relative to local-pathfinding directory
     land_mass_file = rospy.get_param('land_mass_file', default='')
-    # absolute path of local-pathfinding directory from the absolute path to obstacles.py
-    base_path = os.path.abspath(__file__)[:os.path.abspath(__file__).find('python/')]
-    land_mass_file_abs_path = os.path.join(base_path, land_mass_file)
-
+    land_mass_file_abs_path = os.path.join(LOCAL_DIR_ABS_PATH, land_mass_file)
     if os.path.exists(land_mass_file_abs_path):
         obstacles.append(GeneralPolygon(land_mass_file_abs_path, referenceLatlon))
     elif land_mass_file:
