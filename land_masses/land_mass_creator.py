@@ -49,10 +49,12 @@ if __name__ == '__main__':
     endPoints = []
     for i in range(lat_start, lat_end):
         isLeftmostCoord = True
+        landPresentInLat = False
         for j in range(lon_start, lon_end):
             count = 0
             elevation = nc.variables['elevation'][i][j]
             if (elevation > -1 * args.threshold_depth):
+                landPresentInLat = True
                 lat = nc.variables['lat'][i]
                 lon = nc.variables['lon'][j]
 
@@ -67,7 +69,8 @@ if __name__ == '__main__':
                 currRightmostLat = lat
 
         # Write the rightmost coordinate for each latitude
-        endPoints.append([currRightmostLat, currRightmostLon])
+        if (landPresentInLat):
+            endPoints.append([currRightmostLat, currRightmostLon])
 
     # write rightmost coordinates in reverse order
     endPoints.reverse()
