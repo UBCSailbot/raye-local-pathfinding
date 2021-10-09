@@ -35,6 +35,7 @@ ${SUDO}apt-get install -y \
        pkg-config \
        python2.7-dev \
        python2.7-numpy \
+       python-netcdf4 \
        python-pip \
        python-tk \
        wget \
