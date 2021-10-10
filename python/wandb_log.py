@@ -63,7 +63,7 @@ if __name__ == '__main__':
                        'Speed': boatState.speedKmph,
                        'GlobalWindDirection': boatState.globalWindDirectionDegrees,
                        'GlobalWindSpeedKmph': boatState.globalWindSpeedKmph,
-                      }
+                       }
             # Next, previous, and last local waypoint
             currentPath = path_storer.paths[-1]
             if len(currentPath) >= 2:
