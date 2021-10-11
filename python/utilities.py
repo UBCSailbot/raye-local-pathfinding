@@ -352,6 +352,7 @@ def pathCostThresholdExceeded(path):
 def ssa_deg(angle):
     return ((angle + 180) % 360) - 180
 
+
 # Get rosparam, or default if empty string
 def get_rosparam_or_default_if_invalid(rosparam_name, default, warn_if_empty_string=False, rosparam_type_cast=float):
     rosparam = rospy.get_param(rosparam_name, default=default)
