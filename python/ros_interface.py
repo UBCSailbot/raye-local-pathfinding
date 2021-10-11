@@ -80,27 +80,33 @@ class RosInterface:
         self.past_measured_wind_direction = self.measured_wind_direction
 
         # GPS sensors - use can, ais, or both? which takes priority? true heading / track made good usage?
+        rospy.loginfo('Getting trusted average of GPS latitude')
         self.gps_lat_decimalDegrees = self.getTrustedAvg(
                 pastValue=self.past_gps_lat_decimalDegrees,
                 vals=[data.gps_can_latitude_degrees, data.gps_ais_latitude_degrees])
+        rospy.loginfo('Getting trusted average of GPS longitude')
         self.gps_lon_decimalDegrees = self.getTrustedAvg(
                 pastValue=self.past_gps_lon_decimalDegrees,
                 vals=[data.gps_can_longitude_degrees, data.gps_ais_longitude_degrees])
+        rospy.loginfo('Getting trusted average of GPS heading')
         self.gps_headingDegrees = self.getTrustedAvg(
                 pastValue=self.past_gps_headingDegrees,
                 vals=[bearingToHeadingDegrees(data.gps_can_true_heading_degrees),
                       bearingToHeadingDegrees(data.gps_ais_true_heading_degrees)])
+        rospy.loginfo('Getting trusted average of GPS speed')
         self.gps_speedKmph = self.getTrustedAvg(
                 pastValue=self.past_gps_speedKmph,
                 vals=[data.gps_can_groundspeed_knots * KNOTS_TO_KMPH,
                       data.gps_ais_groundspeed_knots * KNOTS_TO_KMPH])
 
         # Wind sensors
+        rospy.loginfo('Getting trusted average of wind speed')
         self.measured_wind_speedKmph = self.getTrustedAvg(
                 pastValue=self.past_measured_wind_speedKmph,
                 vals=[data.wind_sensor_1_speed_knots * KNOTS_TO_KMPH,
                       data.wind_sensor_2_speed_knots * KNOTS_TO_KMPH,
                       data.wind_sensor_3_speed_knots * KNOTS_TO_KMPH])
+        rospy.loginfo('Getting trusted average of wind direction')
         self.measured_wind_direction = self.getTrustedAvg(
                 pastValue=self.past_measured_wind_direction,
                 vals=[bearingToHeadingDegrees(data.wind_sensor_1_angle_degrees),
@@ -111,10 +117,13 @@ class RosInterface:
         '''Averages the trust values, or defaults to the first term in vals if pastValue is 0 or not initialized'''
         trustedVals = self.getTrusted(pastValue, vals)
         if len(trustedVals) == 0:
-            rospy.logwarn("Values don't match with pastValue, or if pastValue is None or 0, defaulting to first sensor")
+            rospy.logwarn('No trusted values, defaulting to sensor 0')
+            rospy.loginfo('Trusted average: {}'.format(vals[0]))
             return vals[0]
         else:
-            return float(sum(trustedVals)) / len(trustedVals)
+            truAvg = float(sum(trustedVals)) / len(trustedVals)
+            rospy.loginfo('Trusted average: {} / {} = {}'.format(sum(trustedVals), len(trustedVals), truAvg))
+            return truAvg
 
     def getTrusted(self, pastValue, vals):
         '''Returns vals without outlier terms like None
@@ -122,12 +131,18 @@ class RosInterface:
             - Could modify past value to be the average of the past few outputs (store in list)
         '''
         if pastValue is None or pastValue == 0:
+            rospy.logwarn('pastValue is None or 0, using only current sensor data')
             return vals
 
         trustedVals = []
-        for value in vals:
+        for i in range(len(vals)):
+            value = vals[i]
             if value is not None and abs(float(pastValue - value) / pastValue) < MAX_ALLOWABLE_PERCENT_ERROR:
                 trustedVals.append(value)
+            elif value is None:
+                rospy.logwarn('Sensor {} is None, skipping'.format(i))
+            else:
+                rospy.logwarn('Sensor {} is very different from pastValue, skipping'.format(i))
         return trustedVals
 
     def get_global_wind(self):
