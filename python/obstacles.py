@@ -62,7 +62,7 @@ def getObstacles(state, referenceLatlon):
     # path relative to local-pathfinding directory
     land_mass_file = rospy.get_param('land_mass_file', default='')
     land_mass_file_abs_path = os.path.join(LOCAL_DIR_ABS_PATH, land_mass_file)
-    if os.path.exists(land_mass_file_abs_path):
+    if os.path.isfile(land_mass_file_abs_path):
         obstacles.append(GeneralPolygon(land_mass_file_abs_path, referenceLatlon))
     elif land_mass_file:
         rospy.logfatal('Land mass file at {} does not exist'.format(land_mass_file_abs_path))
