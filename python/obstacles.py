@@ -5,6 +5,9 @@ import utilities as utils
 from matplotlib import patches
 from sailbot_msg.msg import latlon
 from geopy.distance import distance
+from shapely.geometry import Point as ShapelyPoint
+from shapely.geometry.polygon import Polygon as ShapelyPolygon
+import os
 import rospy
 
 # Obstacle dimension constants
@@ -21,6 +24,9 @@ SAILBOT_SPEED_BUFFER = 1.1
 CURRENT_BOAT_COLOR = "red"
 PROJECTED_BOAT_COLOR = "blue"
 CURRENT_BOAT_TRANSPARENCY_ALPHA = 0.1  # Current position is more transparent
+
+# Absolute path to the local-pathfinding directory from the absolute path to this file
+LOCAL_DIR_ABS_PATH = os.path.abspath(__file__)[:os.path.abspath(__file__).find('python/')]
 
 
 def getObstacles(state, referenceLatlon):
@@ -51,6 +57,16 @@ def getObstacles(state, referenceLatlon):
     elif obstacle_type == "hybrid_circle":
         for ship in ships:
             obstacles.append(HybridCircleObstacle(ship, position, referenceLatlon))
+
+    # create a land mass obstacle if land_latlons is not empty
+    # path relative to local-pathfinding directory
+    land_mass_file = rospy.get_param('land_mass_file', default='')
+    land_mass_file_abs_path = os.path.join(LOCAL_DIR_ABS_PATH, land_mass_file)
+    if os.path.isfile(land_mass_file_abs_path):
+        obstacles.append(GeneralPolygon(land_mass_file_abs_path, referenceLatlon))
+    elif land_mass_file:
+        rospy.logfatal('Land mass file at {} does not exist'.format(land_mass_file_abs_path))
+
     return obstacles
 
 
@@ -273,6 +289,40 @@ class HybridCircleObstacle(ObstacleInterface):
 
     def clearance(self, xy):
         return self.wedgeObstacle.clearance(xy)
+
+
+class GeneralPolygon(ObstacleInterface):
+    def __init__(self, land_mass_file, referenceLatlon):
+        """ Initialize obstacle
+
+        Args:
+            land_mass_file (str): path to a file with the bounding latlons of the land mass to visualize
+                - Latlons in the format "lat,lon\n"
+                - Latlons next to each other in the list are neighbors in the land mass
+            referenceLatlon (sailbot_msg.msg._latlon.latlon): Position of the reference point that will be at (0,0)
+        """
+        with open(land_mass_file, 'r') as f:
+            lines = f.readlines()
+
+        self.land_latlons = [[float(coord) for coord in latlon_str.split(',')] for latlon_str in lines]
+        self.land_xys = [utils.latlonToXY(latlon(land_latlon_list[0], land_latlon_list[1]), referenceLatlon)
+                         for land_latlon_list in self.land_latlons]
+        self.shapely_polygon = ShapelyPolygon(self.land_xys)
+
+    def __str__(self):
+        return str(self.land_latlons)
+
+    def addPatch(self, axes, color='g', alpha=1.0):
+        polygonPatch = patches.Polygon(self.land_xys)
+        polygonPatch.set_color(color)
+        polygonPatch.set_alpha(alpha)
+        axes.add_patch(polygonPatch)
+
+    def isValid(self, xy):
+        return not self.shapely_polygon.contains(ShapelyPoint(xy[0], xy[1]))
+
+    def clearance(self, xy):
+        return self.shapely_polygon.exterior.distance(ShapelyPoint(xy[0], xy[1]))
 
 
 def getProjectedPosition(aisShip, sailbotPosition, referenceLatlon):
