@@ -27,8 +27,11 @@ def getValidStateMoveToSafetyIfNeeded(sailbot, desiredHeadingPublisher):
     if not startValid:
         while not startValid and not rospy.is_shutdown():
             headingToSafetyDegrees = generateSafeHeadingDegrees(state, obstacleOnStartPosition)
-            rospy.logwarn("INVALID START STATE! Publishing Heading to safety: {}".format(headingToSafetyDegrees))
-            desiredHeadingPublisher.publish(msg.heading(headingToSafetyDegrees))
+            headingToSafetyDegreesNewCoordinates = utils.headingToBearingDegrees(headingToSafetyDegrees)
+            rospy.logwarn("INVALID START STATE! Publishing Heading to safety: " +
+                          "{} (0 = east, 90 = north) OR {} (0 = north, 90 = east)"
+                          .format(headingToSafetyDegrees, headingToSafetyDegreesNewCoordinates))
+            desiredHeadingPublisher.publish(msg.heading(headingToSafetyDegreesNewCoordinates))
             state = sailbot.getCurrentState()
             obstacleOnStartPosition = obstacleOnStart(state)
             startValid = (obstacleOnStartPosition is None)
