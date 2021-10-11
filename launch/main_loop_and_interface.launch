@@ -36,6 +36,11 @@
     <arg name="enable_los" default="false" />
     <param name="enable_los" type="bool" value="$(arg enable_los)" />
 
+    <!-- Wandb logger -->
+    <arg name="wandb" default="false" />
+    <node pkg="local_pathfinding" type="wandb_log.py" name="wandb_log" if="$(arg wandb)" output="screen" />
+
+    <!-- Main loop and interface -->
     <node pkg="local_pathfinding" type="main_loop.py" name="main_loop" output="$(arg main_loop_output)"/>
     <node pkg="local_pathfinding" type="ros_interface.py" name="ros_interface" output="$(arg ros_interface_output)"/>
 </launch>

@@ -8,15 +8,22 @@ from collision_checker import CollisionChecker
 from store_sailbot_gps import SailbotGPSData
 from utilities import takeScreenshot
 from PIL import Image
+import Sailbot as sbot
 
+# Parameters for what and how to log
 UPDATE_TIME_SECONDS = 1.0
 SCREENSHOT_PERIOD_SECONDS = 10.0
+LATLON_TABLE = False
+SCREENSHOT = False
 
 
 if __name__ == '__main__':
     os.environ["WANDB_SILENT"] = "true"  # Avoid small wandb bug
-    rospy.init_node('wandb_log')
-    wandb.init(entity='ubcsailbot', project='sailbot-test-2')
+    wandb.init(entity='ubcsailbot', project='sailbot-default-project')
+
+    # Subscribe to essential pathfinding info
+    sailbot = sbot.Sailbot(nodeName='wandb_log')
+    sailbot.waitForFirstSensorDataAndGlobalPath()
 
     # Log parameters
     config = wandb.config
@@ -38,6 +45,7 @@ if __name__ == '__main__':
         collision_checker.check_for_collisions()
         collision_checker.check_for_warnings()
         sailbot_gps_data.StoreSailbotGPS()
+        boatState = sailbot.getCurrentState()
 
         # Store logs
         validDataReady = (len(log_closest_obstacle.closestDistances) > 0 and len(path_storer.pathCosts) > 0 and
@@ -50,7 +58,23 @@ if __name__ == '__main__':
                        'Lon': sailbot_gps_data.lon,
                        'DisplacementKm': sailbot_gps_data.Find_Distance(),
                        'ClosestObstacleDistanceKm': log_closest_obstacle.closestDistances[-1],
-                       'PathCost': path_storer.pathCosts[-1]}
+                       'PathCost': path_storer.pathCosts[-1],
+                       'Heading': boatState.headingDegrees,
+                       'Speed': boatState.speedKmph,
+                       'GlobalWindDirection': boatState.globalWindDirectionDegrees,
+                       'GlobalWindSpeedKmph': boatState.globalWindSpeedKmph,
+                       }
+            # Next, previous, and last local waypoint
+            currentPath = path_storer.paths[-1]
+            if len(currentPath) >= 2:
+                nextWaypoint, prevWaypoint, lastWaypoint = currentPath[1], currentPath[0], currentPath[-1],
+                new_log.update({"NextWaypointLat": nextWaypoint.lat,
+                                "NextWaypointLon": nextWaypoint.lon,
+                                "PrevWaypointLat": prevWaypoint.lat,
+                                "PrevWaypointLon": prevWaypoint.lon,
+                                "LastWaypointLat": lastWaypoint.lat,
+                                "LastWaypointLon": lastWaypoint.lon,
+                                })
 
             # Get objective and their weighted cost.
             # Will be in form: [..., 'Weighted', 'cost', '=', '79343.0', ...]
@@ -65,12 +89,13 @@ if __name__ == '__main__':
             wandb.log(new_log)
 
             # Latlon scatter plot
-            data = [[lon, lat] for (lat, lon) in zip(sailbot_gps_data.latArray, sailbot_gps_data.lonArray)]
-            table = wandb.Table(data=data, columns=['Lon', 'Lat'])
-            wandb.log({'LatlonPlot': wandb.plot.scatter(table, 'Lon', 'Lat', title='Sailbot Latlon Plot')})
+            if LATLON_TABLE:
+                data = [[lon, lat] for (lat, lon) in zip(sailbot_gps_data.latArray, sailbot_gps_data.lonArray)]
+                table = wandb.Table(data=data, columns=['Lon', 'Lat'])
+                wandb.log({'LatlonPlot': wandb.plot.scatter(table, 'Lon', 'Lat', title='Sailbot Latlon Plot')})
 
             # Screenshot
-            if counter % (SCREENSHOT_PERIOD_SECONDS // UPDATE_TIME_SECONDS) == 0:
+            if SCREENSHOT and counter % (SCREENSHOT_PERIOD_SECONDS // UPDATE_TIME_SECONDS) == 0:
                 screenshot_path = takeScreenshot(return_path_to_file=True)
                 screenshot = Image.open(screenshot_path)
 
