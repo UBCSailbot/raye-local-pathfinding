@@ -64,6 +64,7 @@ commands:
   run_tests:
     description: "Run Tests"
     steps:
+      - run: pip install shapely  # temporary patch for a new dependency not in the CircleCI image
       - run: source /opt/ros/melodic/setup.bash && source /catkin_ws/devel/setup.bash && cd /catkin_ws && catkin_make run_tests && catkin_test_results
 
 executors:
