@@ -42,25 +42,26 @@ if __name__ == '__main__':
     kml.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
               "<kml xmlns=\"http://earth.google.com/kml/2.0\"><Document><Placemark><LineString><coordinates>\n")
 
-    txt = open(land_mass_file + '.txt', 'w')
+    csv = open(land_mass_file + '.csv', 'w')
 
     # All GPS locations of land above threshold depth, with a resolution of 0.00416667 degrees
-    count = 0  # Tracks if there are "no-go zones" in current search
     endPoints = []
     for i in range(lat_start, lat_end):
-        isLeftmostCoord = True
-        landPresentInLat = False
+        isLeftmostCoord = True  # order of latitudes is from left to right, so first land coordinate
+        landPresentInLat = False  # true when there is at least one land coordinate for a latitude
+
         for j in range(lon_start, lon_end):
             count = 0
             elevation = nc.variables['elevation'][i][j]
             if (elevation > -1 * args.threshold_depth):
                 landPresentInLat = True
+
                 lat = nc.variables['lat'][i]
                 lon = nc.variables['lon'][j]
 
                 # Write the leftmost coordinate for each latitude
                 if (isLeftmostCoord):
-                    txt.write(str(lat) + ',' + str(lon) + '\n')
+                    csv.write(str(lat) + ',' + str(lon) + '\n')
                     kml.write(str(lon) + ',' + str(lat) + '\n')
                     isLeftmostCoord = False
 
@@ -68,20 +69,20 @@ if __name__ == '__main__':
                 currRightmostLon = lon
                 currRightmostLat = lat
 
-        # Write the rightmost coordinate for each latitude
+        # Write the rightmost coordinate for each latitude if it exists
         if (landPresentInLat):
             endPoints.append([currRightmostLat, currRightmostLon])
 
     # write rightmost coordinates in reverse order
     endPoints.reverse()
     for k in endPoints:
-        txt.write(str(k[0]) + ',' + str(k[1]) + '\n')
+        csv.write(str(k[0]) + ',' + str(k[1]) + '\n')
         kml.write(str(k[1]) + ',' + str(k[0]) + '\n')
 
-    txt.close()
+    csv.close()
     kml.write("</coordinates></LineString></Placemark></Document></kml>\n")
     kml.close()
-    print 'Saved to', land_mass_file + '.(txt|kml)'
+    print 'Saved to', land_mass_file + '.(csv|kml)'
 
     stop = timeit.default_timer()
     print 'Took', stop - start, 'seconds'
