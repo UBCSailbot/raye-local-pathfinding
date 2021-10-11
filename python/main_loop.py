@@ -74,7 +74,7 @@ if __name__ == '__main__':
     rospy.Subscriber('forceLocalPathUpdate', Bool, localPathUpdateForcedCallback)
 
     # Create ros publisher for the desired heading for the controller
-    desiredHeadingPublisher = rospy.Publisher('heading_degrees', msg.heading, queue_size=4)
+    desiredHeadingPublisher = rospy.Publisher('desired_heading_degrees', msg.heading, queue_size=4)
 
     # Create other publishers
     localPathPublisher = rospy.Publisher('localPath', msg.path, queue_size=4)

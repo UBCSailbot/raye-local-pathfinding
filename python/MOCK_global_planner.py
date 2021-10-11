@@ -2,7 +2,7 @@
 import rospy
 import json
 import time
-from utilities import MAUI_LATLON
+from utilities import MAUI_LATLON, get_rosparam_or_default_if_invalid
 
 import sailbot_msg.msg as msg
 from geopy.distance import distance
@@ -55,25 +55,6 @@ def create_path(init, goal):
     return path
 
 
-def getGoalLatLon(defaultLat, defaultLon):
-    # Read in goalLat and goalLon
-    try:
-        goalLat = rospy.get_param('goal_lat', default=defaultLat)
-        goalLat = float(goalLat)
-    except ValueError:
-        rospy.logwarn("Invalid goalLat must be a float, but received goalLat = {}".format(goalLat))
-        goalLat = defaultLat
-        rospy.logwarn("Defaulting to goalLat = {}".format(goalLat))
-    try:
-        goalLon = rospy.get_param('goal_lon', default=defaultLon)
-        goalLon = float(goalLon)
-    except ValueError:
-        rospy.logwarn("Invalid goalLon must be a float, but received goalLon = {}".format(goalLon))
-        goalLon = defaultLon
-        rospy.logwarn("Defaulting to goalLon = {}".format(goalLon))
-    return (goalLat, goalLon)
-
-
 def MOCK_global():
     global boatLat
     global boatLon
@@ -101,15 +82,27 @@ def MOCK_global():
             lon = record[1]
             goal = [lat, lon]
     else:
-        goal = getGoalLatLon(defaultLat=MAUI_LATLON.lat, defaultLon=MAUI_LATLON.lon)
+        rospy.logerr("1")
+        goalLat = get_rosparam_or_default_if_invalid('goal_lat', default=MAUI_LATLON.lat)
+        rospy.logerr("1")
+        goalLon = get_rosparam_or_default_if_invalid('goal_lon', default=MAUI_LATLON.lon)
+        rospy.logerr("1")
+        goal = [goalLat, goalLon]
+        rospy.logerr("1")
+        rospy.logerr(goal)
 
+    rospy.logerr("2")
     path = create_path(init, goal)
+    rospy.logerr("2")
 
     # Publish new global path periodically
     # Publish new global path more often with speedup
     republish_counter = 0
+    rospy.logerr("2")
     numPublishPeriodsPerUpdate = int(NEW_GLOBAL_PATH_PERIOD_SECONDS / PUBLISH_PERIOD_SECONDS)
+    rospy.logerr("2")
     while not rospy.is_shutdown():
+        rospy.logerr("3")
         # Send updated global path
         if republish_counter >= numPublishPeriodsPerUpdate:
             republish_counter = 0
