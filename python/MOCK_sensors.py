@@ -54,7 +54,7 @@ class MOCK_SensorManager:
         # Setup ROS node inputs and outputs
         rospy.init_node('MOCK_SensorManager', anonymous=True)
         self.publisher = rospy.Publisher("sensors", msg.Sensors, queue_size=4)
-        rospy.Subscriber("heading_degrees", msg.heading, self.desiredHeadingCallback)
+        rospy.Subscriber("desired_heading_degrees", msg.heading, self.desiredHeadingCallback)
 
         # Inputs for testing
         rospy.Subscriber("changeGPS", msg.GPS, self.changeGPSCallback)
