@@ -216,6 +216,27 @@ if __name__ == '__main__':
         # Publish local path
         localPathPublisher.publish(msg.path(localPath.getLatlons()))
 
+
+        # Format and log local path
+        latLonsToFormat = str(localPath.getLatlons())
+        latLonsToLog = "Path latlons are:\n"
+
+        for i in range(len(latLonsToFormat)):
+            if (latLonsToFormat[i] == ' ' and latLonsToFormat[i - 1] == ','):
+                    latLonsToLog += "\n"
+            elif (latLonsToFormat[i] == '\n'):
+                j = 14
+
+                while (latLonsToFormat[i - j] != '.'):
+                    latLonsToLog += ' '
+                    j -= 1
+
+            elif (not latLonsToFormat[i] in ['[', ']']):
+                latLonsToLog += latLonsToFormat[i]
+
+        rospy.loginfo(latLonsToLog)
+        #rospy.loginfo("Path latlons are:\n{}".format(localPath.getLatlons()))
+
         # Update wind direction and obstacles of localPath for proper cost calculation
         localPath.updateWindDirection(state)
         localPath.updateObstacles(state)
