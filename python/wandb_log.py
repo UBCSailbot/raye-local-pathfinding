@@ -6,7 +6,7 @@ from log_closest_obstacle import LogClosestObstacle
 from path_storer import PathStorer
 from collision_checker import CollisionChecker
 from store_sailbot_gps import SailbotGPSData
-from utilities import takeScreenshot
+from utilities import takeScreenshot, getShipsSortedByDistance
 from PIL import Image
 import Sailbot as sbot
 
@@ -78,14 +78,13 @@ if __name__ == '__main__':
                                 })
             # Closest AIS ships
             NUM_CLOSEST_AIS_LOG = 5
-            shipsSortedByDistance = getShipsSortedByDistance(boatState.AISData.ships, boatState.position)
-            if len(shipsSortedByDistance) > NUM_CLOSEST_AIS_LOG:
-                shipsSortedByDistance = shipsSortedByDistance[:NUM_CLOSEST_AIS_LOG]
-            new_log.update({"Ship{}Lat".format(i): ship.lat for i, ship in enumerate(shipsSortedByDistance)})
-            new_log.update({"Ship{}Lon".format(i): ship.lon for i, ship in enumerate(shipsSortedByDistance)})
-            new_log.update({"Ship{}Speed".format(i): ship.speedKmph for i, ship in enumerate(shipsSortedByDistance)})
-            new_log.update({"Ship{}Heading".format(i): ship.headingDegrees for i, ship in enumerate(shipsSortedByDistance)})
-
+            shipsSortedByDist = getShipsSortedByDistance(boatState.AISData.ships, boatState.position)
+            if len(shipsSortedByDist) > NUM_CLOSEST_AIS_LOG:
+                shipsSortedByDist = shipsSortedByDist[:NUM_CLOSEST_AIS_LOG]
+            new_log.update({"Ship{}Lat".format(i): ship.lat for i, ship in enumerate(shipsSortedByDist)})
+            new_log.update({"Ship{}Lon".format(i): ship.lon for i, ship in enumerate(shipsSortedByDist)})
+            new_log.update({"Ship{}Speed".format(i): ship.speedKmph for i, ship in enumerate(shipsSortedByDist)})
+            new_log.update({"Ship{}Heading".format(i): ship.headingDegrees for i, ship in enumerate(shipsSortedByDist)})
 
             # Get objective and their weighted cost.
             # Will be in form: [..., 'Weighted', 'cost', '=', '79343.0', ...]

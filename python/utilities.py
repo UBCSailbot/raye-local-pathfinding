@@ -349,7 +349,7 @@ def pathCostThresholdExceeded(path):
     return pathCost > costThreshold
 
 
-def getShipsSortedByDistance(ships, sailLatlon)
+def getShipsSortedByDistance(ships, sailbotLatlon):
     '''Gets ships sorted by distance to sailbotLatlon
     Args:
        ships (list of sailbot_msg.msg._AISShip.AISShip): Ships to sort by distance
