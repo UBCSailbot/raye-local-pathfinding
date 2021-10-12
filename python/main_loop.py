@@ -109,6 +109,7 @@ if __name__ == '__main__':
                       .format(desiredHeadingDegrees, desiredHeadingDegreesNewCoordinates))
         rospy.loginfo("Current path cost is: {}".format(localPath.getCost()))
         state = sailbot.getCurrentState()
+        rospy.loginfo_throttle(60, "state = {}".format(state))  # Log state but throttle because too big to print often
 
         # Check if local path MUST be updated
         hasUpwindOrDownwindOnPath = localPath.upwindOrDownwindOnPath(

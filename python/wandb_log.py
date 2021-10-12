@@ -63,6 +63,7 @@ if __name__ == '__main__':
                        'Speed': boatState.speedKmph,
                        'GlobalWindDirection': boatState.globalWindDirectionDegrees,
                        'GlobalWindSpeedKmph': boatState.globalWindSpeedKmph,
+                       'NumAISShips': len(boatState.AISData.ships),
                        }
             # Next, previous, and last local waypoint
             currentPath = path_storer.paths[-1]
@@ -75,6 +76,16 @@ if __name__ == '__main__':
                                 "LastWaypointLat": lastWaypoint.lat,
                                 "LastWaypointLon": lastWaypoint.lon,
                                 })
+            # Closest AIS ships
+            NUM_CLOSEST_AIS_LOG = 5
+            shipsSortedByDistance = getShipsSortedByDistance(boatState.AISData.ships, boatState.position)
+            if len(shipsSortedByDistance) > NUM_CLOSEST_AIS_LOG:
+                shipsSortedByDistance = shipsSortedByDistance[:NUM_CLOSEST_AIS_LOG]
+            new_log.update({"Ship{}Lat".format(i): ship.lat for i, ship in enumerate(shipsSortedByDistance)})
+            new_log.update({"Ship{}Lon".format(i): ship.lon for i, ship in enumerate(shipsSortedByDistance)})
+            new_log.update({"Ship{}Speed".format(i): ship.speedKmph for i, ship in enumerate(shipsSortedByDistance)})
+            new_log.update({"Ship{}Heading".format(i): ship.headingDegrees for i, ship in enumerate(shipsSortedByDistance)})
+
 
             # Get objective and their weighted cost.
             # Will be in form: [..., 'Weighted', 'cost', '=', '79343.0', ...]
