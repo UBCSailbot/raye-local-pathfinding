@@ -6,7 +6,7 @@ import time
 import datetime
 import os
 
-from utilities import bearingToHeadingDegrees, PORT_RENFREW_LATLON, XYToLatlon
+from utilities import PORT_RENFREW_LATLON, XYToLatlon
 
 from MOCK_AIS import Ship
 from sailbot_msg.msg import AISMsg, GPS, latlon
@@ -89,7 +89,7 @@ class MOCK_AISEnvironment:
             new_ship = RealShip(int(real_ship[u'mmsi']),
                                 float(real_ship[u'latitude']),
                                 float(real_ship[u'longitude']),
-                                bearingToHeadingDegrees(float(real_ship[u'cog'])),
+                                float(real_ship[u'cog']),  # Should be 0 North, 90 East
                                 float(real_ship[u'sog']) * 0.54)
             self.real_ships.append(new_ship)
 
@@ -98,7 +98,7 @@ class MOCK_AISEnvironment:
                     'id': real_ship[u'mmsi'],
                     'lat': real_ship[u'latitude'],
                     'lon': real_ship[u'longitude'],
-                    'headingDegrees': bearingToHeadingDegrees(float(real_ship[u'cog'])),
+                    'headingDegrees': float(real_ship[u'cog']),  # Should be 0 North, 90 East
                     'speedKmph': float(real_ship[u'sog']) * 0.54
                 },
                 'length': real_ship[u'length'],

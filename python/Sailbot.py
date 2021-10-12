@@ -5,6 +5,7 @@ from sailbot_msg.msg import AISMsg, GPS, path, latlon, globalWind
 from geopy.distance import distance
 import time
 import sys
+import utilities as utils
 
 # Global variables for moving waypoint
 goalWasInvalid = False
@@ -146,6 +147,11 @@ class Sailbot:
 
         if goalWasInvalid:
             state.globalWaypoint = movedGlobalWaypoint
+
+        # Expects AISData from /AIS to have heading convention (0 North, 90 East)
+        # Convert AIS bearing (0 North, 90 East) to heading (0 East, 90 North)
+        for ship in state.AISData.ships:
+            ship.headingDegrees = utils.bearingToHeadingDegrees(ship.headingDegrees)
 
         return state
 
