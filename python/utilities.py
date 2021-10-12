@@ -348,6 +348,18 @@ def pathCostThresholdExceeded(path):
     return pathCost > costThreshold
 
 
+def getShipsSortedByDistance(ships, sailLatlon)
+    '''Gets ships sorted by distance to sailbotLatlon
+    Args:
+       ships (list of sailbot_msg.msg._AISShip.AISShip): Ships to sort by distance
+       sailbotLatlon (sailbot_msg.msg._latlon.latlon): Latlon of sailbot to calculate distance from
+    Returns:
+       list of sailbot_msg.msg._AISShip.AISShip same length as ships sorted by distance to sailbotLatlon
+    '''
+    distances = [distance((ship.lat, ship.lon), (sailbotLatlon.lat, sailbotLatlon.lon)) for ship in ships]
+    return [ship for _, ship in sorted(zip(distances, ships))]
+
+
 # Smallest signed angle (degrees)
 def ssa_deg(angle):
     return ((angle + 180) % 360) - 180
