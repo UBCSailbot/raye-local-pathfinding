@@ -4,7 +4,13 @@ import rospy
 
 import sailbot_msg.msg as msg
 import geopy.distance
-from utilities import headingToBearingDegrees, bearingToHeadingDegrees, PORT_RENFREW_LATLON, globalWindToMeasuredWind
+from utilities import (
+    headingToBearingDegrees,
+    bearingToHeadingDegrees,
+    PORT_RENFREW_LATLON,
+    globalWindToMeasuredWind,
+    get_rosparam_or_default_if_invalid,
+)
 
 
 # Constants
@@ -16,25 +22,6 @@ START_GLOBAL_WIND_DIRECTION_DEGREES = 0
 START_GLOBAL_WIND_SPEED_KMPH = 10
 STDEV_GPS = 0.00001
 STDEV_WIND = 0.1
-
-
-def getStartLatLon(defaultLat, defaultLon):
-    # Read in startLat and startLon
-    try:
-        startLat = rospy.get_param('start_lat', default=defaultLat)
-        startLat = float(startLat)
-    except ValueError:
-        rospy.logwarn("Invalid startLat must be a float, but received startLat = {}".format(startLat))
-        startLat = defaultLat
-        rospy.logwarn("Defaulting to startLat = {}".format(startLat))
-    try:
-        startLon = rospy.get_param('start_lon', default=defaultLon)
-        startLon = float(startLon)
-    except ValueError:
-        rospy.logwarn("Invalid startLon must be a float, but received startLon = {}".format(startLon))
-        startLon = defaultLon
-        rospy.logwarn("Defaulting to startLon = {}".format(startLon))
-    return (startLat, startLon)
 
 
 class MOCK_SensorManager:
@@ -52,7 +39,6 @@ class MOCK_SensorManager:
         self.publishPeriodSeconds = SENSORS_PUBLISH_PERIOD_SECONDS
 
         # Setup ROS node inputs and outputs
-        rospy.init_node('MOCK_SensorManager', anonymous=True)
         self.publisher = rospy.Publisher("sensors", msg.Sensors, queue_size=4)
         rospy.Subscriber("desired_heading_degrees", msg.heading, self.desiredHeadingCallback)
 
@@ -198,7 +184,9 @@ class MOCK_SensorManager:
 
 
 if __name__ == '__main__':
-    startLat, startLon = getStartLatLon(defaultLat=PORT_RENFREW_LATLON.lat, defaultLon=PORT_RENFREW_LATLON.lon)
+    rospy.init_node('MOCK_SensorManager', anonymous=True)
+    startLat = get_rosparam_or_default_if_invalid('start_lat', default=PORT_RENFREW_LATLON.lat)
+    startLon = get_rosparam_or_default_if_invalid('start_lon', default=PORT_RENFREW_LATLON.lon)
     sensorManager = MOCK_SensorManager(startLat=startLat, startLon=startLon,
                                        startHeadingDegrees=START_BOAT_HEADING_DEGREES,
                                        startSpeedKmph=START_BOAT_SPEED_KMPH,

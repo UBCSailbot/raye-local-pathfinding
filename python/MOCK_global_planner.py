@@ -2,7 +2,7 @@
 import rospy
 import json
 import time
-from utilities import MAUI_LATLON
+from utilities import MAUI_LATLON, get_rosparam_or_default_if_invalid
 
 import sailbot_msg.msg as msg
 from geopy.distance import distance
@@ -13,70 +13,44 @@ NEW_GLOBAL_PATH_PERIOD_SECONDS = 10.0
 AVG_WAYPOINT_DISTANCE_KM = 30  # TODO: Set this to match global pathfinding
 
 # Global variables for tracking boat position
-boatLat = None
-boatLon = None
+boatLatlon = None
 
 
 def gpsCallback(data):
-    global boatLat
-    global boatLon
-    boatLat = data.lat
-    boatLon = data.lon
+    global boatLatlon
+    boatLatlon = msg.latlon(lat=data.lat, lon=data.lon)
 
 
 def create_path(init, goal):
     path = []
 
     # Insert the initial position
-    init_wp = msg.latlon()
-    init_wp.lat = init[0]
-    init_wp.lon = init[1]
-    path.append(init_wp)
+    path.append(init)
 
     # Just do some linear interpolation
-    total_distance_km = distance(init, goal).kilometers
+    total_distance_km = distance((init.lat, init.lon), (goal.lat, goal.lon)).kilometers
     num_global_waypoints = int(round(total_distance_km / AVG_WAYPOINT_DISTANCE_KM))
 
     for i in range(1, num_global_waypoints):
         coeff = float(i) / (num_global_waypoints)
-        lat = (1 - coeff) * init[0] + coeff * goal[0]
-        lon = (1 - coeff) * init[1] + coeff * goal[1]
-        print(lat, lon)
-        wp = msg.latlon()
-        wp.lat = lat
-        wp.lon = lon
+        lat = (1 - coeff) * init.lat + coeff * goal.lat
+        lon = (1 - coeff) * init.lon + coeff * goal.lon
+        wp = msg.latlon(lat=lat, lon=lon)
         path.append(wp)
 
     # Insert the goal
-    last_wp = msg.latlon()
-    last_wp.lat = goal[0]
-    last_wp.lon = goal[1]
-    path.append(last_wp)
+    path.append(goal)
     return path
 
 
-def getGoalLatLon(defaultLat, defaultLon):
-    # Read in goalLat and goalLon
-    try:
-        goalLat = rospy.get_param('goal_lat', default=defaultLat)
-        goalLat = float(goalLat)
-    except ValueError:
-        rospy.logwarn("Invalid goalLat must be a float, but received goalLat = {}".format(goalLat))
-        goalLat = defaultLat
-        rospy.logwarn("Defaulting to goalLat = {}".format(goalLat))
-    try:
-        goalLon = rospy.get_param('goal_lon', default=defaultLon)
-        goalLon = float(goalLon)
-    except ValueError:
-        rospy.logwarn("Invalid goalLon must be a float, but received goalLon = {}".format(goalLon))
-        goalLon = defaultLon
-        rospy.logwarn("Defaulting to goalLon = {}".format(goalLon))
-    return (goalLat, goalLon)
+def getGoalLatlon(defaultLat, defaultLon):
+    goalLat = get_rosparam_or_default_if_invalid('goal_lat', default=defaultLat)
+    goalLon = get_rosparam_or_default_if_invalid('goal_lon', default=defaultLon)
+    return msg.latlon(lat=goalLat, lon=goalLon)
 
 
 def MOCK_global():
-    global boatLat
-    global boatLon
+    global boatLatlon
 
     rospy.init_node('MOCK_global_planner', anonymous=True)
     pub = rospy.Publisher("globalPath", msg.path, queue_size=4)
@@ -86,11 +60,11 @@ def MOCK_global():
     rospy.Subscriber("GPS", msg.GPS, gpsCallback)
 
     # Wait to get boat position
-    while boatLat is None or boatLon is None:
+    while boatLatlon is None:
         rospy.loginfo("Waiting for boat GPS")
         time.sleep(1)
     rospy.loginfo("Received boat GPS")
-    init = [boatLat, boatLon]
+    init = msg.latlon(lat=boatLatlon.lat, lon=boatLatlon.lon)
 
     # Create goal
     goal_file = rospy.get_param('goal_file', default=None)
@@ -99,9 +73,9 @@ def MOCK_global():
             record = json.loads(f.read())
             lat = record[0]
             lon = record[1]
-            goal = [lat, lon]
+            goal = msg.latlon(lat=lat, lon=lon)
     else:
-        goal = getGoalLatLon(defaultLat=MAUI_LATLON.lat, defaultLon=MAUI_LATLON.lon)
+        goal = getGoalLatlon(defaultLat=MAUI_LATLON.lat, defaultLon=MAUI_LATLON.lon)
 
     path = create_path(init, goal)
 
@@ -113,8 +87,8 @@ def MOCK_global():
         # Send updated global path
         if republish_counter >= numPublishPeriodsPerUpdate:
             republish_counter = 0
-            init = [boatLat, boatLon]
-            goal = getGoalLatLon(defaultLat=goal[0], defaultLon=goal[1])
+            init = msg.latlon(lat=boatLatlon.lat, lon=boatLatlon.lon)
+            goal = getGoalLatlon(defaultLat=goal.lat, defaultLon=goal.lon)
             path = create_path(init, goal)
         else:
             speedup = rospy.get_param('speedup', default=1.0)

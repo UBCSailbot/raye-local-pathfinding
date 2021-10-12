@@ -101,10 +101,12 @@ if __name__ == '__main__':
     # No prev path to fall back on, so give lots of time
     localPath, lastTimePathCreated = createNewLocalPath(sailbot, float('inf'), desiredHeadingPublisher, None)
     desiredHeadingDegrees = utils.getDesiredHeadingDegrees(state.position, localPath.getNextWaypoint())
+    desiredHeadingDegreesNewCoordinates = utils.headingToBearingDegrees(desiredHeadingDegrees)
     sailbot.newGlobalPathReceived = False
 
     while not rospy.is_shutdown():
-        rospy.loginfo("desiredHeadingDegrees: {}".format(desiredHeadingDegrees))
+        rospy.loginfo("desiredHeadingDegrees: {} (0 = east, 90 = north) OR {} (0 = north, 90 = east)"
+                      .format(desiredHeadingDegrees, desiredHeadingDegreesNewCoordinates))
         rospy.loginfo("Current path cost is: {}".format(localPath.getCost()))
         state = sailbot.getCurrentState()
 
