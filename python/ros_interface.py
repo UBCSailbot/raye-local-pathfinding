@@ -122,7 +122,8 @@ class RosInterface:
             return vals[0]
         else:
             truAvg = float(sum(trustedVals)) / len(trustedVals)
-            rospy.loginfo('Trusted average: {} / {} = {}'.format(sum(trustedVals), len(trustedVals), truAvg))
+            rospy.loginfo('Trusted average: (sum{} = {}) / {} = {}'
+                          .format(trustedVals, sum(trustedVals), len(trustedVals), truAvg))
             return truAvg
 
     def getTrusted(self, pastValue, vals):
@@ -134,15 +135,16 @@ class RosInterface:
             rospy.logwarn('pastValue is None or 0, using only current sensor data')
             return vals
 
+        rospy.loginfo('pastValue = {}'.format(pastValue))
         trustedVals = []
         for i in range(len(vals)):
             value = vals[i]
             if value is not None and abs(float(pastValue - value) / pastValue) < MAX_ALLOWABLE_PERCENT_ERROR:
                 trustedVals.append(value)
             elif value is None:
-                rospy.logwarn('Sensor {} is None, skipping'.format(i))
+                rospy.logwarn('Sensor {} data is None, skipping'.format(i))
             else:
-                rospy.logwarn('Sensor {} is very different from pastValue, skipping'.format(i))
+                rospy.logwarn('Sensor {} data = {}, which is very different from pastValue; skipping'.format(i, value))
         return trustedVals
 
     def get_global_wind(self):
