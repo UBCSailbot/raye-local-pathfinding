@@ -12,7 +12,9 @@ import rospy
 
 # Obstacle dimension constants
 MAX_PROJECT_OBSTACLE_TIME_HOURS = 3  # Maximum obstacle can be projected (dist btwn current and projected positions)
-OBSTACLE_EXTEND_TIME_HOURS = 0.5       # Amount obstacles are extended forward (how long the shape is) TODO: max/min
+OBSTACLE_EXTEND_TIME_HOURS = 0.5     # Amount obstacles are extended forward (how long the shape is) TODO: max/min
+MAX_OBSTACLE_EXTENSION_KM = 2        # Maximum amount obstacles are extended forward (how long the shape is)
+MAX_OBSTACLES = 50                   # Only use up to 50 closest obstacles
 WEDGE_EXPAND_ANGLE_DEGREES = 10.0
 AIS_BOAT_RADIUS_KM = 0.2
 AIS_BOAT_LENGTH_KM = 1
@@ -57,6 +59,11 @@ def getObstacles(state, referenceLatlon):
     elif obstacle_type == "hybrid_circle":
         for ship in ships:
             obstacles.append(HybridCircleObstacle(ship, position, referenceLatlon))
+
+    # Use up to MAX_OBSTACLES closest obstacles
+    if len(obstacles) > MAX_OBSTACLES:
+        positionXY = utils.latlonToXY(position, referenceLatlon)
+        obstacles = sorted(obstacles, key=lambda x: x.clearance(positionXY))[:MAX_OBSTACLES]
 
     # create a land mass obstacle if land_latlons is not empty
     # path relative to local-pathfinding directory
@@ -115,7 +122,7 @@ class EllipseObstacle(ObstacleInterface):
 
     def _createEllipse(self, aisX, aisY):
         # Calculate width and height of ellipse
-        extendBoatLengthKm = self.aisShip.speedKmph * OBSTACLE_EXTEND_TIME_HOURS
+        extendBoatLengthKm = min([self.aisShip.speedKmph * OBSTACLE_EXTEND_TIME_HOURS, MAX_OBSTACLE_EXTENSION_KM])
         width = max(extendBoatLengthKm, AIS_BOAT_RADIUS_KM)  # Ensure greater than minimum length
         height = AIS_BOAT_RADIUS_KM
         angle = self.aisShip.headingDegrees
@@ -159,7 +166,7 @@ class WedgeObstacle(ObstacleInterface):
             theta2 += 360
 
         # Defines how long the wedge should be, ensure greater than minimum length
-        extendBoatLengthKm = self.aisShip.speedKmph * OBSTACLE_EXTEND_TIME_HOURS
+        extendBoatLengthKm = min([self.aisShip.speedKmph * OBSTACLE_EXTEND_TIME_HOURS, MAX_OBSTACLE_EXTENSION_KM])
         radius = max(extendBoatLengthKm, AIS_BOAT_RADIUS_KM)
 
         return Wedge(aisX, aisY, radius, theta1, theta2)
@@ -193,7 +200,7 @@ class CirclesObstacle(ObstacleInterface):
         circles = []
 
         # Calculate length to extend boat
-        extendBoatLengthKm = self.aisShip.speedKmph * OBSTACLE_EXTEND_TIME_HOURS
+        extendBoatLengthKm = min([self.aisShip.speedKmph * OBSTACLE_EXTEND_TIME_HOURS, MAX_OBSTACLE_EXTENSION_KM])
 
         # Boat not moving
         if extendBoatLengthKm == 0:

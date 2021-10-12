@@ -363,3 +363,26 @@ def getShipsSortedByDistance(ships, sailLatlon)
 # Smallest signed angle (degrees)
 def ssa_deg(angle):
     return ((angle + 180) % 360) - 180
+
+
+# Get rosparam, or default if empty string
+def get_rosparam_or_default_if_invalid(rosparam_name, default, warn_if_empty_string=False, rosparam_type_cast=float):
+    rosparam = rospy.get_param(rosparam_name, default=default)
+
+    # If empty string, use default
+    if rosparam == '':
+        if warn_if_empty_string:
+            rospy.logwarn("Invalid {} must be a {}, but received {} = {}"
+                          .format(rosparam_name, rosparam_type_cast, rosparam_name, rosparam))
+            rospy.logwarn("Defaulting to {} = {}".format(rosparam_name, default))
+        return default
+
+    # If not empty string, only use default if invalid rosparam
+    try:
+        rosparam = rosparam_type_cast(rosparam)
+    except ValueError:
+        rospy.logwarn("Invalid {} must be a {}, but received {} = {}"
+                      .format(rosparam_name, rosparam_type_cast, rosparam_name, rosparam))
+        rospy.logwarn("Defaulting to {} = {}".format(rosparam_name, default))
+        rosparam = default
+    return rosparam
