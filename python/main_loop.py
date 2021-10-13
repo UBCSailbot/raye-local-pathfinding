@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 # Constants
 MAIN_LOOP_PERIOD_SECONDS = 0.5
 SMALL_TURN_DEGREES = 10
+LOGGED_LATLONS_PER_LINE = 3
 
 # Global variable to receive path update request messages
 localPathUpdateRequested = False
@@ -216,26 +217,21 @@ if __name__ == '__main__':
         # Publish local path
         localPathPublisher.publish(msg.path(localPath.getLatlons()))
 
-
         # Format and log local path
-        latLonsToFormat = str(localPath.getLatlons())
-        latLonsToLog = "Path latlons are:\n"
+        latLonsToLog = "Path latlons are:"
 
-        for i in range(len(latLonsToFormat)):
-            if (latLonsToFormat[i] == ' ' and latLonsToFormat[i - 1] == ','):
-                    latLonsToLog += "\n"
-            elif (latLonsToFormat[i] == '\n'):
-                j = 14
+        for i in range(len(localPath.getLatlons())):
+            if(i % LOGGED_LATLONS_PER_LINE == 0):
+                latLonsToLog += "\n"
 
-                while (latLonsToFormat[i - j] != '.'):
-                    latLonsToLog += ' '
-                    j -= 1
+            latLon = localPath.getLatlons()[i]
+            latLonsToLog += "(lat: {}, lon: {})".format(latLon.lat, latLon.lon)
 
-            elif (not latLonsToFormat[i] in ['[', ']']):
-                latLonsToLog += latLonsToFormat[i]
+            if(i < len(localPath.getLatlons()) - 1):
+                latLonsToLog += ", "
 
+        latLonsToLog += "."
         rospy.loginfo(latLonsToLog)
-        #rospy.loginfo("Path latlons are:\n{}".format(localPath.getLatlons()))
 
         # Update wind direction and obstacles of localPath for proper cost calculation
         localPath.updateWindDirection(state)
