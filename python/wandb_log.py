@@ -21,6 +21,8 @@ LOG_SENSORS = True
 
 # Globals for subscribring
 sensor_data = None
+
+
 def sensorsCallback(data):
     global sensor_data
     sensor_data = data
