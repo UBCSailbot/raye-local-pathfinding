@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import numpy as np
 import rospy
 from sailbot_msg.msg import Sensors, windSensor, GPS, globalWind
 from utilities import bearingToHeadingDegrees, measuredWindToGlobalWind
@@ -7,7 +8,7 @@ from utilities import bearingToHeadingDegrees, measuredWindToGlobalWind
 # Constants
 CHECK_PERIOD_SECONDS = 0.1  # How often fields are updated
 KNOTS_TO_KMPH = 1.852
-MAX_ALLOWABLE_PERCENT_ERROR = 0.2  # If signals need different margin of errors; modify as required
+MAX_ALLOWABLE_RELATIVE_ERROR = 0.2  # If signals need different margin of errors; modify as required
 
 """
 Conversion Notes:
@@ -81,71 +82,63 @@ class RosInterface:
 
         # GPS sensors - use can, ais, or both? which takes priority? true heading / track made good usage?
         rospy.loginfo('Getting trusted average of GPS latitude')
-        self.gps_lat_decimalDegrees = self.getTrustedAvg(
-                pastValue=self.past_gps_lat_decimalDegrees,
+        self.gps_lat_decimalDegrees = self.filterSensors(
+                pastVal=self.past_gps_lat_decimalDegrees,
                 vals=[data.gps_can_latitude_degrees, data.gps_ais_latitude_degrees])
         rospy.loginfo('Getting trusted average of GPS longitude')
-        self.gps_lon_decimalDegrees = self.getTrustedAvg(
-                pastValue=self.past_gps_lon_decimalDegrees,
+        self.gps_lon_decimalDegrees = self.filterSensors(
+                pastVal=self.past_gps_lon_decimalDegrees,
                 vals=[data.gps_can_longitude_degrees, data.gps_ais_longitude_degrees])
         rospy.loginfo('Getting trusted average of GPS heading')
-        self.gps_headingDegrees = self.getTrustedAvg(
-                pastValue=self.past_gps_headingDegrees,
+        self.gps_headingDegrees = self.filterSensors(
+                pastVal=self.past_gps_headingDegrees,
                 vals=[bearingToHeadingDegrees(data.gps_can_true_heading_degrees),
                       bearingToHeadingDegrees(data.gps_ais_true_heading_degrees)])
         rospy.loginfo('Getting trusted average of GPS speed')
-        self.gps_speedKmph = self.getTrustedAvg(
-                pastValue=self.past_gps_speedKmph,
+        self.gps_speedKmph = self.filterSensors(
+                pastVal=self.past_gps_speedKmph,
                 vals=[data.gps_can_groundspeed_knots * KNOTS_TO_KMPH,
                       data.gps_ais_groundspeed_knots * KNOTS_TO_KMPH])
 
         # Wind sensors
         rospy.loginfo('Getting trusted average of wind speed')
-        self.measured_wind_speedKmph = self.getTrustedAvg(
-                pastValue=self.past_measured_wind_speedKmph,
+        self.measured_wind_speedKmph = self.filterSensors(
+                pastVal=self.past_measured_wind_speedKmph,
                 vals=[data.wind_sensor_1_speed_knots * KNOTS_TO_KMPH,
                       data.wind_sensor_2_speed_knots * KNOTS_TO_KMPH,
                       data.wind_sensor_3_speed_knots * KNOTS_TO_KMPH])
         rospy.loginfo('Getting trusted average of wind direction')
-        self.measured_wind_direction = self.getTrustedAvg(
-                pastValue=self.past_measured_wind_direction,
+        self.measured_wind_direction = self.filterSensors(
+                pastVal=self.past_measured_wind_direction,
                 vals=[bearingToHeadingDegrees(data.wind_sensor_1_angle_degrees),
                       bearingToHeadingDegrees(data.wind_sensor_2_angle_degrees),
                       bearingToHeadingDegrees(data.wind_sensor_3_angle_degrees)])
 
-    def getTrustedAvg(self, pastValue, vals):
-        '''Averages the trust values, or defaults to the first term in vals if pastValue is 0 or not initialized'''
-        trustedVals = self.getTrusted(pastValue, vals)
-        if len(trustedVals) == 0:
-            rospy.logwarn('No trusted values, defaulting to sensor 0')
-            rospy.loginfo('Trusted average: {}'.format(vals[0]))
-            return vals[0]
-        else:
-            truAvg = float(sum(trustedVals)) / len(trustedVals)
-            rospy.loginfo('Trusted average: (sum{} = {}) / {} = {}'
-                          .format(trustedVals, sum(trustedVals), len(trustedVals), truAvg))
-            return truAvg
-
-    def getTrusted(self, pastValue, vals):
-        '''Returns vals without outlier terms like None
-            - Assumes sensor readings are consistent and first sensor initial reading is accurate
-            - Could modify past value to be the average of the past few outputs (store in list)
+    def filterSensors(self, pastVal, vals):
+        '''If the current vals are close together, return their average.
+        Else if pastVal is not None, return the val closest to pastVal.
+        Else return vals[0].
         '''
-        if pastValue is None or pastValue == 0:
-            rospy.logwarn('pastValue is None or 0, using only current sensor data')
-            return vals
-
-        rospy.loginfo('pastValue = {}'.format(pastValue))
-        trustedVals = []
         for i in range(len(vals)):
-            value = vals[i]
-            if value is not None and abs(float(pastValue - value) / pastValue) < MAX_ALLOWABLE_PERCENT_ERROR:
-                trustedVals.append(value)
-            elif value is None:
-                rospy.logwarn('Sensor {} data is None, skipping'.format(i))
-            else:
-                rospy.logwarn('Sensor {} data = {}, which is very different from pastValue; skipping'.format(i, value))
-        return trustedVals
+            for j in range(i + 1, len(vals)):
+                relativeErr = np.fabs(vals[i] - vals[j]) / min(vals[i], vals[j])
+                if relativeErr > MAX_ALLOWABLE_RELATIVE_ERROR:
+                    rospy.logwarn('Erratic sensor data: Sensor {} varies greatly from Sensor {}.'.format(i, j))
+                    if pastVal is not None:
+                        closestDataToPastVal = np.argmin(abs(np.array(vals) - pastVal))
+                        rospy.logwarn('Defaulting to the data closest to the past value, from Sensor {}'
+                                      .format(closestDataToPastVal))
+                        val = vals[closestDataToPastVal]
+                    else:
+                        rospy.logwarn('No past value, defaulting to sensor 0')
+                        val = vals[0]
+
+                    rospy.loginfo('filterSensors returning {}'.format(val))
+                    return val
+
+        valsAvg = np.average(vals)
+        rospy.loginfo('filterSensors returning the average of vals = {}: {}' .format(vals, valsAvg))
+        return valsAvg
 
     def get_global_wind(self):
         speed, direction = measuredWindToGlobalWind(
