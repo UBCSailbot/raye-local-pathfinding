@@ -119,18 +119,20 @@ class RosInterface:
         Else if pastVal is not None, return the val closest to pastVal.
         Else return vals[0].
         '''
+        # compare all vals to each other
         for i in range(len(vals)):
             for j in range(i + 1, len(vals)):
-                relativeErr = np.fabs(vals[i] - vals[j]) / min(vals[i], vals[j])
-                if relativeErr > MAX_ALLOWABLE_RELATIVE_ERROR:
+                # check if relative error of 2 vals exceeds MAX_ALLOWABLE_RELATIVE_ERROR
+                if abs(vals[i] - vals[j]) > MAX_ALLOWABLE_RELATIVE_ERROR * abs(min(vals[i], vals[j], key=abs)):
                     rospy.logwarn('Erratic sensor data: Sensor {} varies greatly from Sensor {}.'.format(i, j))
+
                     if pastVal is not None:
-                        closestDataToPastVal = np.argmin(abs(np.array(vals) - pastVal))
+                        closestDataToPastVal = np.argmin(np.abs(np.array(vals) - pastVal))
                         rospy.logwarn('Defaulting to the data closest to the past value, from Sensor {}'
                                       .format(closestDataToPastVal))
                         val = vals[closestDataToPastVal]
                     else:
-                        rospy.logwarn('No past value, defaulting to sensor 0')
+                        rospy.logwarn('No past value, defaulting to Sensor 0')
                         val = vals[0]
 
                     rospy.loginfo('filterSensors returning {}'.format(val))
