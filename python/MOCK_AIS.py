@@ -114,13 +114,12 @@ class MOCK_AISEnvironment:
         if ais_file:
             f = open(ais_file, 'r')
             ship_list = json.load(f)
-            self.numShips = len(ship_list)
             for ship in ship_list:
                 self.ships.append(SimulatedShip(*ship))
         # Create random new boats
         else:
-            self.numShips = rospy.get_param('num_ais_ships', default=5)
-            for i in range(len(self.ships)):
+            numShips = rospy.get_param('num_ais_ships', default=5)
+            for i in range(numShips):
                 self.ships.append(
                     createRandomSimulatedShip(
                         referenceLat=sailbot_lat,
@@ -136,8 +135,7 @@ class MOCK_AISEnvironment:
         movement_time_seconds = speedup * self.publishPeriodSeconds
 
         for i in (i for i in range(len(self.ships)) if self.ships):
-            if self.ships:
-                self.ships[i].move(movement_time_seconds)
+            self.ships[i].move(movement_time_seconds)
 
             # If simulated ship out of range, remove and add new one
             if isinstance(self.ships[i], SimulatedShip):
@@ -170,12 +168,10 @@ class MOCK_AISEnvironment:
                 msg.lon,
                 msg.headingDegrees,
                 msg.speedKmph))
-        self.numShips += 1
 
     def remove_boat_callback(self, msg):
         self.ships[:] = [
             ship for ship in self.ships if not ship.id == msg.data]
-        self.numShips = len(self.ships)
 
     def gps_callback(self, msg):
         self.sailbot_lat = msg.lat
