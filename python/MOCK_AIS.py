@@ -120,7 +120,7 @@ class MOCK_AISEnvironment:
         # Create random new boats
         else:
             self.numShips = rospy.get_param('num_ais_ships', default=5)
-            for i in range(self.numShips):
+            for i in range(len(self.ships)):
                 self.ships.append(
                     createRandomSimulatedShip(
                         referenceLat=sailbot_lat,
@@ -141,8 +141,9 @@ class MOCK_AISEnvironment:
         speedup = rospy.get_param('speedup', default=1.0)
         movement_time_seconds = speedup * self.publishPeriodSeconds
 
-        for i in range(self.numShips):
-            self.ships[i].move(movement_time_seconds)
+        
+        for i in (i for i in range(len(self.ships)) if self.ships):
+            if self.ships:self.ships[i].move(movement_time_seconds)
 
             # If simulated ship out of range, remove and add new one
             if isinstance(self.ships[i], SimulatedShip):
