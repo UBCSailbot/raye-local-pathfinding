@@ -27,8 +27,11 @@ def getValidStateMoveToSafetyIfNeeded(sailbot, desiredHeadingPublisher):
     if not startValid:
         while not startValid and not rospy.is_shutdown():
             headingToSafetyDegrees = generateSafeHeadingDegrees(state, obstacleOnStartPosition)
-            rospy.logwarn("INVALID START STATE! Publishing Heading to safety: {}".format(headingToSafetyDegrees))
-            desiredHeadingPublisher.publish(msg.heading(headingToSafetyDegrees))
+            headingToSafetyDegreesNewCoordinates = utils.headingToBearingDegrees(headingToSafetyDegrees)
+            rospy.logwarn("INVALID START STATE! Publishing Heading to safety: " +
+                          "{} (0 = east, 90 = north) OR {} (0 = north, 90 = east)"
+                          .format(headingToSafetyDegrees, headingToSafetyDegreesNewCoordinates))
+            desiredHeadingPublisher.publish(msg.heading(headingToSafetyDegreesNewCoordinates))
             state = sailbot.getCurrentState()
             obstacleOnStartPosition = obstacleOnStart(state)
             startValid = (obstacleOnStartPosition is None)
@@ -123,6 +126,7 @@ def moveGlobalWaypointUntilValid(state, isLast, otherWaypoint):
     otherX, otherY = utils.latlonToXY(otherWaypoint, referenceLatlon)
 
     while not checkGoalValidity(state, goalLatlon):
+        rospy.logwarn('goalLatlon ({},{}) not valid'.format(goalLatlon.lat, goalLatlon.lon))
         deltaX = goalX - otherX if isLast else otherX - goalX
         deltaY = goalY - otherY if isLast else otherY - goalY
         dist = math.sqrt(deltaX**2 + deltaY**2)
@@ -130,5 +134,6 @@ def moveGlobalWaypointUntilValid(state, isLast, otherWaypoint):
         goalX += MOVE_GOAL_WAYPOINT_STEP_SIZE_KM * deltaX / dist
         goalY += MOVE_GOAL_WAYPOINT_STEP_SIZE_KM * deltaY / dist
         goalLatlon = utils.XYToLatlon((goalX, goalY), referenceLatlon)
+        rospy.logwarn('Moved goalLatlon to ({},{})'.format(goalLatlon.lat, goalLatlon.lon))
 
     return goalLatlon

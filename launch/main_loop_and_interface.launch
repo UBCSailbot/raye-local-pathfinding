@@ -20,6 +20,10 @@
     <arg name="obstacle_type" default="hybrid_circle" />
     <param name="obstacle_type" type="string" value="$(arg obstacle_type)" />
 
+    <!-- Sets the latlon list for the land obstacle -->
+    <arg name="land_mass_file" default="" />
+    <param name="land_mass_file" value="$(arg land_mass_file)" />
+
     <!-- Set if screenshots should be taken or not -->
     <arg name="screenshot" default="false" />
     <param name="screenshot" type="bool" value="$(arg screenshot)" />
@@ -32,6 +36,11 @@
     <arg name="enable_los" default="false" />
     <param name="enable_los" type="bool" value="$(arg enable_los)" />
 
+    <!-- Wandb logger -->
+    <arg name="wandb" default="false" />
+    <node pkg="local_pathfinding" type="wandb_log.py" name="wandb_log" if="$(arg wandb)" output="screen" />
+
+    <!-- Main loop and interface -->
     <node pkg="local_pathfinding" type="main_loop.py" name="main_loop" output="$(arg main_loop_output)"/>
     <node pkg="local_pathfinding" type="ros_interface.py" name="ros_interface" output="$(arg ros_interface_output)"/>
 </launch>

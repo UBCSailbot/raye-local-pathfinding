@@ -4,7 +4,7 @@ import random
 import json
 
 from geopy.distance import distance
-from utilities import headingToBearingDegrees, PORT_RENFREW_LATLON
+from utilities import headingToBearingDegrees, PORT_RENFREW_LATLON, get_rosparam_or_default_if_invalid
 from std_msgs.msg import Int32
 
 from sailbot_msg.msg import AISShip, AISMsg, GPS
@@ -128,14 +128,8 @@ class MOCK_AISEnvironment:
                         mmsi=i))
 
     def set_random_seed(self):
-        randomSeed = rospy.get_param('random_seed', "")
-        try:
-            randomSeed = int(randomSeed)
-            random.seed(randomSeed)
-            rospy.loginfo("randomSeed = {}. Setting seed".format(randomSeed))
-        except ValueError:
-            rospy.logwarn(
-                "randomSeed = {}. Not setting seed".format(randomSeed))
+        randomSeed = get_rosparam_or_default_if_invalid('random_seed', default=None, rosparam_type_cast=str)
+        random.seed(randomSeed)
 
     def move_ships(self):
         speedup = rospy.get_param('speedup', default=1.0)

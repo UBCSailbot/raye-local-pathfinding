@@ -37,8 +37,6 @@ class MOCK_AISEnvironment:
         # Create ships
         self.last_real_ship_pull = time.time()  # The timestamp for the last time we downloaded new ship positions
         self.publishPeriodSeconds = AIS_PUBLISH_PERIOD_SECONDS
-
-        self.last_real_ship_pull = time.time()  # The timestamp for the last time we downloaded new ship positions
         self.get_real_ships()
 
     def make_ros_message(self):

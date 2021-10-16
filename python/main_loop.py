@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 # Constants
 MAIN_LOOP_PERIOD_SECONDS = 0.5
 SMALL_TURN_DEGREES = 10
+LOGGED_LATLONS_PER_LINE = 3
 
 # Global variable to receive path update request messages
 localPathUpdateRequested = False
@@ -74,7 +75,7 @@ if __name__ == '__main__':
     rospy.Subscriber('forceLocalPathUpdate', Bool, localPathUpdateForcedCallback)
 
     # Create ros publisher for the desired heading for the controller
-    desiredHeadingPublisher = rospy.Publisher('heading_degrees', msg.heading, queue_size=4)
+    desiredHeadingPublisher = rospy.Publisher('desired_heading_degrees', msg.heading, queue_size=4)
 
     # Create other publishers
     localPathPublisher = rospy.Publisher('localPath', msg.path, queue_size=4)
@@ -101,10 +102,12 @@ if __name__ == '__main__':
     # No prev path to fall back on, so give lots of time
     localPath, lastTimePathCreated = createNewLocalPath(sailbot, float('inf'), desiredHeadingPublisher, None)
     desiredHeadingDegrees = utils.getDesiredHeadingDegrees(state.position, localPath.getNextWaypoint())
+    desiredHeadingDegreesNewCoordinates = utils.headingToBearingDegrees(desiredHeadingDegrees)
     sailbot.newGlobalPathReceived = False
 
     while not rospy.is_shutdown():
-        rospy.loginfo("desiredHeadingDegrees: {}".format(desiredHeadingDegrees))
+        rospy.loginfo("desiredHeadingDegrees: {} (0 = east, 90 = north) OR {} (0 = north, 90 = east)"
+                      .format(desiredHeadingDegrees, desiredHeadingDegreesNewCoordinates))
         rospy.loginfo("Current path cost is: {}".format(localPath.getCost()))
         state = sailbot.getCurrentState()
 
@@ -215,6 +218,22 @@ if __name__ == '__main__':
 
         # Publish local path
         localPathPublisher.publish(msg.path(localPath.getLatlons()))
+
+        # Format and log local path
+        latLonsToLog = "Path latlons are:"
+
+        for i in range(len(localPath.getLatlons())):
+            if(i % LOGGED_LATLONS_PER_LINE == 0):
+                latLonsToLog += "\n"
+
+            latLon = localPath.getLatlons()[i]
+            latLonsToLog += "(lat: {}, lon: {})".format(latLon.lat, latLon.lon)
+
+            if(i < len(localPath.getLatlons()) - 1):
+                latLonsToLog += ", "
+
+        latLonsToLog += "."
+        rospy.loginfo(latLonsToLog)
 
         # Update wind direction and obstacles of localPath for proper cost calculation
         localPath.updateWindDirection(state)

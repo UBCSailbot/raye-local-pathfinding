@@ -72,8 +72,8 @@ class TestObstacles(unittest.TestCase):
         # self.plotObstacles(obstacles)
 
         self.assertFalse(utils.isValid(xy=[0, 0], obstacles=obstacles))
-        self.assertFalse(utils.isValid(xy=[1, 1], obstacles=obstacles))
-        self.assertFalse(utils.isValid(xy=[2.5, 2.5], obstacles=obstacles))
+        self.assertTrue(utils.isValid(xy=[1, 1], obstacles=obstacles))
+        self.assertTrue(utils.isValid(xy=[2.5, 2.5], obstacles=obstacles))
         self.assertTrue(utils.isValid(xy=[3, 3], obstacles=obstacles))
         self.assertTrue(utils.isValid(xy=[0, -1], obstacles=obstacles))
         self.assertTrue(utils.isValid(xy=[0, 4], obstacles=obstacles))
