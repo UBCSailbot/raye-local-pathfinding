@@ -141,9 +141,9 @@ class MOCK_AISEnvironment:
         speedup = rospy.get_param('speedup', default=1.0)
         movement_time_seconds = speedup * self.publishPeriodSeconds
 
-        
         for i in (i for i in range(len(self.ships)) if self.ships):
-            if self.ships:self.ships[i].move(movement_time_seconds)
+            if self.ships:
+                self.ships[i].move(movement_time_seconds)
 
             # If simulated ship out of range, remove and add new one
             if isinstance(self.ships[i], SimulatedShip):
