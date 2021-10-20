@@ -9,12 +9,21 @@ from store_sailbot_gps import SailbotGPSData
 from utilities import takeScreenshot
 from PIL import Image
 import Sailbot as sbot
+import sailbot_msg.msg as msg
 
 # Parameters for what and how to log
 UPDATE_TIME_SECONDS = 1.0
 SCREENSHOT_PERIOD_SECONDS = 10.0
 LATLON_TABLE = False
 SCREENSHOT = False
+
+# Globals for subscribring
+targetGlobalLatLon = None
+
+
+def nextGlobalWaypointCallback(newTargetGlobalLatLon):
+    global targetGlobalLatLon
+    targetGlobalLatLon = newTargetGlobalLatLon
 
 
 if __name__ == '__main__':
@@ -37,6 +46,7 @@ if __name__ == '__main__':
     collision_checker = CollisionChecker(create_ros_node=False)
     sailbot_gps_data = SailbotGPSData(create_ros_node=False)
     rate = rospy.Rate(UPDATE_TIME_SECONDS)
+    rospy.Subscriber("nextGlobalWaypoint", msg.latlon, nextGlobalWaypointCallback)
 
     while not rospy.is_shutdown():
         # Update states
@@ -49,7 +59,7 @@ if __name__ == '__main__':
 
         # Store logs
         validDataReady = (len(log_closest_obstacle.closestDistances) > 0 and len(path_storer.pathCosts) > 0 and
-                          len(path_storer.pathCostBreakdowns) > 0)
+                          len(path_storer.pathCostBreakdowns) > 0 and targetGlobalLatLon is not None)
         if validDataReady:
             # Most logs
             new_log = {'Collisions': collision_checker.get_times_collided(),
@@ -63,6 +73,8 @@ if __name__ == '__main__':
                        'Speed': boatState.speedKmph,
                        'GlobalWindDirection': boatState.globalWindDirectionDegrees,
                        'GlobalWindSpeedKmph': boatState.globalWindSpeedKmph,
+                       'GlobalWaypoint lat': targetGlobalLatLon.lat,
+                       'GlabalWaypoint lon': targetGlobalLatLon.lon
                        }
             # Next, previous, and last local waypoint
             currentPath = path_storer.paths[-1]

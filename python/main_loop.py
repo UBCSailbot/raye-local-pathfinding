@@ -239,10 +239,12 @@ if __name__ == '__main__':
         localPath.updateWindDirection(state)
         localPath.updateObstacles(state)
 
-        # Publish nextLocalWaypoint and nextGlobalWaypoint and path cost
+        # Publish nextLocalWaypoint and nextGlobalWaypoint and path cost. Log nextGlobalWaypoint
         nextLocalWaypointPublisher.publish(localPath.getNextWaypoint())
         previousLocalWaypointPublisher.publish(localPath.getPreviousWaypoint())
         nextGlobalWaypointPublisher.publish(state.globalWaypoint)
+        globalWaypointLogStr = "Next Global Waypoint is: (lat: {}, lon: {})"
+        rospy.loginfo(globalWaypointLogStr.format(state.globalWaypoint.lat, state.globalWaypoint.lon))
         previousGlobalWaypointPublisher.publish(sailbot.globalPath[sailbot.globalPathIndex - 1])
         pathCostPublisher.publish(localPath.getCost())
         pathCostBreakdownPublisher.publish(localPath.getPathCostBreakdownString())
