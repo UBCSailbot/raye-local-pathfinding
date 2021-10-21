@@ -9,12 +9,23 @@ from store_sailbot_gps import SailbotGPSData
 from utilities import takeScreenshot
 from PIL import Image
 import Sailbot as sbot
+from sailbot_msg.msg import Sensors
 
 # Parameters for what and how to log
 UPDATE_TIME_SECONDS = 1.0
 SCREENSHOT_PERIOD_SECONDS = 10.0
 LATLON_TABLE = False
 SCREENSHOT = False
+LOG_SENSORS = True
+
+
+# Globals for subscribring
+sensor_data = None
+
+
+def sensorsCallback(data):
+    global sensor_data
+    sensor_data = data
 
 
 if __name__ == '__main__':
@@ -23,6 +34,7 @@ if __name__ == '__main__':
 
     # Subscribe to essential pathfinding info
     sailbot = sbot.Sailbot(nodeName='wandb_log')
+    rospy.Subscriber("sensors", Sensors, sensorsCallback)
     sailbot.waitForFirstSensorDataAndGlobalPath()
 
     # Log parameters
@@ -64,6 +76,14 @@ if __name__ == '__main__':
                        'GlobalWindDirection': boatState.globalWindDirectionDegrees,
                        'GlobalWindSpeedKmph': boatState.globalWindSpeedKmph,
                        }
+
+            # Log sensor data
+            if LOG_SENSORS and sensor_data is not None:
+                sensor_data_fields = [f for f in dir(sensor_data)
+                                      if not f.startswith('_') and not callable(getattr(sensor_data, f))]
+                sensor_data_dict = {f: getattr(sensor_data, f) for f in sensor_data_fields}
+                new_log.update(sensor_data_dict)
+
             # Next, previous, and last local waypoint
             currentPath = path_storer.paths[-1]
             if len(currentPath) >= 2:
