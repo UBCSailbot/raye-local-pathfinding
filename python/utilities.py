@@ -5,6 +5,7 @@ import os
 import rospy
 import time
 import math
+import numpy as np
 import planner_helpers as plans
 from geopy.distance import distance
 from sailbot_msg.msg import latlon
@@ -313,6 +314,33 @@ def bearingToHeadingDegrees(bearingDegrees):
        float representing the same angle in heading coordinates
     '''
     return -bearingDegrees + 90
+
+
+def boundTo180(angle):
+    '''Bounds the angle to be in (-180, 180]'''
+    angle_mod_360 = angle % 360  # angle_mod_360 in [0, 360)
+    return angle_mod_360 if angle_mod_360 <= 180 else angle_mod_360 - 360
+
+
+def absDiffBetweenAngles(angle1, angle2):
+    '''Assumption: angle1 and angle2 are in (-180, 180]'''
+    diff = angle1 - angle2
+    diff += -360 if (diff > 180) else (360 if (diff <= -180) else 0)
+    return abs(diff)
+
+
+def averageAngles(angles):
+    '''Averages the angles by computing their unit vectors and computing the angle of their average
+        - Returns value in (-180, 180]
+    '''
+    y_components = []
+    x_components = []
+    for angle_deg in angles:
+        angle_rad = np.deg2rad(angle_deg)
+        y_components.append(np.sin(angle_rad))
+        x_components.append(np.cos(angle_rad))
+
+    return np.rad2deg(np.arctan2(np.average(y_components), np.average(x_components)))
 
 
 def isValid(xy, obstacles):
