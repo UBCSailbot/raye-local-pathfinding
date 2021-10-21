@@ -50,6 +50,7 @@ def createRandomSimulatedShip(referenceLat, referenceLon, mmsi=None):
 
 class Ship:
     '''Base class for storing ship data, with heading defined as 0 North, 90 East'''
+
     def __init__(self, MMSI, lat, lon, heading, speed):
         self.id = MMSI
         self.lat = lat
@@ -80,8 +81,8 @@ class SimulatedShip(Ship):
     def move(self, movement_time_seconds):
         distanceTraveledKm = self.speedKmph * movement_time_seconds / 3600
         bearingOfTravelDegrees = self.headingDegrees
-        boatLatlon = distance(kilometers=distanceTraveledKm).destination(point=(self.lat, self.lon),
-                                                                         bearing=bearingOfTravelDegrees)
+        boatLatlon = distance(kilometers=distanceTraveledKm).destination(
+            point=(self.lat, self.lon), bearing=bearingOfTravelDegrees)
         self.lat = boatLatlon.latitude
         self.lon = boatLatlon.longitude
 
