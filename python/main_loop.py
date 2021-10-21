@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 # Constants
 MAIN_LOOP_PERIOD_SECONDS = 0.5
 SMALL_TURN_DEGREES = 10
+LOGGED_LATLONS_PER_LINE = 3
 
 # Global variable to receive path update request messages
 localPathUpdateRequested = False
@@ -109,6 +110,7 @@ if __name__ == '__main__':
                       .format(desiredHeadingDegrees, desiredHeadingDegreesNewCoordinates))
         rospy.loginfo("Current path cost is: {}".format(localPath.getCost()))
         state = sailbot.getCurrentState()
+        rospy.loginfo_throttle(60, "state = {}".format(state))  # Log state but throttle because too big to print often
 
         # Check if local path MUST be updated
         hasUpwindOrDownwindOnPath = localPath.upwindOrDownwindOnPath(
@@ -217,6 +219,22 @@ if __name__ == '__main__':
 
         # Publish local path
         localPathPublisher.publish(msg.path(localPath.getLatlons()))
+
+        # Format and log local path
+        latLonsToLog = "Path latlons are:"
+
+        for i in range(len(localPath.getLatlons())):
+            if(i % LOGGED_LATLONS_PER_LINE == 0):
+                latLonsToLog += "\n"
+
+            latLon = localPath.getLatlons()[i]
+            latLonsToLog += "(lat: {}, lon: {})".format(latLon.lat, latLon.lon)
+
+            if(i < len(localPath.getLatlons()) - 1):
+                latLonsToLog += ", "
+
+        latLonsToLog += "."
+        rospy.loginfo(latLonsToLog)
 
         # Update wind direction and obstacles of localPath for proper cost calculation
         localPath.updateWindDirection(state)
