@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import rospy
+import sys
 import json
 import time
 from utilities import MAUI_LATLON, get_rosparam_or_default_if_invalid
@@ -61,6 +62,9 @@ def MOCK_global():
 
     # Wait to get boat position
     while boatLatlon is None:
+        if rospy.is_shutdown():
+            rospy.loginfo("rospy.is_shutdown() is True. Exiting")
+            sys.exit()
         rospy.loginfo("Waiting for boat GPS")
         time.sleep(1)
     rospy.loginfo("Received boat GPS")
