@@ -4,7 +4,7 @@ import random
 import json
 
 from geopy.distance import distance
-from utilities import headingToBearingDegrees, PORT_RENFREW_LATLON, get_rosparam_or_default_if_invalid
+from utilities import PORT_RENFREW_LATLON, get_rosparam_or_default_if_invalid
 from std_msgs.msg import Int32
 
 from sailbot_msg.msg import AISShip, AISMsg, GPS
@@ -49,7 +49,7 @@ def createRandomSimulatedShip(referenceLat, referenceLon, mmsi=None):
 
 
 class Ship:
-    '''Base class for storing ship data'''
+    '''Base class for storing ship data, with heading defined as 0 North, 90 East'''
 
     def __init__(self, MMSI, lat, lon, heading, speed):
         self.id = MMSI
@@ -80,7 +80,7 @@ class SimulatedShip(Ship):
 
     def move(self, movement_time_seconds):
         distanceTraveledKm = self.speedKmph * movement_time_seconds / 3600
-        bearingOfTravelDegrees = headingToBearingDegrees(self.headingDegrees)
+        bearingOfTravelDegrees = self.headingDegrees
         boatLatlon = distance(kilometers=distanceTraveledKm).destination(
             point=(self.lat, self.lon), bearing=bearingOfTravelDegrees)
         self.lat = boatLatlon.latitude

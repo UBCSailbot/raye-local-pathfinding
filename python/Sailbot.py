@@ -152,6 +152,11 @@ class Sailbot:
         if goalWasInvalid:
             state.globalWaypoint = movedGlobalWaypoint
 
+        # Expects AISData from /AIS to have heading convention (0 North, 90 East)
+        # Convert AIS bearing (0 North, 90 East) to heading (0 East, 90 North)
+        for ship in state.AISData.ships:
+            ship.headingDegrees = utils.bearingToHeadingDegrees(ship.headingDegrees)
+
         # If too many AIS ships, keep the closest ones
         if len(state.AISData.ships) > MAX_NUM_AIS_SHIPS:
             shipsSortedByDistance = utils.getShipsSortedByDistance(state.AISData.ships, state.position)
