@@ -19,10 +19,11 @@ AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM = 3.0
 
 # Scale NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES and NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND to change based on
 # waypoint distance
-LOOK_AHEAD_FOR_OBSTACLES_KM = 20
+# "As far as the eye can see" is ~3 miles = ~5 km
+LOOK_AHEAD_FOR_OBSTACLES_KM = 5.0
 NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES = int(math.ceil(LOOK_AHEAD_FOR_OBSTACLES_KM /
                                                        AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM))
-LOOK_AHEAD_FOR_UPWIND_DOWNWIND_KM = 10
+LOOK_AHEAD_FOR_UPWIND_DOWNWIND_KM = 5.0
 NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND = int(math.ceil(LOOK_AHEAD_FOR_UPWIND_DOWNWIND_KM /
                                                              AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM))
 
@@ -346,6 +347,18 @@ def pathCostThresholdExceeded(path):
     rospy.loginfo("pathCost = {}. Cost threshold for this length = {}"
                   .format(pathCost, costThreshold))
     return pathCost > costThreshold
+
+
+def getShipsSortedByDistance(ships, sailbotLatlon):
+    '''Gets ships sorted by distance to sailbotLatlon
+    Args:
+       ships (list of sailbot_msg.msg._AISShip.AISShip): Ships to sort by distance
+       sailbotLatlon (sailbot_msg.msg._latlon.latlon): Latlon of sailbot to calculate distance from
+    Returns:
+       list of sailbot_msg.msg._AISShip.AISShip same length as ships sorted by distance to sailbotLatlon
+    '''
+    distances = [distance((ship.lat, ship.lon), (sailbotLatlon.lat, sailbotLatlon.lon)) for ship in ships]
+    return [ship for _, ship in sorted(zip(distances, ships))]
 
 
 # Smallest signed angle (degrees)

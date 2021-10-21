@@ -5,6 +5,10 @@ from sailbot_msg.msg import AISMsg, GPS, path, latlon, globalWind
 from geopy.distance import distance
 import time
 import sys
+import utilities as utils
+
+# Parameters
+MAX_NUM_AIS_SHIPS = 50  # Limit number of AIS ships used in full pipeline, makes large performance difference
 
 # Global variables for moving waypoint
 goalWasInvalid = False
@@ -129,6 +133,7 @@ class Sailbot:
         state = BoatState(self.globalPath[self.globalPathIndex], self.position, self.globalWindDirectionDegrees,
                           self.globalWindSpeedKmph, self.AISData, self.headingDegrees, self.speedKmph)
 
+        # Move global waypoint forward until valid
         global goalWasInvalid
         global movedGlobalWaypoint
         if not goalWasInvalid and not his.checkGoalValidity(state):
@@ -146,6 +151,16 @@ class Sailbot:
 
         if goalWasInvalid:
             state.globalWaypoint = movedGlobalWaypoint
+
+        # Expects AISData from /AIS to have heading convention (0 North, 90 East)
+        # Convert AIS bearing (0 North, 90 East) to heading (0 East, 90 North)
+        for ship in state.AISData.ships:
+            ship.headingDegrees = utils.bearingToHeadingDegrees(ship.headingDegrees)
+
+        # If too many AIS ships, keep the closest ones
+        if len(state.AISData.ships) > MAX_NUM_AIS_SHIPS:
+            shipsSortedByDistance = utils.getShipsSortedByDistance(state.AISData.ships, state.position)
+            state.AISData.ships = shipsSortedByDistance[:MAX_NUM_AIS_SHIPS]
 
         return state
 

@@ -6,7 +6,7 @@ from log_closest_obstacle import LogClosestObstacle
 from path_storer import PathStorer
 from collision_checker import CollisionChecker
 from store_sailbot_gps import SailbotGPSData
-from utilities import takeScreenshot
+from utilities import takeScreenshot, getShipsSortedByDistance
 from PIL import Image
 import Sailbot as sbot
 import sailbot_msg.msg as msg
@@ -16,6 +16,16 @@ UPDATE_TIME_SECONDS = 1.0
 SCREENSHOT_PERIOD_SECONDS = 10.0
 LATLON_TABLE = False
 SCREENSHOT = False
+LOG_SENSORS = True
+
+
+# Globals for subscribring
+sensor_data = None
+
+
+def sensorsCallback(data):
+    global sensor_data
+    sensor_data = data
 
 # Globals for subscribring
 targetGlobalLatLon = None
@@ -32,6 +42,7 @@ if __name__ == '__main__':
 
     # Subscribe to essential pathfinding info
     sailbot = sbot.Sailbot(nodeName='wandb_log')
+    rospy.Subscriber("sensors", msg.Sensors, sensorsCallback)
     sailbot.waitForFirstSensorDataAndGlobalPath()
 
     # Log parameters
@@ -75,7 +86,16 @@ if __name__ == '__main__':
                        'GlobalWindSpeedKmph': boatState.globalWindSpeedKmph,
                        'GlobalWaypoint lat': targetGlobalLatLon.lat,
                        'GlabalWaypoint lon': targetGlobalLatLon.lon
+                       'NumAISShips': len(boatState.AISData.ships),
                        }
+
+            # Log sensor data
+            if LOG_SENSORS and sensor_data is not None:
+                sensor_data_fields = [f for f in dir(sensor_data)
+                                      if not f.startswith('_') and not callable(getattr(sensor_data, f))]
+                sensor_data_dict = {f: getattr(sensor_data, f) for f in sensor_data_fields}
+                new_log.update(sensor_data_dict)
+
             # Next, previous, and last local waypoint
             currentPath = path_storer.paths[-1]
             if len(currentPath) >= 2:
@@ -87,6 +107,15 @@ if __name__ == '__main__':
                                 "LastWaypointLat": lastWaypoint.lat,
                                 "LastWaypointLon": lastWaypoint.lon,
                                 })
+            # Closest AIS ships
+            NUM_CLOSEST_AIS_LOG = 5
+            shipsSortedByDist = getShipsSortedByDistance(boatState.AISData.ships, boatState.position)
+            if len(shipsSortedByDist) > NUM_CLOSEST_AIS_LOG:
+                shipsSortedByDist = shipsSortedByDist[:NUM_CLOSEST_AIS_LOG]
+            new_log.update({"Ship{}Lat".format(i): ship.lat for i, ship in enumerate(shipsSortedByDist)})
+            new_log.update({"Ship{}Lon".format(i): ship.lon for i, ship in enumerate(shipsSortedByDist)})
+            new_log.update({"Ship{}Speed".format(i): ship.speedKmph for i, ship in enumerate(shipsSortedByDist)})
+            new_log.update({"Ship{}Heading".format(i): ship.headingDegrees for i, ship in enumerate(shipsSortedByDist)})
 
             # Get objective and their weighted cost.
             # Will be in form: [..., 'Weighted', 'cost', '=', '79343.0', ...]
