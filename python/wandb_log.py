@@ -9,7 +9,7 @@ from store_sailbot_gps import SailbotGPSData
 from utilities import takeScreenshot, getShipsSortedByDistance
 from PIL import Image
 import Sailbot as sbot
-from sailbot_msg.msg import Sensors
+import sailbot_msg.msg as msg
 
 # Parameters for what and how to log
 UPDATE_TIME_SECONDS = 1.0
@@ -21,11 +21,17 @@ LOG_SENSORS = True
 
 # Globals for subscribring
 sensor_data = None
+targetGlobalLatLon = None
 
 
 def sensorsCallback(data):
     global sensor_data
     sensor_data = data
+
+
+def nextGlobalWaypointCallback(newTargetGlobalLatLon):
+    global targetGlobalLatLon
+    targetGlobalLatLon = newTargetGlobalLatLon
 
 
 if __name__ == '__main__':
@@ -34,7 +40,7 @@ if __name__ == '__main__':
 
     # Subscribe to essential pathfinding info
     sailbot = sbot.Sailbot(nodeName='wandb_log')
-    rospy.Subscriber("sensors", Sensors, sensorsCallback)
+    rospy.Subscriber("sensors", msg.Sensors, sensorsCallback)
     sailbot.waitForFirstSensorDataAndGlobalPath()
 
     # Log parameters
@@ -49,6 +55,7 @@ if __name__ == '__main__':
     collision_checker = CollisionChecker(create_ros_node=False)
     sailbot_gps_data = SailbotGPSData(create_ros_node=False)
     rate = rospy.Rate(UPDATE_TIME_SECONDS)
+    rospy.Subscriber("nextGlobalWaypoint", msg.latlon, nextGlobalWaypointCallback)
 
     while not rospy.is_shutdown():
         # Update states
@@ -61,7 +68,7 @@ if __name__ == '__main__':
 
         # Store logs
         validDataReady = (len(log_closest_obstacle.closestDistances) > 0 and len(path_storer.pathCosts) > 0 and
-                          len(path_storer.pathCostBreakdowns) > 0)
+                          len(path_storer.pathCostBreakdowns) > 0 and targetGlobalLatLon is not None)
         if validDataReady:
             # Most logs
             new_log = {'Collisions': collision_checker.get_times_collided(),
@@ -75,6 +82,8 @@ if __name__ == '__main__':
                        'Speed': boatState.speedKmph,
                        'GlobalWindDirection': boatState.globalWindDirectionDegrees,
                        'GlobalWindSpeedKmph': boatState.globalWindSpeedKmph,
+                       'GlobalWaypoint lat': targetGlobalLatLon.lat,
+                       'GlabalWaypoint lon': targetGlobalLatLon.lon,
                        'NumAISShips': len(boatState.AISData.ships),
                        }
 
