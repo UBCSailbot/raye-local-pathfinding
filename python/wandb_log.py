@@ -85,7 +85,7 @@ if __name__ == '__main__':
                        'GlobalWindDirection': boatState.globalWindDirectionDegrees,
                        'GlobalWindSpeedKmph': boatState.globalWindSpeedKmph,
                        'GlobalWaypoint lat': targetGlobalLatLon.lat,
-                       'GlabalWaypoint lon': targetGlobalLatLon.lon
+                       'GlabalWaypoint lon': targetGlobalLatLon.lon,
                        'NumAISShips': len(boatState.AISData.ships),
                        }
 
