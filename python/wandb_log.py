@@ -16,7 +16,7 @@ import sailbot_msg.msg as msg
 UPDATE_TIME_SECONDS = 1.0
 SCATTER_PLOTS_PERIOD_SECONDS = 60
 SCREENSHOT_PERIOD_SECONDS = 10
-SCATTER_PLOTS = False
+LATLON_TABLE = False
 SCREENSHOT = False
 LOG_SENSORS = True
 
@@ -131,9 +131,9 @@ if __name__ == '__main__':
 
             wandb.log(new_log)
 
-            # Scatter plot
-            if SCATTER_PLOTS and (last_scatter_plots_time is None
-                                  or time.time() - last_scatter_plots_time >= SCATTER_PLOTS_PERIOD_SECONDS):
+            # Latlon scatter plot
+            if LATLON_TABLE and (last_scatter_plots_time is None
+                                 or time.time() - last_scatter_plots_time >= SCATTER_PLOTS_PERIOD_SECONDS):
                 # Sailbot latlon
                 data = [[lon, lat] for (lat, lon) in zip(sailbot_gps_data.latArray, sailbot_gps_data.lonArray)]
                 table = wandb.Table(data=data, columns=['Lon', 'Lat'])
