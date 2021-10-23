@@ -2,6 +2,7 @@
 import wandb
 import rospy
 import os
+import time
 from log_closest_obstacle import LogClosestObstacle
 from path_storer import PathStorer
 from collision_checker import CollisionChecker
@@ -13,8 +14,9 @@ import sailbot_msg.msg as msg
 
 # Parameters for what and how to log
 UPDATE_TIME_SECONDS = 1.0
-SCREENSHOT_PERIOD_SECONDS = 10.0
-LATLON_TABLE = False
+SCATTER_PLOTS_PERIOD_SECONDS = 60
+SCREENSHOT_PERIOD_SECONDS = 10
+SCATTER_PLOTS = False
 SCREENSHOT = False
 LOG_SENSORS = True
 
@@ -49,7 +51,9 @@ if __name__ == '__main__':
     config.update(params)
 
     # Setup subscribers
-    counter = 0
+    last_scatter_plots_time = None
+    last_screenshot_time = None
+    screenshot_num = 1
     log_closest_obstacle = LogClosestObstacle(create_ros_node=False)
     path_storer = PathStorer(create_ros_node=False)
     collision_checker = CollisionChecker(create_ros_node=False)
@@ -127,14 +131,19 @@ if __name__ == '__main__':
 
             wandb.log(new_log)
 
-            # Latlon scatter plot
-            if LATLON_TABLE:
+            # Scatter plot
+            if SCATTER_PLOTS and (last_scatter_plots_time is None
+                                  or time.time() - last_scatter_plots_time >= SCATTER_PLOTS_PERIOD_SECONDS):
+                # Sailbot latlon
                 data = [[lon, lat] for (lat, lon) in zip(sailbot_gps_data.latArray, sailbot_gps_data.lonArray)]
                 table = wandb.Table(data=data, columns=['Lon', 'Lat'])
                 wandb.log({'LatlonPlot': wandb.plot.scatter(table, 'Lon', 'Lat', title='Sailbot Latlon Plot')})
 
+                last_scatter_plots_time = time.time()
+
             # Screenshot
-            if SCREENSHOT and counter % (SCREENSHOT_PERIOD_SECONDS // UPDATE_TIME_SECONDS) == 0:
+            if SCREENSHOT and (last_screenshot_time is None
+                               or time.time() - last_screenshot_time >= SCREENSHOT_PERIOD_SECONDS):
                 screenshot_path = takeScreenshot(return_path_to_file=True)
                 screenshot = Image.open(screenshot_path)
 
@@ -143,8 +152,10 @@ if __name__ == '__main__':
                 screenshot.save(compressed_screenshot_path, "JPEG", optimize=True, quality=5)
                 screenshot = Image.open(compressed_screenshot_path)
 
-                wandb.log({"Screenshot {}".format(counter):
-                           [wandb.Image(screenshot, caption="My Screenshot {}".format(counter))]})
-            counter += 1
+                wandb.log({"Screenshot {}".format(screenshot_num):
+                           [wandb.Image(screenshot, caption="My Screenshot {}".format(screenshot_num))]})
+
+                last_screenshot_time = time.time()
+                screenshot_num += 1
 
         rate.sleep()
