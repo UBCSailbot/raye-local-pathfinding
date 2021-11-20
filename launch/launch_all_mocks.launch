@@ -8,6 +8,7 @@
     <arg name="ocean_current_speed" default="0.0" />
     <arg name="ocean_current_direction" default="0.0" />
     <arg name="smooth_changes" default="true" />
+    <arg name="broken_wind_sensors" default="not_broken" />
     <include file="$(find local_pathfinding)/launch/MOCK_sensors.launch">
       <arg name="speedup" value="$(arg speedup)"/>
       <arg name="global_wind_speed_kmph" value="$(arg global_wind_speed_kmph)" />
@@ -15,6 +16,7 @@
       <arg name="ocean_current_speed" value="$(arg ocean_current_speed)" />
       <arg name="ocean_current_direction" value="$(arg ocean_current_direction)" />
       <arg name="smooth_changes" value="$(arg smooth_changes)" />
+      <arg name="broken_wind_sensors" value="$(arg broken_wind_sensors)" />
     </include>
 
     <!-- Sets the num_ais_ships -->

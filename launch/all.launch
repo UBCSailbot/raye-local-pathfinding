@@ -48,6 +48,7 @@
     <arg name="wind_file" default="" />
     <arg name="AIS_token" default="" />
     <arg name="log_exactais" default="false" />
+    <arg name="broken_wind_sensors" default="not_broken" />
     <include file="$(find local_pathfinding)/launch/launch_all_mocks.launch">
       <arg name="speedup" value="$(arg speedup)"/>
       <arg name="global_wind_speed_kmph" value="$(arg global_wind_speed_kmph)" />
@@ -68,6 +69,7 @@
       <arg name="wind_file" value="$(arg wind_file)"/>
       <arg name="AIS_token" default="$(arg AIS_token)" />
       <arg name="log_exactais" default="$(arg log_exactais)" />
+      <arg name="broken_wind_sensors" default="$(arg broken_wind_sensors)" />
     </include>
 
     <!-- Wandb logger -->
