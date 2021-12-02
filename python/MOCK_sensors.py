@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# from re import I
 import numpy as np
 import rospy
 import random
@@ -24,12 +23,12 @@ START_GLOBAL_WIND_DIRECTION_DEGREES = 0
 START_GLOBAL_WIND_SPEED_KMPH = 10
 STDEV_GPS = 0.00001
 STDEV_WIND = 0.1
-MAX_BROKEN_WINDSPEED_KTS = 50
-MAX_ANGLE_ERROR = 60
-MAX_WINDSPEED_MULTIPLIER_ERROR = 0.5
-MAX_WINDSPEED_ADDER_ERROR = 5
-MIN_LOOPS_UNTIL_BROKEN = 30
-MAX_LOOPS_UNTIL_BROKEN = 100
+MAX_BROKEN_WINDSPEED_KNOTS = 30
+MAX_ANGLE_ERROR_DEG = 60
+MAX_WINDSPEED_MULTIPLIER_ERROR = 2  # Should be >= 1
+MAX_WINDSPEED_ADDER_ERROR_KNOTS = 5
+MIN_LOOPS_TO_BREAK = 30
+MAX_LOOPS_TO_BREAK = 100
 
 
 class MOCK_SensorManager:
@@ -45,7 +44,7 @@ class MOCK_SensorManager:
         self.measuredWindSpeedKmph, self.measuredWindDirectionDegrees = globalWindToMeasuredWind(
             self.globalWindSpeedKmph, self.globalWindDirectionDegrees, self.speedKmph, self.headingDegrees)
         self.publishPeriodSeconds = SENSORS_PUBLISH_PERIOD_SECONDS
-        self.brokenSensorData = "uninitialized"
+        self.brokenSensorData = None
 
         # Setup ROS node inputs and outputs
         self.publisher = rospy.Publisher("sensors", msg.Sensors, queue_size=4)
@@ -134,147 +133,144 @@ class MOCK_SensorManager:
 
         brokenWindSensorStatus = rospy.get_param('broken_wind_sensors', default="not_broken")
         if brokenWindSensorStatus != "not_broken":
-            rospy.logwarn("Broken Wind Sensor Status: " + brokenWindSensorStatus)
+            rospy.logwarn_throttle(30, "Broken Wind Sensor Status: " + brokenWindSensorStatus)
+            self.breakWindSensors(data, brokenWindSensorStatus)
+
+        self.publisher.publish(data)
+
+    def breakWindSensors(self, data, brokenWindSensorStatus):
+        # Corrupts wind sensor data depending on the setting specified by string brokenSensorStatus
 
         if (brokenWindSensorStatus == "stuck_at_zero"):
             # This setting chooses a wind sensor which reads an angle of 0 and speed 0
-            # brokenSensorData is used to store an integer 1, 2, or 3 representing which sensor is broken
 
-            if(self.brokenSensorData == "uninitialized"):
-                # set up brokenSensorData so publish(self) remembers which sensor is stuck at zero
+            if(self.brokenSensorData is None):
                 randomSeed = get_rosparam_or_default_if_invalid('random_seed', default=None, rosparam_type_cast=str)
                 random.seed(randomSeed)
                 self.brokenSensorData = random.randint(1, 3)
 
-            self.corrupt_wind_sensor(data, self.brokenSensorData, "angle", 0)
-            self.corrupt_wind_sensor(data, self.brokenSensorData, "speed", 0)
+            self.corrupt_wind_sensor(data, self.brokenSensorData, 0, 0)
 
-            rospy.logwarn("MOCK wind_sensor_{} publishing corrupt data: ".format(self.brokenSensorData)
-                          + "angle and speed stuck at 0")
+            rospy.logwarn_throttle(3, "MOCK wind_sensor_{} publishing corrupt data: ".format(self.brokenSensorData)
+                                   + "angle and speed stuck at 0")
 
         elif (brokenWindSensorStatus == "stuck_at_rand_constant"):
             # This setting chooses a wind sensor which reads a constant random speed and direction
-            # brokenSensorData is a list containing: brokenSensorID, the constant angle, the constant direction.
 
-            if(self.brokenSensorData == "uninitialized"):
+            if(self.brokenSensorData is None):
                 randomSeed = get_rosparam_or_default_if_invalid('random_seed', default=None, rosparam_type_cast=str)
                 random.seed(randomSeed)
 
-                brokenSensorID = random.randint(1, 3)
-                brokenSensorAngle_deg = random.random() * 360
-                brokenSensorSpeed_kts = random.random() * MAX_BROKEN_WINDSPEED_KTS
-                self.brokenSensorData = [brokenSensorID, brokenSensorAngle_deg, brokenSensorSpeed_kts]
+                self.brokenSensorData = {'brokenSensorID': random.randint(1, 3),
+                                         'brokenSensorAngle_deg': random.random() * 360,
+                                         'brokenSensorSpeed_knots': random.random() * MAX_BROKEN_WINDSPEED_KNOTS}
 
-            self.corrupt_wind_sensor(data, self.brokenSensorData[0], "angle", self.brokenSensorData[1])
-            self.corrupt_wind_sensor(data, self.brokenSensorData[0], "speed", self.brokenSensorData[2])
+            self.corrupt_wind_sensor(data, self.brokenSensorData['brokenSensorID'],
+                                     self.brokenSensorData['brokenSensorAngle_deg'],
+                                     self.brokenSensorData['brokenSensorSpeed_knots'])
 
-            rospy.logwarn("MOCK wind_sensor_{} ".format(self.brokenSensorData[0])
-                          + "publishing corrupt data:\nangle stuck at {} degrees, ".format(self.brokenSensorData[1])
-                            + "speed stuck at {} knots.".format(self.brokenSensorData[2]))
+            rospy.logwarn_throttle(3, "MOCK wind_sensor_{} ".format(self.brokenSensorData['brokenSensorID'])
+                                   + "publishing corrupt data:\n"
+                                   + "angle stuck at {} degrees,".format(self.brokenSensorData['brokenSensorAngle_deg'])
+                                   + " speed stuck at {}".format(self.brokenSensorData['brokenSensorSpeed_knots'])
+                                   + " knots.")
 
         elif(brokenWindSensorStatus == "rand_const_error"):
             # This setting chooses a wind sensor and corrupts its data as follows:
             # the angle published is the original angle plus a random constant theta
             # the speed published is given by a*(original speed) + b; a and b are random constants
+            # a is within [1 / MAX_WINDSPEED_MULTIPLIER_ERROR, MAX_WINDSPEED_MULTIPLIER_ERROR]
+            # b is within [-MAX_WINDSPEED_ADDER_ERROR_KNOTS, MAX_WINDSPEED_ADDER_ERROR_KNOTS]
+            # theta is within [-MAX_ANGLE_ERROR_DEG, MAX_ANGLE_ERROR_DEG]
 
-            if(self.brokenSensorData == "uninitialized"):
+            if(self.brokenSensorData is None):
                 randomSeed = get_rosparam_or_default_if_invalid('random_seed', default=None, rosparam_type_cast=str)
                 random.seed(randomSeed)
 
-                brokenSensorID = random.randint(1, 3)
-                theta = (2*random.random() - 1) * MAX_ANGLE_ERROR
-                windspeedMultiplier = 1 + (2*random.random() - 1) * MAX_WINDSPEED_MULTIPLIER_ERROR
-                windspeedAdder = (2*random.random() - 1) * MAX_WINDSPEED_ADDER_ERROR
-                self.brokenSensorData = [brokenSensorID, theta, windspeedMultiplier, windspeedAdder]
+                if random.random < 0.5:
+                    multiplier = 1 - random.random() * (1 - 1 / (MAX_WINDSPEED_MULTIPLIER_ERROR))
+                else:
+                    multiplier = 1 + random.random() * (MAX_WINDSPEED_MULTIPLIER_ERROR - 1)
 
-            actualAngle = self.get_wind_measurement(data, self.brokenSensorData[0], "angle")
-            actualSpeed = self.get_wind_measurement(data, self.brokenSensorData[0], "speed")
+                self.brokenSensorData = {'brokenSensorID': random.randint(1, 3),
+                                         'theta': (2*random.random() - 1) * MAX_ANGLE_ERROR_DEG,
+                                         'windspeedMultiplier': multiplier,
+                                         'windspeedAdder': (2*random.random() - 1) * MAX_WINDSPEED_ADDER_ERROR_KNOTS}
 
-            newAngle = actualAngle + self.brokenSensorData[1]
-            newSpeed = max(0, self.brokenSensorData[2] * actualSpeed + self.brokenSensorData[3])
+            actualAngle, actualSpeed = self.get_wind_measurement(data, self.brokenSensorData['brokenSensorID'])
 
-            # Bound the newAngle to [0, 360)
-            if(newAngle < 0):
+            newAngle = actualAngle + self.brokenSensorData['theta']
+            newSpeed = max(0, self.brokenSensorData['windspeedMultiplier'] * actualSpeed
+                           + self.brokenSensorData['windspeedAdder'])
+
+            # Bound the newAngle to [-180, 360) to improve interpretability
+            if(newAngle < -180):
                 newAngle = 360 + newAngle
             if(newAngle >= 360):
                 newAngle = newAngle - 360
 
-            self.corrupt_wind_sensor(data, self.brokenSensorData[0], "angle", newAngle)
-            self.corrupt_wind_sensor(data, self.brokenSensorData[0], "speed", newSpeed)
+            self.corrupt_wind_sensor(data, self.brokenSensorData['brokenSensorID'], newAngle, newSpeed)
 
-            rospy.logwarn("MOCK wind_sensor_{} publishing corrupt data:\n".format(self.brokenSensorData[0])
-                          + "measured angle: (real angle) + ({}) degrees, ".format(self.brokenSensorData[1])
-                            + "measured speed: ({}) * (real speed) + ({}) knots".format(self.brokenSensorData[2],
-                                                                                        self.brokenSensorData[3]))
+            rospy.logwarn_throttle(3, "MOCK wind_sensor_{} ".format(self.brokenSensorData['brokenSensorID'])
+                                   + "publishing corrupt data:\nmeasured "
+                                   + "angle: (real angle) + ({}) degrees, ".format(self.brokenSensorData['theta'])
+                                   + "measured speed: ({}) * (real speed) + ({}) knots".format(
+                                       self.brokenSensorData['windspeedMultiplier'],
+                                       self.brokenSensorData['windspeedAdder']))
 
         elif(brokenWindSensorStatus == "stuck_at_last_value"):
-            # This setting chooses a sensor, waits a few loops, then starts publishing the same data for that sensor
+            # This setting chooses a sensor, waits a few loops, then starts publishing the same data for that sensor.
+            # This will simulate the sensor ceasing to update its measurements.
 
-            if(self.brokenSensorData == "uninitialized"):
+            if(self.brokenSensorData is None):
                 randomSeed = get_rosparam_or_default_if_invalid('random_seed', default=None, rosparam_type_cast=str)
                 random.seed(randomSeed)
 
-                brokenSensorID = random.randint(1, 3)
-                loopsUntilBroken = random.randint(MIN_LOOPS_UNTIL_BROKEN, MAX_LOOPS_UNTIL_BROKEN)
-                self.brokenSensorData = [brokenSensorID, loopsUntilBroken, 0, 0, 0]
-                # elements at index 2, 3, and 4 are loop counter, last angle, and last speed
+                self.brokenSensorData = {'brokenSensorID': random.randint(1, 3),
+                                         'loopsUntilBroken': random.randint(MIN_LOOPS_TO_BREAK, MAX_LOOPS_TO_BREAK),
+                                         'loopsSoFar': 0, 'lastAngle': None, 'lastSpeed': None}
 
-            if self.brokenSensorData[2] < self.brokenSensorData[1]:
-                self.brokenSensorData[2] += 1
-            elif self.brokenSensorData[2] == self.brokenSensorData[1]:
-                self.brokenSensorData[2] += 1
+            if self.brokenSensorData['loopsSoFar'] <= self.brokenSensorData['loopsUntilBroken']:
+                if self.brokenSensorData['loopsSoFar'] == self.brokenSensorData['loopsUntilBroken']:
+                    # store the last angle and speed that are correct before sensor stops updating
+                    self.brokenSensorData['lastAngle'], self.brokenSensorData['lastSpeed'] = self.get_wind_measurement(
+                        data, self.brokenSensorData['brokenSensorID'])
 
-                # if counters are equal, store the current angle and speed of sensor about to break
-                self.brokenSensorData[3] = self.get_wind_measurement(data, self.brokenSensorData[0], "angle")
-                self.brokenSensorData[4] = self.get_wind_measurement(data, self.brokenSensorData[0], "speed")
+                self.brokenSensorData['loopsSoFar'] += 1
+            else:
+                self.corrupt_wind_sensor(data, self.brokenSensorData['brokenSensorID'],
+                                         self.brokenSensorData['lastAngle'],
+                                         self.brokenSensorData['lastSpeed'])
 
-            if(self.brokenSensorData[2] > self.brokenSensorData[1]):
-                self.corrupt_wind_sensor(data, self.brokenSensorData[0], "angle", self.brokenSensorData[3])
-                self.corrupt_wind_sensor(data, self.brokenSensorData[0], "speed", self.brokenSensorData[4])
+                rospy.logwarn_throttle(3, "MOCK wind_sensor_{} ".format(self.brokenSensorData['brokenSensorID'])
+                                       + "stopped updating measurements. Publishing corrupt data:\n"
+                                       + "angle stuck at {} degrees, ".format(self.brokenSensorData['lastAngle'])
+                                       + "speed stuck at {} knots".format(self.brokenSensorData['lastSpeed']))
 
-                rospy.logwarn("MOCK wind_sensor_{} stopped updating measurements. ".format(self.brokenSensorData[0])
-                              + "Publishing corrupt data:\nangle stuck at {} degrees, ".format(self.brokenSensorData[3])
-                                + "speed stuck at {} knots".format(self.brokenSensorData[4]))
-
-        self.publisher.publish(data)
-
-    def corrupt_wind_sensor(self, data, brokenSensorNumber, speedOrAngle, value):
+    def corrupt_wind_sensor(self, data, brokenSensorNumber, newAngle, newSpeed):
         # Helper function for corrupting wind data.
-        # example: if brokenSensorNumber = 3, speedOrAngle = "speed", value = 25, then the function will write
-        # 25 to data.wind_sensor_3_speed_knots.
+        # Overwrites the angle and speed of the wind sensor specified by brokenSensorNumber
 
-        if(speedOrAngle == "speed"):
-            if(brokenSensorNumber == 1):
-                data.wind_sensor_1_speed_knots = value
-            elif(brokenSensorNumber == 2):
-                data.wind_sensor_2_speed_knots = value
-            elif(brokenSensorNumber == 3):
-                data.wind_sensor_3_speed_knots = value
-        elif(speedOrAngle == "angle"):
-            if(brokenSensorNumber == 1):
-                data.wind_sensor_1_angle_degrees = value
-            elif(brokenSensorNumber == 2):
-                data.wind_sensor_2_angle_degrees = value
-            elif(brokenSensorNumber == 3):
-                data.wind_sensor_3_angle_degrees = value
+        if(brokenSensorNumber == 1):
+            data.wind_sensor_1_angle_degrees = newAngle
+            data.wind_sensor_1_speed_knots = newSpeed
+        elif(brokenSensorNumber == 2):
+            data.wind_sensor_2_angle_degrees = newAngle
+            data.wind_sensor_2_speed_knots = newSpeed
+        elif(brokenSensorNumber == 3):
+            data.wind_sensor_3_angle_degrees = newAngle
+            data.wind_sensor_3_speed_knots = newSpeed
 
-    def get_wind_measurement(self, data, sensorNumber, speedOrAngle):
+    def get_wind_measurement(self, data, sensorNumber):
         # Helper function for corrupting wind data.
-        # example: if sensorNumber = 3, speedOrAngle = "speed", then the function returns the speed of wind sensor 3
-        if(speedOrAngle == "speed"):
-            if sensorNumber == 1:
-                return data.wind_sensor_1_speed_knots
-            elif sensorNumber == 2:
-                return data.wind_sensor_2_speed_knots
-            elif sensorNumber == 3:
-                return data.wind_sensor_3_speed_knots
-        elif speedOrAngle == "angle":
-            if sensorNumber == 1:
-                return data.wind_sensor_1_angle_degrees
-            elif sensorNumber == 2:
-                return data.wind_sensor_2_angle_degrees
-            elif sensorNumber == 3:
-                return data.wind_sensor_3_angle_degrees
+        # Returns a tuple containing the angle and speed of the sensor specified by sensorNumber
+
+        if sensorNumber == 1:
+            return data.wind_sensor_1_angle_degrees, data.wind_sensor_1_speed_knots
+        elif sensorNumber == 2:
+            return data.wind_sensor_2_angle_degrees, data.wind_sensor_2_speed_knots
+        elif sensorNumber == 3:
+            return data.wind_sensor_3_angle_degrees, data.wind_sensor_3_speed_knots
 
     def add_noise(self, data):
         # Add noise to sensor data using numpy.random.normal. GPS and wind sensors have different standard deviations,
