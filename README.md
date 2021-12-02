@@ -61,6 +61,13 @@ All of the arguments below are optional for `all.launch`. Below is a non-exhaust
 * `random_seed` - Int value that we set the random seed to. Default: `""`, which results in the random seed being set by time.
 
 * `wandb` - Bool value that sets if data should be logged to [wandb](https://wandb.ai/ubcsailbot) for analysis. Need to login with UBC Sailbot credentials to log. Default: `false`.
+* `broken_wind_sensors` - String that specifies if the MOCK wind sensor data should be corrupted to simulate broken wind sensors, and in what way the wind data should be corrupted. Default: `not_broken` (the default setting leaves wind sensor data unmodified). In the following descriptions of the other modes, "random" means using numpy.random functions seeded with the `random_seed` so tests can be reproducible. The other modes for corrupting wind data "randomly" choose one of the 3 wind sensors, and modify the sensor's measurements in the following ways:
+  * `stuck_at_zero`: The chosen sensor will measure a wind speed of 0 knots and a wind angle of 0 degrees.
+  * `stuck_at_rand_constant`: The chosen sensor will measure a "random" wind speed and a "random" angle.
+  * `stuck_at_last_value`: The chosen sensor will operate normally for a "random" number of loops, then the wind speed and wind angle will stop measuring new values, and keep measuring the last value prior to breaking.
+  * `rand_const_error`: The chosen sensor will measure a wind angle of `(real angle) + theta`, 
+
+     and a wind speed of `a*(real speed) + b`. Theta, a, and b are "randomly" chosen constants.
 
 #### Run a specific saved pathfinding scenario
 
