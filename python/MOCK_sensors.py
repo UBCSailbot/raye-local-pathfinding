@@ -31,7 +31,9 @@ class MOCK_SensorManager:
         self.lat = startLat
         self.lon = startLon
         self.headingDegrees = startHeadingDegrees
-        self.speedKmph = startSpeedKmph
+        self.trackMadeGoodDegrees = startHeadingDegrees  # initialize to boat frame direction (correct when current = 0)
+        self.speedKmphBoatFrame = startSpeedKmph
+        self.speedKmphGlobalFrame = startSpeedKmph  # initialize to boat frame speed (correct when current = 0)
         self.globalWindSpeedKmph = startGlobalWindSpeedKmph
         self.globalWindDirectionDegrees = startGlobalWindDirectionDegrees
         self.measuredWindSpeedKmph, self.measuredWindDirectionDegrees = globalWindToMeasuredWind(
@@ -47,25 +49,16 @@ class MOCK_SensorManager:
 
     def update(self):
         # TODO: Use rospy.get_param('smooth_changes', default=True) to use PID controller on heading and speed
+
+        self.update_global_frame_fields()
         speedup = rospy.get_param('speedup', default=1.0)
 
         # Travel based on boat speed
-        kmTraveledPerPeriod = self.speedKmph * self.publishPeriodSeconds / 3600.0
+        kmTraveledPerPeriod = self.speedKmphGlobalFrame * self.publishPeriodSeconds / 3600.0
         kmTraveledPerPeriod *= speedup  # Move greater distances with speedup
         distanceTraveled = geopy.distance.distance(kilometers=kmTraveledPerPeriod)
         destination = distanceTraveled.destination(point=(self.lat, self.lon),
-                                                   bearing=headingToBearingDegrees(self.headingDegrees))
-        self.lon = destination.longitude
-        self.lat = destination.latitude
-
-        # Travel based on ocean current
-        oceanCurrentSpeedKmph = rospy.get_param('ocean_current_speed', default=0.0)
-        oceanCurrentDirectionDegress = rospy.get_param('ocean_current_direction', default=0.0)
-        oceanCurrentKmTraveledPerPeriod = oceanCurrentSpeedKmph * self.publishPeriodSeconds / 3600.0
-        oceanCurrentKmTraveledPerPeriod *= speedup  # Move greater distances with speedup
-        distanceTraveled = geopy.distance.distance(kilometers=oceanCurrentKmTraveledPerPeriod)
-        destination = distanceTraveled.destination(point=(self.lat, self.lon),
-                                                   bearing=headingToBearingDegrees(oceanCurrentDirectionDegress))
+                                                   bearing=headingToBearingDegrees(self.trackMadeGoodDegrees))
         self.lon = destination.longitude
         self.lat = destination.latitude
 
@@ -75,6 +68,21 @@ class MOCK_SensorManager:
                                                           default=self.globalWindDirectionDegrees)
         self.measuredWindSpeedKmph, self.measuredWindDirectionDegrees = globalWindToMeasuredWind(
             self.globalWindSpeedKmph, self.globalWindDirectionDegrees, self.speedKmph, self.headingDegrees)
+
+    def update_global_frame_fields(self):
+        '''Calculate boat speed and direction (track made good) in global frame as a function of speed and direction in
+        boat frame, and speed and direction of current
+        '''
+        oceanCurrentSpeedKmph = rospy.get_param('ocean_current_speed', default=0.0)
+        oceanCurrentDirectionDegrees = rospy.get_param('ocean_current_direction', default=0.0)
+
+        speedXGlobalFrame = oceanCurrentSpeedKmph * np.cos(np.deg2rad(oceanCurrentDirectionDegrees)) + \
+            self.speedKmphBoatFrame * np.cos(np.deg2rad(self.headingDegrees))
+        speedYGlobalFrame = oceanCurrentSpeedKmph * np.sin(np.deg2rad(oceanCurrentDirectionDegrees)) + \
+            self.speedKmphBoatFrame * np.sin(np.deg2rad(self.headingDegrees))
+
+        self.speedKmphGlobalFrame = np.hypot(speedXGlobalFrame, speedYGlobalFrame)
+        self.trackMadeGoodDegrees = np.arctan2(speedYGlobalFrame, speedXGlobalFrame)
 
     def publish(self):
         # Populate sensors, leaving commented out the ones we don't know for now
@@ -92,8 +100,8 @@ class MOCK_SensorManager:
         # data.gps_can_timestamp_utc
         data.gps_can_latitude_degrees = self.lat
         data.gps_can_longitude_degrees = self.lon
-        data.gps_can_groundspeed_knots = self.speedKmph / KNOTS_TO_KMPH
-        data.gps_can_track_made_good_degrees = headingToBearingDegrees(self.headingDegrees)
+        data.gps_can_groundspeed_knots = self.speedKmphGlobalFrame / KNOTS_TO_KMPH
+        data.gps_can_track_made_good_degrees = headingToBearingDegrees(self.trackMadeGoodDegrees)
         data.gps_can_true_heading_degrees = headingToBearingDegrees(self.headingDegrees)
         # data.gps_can_magnetic_variation_degrees
         # data.gps_can_state
@@ -101,8 +109,8 @@ class MOCK_SensorManager:
         # data.gps_ais_timestamp_utc
         data.gps_ais_latitude_degrees = self.lat
         data.gps_ais_longitude_degrees = self.lon
-        data.gps_ais_groundspeed_knots = self.speedKmph / KNOTS_TO_KMPH
-        data.gps_ais_track_made_good_degrees = headingToBearingDegrees(self.headingDegrees)
+        data.gps_ais_groundspeed_knots = self.speedKmphGlobalFrame / KNOTS_TO_KMPH
+        data.gps_ais_track_made_good_degrees = headingToBearingDegrees(self.trackMadeGoodDegrees)
         data.gps_ais_true_heading_degrees = headingToBearingDegrees(self.headingDegrees)
         # data.gps_ais_magnetic_variation_degrees
         # data.gps_ais_state
