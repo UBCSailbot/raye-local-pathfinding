@@ -217,31 +217,35 @@ def getLOSHeadingDegrees(position, previousWaypoint, currentWaypoint):
     return math.degrees(straight_course - math.atan(Kp * crosstrack_error))
 
 
-def measuredWindToGlobalWind(measuredWindSpeed, measuredWindDirectionDegrees, boatSpeed, headingDegrees):
+def measuredWindToGlobalWind(measuredWindSpeed, measuredWindDirectionDegrees, boatSpeed, headingDegrees,
+                             trackMadeGoodDegrees):
     '''Calculate the global wind based on the measured wind and the boat velocity
+
     Args:
        measuredWindSpeed (float): speed of the wind measured from the boat. All speed values must be in the same units.
        measuredWindDirectionDegrees (float): angle of the measured with wrt the boat.
                                              0 degrees is wind blowing to the right. 90 degrees is wind blowing forward.
-       boatSpeed (float): speed of the boat
+       boatSpeed (float): speed of the boat in the global frame
        headingDegrees (float): angle of the boat in global frame. 0 degrees is East. 90 degrees is North.
+       trackMadeGoodDegrees (float): angle of the boat speed in global frame. 0 degrees is East. 90 degrees is North.
+
     Returns:
        float, float pair representing the globalWindSpeed (same units as input speed), globalWindDirectionDegrees
     '''
-    measuredWindRadians, headingRadians = math.radians(measuredWindDirectionDegrees), math.radians(headingDegrees)
+    measuredWindRadians = math.radians(measuredWindDirectionDegrees)
+    headingRadians = math.radians(headingDegrees)
+    trackMadeGoodRadians = math.radians(trackMadeGoodDegrees)
 
     # GF = global frame. BF = boat frame
     # Calculate wind speed in boat frame. X is right. Y is forward.
     measuredWindSpeedXBF = measuredWindSpeed * math.cos(measuredWindRadians)
     measuredWindSpeedYBF = measuredWindSpeed * math.sin(measuredWindRadians)
 
-    # Assume boat is moving entirely in heading direction, so all boat speed is in boat frame Y direction
-    trueWindSpeedXBF = measuredWindSpeedXBF
-    trueWindSpeedYBF = measuredWindSpeedYBF + boatSpeed
-
     # Calculate wind speed in global frame. X is EAST. Y is NORTH.
-    trueWindSpeedXGF = trueWindSpeedXBF * math.sin(headingRadians) + trueWindSpeedYBF * math.cos(headingRadians)
-    trueWindSpeedYGF = trueWindSpeedYBF * math.sin(headingRadians) - trueWindSpeedXBF * math.cos(headingRadians)
+    trueWindSpeedXGF = measuredWindSpeedXBF * math.sin(headingRadians) + \
+        measuredWindSpeedYBF * math.cos(headingRadians) + boatSpeed * math.cos(trackMadeGoodRadians)
+    trueWindSpeedYGF = measuredWindSpeedYBF * math.sin(headingRadians) - \
+        measuredWindSpeedXBF * math.cos(headingRadians) + boatSpeed * math.sin(trackMadeGoodRadians)
 
     # Calculate global wind speed and direction
     globalWindSpeed = (trueWindSpeedXGF**2 + trueWindSpeedYGF**2)**0.5
@@ -250,7 +254,8 @@ def measuredWindToGlobalWind(measuredWindSpeed, measuredWindDirectionDegrees, bo
     return globalWindSpeed, globalWindDirectionDegrees
 
 
-def globalWindToMeasuredWind(globalWindSpeed, globalWindDirectionDegrees, boatSpeed, headingDegrees):
+def globalWindToMeasuredWind(globalWindSpeed, globalWindDirectionDegrees, boatSpeed, headingDegrees,
+                             trackMadeGoodDegrees):
     '''Calculate the measured wind based on the global wind and the boat velocity
 
     Args:
@@ -259,17 +264,20 @@ def globalWindToMeasuredWind(globalWindSpeed, globalWindDirectionDegrees, boatSp
                                            0 degrees is East. 90 degrees is North.
        boatSpeed (float): speed of the boat
        headingDegrees (float): angle of the boat in global frame. 0 degrees is East. 90 degrees is North.
+       trackMadeGoodDegrees (float): angle of the boat speed in global frame. 0 degrees is East. 90 degrees is North.
 
     Returns:
        float, float pair representing the measuredWindSpeed (same units as input speed), measuredWindDirectionDegrees
        (0 degrees is wind blowing to the right. 90 degrees is wind blowing forward)
     '''
-    globalWindRadians, headingRadians = math.radians(globalWindDirectionDegrees), math.radians(headingDegrees)
+    globalWindRadians = math.radians(globalWindDirectionDegrees)
+    headingRadians = math.radians(headingDegrees)
+    trackMadeGoodRadians = math.radians(trackMadeGoodDegrees)
 
     # GF = global frame. BF = boat frame
     # Calculate the measuredWindSpeed in the global frame
-    measuredWindXGF = globalWindSpeed * math.cos(globalWindRadians) - boatSpeed * math.cos(headingRadians)
-    measuredWindYGF = globalWindSpeed * math.sin(globalWindRadians) - boatSpeed * math.sin(headingRadians)
+    measuredWindXGF = globalWindSpeed * math.cos(globalWindRadians) - boatSpeed * math.cos(trackMadeGoodRadians)
+    measuredWindYGF = globalWindSpeed * math.sin(globalWindRadians) - boatSpeed * math.sin(trackMadeGoodRadians)
 
     # Calculated the measuredWindSpeed in the boat frame
     measuredWindXBF = measuredWindXGF * math.sin(headingRadians) - measuredWindYGF * math.cos(headingRadians)

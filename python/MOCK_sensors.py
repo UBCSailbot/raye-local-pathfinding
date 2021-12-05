@@ -37,7 +37,8 @@ class MOCK_SensorManager:
         self.globalWindSpeedKmph = startGlobalWindSpeedKmph
         self.globalWindDirectionDegrees = startGlobalWindDirectionDegrees
         self.measuredWindSpeedKmph, self.measuredWindDirectionDegrees = globalWindToMeasuredWind(
-            self.globalWindSpeedKmph, self.globalWindDirectionDegrees, self.speedKmph, self.headingDegrees)
+            self.globalWindSpeedKmph, self.globalWindDirectionDegrees, self.speedKmphGlobalFrame, self.headingDegrees,
+            self.trackMadeGoodDegrees)
         self.publishPeriodSeconds = SENSORS_PUBLISH_PERIOD_SECONDS
 
         # Setup ROS node inputs and outputs
@@ -67,7 +68,8 @@ class MOCK_SensorManager:
         self.globalWindDirectionDegrees = rospy.get_param('global_wind_direction_degrees',
                                                           default=self.globalWindDirectionDegrees)
         self.measuredWindSpeedKmph, self.measuredWindDirectionDegrees = globalWindToMeasuredWind(
-            self.globalWindSpeedKmph, self.globalWindDirectionDegrees, self.speedKmph, self.headingDegrees)
+            self.globalWindSpeedKmph, self.globalWindDirectionDegrees, self.speedKmphGlobalFrame, self.headingDegrees,
+            self.trackMadeGoodDegrees)
 
     def update_global_frame_fields(self):
         '''Calculate boat speed and direction (track made good) in global frame as a function of speed and direction in
@@ -82,7 +84,7 @@ class MOCK_SensorManager:
             self.speedKmphBoatFrame * np.sin(np.deg2rad(self.headingDegrees))
 
         self.speedKmphGlobalFrame = np.hypot(speedXGlobalFrame, speedYGlobalFrame)
-        self.trackMadeGoodDegrees = np.arctan2(speedYGlobalFrame, speedXGlobalFrame)
+        self.trackMadeGoodDegrees = np.rad2deg(np.arctan2(speedYGlobalFrame, speedXGlobalFrame))
 
     def publish(self):
         # Populate sensors, leaving commented out the ones we don't know for now

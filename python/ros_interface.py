@@ -25,7 +25,7 @@ class RosInterface:
         rospy.Subscriber("sensors", Sensors, self.sensorsCallback)
         self.pubMeasuredWind = rospy.Publisher('windSensor', windSensor, queue_size=4)
         self.pubGlobalWind = rospy.Publisher('global_wind', globalWind, queue_size=4)
-        self.pubGPS = rospy.Publisher('GPS', GPS, queue_size=4)
+        self.pubGPS = rospy.Publisher('GPS', GPS, queue_size=4)  # TODO: add trackMadeGoodDegrees field to GPS
         self.initialized = False
         self.data = None
 
@@ -33,6 +33,7 @@ class RosInterface:
         self.gps_lat_decimalDegrees = None
         self.gps_lon_decimalDegrees = None
         self.gps_headingDegrees = None
+        self.gps_trackMadeGoodDegrees = None
         self.gps_speedKmph = None
         self.measured_wind_speedKmph = None
         self.measured_wind_direction = None
@@ -64,6 +65,7 @@ class RosInterface:
         self.gps_lat_decimalDegrees = self.data.gps_can_latitude_degrees
         self.gps_lon_decimalDegrees = self.data.gps_can_longitude_degrees
         self.gps_headingDegrees = bearingToHeadingDegrees(self.data.gps_can_true_heading_degrees)
+        self.gps_trackMadeGoodDegrees = bearingToHeadingDegrees(self.data.gps_can_track_made_good_degrees)
         self.gps_speedKmph = self.data.gps_can_groundspeed_knots * KNOTS_TO_KMPH
 
         # Wind sensor fields - sensors 1, 2, and 3 -> use sensor 1
@@ -74,6 +76,7 @@ class RosInterface:
         rospy.loginfo('gps_lat_decimalDegrees = {}'.format(self.gps_lat_decimalDegrees))
         rospy.loginfo('gps_lon_decimalDegrees = {}'.format(self.gps_lon_decimalDegrees))
         rospy.loginfo('gps_headingDegrees = {}'.format(self.gps_headingDegrees))
+        rospy.loginfo('gps_trackMadeGoodDegrees = {}'.format(self.gps_trackMadeGoodDegrees))
         rospy.loginfo('gps_speedKmph = {}'.format(self.gps_speedKmph))
         rospy.loginfo('measured_wind_speedKmph = {}'.format(self.measured_wind_speedKmph))
         rospy.loginfo('measured_wind_direction = {}'.format(self.measured_wind_direction))
@@ -83,7 +86,8 @@ class RosInterface:
                 measuredWindSpeed=self.measured_wind_speedKmph,
                 measuredWindDirectionDegrees=self.measured_wind_direction,
                 boatSpeed=self.gps_speedKmph,
-                headingDegrees=self.gps_headingDegrees)
+                headingDegrees=self.gps_headingDegrees,
+                trackMadeGoodDegrees=self.gps_trackMadeGoodDegrees)
         return globalWind(directionDegrees=direction, speedKmph=speed)
 
 
