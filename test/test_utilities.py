@@ -123,7 +123,7 @@ class TestUtilities(unittest.TestCase):
         # (Boat moving + no measured wind) => (global wind velocity == boat velocity)
         globalWindSpeedKmph, globalWindDirectionDegrees = utils.measuredWindToGlobalWind(
             measuredWindSpeed=0, measuredWindDirectionDegrees=utils.BOAT_RIGHT, boatSpeed=1,
-            headingDegrees=utils.HEADING_NORTH)
+            headingDegrees=utils.HEADING_NORTH, trackMadeGoodDegrees=utils.HEADING_NORTH)
         self.assertAlmostEqual(1, globalWindSpeedKmph, places=3)
         self.assertAlmostEqual(utils.HEADING_NORTH, globalWindDirectionDegrees, places=3)
 
@@ -133,29 +133,45 @@ class TestUtilities(unittest.TestCase):
         measuredDirection = (2 * utils.BOAT_FORWARD + 1 * utils.BOAT_RIGHT) / 3  # 60 degrees
         globalWindSpeedKmph, globalWindDirectionDegrees = utils.measuredWindToGlobalWind(
             measuredWindSpeed=1.2, measuredWindDirectionDegrees=measuredDirection, boatSpeed=0,
-            headingDegrees=utils.HEADING_EAST)
+            headingDegrees=utils.HEADING_EAST, trackMadeGoodDegrees=utils.HEADING_EAST)
         self.assertAlmostEqual(1.2, globalWindSpeedKmph, places=3)
         self.assertAlmostEqual(measuredDirection - 90, globalWindDirectionDegrees, places=3)
 
         # (Boat and measured wind along the same axis) => (global wind velocity == boat + measured wind velocity)
         globalWindSpeedKmph, globalWindDirectionDegrees = utils.measuredWindToGlobalWind(
-            measuredWindSpeed=5, measuredWindDirectionDegrees=utils.BOAT_FORWARD, boatSpeed=7, headingDegrees=90)
+            measuredWindSpeed=5, measuredWindDirectionDegrees=utils.BOAT_FORWARD, boatSpeed=7, headingDegrees=90,
+            trackMadeGoodDegrees=90)
         self.assertAlmostEqual(12, globalWindSpeedKmph, places=3)
         self.assertAlmostEqual(90, globalWindDirectionDegrees, places=3)
+
+        # (Boat moving backwards, measured wind is opposite of heading) =>
+        # (global wind velocity == boat + measured wind velocity, global wind is same direction as boat movement)
+        globalWindSpeedKmph, globalWindDirectionDegrees = utils.measuredWindToGlobalWind(
+            measuredWindSpeed=5, measuredWindDirectionDegrees=utils.BOAT_BACKWARD, boatSpeed=5,
+            headingDegrees=utils.HEADING_EAST, trackMadeGoodDegrees=utils.HEADING_WEST)
+        self.assertAlmostEqual(10, globalWindSpeedKmph, places=3)
+        self.assertAlmostEqual(utils.HEADING_WEST, globalWindDirectionDegrees, places=3)
 
     def test_measuredWindToGlobalWind_advanced(self):
         # Setup test parameters
         globalWindSpeedKmph, globalWindDirectionDegrees = utils.measuredWindToGlobalWind(
-            measuredWindSpeed=2, measuredWindDirectionDegrees=10, boatSpeed=4, headingDegrees=20)
+            measuredWindSpeed=2, measuredWindDirectionDegrees=10, boatSpeed=4, headingDegrees=20,
+            trackMadeGoodDegrees=20)
         self.assertAlmostEqual(4.7726691528, globalWindSpeedKmph, places=3)
         self.assertAlmostEqual(-4.373700424, globalWindDirectionDegrees, places=3)
+
+        globalWindSpeedKmph, globalWindDirectionDegrees = utils.measuredWindToGlobalWind(
+            measuredWindSpeed=1, measuredWindDirectionDegrees=60, boatSpeed=10, headingDegrees=45,
+            trackMadeGoodDegrees=40)
+        self.assertAlmostEqual(10.914492921832556, globalWindSpeedKmph, places=3)
+        self.assertAlmostEqual(37.78090491698471, globalWindDirectionDegrees, places=3)
 
     def test_globalWindToMeasuredWind_basic(self):
         # (Boat moving + no global wind) => (measured wind speed == boat speed)
         #                                   + (measured wind dir == -boat dir == -utils.BOAT_FORWARD)
         measuredWindSpeedKmph, measuredWindDirectionDegrees = utils.globalWindToMeasuredWind(
             globalWindSpeed=0, globalWindDirectionDegrees=utils.HEADING_EAST, boatSpeed=2,
-            headingDegrees=utils.HEADING_EAST)
+            headingDegrees=utils.HEADING_EAST, trackMadeGoodDegrees=utils.HEADING_EAST)
         self.assertAlmostEqual(2, measuredWindSpeedKmph, places=3)
         self.assertAlmostEqual((utils.BOAT_FORWARD + 180) % 360, measuredWindDirectionDegrees % 360, places=3)
 
@@ -165,7 +181,7 @@ class TestUtilities(unittest.TestCase):
         globalDirection = (2 * utils.HEADING_NORTH + 1 * utils.HEADING_EAST) / 3  # 60 degrees
         measuredWindSpeedKmph, measuredWindDirectionDegrees = utils.globalWindToMeasuredWind(
             globalWindSpeed=10, globalWindDirectionDegrees=globalDirection, boatSpeed=0,
-            headingDegrees=utils.HEADING_EAST)
+            headingDegrees=utils.HEADING_EAST, trackMadeGoodDegrees=utils.HEADING_EAST)
         self.assertAlmostEqual(10, measuredWindSpeedKmph, places=3)
         self.assertAlmostEqual((globalDirection + 90) % 360, measuredWindDirectionDegrees % 360, places=3)
 
@@ -173,30 +189,45 @@ class TestUtilities(unittest.TestCase):
         # (measured wind == global wind - boat speed) + (measured wind dir along boat forward)
         measuredWindSpeedKmph, measuredWindDirectionDegrees = utils.globalWindToMeasuredWind(
             globalWindSpeed=10, globalWindDirectionDegrees=utils.HEADING_SOUTH, boatSpeed=3,
-            headingDegrees=utils.HEADING_SOUTH)
+            headingDegrees=utils.HEADING_SOUTH, trackMadeGoodDegrees=utils.HEADING_SOUTH)
         self.assertAlmostEqual(10 - 3, measuredWindSpeedKmph, places=3)
         self.assertAlmostEqual(utils.BOAT_FORWARD, measuredWindDirectionDegrees % 360, places=3)
+
+        # (Boat moving backwards, global wind in same direction) =>
+        # (measured wind velocity = global wind velocity - boat, measured wind direction = opposite of heading)
+        measuredWindSpeedKmph, measuredWindDirectionDegrees = utils.globalWindToMeasuredWind(
+            globalWindSpeed=10, globalWindDirectionDegrees=utils.HEADING_EAST, boatSpeed=5,
+            headingDegrees=utils.HEADING_WEST, trackMadeGoodDegrees=utils.HEADING_EAST)
+        self.assertAlmostEqual(5, measuredWindSpeedKmph, places=3)
+        self.assertAlmostEqual(-90, measuredWindDirectionDegrees, places=3)
 
     def test_globalWindToMeasuredWind_advanced(self):
         # Setup test parameters
         measuredWindSpeedKmph, measuredWindDirectionDegrees = utils.globalWindToMeasuredWind(
             globalWindSpeed=11, globalWindDirectionDegrees=12, boatSpeed=14,
-            headingDegrees=120)
-
+            headingDegrees=120, trackMadeGoodDegrees=120)
         self.assertAlmostEqual(20.30214851358062, measuredWindSpeedKmph, places=3)
         self.assertAlmostEqual(-58.98273894650611, measuredWindDirectionDegrees, places=3)
+
+        measuredWindSpeedKmph, measuredWindDirectionDegrees = utils.globalWindToMeasuredWind(
+            globalWindSpeed=5, globalWindDirectionDegrees=12, boatSpeed=14,
+            headingDegrees=30, trackMadeGoodDegrees=210)
+        self.assertAlmostEqual(18.818818036245567, measuredWindSpeedKmph, places=3)
+        self.assertAlmostEqual(85.2905326169815, measuredWindDirectionDegrees, places=3)
 
     def test_globalWindToMeasuredWind_and_measuredWindToGlobalWind(self):
         # Setup test parameters
         headingDegrees = 150
+        trackMadeGoodDegrees = 100
         boatSpeedKmph = 14
         globalWindDirectionDegrees = 78
         globalWindSpeedKmph = 13
         measuredWindSpeedKmph, measuredWindDirectionDegrees = utils.globalWindToMeasuredWind(
             globalWindSpeed=globalWindSpeedKmph, globalWindDirectionDegrees=globalWindDirectionDegrees,
-            boatSpeed=boatSpeedKmph, headingDegrees=headingDegrees)
+            boatSpeed=boatSpeedKmph, headingDegrees=headingDegrees, trackMadeGoodDegrees=trackMadeGoodDegrees)
         calculatedGlobalWindSpeedKmph, calculatedGlobalWindDirectionDegrees = utils.measuredWindToGlobalWind(
-            measuredWindSpeedKmph, measuredWindDirectionDegrees, boatSpeedKmph, headingDegrees)
+            measuredWindSpeedKmph, measuredWindDirectionDegrees, boatSpeedKmph, headingDegrees,
+            trackMadeGoodDegrees=trackMadeGoodDegrees)
 
         # Test that we get back the same global wind as we started with
         self.assertAlmostEqual(calculatedGlobalWindSpeedKmph, globalWindSpeedKmph, places=3)
