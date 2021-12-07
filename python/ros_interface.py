@@ -25,7 +25,7 @@ class RosInterface:
         rospy.Subscriber("sensors", Sensors, self.sensorsCallback)
         self.pubMeasuredWind = rospy.Publisher('windSensor', windSensor, queue_size=4)
         self.pubGlobalWind = rospy.Publisher('global_wind', globalWind, queue_size=4)
-        self.pubGPS = rospy.Publisher('GPS', GPS, queue_size=4)  # TODO: add trackMadeGoodDegrees field to GPS
+        self.pubGPS = rospy.Publisher('GPS', GPS, queue_size=4)
         self.initialized = False
         self.data = None
 
@@ -47,7 +47,7 @@ class RosInterface:
         if self.initialized:
             self.translate()
             self.pubGPS.publish(self.gps_lat_decimalDegrees, self.gps_lon_decimalDegrees,
-                                self.gps_headingDegrees, self.gps_speedKmph)
+                                self.gps_headingDegrees, self.gps_trackMadeGoodDegrees, self.gps_speedKmph)
             self.pubMeasuredWind.publish(self.measured_wind_direction, self.measured_wind_speedKmph)
             self.pubGlobalWind.publish(self.get_global_wind())
 
