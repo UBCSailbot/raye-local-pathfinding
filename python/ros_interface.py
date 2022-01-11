@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import numpy as np
 import rospy
 from sailbot_msg.msg import Sensors, windSensor, GPS, globalWind
 from utilities import bearingToHeadingDegrees, measuredWindToGlobalWind
@@ -66,8 +67,10 @@ class RosInterface:
         self.gps_headingDegrees = bearingToHeadingDegrees(self.data.gps_can_true_heading_degrees)
         self.gps_speedKmph = self.data.gps_can_groundspeed_knots * KNOTS_TO_KMPH
 
-        # Wind sensor fields - sensors 1, 2, and 3 -> use sensor 1
-        self.measured_wind_speedKmph = self.data.wind_sensor_1_speed_knots * KNOTS_TO_KMPH
+        # Wind sensor fields - sensors 1, 2, and 3 -> use median for speed, sensor 1 for direction
+        self.measured_wind_speedKmph = np.median([self.data.wind_sensor_1_speed_knots,
+                                                  self.data.wind_sensor_2_speed_knots,
+                                                  self.data.wind_sensor_3_speed_knots]) * KNOTS_TO_KMPH
         self.measured_wind_direction = bearingToHeadingDegrees(self.data.wind_sensor_1_angle_degrees)
 
         # Log inputs fields
