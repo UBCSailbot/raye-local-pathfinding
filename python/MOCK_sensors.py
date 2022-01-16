@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import numpy as np
 import rospy
-import random
 
 import sailbot_msg.msg as msg
 import geopy.distance
@@ -25,7 +24,7 @@ STDEV_GPS = 0.00001
 STDEV_WIND = 0.1
 MAX_BROKEN_WINDSPEED_KNOTS = 30
 MAX_ANGLE_ERROR_DEG = 60
-MAX_WINDSPEED_MULTIPLIER_ERROR = 2  # Should be >= 1
+MAX_WINDSPEED_MULTIPLIER_ERROR = 1.5  # Should be >= 1
 MAX_WINDSPEED_ADDER_ERROR_KNOTS = 5
 MIN_LOOPS_TO_BREAK = 30
 MAX_LOOPS_TO_BREAK = 100
@@ -141,13 +140,16 @@ class MOCK_SensorManager:
     def breakWindSensors(self, data, brokenWindSensorStatus):
         # Corrupts wind sensor data depending on the setting specified by string brokenSensorStatus
 
+        # Initialization code used by all types of brokenWindSensorStatus
+        if(self.brokenSensorData is None):
+            np.random.seed(get_rosparam_or_default_if_invalid('random_seed', default=None, rosparam_type_cast=str))
+            brokenSensorID = np.random.randint(1, high=4)
+
         if (brokenWindSensorStatus == "stuck_at_zero"):
             # This setting chooses a wind sensor which reads an angle of 0 and speed 0
 
             if(self.brokenSensorData is None):
-                randomSeed = get_rosparam_or_default_if_invalid('random_seed', default=None, rosparam_type_cast=str)
-                random.seed(randomSeed)
-                self.brokenSensorData = random.randint(1, 3)
+                self.brokenSensorData = brokenSensorID
 
             self.corrupt_wind_sensor(data, self.brokenSensorData, 0, 0)
 
@@ -158,12 +160,9 @@ class MOCK_SensorManager:
             # This setting chooses a wind sensor which reads a constant random speed and direction
 
             if(self.brokenSensorData is None):
-                randomSeed = get_rosparam_or_default_if_invalid('random_seed', default=None, rosparam_type_cast=str)
-                random.seed(randomSeed)
-
-                self.brokenSensorData = {'brokenSensorID': random.randint(1, 3),
-                                         'brokenSensorAngle_deg': random.random() * 360,
-                                         'brokenSensorSpeed_knots': random.random() * MAX_BROKEN_WINDSPEED_KNOTS}
+                self.brokenSensorData = {'brokenSensorID': brokenSensorID,
+                                         'brokenSensorAngle_deg': np.random.ranf() * 360,
+                                         'brokenSensorSpeed_knots': np.random.ranf() * MAX_BROKEN_WINDSPEED_KNOTS}
 
             self.corrupt_wind_sensor(data, self.brokenSensorData['brokenSensorID'],
                                      self.brokenSensorData['brokenSensorAngle_deg'],
@@ -178,30 +177,32 @@ class MOCK_SensorManager:
         elif(brokenWindSensorStatus == "rand_const_error"):
             # This setting chooses a wind sensor and corrupts its data as follows:
             # the angle published is the original angle plus a random constant theta
-            # the speed published is given by a*(original speed) + b; a and b are random constants
-            # a is within [1 / MAX_WINDSPEED_MULTIPLIER_ERROR, MAX_WINDSPEED_MULTIPLIER_ERROR]
-            # b is within [-MAX_WINDSPEED_ADDER_ERROR_KNOTS, MAX_WINDSPEED_ADDER_ERROR_KNOTS]
+            # the speed published is given by multiplier * (original speed) + adder
+            #   (multiplier and adder are random constants)
+            # multiplier is within [1 / MAX_WINDSPEED_MULTIPLIER_ERROR, MAX_WINDSPEED_MULTIPLIER_ERROR]
+            # adder is within [-MAX_WINDSPEED_ADDER_ERROR_KNOTS, MAX_WINDSPEED_ADDER_ERROR_KNOTS]
             # theta is within [-MAX_ANGLE_ERROR_DEG, MAX_ANGLE_ERROR_DEG]
 
             if(self.brokenSensorData is None):
-                randomSeed = get_rosparam_or_default_if_invalid('random_seed', default=None, rosparam_type_cast=str)
-                random.seed(randomSeed)
 
-                if random.random < 0.5:
-                    multiplier = 1 - random.random() * (1 - 1 / (MAX_WINDSPEED_MULTIPLIER_ERROR))
+                if np.random.randint(1, high=3) < 2:
+                    # multiplier will be between 1/MAX_WINDSPEED_MULTIPLIER_ERROR and 1
+                    multiplier = 1.0 - np.random.ranf() * (1.0 - 1.0 / MAX_WINDSPEED_MULTIPLIER_ERROR)
                 else:
-                    multiplier = 1 + random.random() * (MAX_WINDSPEED_MULTIPLIER_ERROR - 1)
+                    # multiplier will be between 1 and MAX_WINDSPEED_MULTIPLIER_ERROR
+                    multiplier = 1.0 + np.random.ranf() * (MAX_WINDSPEED_MULTIPLIER_ERROR - 1.0)
 
-                self.brokenSensorData = {'brokenSensorID': random.randint(1, 3),
-                                         'theta': (2*random.random() - 1) * MAX_ANGLE_ERROR_DEG,
+                self.brokenSensorData = {'brokenSensorID': brokenSensorID,
+                                         'theta': (2.0 * np.random.ranf() - 1.0) * MAX_ANGLE_ERROR_DEG,
                                          'windspeedMultiplier': multiplier,
-                                         'windspeedAdder': (2*random.random() - 1) * MAX_WINDSPEED_ADDER_ERROR_KNOTS}
+                                         'windspeedAdder': (2.0 * np.random.ranf() - 1.0)
+                                         * MAX_WINDSPEED_ADDER_ERROR_KNOTS}
 
             actualAngle, actualSpeed = self.get_wind_measurement(data, self.brokenSensorData['brokenSensorID'])
 
             newAngle = actualAngle + self.brokenSensorData['theta']
-            newSpeed = max(0, self.brokenSensorData['windspeedMultiplier'] * actualSpeed
-                           + self.brokenSensorData['windspeedAdder'])
+            newSpeed = np.fabs(self.brokenSensorData['windspeedMultiplier'] * actualSpeed
+                               + self.brokenSensorData['windspeedAdder'])
 
             # Bound the newAngle to [-180, 360) to improve interpretability
             if(newAngle < -180):
@@ -223,11 +224,9 @@ class MOCK_SensorManager:
             # This will simulate the sensor ceasing to update its measurements.
 
             if(self.brokenSensorData is None):
-                randomSeed = get_rosparam_or_default_if_invalid('random_seed', default=None, rosparam_type_cast=str)
-                random.seed(randomSeed)
-
-                self.brokenSensorData = {'brokenSensorID': random.randint(1, 3),
-                                         'loopsUntilBroken': random.randint(MIN_LOOPS_TO_BREAK, MAX_LOOPS_TO_BREAK),
+                self.brokenSensorData = {'brokenSensorID': brokenSensorID,
+                                         'loopsUntilBroken': np.random.randint(MIN_LOOPS_TO_BREAK,
+                                                                               high=MAX_LOOPS_TO_BREAK),
                                          'loopsSoFar': 0, 'lastAngle': None, 'lastSpeed': None}
 
             if self.brokenSensorData['loopsSoFar'] <= self.brokenSensorData['loopsUntilBroken']:
@@ -246,6 +245,10 @@ class MOCK_SensorManager:
                                        + "stopped updating measurements. Publishing corrupt data:\n"
                                        + "angle stuck at {} degrees, ".format(self.brokenSensorData['lastAngle'])
                                        + "speed stuck at {} knots".format(self.brokenSensorData['lastSpeed']))
+
+        else:
+            rospy.logwarn_throttle(1.5, "Unknown 'broken_wind_sensors' argument: \"{}\".".format(brokenWindSensorStatus)
+                                   + " Wind sensor data unchanged.")
 
     def corrupt_wind_sensor(self, data, brokenSensorNumber, newAngle, newSpeed):
         # Helper function for corrupting wind data.
