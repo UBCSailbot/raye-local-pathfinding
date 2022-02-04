@@ -2,6 +2,7 @@
 import wandb
 import rospy
 import os
+import numpy as np
 import time
 from log_closest_obstacle import LogClosestObstacle
 from path_storer import PathStorer
@@ -21,9 +22,15 @@ SCREENSHOT = False
 LOG_SENSORS = True
 
 
-# Globals for subscribring
+# Globals for subscribing
 sensor_data = None
 targetGlobalLatLon = None
+
+
+# Globals for wind sensor filtering
+WIND_SPEED_FIELDS = ['wind_sensor_{}_speed_knots'.format(i) for i in range(1, 4)]
+WIND_DIRECTION_FIELDS = ['wind_sensor_{}_angle_degrees'.format(i) for i in range(1, 4)]
+WIND_SPEED_THRESHOLD = 2.0  # wind direction is set to 0 if its speed is below the threshold
 
 
 def sensorsCallback(data):
@@ -34,6 +41,76 @@ def sensorsCallback(data):
 def nextGlobalWaypointCallback(newTargetGlobalLatLon):
     global targetGlobalLatLon
     targetGlobalLatLon = newTargetGlobalLatLon
+
+
+def windSensorFilters(sensor_data_dict):
+    """Returns a dictionary with wind sensor data filtered in various ways.
+
+    Note:
+        Handles angles wrapping around; for example, average(359, 1) is ~0.0 (float equality)
+
+    Statistics:
+        Standard deviation
+
+    Filters:
+        General: '-' at beginning of the line means not implemented
+            Mean (for angle, use vectorAverage() with magnitudes being all 1's)
+            Vector average
+            -Time average
+            -Extrapolation (linear, polynomial, cubic spline)
+            -Convolution filter?
+        Angle-specific:
+            Threshold
+        Speed-specific:
+            Median
+
+    Args:
+        sensor_data_dict (dict): { <sensor field name>: <sensor field value> }
+    """
+    filtered_values_dict = {}
+
+    wind_speeds = [sensor_data_dict[field] for field in WIND_SPEED_FIELDS]
+    filtered_values_dict['wind_sensor_median_speed_knots'] = np.median(wind_speeds)
+    filtered_values_dict['wind_sensor_mean_speed_knots'] = np.mean(wind_speeds)
+    filtered_values_dict['wind_sensor_std_speed_knots'] = np.std(wind_speeds)
+
+    wind_directions = [sensor_data_dict[field] for field in WIND_DIRECTION_FIELDS]
+    average_angle = vectorAverage(np.ones(len(wind_speeds)), wind_directions)[1]
+    filtered_values_dict['wind_sensor_mean_threshold_angle_degrees'] = average_angle \
+        if filtered_values_dict['wind_sensor_mean_speed_knots'] >= WIND_SPEED_THRESHOLD else 0.0
+    filtered_values_dict['wind_sensor_std_angle_degrees'] = np.std(wind_directions)
+
+    vector_speed, vector_angle = vectorAverage(wind_speeds, wind_directions)
+    filtered_values_dict['wind_sensor_vector_speed_knots'] = vector_speed
+    filtered_values_dict['wind_sensor_vector_threshold_angle_degrees'] = vector_angle \
+        if filtered_values_dict['wind_sensor_vector_speed_knots'] >= WIND_SPEED_THRESHOLD else 0.0
+
+    return filtered_values_dict
+
+
+def vectorAverage(magnitudes, angles):
+    """Finds the average vector.
+
+    Args:
+        magnitudes (list): The list of vector magnitude floats.
+        angles (list): The list of vector angle floats corresponding to the magnitudes.
+
+    Returns:
+        tuple: (magnitude, angle), where magnitude and angles are floats and angle is in [0, 360).
+    """
+    y_components = []
+    x_components = []
+    for i in range(len(magnitudes)):
+        magnitude = magnitudes[i]
+        angle = np.deg2rad(angles[i])
+        y_components.append(magnitude * np.sin(angle))
+        x_components.append(magnitude * np.cos(angle))
+
+    y_component = np.average(y_components)
+    x_component = np.average(x_components)
+    angle_180 = np.rad2deg(np.arctan2(y_component, x_component))  # angle_180 in [-180, 180]
+    angle_360 = angle_180 if angle_180 >= 0 or np.isclose(angle_180, 0) else 360 + angle_180  # angle_360 in [0, 360)
+    return np.linalg.norm([y_component, x_component]), angle_360
 
 
 if __name__ == '__main__':
@@ -97,6 +174,7 @@ if __name__ == '__main__':
                                       if not f.startswith('_') and not callable(getattr(sensor_data, f))]
                 sensor_data_dict = {f: getattr(sensor_data, f) for f in sensor_data_fields}
                 new_log.update(sensor_data_dict)
+                new_log.update(windSensorFilters(sensor_data_dict))
 
             # Next, previous, and last local waypoint
             currentPath = path_storer.paths[-1]
