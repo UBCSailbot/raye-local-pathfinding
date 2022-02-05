@@ -43,8 +43,8 @@ def nextGlobalWaypointCallback(newTargetGlobalLatLon):
     targetGlobalLatLon = newTargetGlobalLatLon
 
 
-def windSensorFilters(sensor_data_dict):
-    """Returns a dictionary with wind sensor data filtered in various ways.
+def sensorFilters(sensor_data_dict):
+    """Returns a dictionary with sensor data filtered in various ways.
 
     Note:
         Handles angles wrapping around; for example, average(359, 1) is ~0.0 (float equality)
@@ -59,9 +59,9 @@ def windSensorFilters(sensor_data_dict):
             -Time average
             -Extrapolation (linear, polynomial, cubic spline)
             -Convolution filter?
-        Angle-specific:
+        Wind angle-specific:
             Threshold
-        Speed-specific:
+        Wind speed-specific:
             Median
 
     Args:
@@ -69,17 +69,22 @@ def windSensorFilters(sensor_data_dict):
     """
     filtered_values_dict = {}
 
+    # wind speed filters/stats
     wind_speeds = [sensor_data_dict[field] for field in WIND_SPEED_FIELDS]
     filtered_values_dict['wind_sensor_median_speed_knots'] = np.median(wind_speeds)
     filtered_values_dict['wind_sensor_mean_speed_knots'] = np.mean(wind_speeds)
     filtered_values_dict['wind_sensor_std_speed_knots'] = np.std(wind_speeds)
 
+    # wind direction filters/stats
+    wind_speeds = [sensor_data_dict[field] for field in WIND_SPEED_FIELDS]
     wind_directions = [sensor_data_dict[field] for field in WIND_DIRECTION_FIELDS]
-    average_angle = vectorAverage(np.ones(len(wind_speeds)), wind_directions)[1]
+    average_angle = vectorAverage(np.ones(len(wind_directions)), wind_directions)[1]
     filtered_values_dict['wind_sensor_mean_threshold_angle_degrees'] = average_angle \
         if filtered_values_dict['wind_sensor_mean_speed_knots'] >= WIND_SPEED_THRESHOLD else 0.0
     filtered_values_dict['wind_sensor_std_angle_degrees'] = np.std(wind_directions)
 
+    # wind vector average filters
+    wind_speeds = [sensor_data_dict[field] for field in WIND_SPEED_FIELDS]
     vector_speed, vector_angle = vectorAverage(wind_speeds, wind_directions)
     filtered_values_dict['wind_sensor_vector_speed_knots'] = vector_speed
     filtered_values_dict['wind_sensor_vector_threshold_angle_degrees'] = vector_angle \
@@ -98,6 +103,7 @@ def vectorAverage(magnitudes, angles):
     Returns:
         tuple: (magnitude, angle), where magnitude and angles are floats and angle is in [0, 360).
     """
+    # Convert from magnitude and direction to components representation of the vectors
     y_components = []
     x_components = []
     for i in range(len(magnitudes)):
@@ -106,6 +112,7 @@ def vectorAverage(magnitudes, angles):
         y_components.append(magnitude * np.sin(angle))
         x_components.append(magnitude * np.cos(angle))
 
+    # Compute magnitude and direction of average vector
     y_component = np.average(y_components)
     x_component = np.average(x_components)
     angle_180 = np.rad2deg(np.arctan2(y_component, x_component))  # angle_180 in [-180, 180]
@@ -174,7 +181,7 @@ if __name__ == '__main__':
                                       if not f.startswith('_') and not callable(getattr(sensor_data, f))]
                 sensor_data_dict = {f: getattr(sensor_data, f) for f in sensor_data_fields}
                 new_log.update(sensor_data_dict)
-                new_log.update(windSensorFilters(sensor_data_dict))
+                new_log.update(sensorFilters(sensor_data_dict))
 
             # Next, previous, and last local waypoint
             currentPath = path_storer.paths[-1]
