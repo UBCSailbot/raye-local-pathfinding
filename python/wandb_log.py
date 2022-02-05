@@ -76,7 +76,6 @@ def sensorFilters(sensor_data_dict):
     filtered_values_dict['wind_sensor_std_speed_knots'] = np.std(wind_speeds)
 
     # wind direction filters/stats
-    wind_speeds = [sensor_data_dict[field] for field in WIND_SPEED_FIELDS]
     wind_directions = [sensor_data_dict[field] for field in WIND_DIRECTION_FIELDS]
     average_angle = vectorAverage(np.ones(len(wind_directions)), wind_directions)[1]
     filtered_values_dict['wind_sensor_mean_threshold_angle_degrees'] = average_angle \
@@ -84,7 +83,6 @@ def sensorFilters(sensor_data_dict):
     filtered_values_dict['wind_sensor_std_angle_degrees'] = np.std(wind_directions)
 
     # wind vector average filters
-    wind_speeds = [sensor_data_dict[field] for field in WIND_SPEED_FIELDS]
     vector_speed, vector_angle = vectorAverage(wind_speeds, wind_directions)
     filtered_values_dict['wind_sensor_vector_speed_knots'] = vector_speed
     filtered_values_dict['wind_sensor_vector_threshold_angle_degrees'] = vector_angle \
