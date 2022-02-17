@@ -120,7 +120,7 @@ def vectorAverage(magnitudes, angles):
 
 if __name__ == '__main__':
     os.environ["WANDB_SILENT"] = "true"  # Avoid small wandb bug
-    wandb.init(entity='sailbot', project='sailbot-default-project')
+    wandb.init(entity='sailbot', project='dry-land-testing')
 
     # Subscribe to essential pathfinding info
     sailbot = sbot.Sailbot(nodeName='wandb_log')
