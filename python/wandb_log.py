@@ -38,7 +38,7 @@ def nextGlobalWaypointCallback(newTargetGlobalLatLon):
 
 if __name__ == '__main__':
     os.environ["WANDB_SILENT"] = "true"  # Avoid small wandb bug
-    wandb.init(entity='ubcsailbot', project='sailbot-default-project')
+    wandb.init(entity='sailbot', project='sailbot-default-project')
 
     # Subscribe to essential pathfinding info
     sailbot = sbot.Sailbot(nodeName='wandb_log')
