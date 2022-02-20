@@ -27,10 +27,22 @@ sensor_data = None
 targetGlobalLatLon = None
 
 
-# Globals for wind sensor filtering
+# Constants for wind sensor filtering
 WIND_SPEED_FIELDS = ['wind_sensor_{}_speed_knots'.format(i) for i in range(1, 4)]
 WIND_DIRECTION_FIELDS = ['wind_sensor_{}_angle_degrees'.format(i) for i in range(1, 4)]
 WIND_SPEED_THRESHOLD = 2.0  # wind direction is set to 0 if its speed is below the threshold
+
+# Globals for wind sensor filtering
+WIND_SPEED_PAST_VALS = []
+WIND_DIR_PAST_VALS = []
+PAST_VALS_POS = 0
+PAST_VALS_LEN = 10
+WIND_SPEED_PAST_EWMA1 = None
+WIND_DIR_PAST_EWMA1 = None
+WIND_SPEED_PAST_EWMA2 = None
+WIND_DIR_PAST_EWMA2 = None
+EWMA1_WEIGHT = 0.2  # float in [0, 1]
+EWMA2_WEIGHT = 0.2  # float in [0, 1]
 
 
 def sensorsCallback(data):
@@ -56,7 +68,8 @@ def sensorFilters(sensor_data_dict):
         General: '-' at beginning of the line means not implemented
             Mean (for angle, use vectorAverage() with magnitudes being all 1's)
             Vector average
-            -Time average
+            Simple moving average
+            Exponentially weight moving average
             -Extrapolation (linear, polynomial, cubic spline)
             -Convolution filter?
         Wind angle-specific:
@@ -88,6 +101,27 @@ def sensorFilters(sensor_data_dict):
     filtered_values_dict['wind_sensor_vector_threshold_angle_degrees'] = vector_angle \
         if filtered_values_dict['wind_sensor_vector_speed_knots'] >= WIND_SPEED_THRESHOLD else 0.0
 
+    # wind SMA filters
+    global PAST_VALS_POS  # so that it can be updated in this function
+    filtered_values_dict['wind_sensor_sma_speed_knots'] = \
+        simpleMovingAverage(vector_speed, WIND_SPEED_PAST_VALS, PAST_VALS_POS, PAST_VALS_LEN)
+    filtered_values_dict['wind_sensor_sma_threshold_angle_degrees'] = \
+        simpleMovingAverage(vector_angle, WIND_DIR_PAST_VALS, PAST_VALS_POS, PAST_VALS_LEN) \
+        if filtered_values_dict['wind_sensor_sma_speed_knots'] >= WIND_SPEED_THRESHOLD else 0.0
+    PAST_VALS_POS = (PAST_VALS_POS + 1) % PAST_VALS_LEN
+
+    # wind EWMA filters
+    filtered_values_dict['wind_sensor_ewma1_speed_knots'] = \
+        exponentiallyWeightedMovingAverage(vector_speed, WIND_SPEED_PAST_EWMA1, EWMA1_WEIGHT)
+    filtered_values_dict['wind_sensor_ewma1_threshold_angle_degrees'] = \
+        exponentiallyWeightedMovingAverage(vector_angle, WIND_DIR_PAST_EWMA1, EWMA1_WEIGHT) \
+        if filtered_values_dict['wind_sensor_ewma1_speed_knots'] >= WIND_SPEED_THRESHOLD else 0.0
+    filtered_values_dict['wind_sensor_ewma2_speed_knots'] = \
+        exponentiallyWeightedMovingAverage(vector_speed, WIND_SPEED_PAST_EWMA2, EWMA2_WEIGHT)
+    filtered_values_dict['wind_sensor_ewma2_threshold_angle_degrees'] = \
+        exponentiallyWeightedMovingAverage(vector_angle, WIND_DIR_PAST_EWMA2, EWMA2_WEIGHT) \
+        if filtered_values_dict['wind_sensor_ewma2_speed_knots'] >= WIND_SPEED_THRESHOLD else 0.0
+
     return filtered_values_dict
 
 
@@ -116,6 +150,45 @@ def vectorAverage(magnitudes, angles):
     angle_180 = np.rad2deg(np.arctan2(y_component, x_component))  # angle_180 in [-180, 180]
     angle_360 = angle_180 if angle_180 >= 0 or np.isclose(angle_180, 0) else 360 + angle_180  # angle_360 in [0, 360)
     return np.linalg.norm([y_component, x_component]), angle_360
+
+
+def simpleMovingAverage(current_val, past_vals, past_vals_ind, past_vals_len):
+    """Calculate the SMA from the current value and past values.
+
+    Args:
+        current_val (float): Current value.
+        past_vals (list): Past values.
+        past_vals_ind (int): Index of oldest entry in past_vals.
+        past_vals_len (int): Maximum length of past_vals.
+
+    Returns:
+        float: The simple moving average.
+    """
+    if len(past_vals) < past_vals_len:
+        past_vals.append(current_val)
+    else:
+        past_vals[past_vals_ind] = current_val
+
+    return np.average(past_vals)
+
+
+def exponentiallyWeightedMovingAverage(current_val, past_ewma, ewma_weight):
+    """Calculate the EWMA from the current value and past EWMA.
+
+    Args:
+        current_val (float): Current value.
+        past_ewma (float): Past exponentially weighted average.
+        ewma_weight (float): Weight that current value makes up.
+
+    Returns:
+        float: The exponentially weighted moving average.
+    """
+    if past_ewma is None:
+        past_ewma = current_val
+    else:
+        past_ewma = ewma_weight * current_val + (1 - ewma_weight) * past_ewma
+
+    return past_ewma
 
 
 if __name__ == '__main__':
