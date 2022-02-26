@@ -8,6 +8,7 @@ from utilities import bearingToHeadingDegrees, measuredWindToGlobalWind
 # Constants
 CHECK_PERIOD_SECONDS = 0.1  # How often fields are updated
 KNOTS_TO_KMPH = 1.852
+LOW_WIND_THRESHOLD_KMPH = 5
 
 """
 Conversion Notes:
@@ -87,7 +88,17 @@ class RosInterface:
                 measuredWindDirectionDegrees=self.measured_wind_direction,
                 boatSpeed=self.gps_speedKmph,
                 headingDegrees=self.gps_headingDegrees)
-        return globalWind(directionDegrees=direction, speedKmph=speed)
+
+        if(speed < LOW_WIND_THRESHOLD_KMPH):
+            rospy.logwarn_throttle(2, "Low wind conditions. Current Global Wind: {}km/h.".format(speed) +
+                                   "Low Wind Threshold: {}km/h".format(LOW_WIND_THRESHOLD_KMPH))
+            lowWind = True
+        else:
+            rospy.logwarn_throttle(2, "NOT Low wind conditions. Current Global Wind: {}km/h.".format(speed) +
+                                   "Low Wind Threshold: {}km/h".format(LOW_WIND_THRESHOLD_KMPH))
+            lowWind = False
+
+        return globalWind(directionDegrees=direction, speedKmph=speed, lowWindConditions=lowWind)
 
 
 if __name__ == "__main__":
