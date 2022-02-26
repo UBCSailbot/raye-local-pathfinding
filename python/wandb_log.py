@@ -28,21 +28,16 @@ targetGlobalLatLon = None
 
 
 # Constants for wind sensor filtering
-WIND_SPEED_FIELDS = ['wind_sensor_{}_speed_knots'.format(i) for i in range(1, 4)]
-WIND_DIRECTION_FIELDS = ['wind_sensor_{}_angle_degrees'.format(i) for i in range(1, 4)]
-WIND_SPEED_THRESHOLD = 2.0  # wind direction is set to 0 if its speed is below the threshold
+WIND_ACTIVE_SENSORS = range(1, 4)
+WIND_SPEED_FIELDS = ['wind_sensor_{}_speed_knots'.format(i) for i in WIND_ACTIVE_SENSORS]
+WIND_DIRECTION_FIELDS = ['wind_sensor_{}_angle_degrees'.format(i) for i in WIND_ACTIVE_SENSORS]
+WIND_SPEED_THRESHOLD = 0.5  # wind direction is set to 0 if its speed is below the threshold
+PI_DEG = 180.0
 
-# Globals for wind sensor filtering
-WIND_SPEED_PAST_VALS = []
-WIND_DIR_PAST_VALS = []
-PAST_VALS_POS = 0
-PAST_VALS_LEN = 10
-WIND_SPEED_PAST_EWMA1 = None
-WIND_DIR_PAST_EWMA1 = None
-WIND_SPEED_PAST_EWMA2 = None
-WIND_DIR_PAST_EWMA2 = None
-EWMA1_WEIGHT = 0.2  # float in [0, 1]
-EWMA2_WEIGHT = 0.2  # float in [0, 1]
+# Globals for wind EWMA filtering
+WIND_EWMA_WEIGHTS = [w for w in [0.01, 0.02, 0.05, 0.1, 0.2, 0.35, 0.5]]  # floats in [0, 1]
+WIND_SPEED_PAST_EWMAS = [None for _ in range(len(WIND_EWMA_WEIGHTS))]
+WIND_DIR_PAST_EWMAS = [None for _ in range(len(WIND_EWMA_WEIGHTS))]
 
 
 def sensorsCallback(data):
@@ -58,137 +53,122 @@ def nextGlobalWaypointCallback(newTargetGlobalLatLon):
 def sensorFilters(sensor_data_dict):
     """Returns a dictionary with sensor data filtered in various ways.
 
-    Note:
-        Handles angles wrapping around; for example, average(359, 1) is ~0.0 (float equality)
-
     Statistics:
-        Standard deviation
+        Wind speed:
+            Standard deviation
+        Wind direction
+            Standard deviation of circular data: see angleStats()
 
     Filters:
-        General: '-' at beginning of the line means not implemented
-            Mean (for angle, use vectorAverage() with magnitudes being all 1's)
-            Vector average
-            Simple moving average
-            Exponentially weight moving average
-            -Extrapolation (linear, polynomial, cubic spline)
-            -Convolution filter?
-        Wind angle-specific:
-            Threshold
-        Wind speed-specific:
-            Median
+        Wind speed:
+            Real time: median
+            Moving average: EWMA of different weights
+        Wind direction:
+            Real time: median threshold: see angleStats()
+            Moving average: EWMA (convert to continuous values using mitsutaVals()) of different weights threshold
 
     Args:
         sensor_data_dict (dict): { <sensor field name>: <sensor field value> }
     """
     filtered_values_dict = {}
 
-    # wind speed filters/stats
+    # wind speed stats and real time filters
     wind_speeds = [sensor_data_dict[field] for field in WIND_SPEED_FIELDS]
-    filtered_values_dict['wind_sensor_median_speed_knots'] = np.median(wind_speeds)
-    filtered_values_dict['wind_sensor_mean_speed_knots'] = np.mean(wind_speeds)
-    filtered_values_dict['wind_sensor_std_speed_knots'] = np.std(wind_speeds)
+    filtered_values_dict['wind_sensor_std_speed'] = np.std(wind_speeds)
+    wind_speed_median = np.median(wind_speeds)
+    filtered_values_dict['wind_sensor_median_speed_knots'] = wind_speed_median
 
-    # wind direction filters/stats
+    # wind direction stats and real time filters
     wind_directions = [sensor_data_dict[field] for field in WIND_DIRECTION_FIELDS]
-    average_angle = vectorAverage(np.ones(len(wind_directions)), wind_directions)[1]
-    filtered_values_dict['wind_sensor_mean_threshold_angle_degrees'] = average_angle \
-        if filtered_values_dict['wind_sensor_mean_speed_knots'] >= WIND_SPEED_THRESHOLD else 0.0
-    filtered_values_dict['wind_sensor_std_angle_degrees'] = np.std(wind_directions)
+    wind_angle_mean, wind_angle_std = angleStats(wind_directions)
+    filtered_values_dict['wind_sensor_std_angle'] = wind_angle_std
+    filtered_values_dict['wind_sensor_mean_threshold_angle_degrees'] = wind_angle_mean \
+        if wind_speed_median >= WIND_SPEED_THRESHOLD else 0.0
 
-    # wind vector average filters
-    vector_speed, vector_angle = vectorAverage(wind_speeds, wind_directions)
-    filtered_values_dict['wind_sensor_vector_speed_knots'] = vector_speed
-    filtered_values_dict['wind_sensor_vector_threshold_angle_degrees'] = vector_angle \
-        if filtered_values_dict['wind_sensor_vector_speed_knots'] >= WIND_SPEED_THRESHOLD else 0.0
+    # wind moving average filters
+    for i in range(len(WIND_EWMA_WEIGHTS)):
+        WIND_SPEED_PAST_EWMAS[i] = exponentiallyWeightedMovingAverage(wind_speed_median, i, is_angle=False)
+        filtered_values_dict['wind_sensor_ewma{}_speed_knots'.format(i)] = WIND_SPEED_PAST_EWMAS[i]
 
-    # wind SMA filters
-    global PAST_VALS_POS  # so that it can be updated in this function
-    filtered_values_dict['wind_sensor_sma_speed_knots'] = \
-        simpleMovingAverage(vector_speed, WIND_SPEED_PAST_VALS, PAST_VALS_POS, PAST_VALS_LEN)
-    filtered_values_dict['wind_sensor_sma_threshold_angle_degrees'] = \
-        simpleMovingAverage(vector_angle, WIND_DIR_PAST_VALS, PAST_VALS_POS, PAST_VALS_LEN) \
-        if filtered_values_dict['wind_sensor_sma_speed_knots'] >= WIND_SPEED_THRESHOLD else 0.0
-    PAST_VALS_POS = (PAST_VALS_POS + 1) % PAST_VALS_LEN
-
-    # wind EWMA filters
-    filtered_values_dict['wind_sensor_ewma1_speed_knots'] = \
-        exponentiallyWeightedMovingAverage(vector_speed, WIND_SPEED_PAST_EWMA1, EWMA1_WEIGHT)
-    filtered_values_dict['wind_sensor_ewma1_threshold_angle_degrees'] = \
-        exponentiallyWeightedMovingAverage(vector_angle, WIND_DIR_PAST_EWMA1, EWMA1_WEIGHT) \
-        if filtered_values_dict['wind_sensor_ewma1_speed_knots'] >= WIND_SPEED_THRESHOLD else 0.0
-    filtered_values_dict['wind_sensor_ewma2_speed_knots'] = \
-        exponentiallyWeightedMovingAverage(vector_speed, WIND_SPEED_PAST_EWMA2, EWMA2_WEIGHT)
-    filtered_values_dict['wind_sensor_ewma2_threshold_angle_degrees'] = \
-        exponentiallyWeightedMovingAverage(vector_angle, WIND_DIR_PAST_EWMA2, EWMA2_WEIGHT) \
-        if filtered_values_dict['wind_sensor_ewma2_speed_knots'] >= WIND_SPEED_THRESHOLD else 0.0
+        WIND_DIR_PAST_EWMAS[i] = exponentiallyWeightedMovingAverage(wind_angle_mean, i, is_angle=True)
+        filtered_values_dict['wind_sensor_ewma{}_threshold_angle_degrees'.format(i)] = WIND_DIR_PAST_EWMAS[i] \
+            if WIND_SPEED_PAST_EWMAS[i] >= WIND_SPEED_THRESHOLD else 0.0
 
     return filtered_values_dict
 
 
-def vectorAverage(magnitudes, angles):
-    """Finds the average vector.
+def angleStats(angles):
+    """Computes the mean and standard deviation of angles using vector addition.
+    Standard deviation of circular data: https://stackoverflow.com/a/13936342
 
     Args:
-        magnitudes (list): The list of vector magnitude floats.
-        angles (list): The list of vector angle floats corresponding to the magnitudes.
-
+        angles (list): The list of floats in [0, 360].
     Returns:
-        tuple: (magnitude, angle), where magnitude and angles are floats and angle is in [0, 360).
+        tuple: (mean, std), where mean and std are floats.
     """
-    # Convert from magnitude and direction to components representation of the vectors
+    # Compute components of the average vector
     y_components = []
     x_components = []
-    for i in range(len(magnitudes)):
-        magnitude = magnitudes[i]
+    for i in range(len(angles)):
         angle = np.deg2rad(angles[i])
-        y_components.append(magnitude * np.sin(angle))
-        x_components.append(magnitude * np.cos(angle))
-
-    # Compute magnitude and direction of average vector
+        y_components.append(np.sin(angle))
+        x_components.append(np.cos(angle))
     y_component = np.average(y_components)
     x_component = np.average(x_components)
-    angle_180 = np.rad2deg(np.arctan2(y_component, x_component))  # angle_180 in [-180, 180]
-    angle_360 = angle_180 if angle_180 >= 0 or np.isclose(angle_180, 0) else 360 + angle_180  # angle_360 in [0, 360)
-    return np.linalg.norm([y_component, x_component]), angle_360
+
+    mean_180 = np.rad2deg(np.arctan2(y_component, x_component))  # mean_180 in [-180, 180]
+    mean_360 = mean_180 if mean_180 >= 0 or np.isclose(mean_180, 0) else 360 + mean_180  # mean_360 in [0, 360)
+    std = np.sqrt(-np.log(y_component**2 + x_component**2))
+    return mean_360, std
 
 
-def simpleMovingAverage(current_val, past_vals, past_vals_ind, past_vals_len):
-    """Calculate the SMA from the current value and past values.
-
-    Args:
-        current_val (float): Current value.
-        past_vals (list): Past values.
-        past_vals_ind (int): Index of oldest entry in past_vals.
-        past_vals_len (int): Maximum length of past_vals.
-
-    Returns:
-        float: The simple moving average.
-    """
-    if len(past_vals) < past_vals_len:
-        past_vals.append(current_val)
-    else:
-        past_vals[past_vals_ind] = current_val
-
-    return np.average(past_vals)
-
-
-def exponentiallyWeightedMovingAverage(current_val, past_ewma, ewma_weight):
-    """Calculate the EWMA from the current value and past EWMA.
+def exponentiallyWeightedMovingAverage(current_val, ewma_ind, is_angle):
+    """Calculate the EWMA from the current value and past EWMA:
+    https://hackaday.com/2019/09/06/sensor-filters-for-coders/.
 
     Args:
         current_val (float): Current value.
-        past_ewma (float): Past exponentially weighted average.
-        ewma_weight (float): Weight that current value makes up.
+        ewma_ind (int): Index of the past EWMA and weight of current_val in
+            WIND_SPEED_PAST_EWMAS and WIND_EWMA_WEIGHTS, respectively.
+        is_angle (bool): True when getting the field is an angle, false otherwise.
 
     Returns:
         float: The exponentially weighted moving average.
     """
+    past_ewma = WIND_DIR_PAST_EWMAS[ewma_ind] if is_angle else WIND_SPEED_PAST_EWMAS[ewma_ind]
     if past_ewma is None:
-        past_ewma = current_val
-    else:
-        past_ewma = ewma_weight * current_val + (1 - ewma_weight) * past_ewma
+        return current_val
 
-    return past_ewma
+    weight = WIND_EWMA_WEIGHTS[ewma_ind]
+    if is_angle:
+        _, current_val = mitsutaVals([past_ewma, current_val])
+    return weight * current_val + (1 - weight) * past_ewma
+
+
+def mitsutaVals(angles):
+    """Make angle readings continuous following
+    https://journals.ametsoc.org/view/journals/apme/25/10/1520-0450_1986_025_1387_eospeo_2_0_co_2.xml
+    following section 2.d. Assumes the time scale is small enough so that the direction to the next reading is < 180.
+    Once it is continuous, the mean and standard deviation can be computed using conventional methods.
+
+    Args:
+        angles (list): List of floats in [0, 360].
+
+    Returns:
+        list: angles such that its values are sequentially continuous.
+            Example of readings crossing the discontinuity point:
+                mitsutaVals([359.0, 1.0]) = [359, 361.0]
+                mitsutaVals([1.0, 359.0]) = [1.0, -1.0]
+    """
+    vals = [angles[0]]
+    for i in range(1, len(angles)):
+        delta = angles[i] - angles[i-1]
+        if delta < -PI_DEG:
+            delta += 2 * PI_DEG
+        elif delta > PI_DEG:
+            delta -= 2 * PI_DEG
+        vals.append(vals[i-1] + delta)
+    return vals
 
 
 if __name__ == '__main__':
