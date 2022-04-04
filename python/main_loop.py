@@ -143,8 +143,6 @@ if __name__ == '__main__':
         isGlobalWaypointReached = (localPath.waypointReached(state.position, previousGlobalWaypoint, nextGlobalWaypoint,
                                                              True) or isLastWaypointReached)
 
-        rospy.logwarn("LWM: {}. Number of Loops: {}.".format(lowWindConditions, createNewLocalPathAttempts))
-
         if(lowWindConditions):
             # ensure we havent updated local path recently before permitting
             lowWindPermitsUpdate = (createNewLocalPathAttempts >= LOW_WIND_LOOPS_PER_PATH_UPDATE)
