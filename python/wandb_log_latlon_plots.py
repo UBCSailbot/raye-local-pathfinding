@@ -13,8 +13,7 @@ import sailbot_msg.msg as msg
 UPDATE_TIME_SECONDS = 30.0
 NUM_CLOSEST_AIS_LOG = 10
 
-# Globals for subscribring
-sensor_data = None
+# Globals for subscribing
 targetGlobalLatLon = None
 
 
@@ -31,9 +30,6 @@ if __name__ == '__main__':
     sailbot.waitForFirstSensorDataAndGlobalPath()
 
     # Setup subscribers
-    last_scatter_plots_time = None
-    last_screenshot_time = None
-    screenshot_num = 1
     path_storer = PathStorer(create_ros_node=False)
     sailbot_gps_data = SailbotGPSData(create_ros_node=False)
     rate = rospy.Rate(UPDATE_TIME_SECONDS)
@@ -58,13 +54,15 @@ if __name__ == '__main__':
         if validDataReady:
             run = wandb.init(entity='sailbot', dir=dir_path, project=project_name)
 
-            # parameters
-            log = {
+            # Log parameters
+            params = {
                 'updatePeriodSeconds': UPDATE_TIME_SECONDS,
                 'maxShipsPlotted': NUM_CLOSEST_AIS_LOG
             }
+            wandb.config.update(params)
 
             current_latlon = [sailbot_gps_data.lon, sailbot_gps_data.lat]
+            log = {}
 
             # GPS coordinates scatter plot
             table = wandb.Table(data=[current_latlon], columns=['Lon', 'Lat'])
