@@ -38,7 +38,7 @@
 
     <!-- Wandb logger -->
     <arg name="wandb" default="false" />
-    <node pkg="local_pathfinding" type="wandb_log.py" name="wandb_log" if="$(arg wandb)" output="screen" />
+    <node pkg="local_pathfinding" type="wandb_log_latlon_plots.py" name="log_latlon_plots" if="$(arg wandb)" output="screen" />
 
     <!-- Main loop and interface -->
     <node pkg="local_pathfinding" type="main_loop.py" name="main_loop" output="$(arg main_loop_output)"/>
