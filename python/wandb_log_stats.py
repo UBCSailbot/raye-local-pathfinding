@@ -15,11 +15,25 @@ UPDATE_TIME_SECONDS = 1.0
 
 # Globals for subscribing
 sensor_data = None
+actuation_angle_data = None
 
 
 def sensorsCallback(data):
     global sensor_data
     sensor_data = data
+
+
+def actuationAngleCallback(data):
+    global actuation_angle_data
+    actuation_angle_data = data
+
+
+def getDictFromMsg(section_name, data):
+    data_fields = [f for f in dir(data) if not f.startswith('_') and
+                   not callable(getattr(data, f))]
+    data_dict = {section_name + '/' + f: getattr(data, f)
+                 for f in data_fields}
+    return data_dict
 
 
 if __name__ == '__main__':
@@ -28,9 +42,10 @@ if __name__ == '__main__':
     # Subscribe to essential pathfinding info
     sailbot = sbot.Sailbot(nodeName='log_stats')
     rospy.Subscriber("sensors", msg.Sensors, sensorsCallback)
+    rospy.Subscriber("actuation_angle", msg.actuation_angle, actuationAngleCallback)
     sailbot.waitForFirstSensorDataAndGlobalPath()
 
-    # Setup subscribers
+    # Set up subscribers
     log_closest_obstacle = LogClosestObstacle(create_ros_node=False)
     path_storer = PathStorer(create_ros_node=False)
     collision_checker = CollisionChecker(create_ros_node=False)
@@ -85,10 +100,11 @@ if __name__ == '__main__':
 
             # Log sensor data
             if sensor_data is not None:
-                sensor_data_fields = [f for f in dir(sensor_data)
-                                      if not f.startswith('_') and not callable(getattr(sensor_data, f))]
-                sensor_data_dict = {'Sensor Data/' + f: getattr(sensor_data, f) for f in sensor_data_fields}
-                log.update(sensor_data_dict)
+                log.update(getDictFromMsg(section_name='Sensor Data', data=sensor_data))
+
+            # Log actuation angle
+            if actuation_angle_data is not None:
+                log.update(getDictFromMsg(section_name='Actuation Angle', data=actuation_angle_data))
 
             # Get objective and their weighted cost.
             # Will be in form: [..., 'Weighted', 'cost', '=', '79343.0', ...]
