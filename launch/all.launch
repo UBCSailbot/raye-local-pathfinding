@@ -70,9 +70,10 @@
       <arg name="log_exactais" default="$(arg log_exactais)" />
     </include>
 
-    <!-- Wandb logger -->
+    <!-- Wandb loggers -->
     <arg name="wandb" default="false" />
-    <node pkg="local_pathfinding" type="wandb_log.py" name="wandb_log" if="$(arg wandb)" output="screen" />
+    <node pkg="local_pathfinding" type="wandb_log_latlon_plots.py" name="log_latlon_plots" if="$(arg wandb)" output="screen" />
+    <node pkg="local_pathfinding" type="wandb_log_stats.py" name="log_stats" if="$(arg wandb)" output="screen" />
 
     <!-- Local path visualizer -->
     <node pkg="local_pathfinding" type="local_path_visualizer.py" name="local_path_visualizer" />
