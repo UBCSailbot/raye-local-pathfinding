@@ -34,7 +34,7 @@ class TestSailbot(unittest.TestCase):
 
     def test_basic(self):
         # Setup messages
-        gpsMsg = msg.GPS(10.1, 4.2, 60.3, 12.4)
+        gpsMsg = msg.GPS(10.1, 4.2, 60.3, 60.3, 12.4)
         globalWindMsg = msg.globalWind(87.5, 1.89)
         ships = [msg.AISShip(i, i, i, i, i) for i in range(10)]
         AISMsg = msg.AISMsg(ships)
@@ -61,7 +61,7 @@ class TestSailbot(unittest.TestCase):
 
     def test_missing_data(self):
         # Setup messages
-        gpsMsg = msg.GPS(10.1, 4.2, 60.3, 12.4)
+        gpsMsg = msg.GPS(10.1, 4.2, 60.3, 60.3, 12.4)
         globalWindMsg = msg.globalWind(87.5, 1.89)
         ships = [msg.AISShip(i, i, i, i, i) for i in range(10)]
         AISMsg = msg.AISMsg(ships)
@@ -99,7 +99,7 @@ class TestSailbot(unittest.TestCase):
 
     def test_globalPath_detailed(self):
         # Setup non global path messages
-        gpsMsg = msg.GPS(10.1, 4.2, 60.3, 12.4)
+        gpsMsg = msg.GPS(10.1, 4.2, 60.3, 60.3, 12.4)
         globalWindMsg = msg.globalWind(87.5, 1.89)
         ships = [msg.AISShip(i, i, i, i, i) for i in range(10)]
         AISMsg = msg.AISMsg(ships)
