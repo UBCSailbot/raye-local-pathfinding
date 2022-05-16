@@ -31,7 +31,7 @@ class RosInterface:
         self.pubMeasuredWind = rospy.Publisher('windSensor', windSensor, queue_size=4)
         self.pubGlobalWind = rospy.Publisher('global_wind', globalWind, queue_size=4)
         self.pubGPS = rospy.Publisher('GPS', GPS, queue_size=4)
-        self.globalWindIsLow = False
+        self.windIsLow = False
         self.initialized = False
         self.data = None
 
@@ -53,7 +53,9 @@ class RosInterface:
             self.translate()
             self.pubGPS.publish(self.gps_lat_decimalDegrees, self.gps_lon_decimalDegrees,
                                 self.gps_headingDegrees, self.gps_speedKmph)
-            self.pubMeasuredWind.publish(self.measured_wind_direction, self.measured_wind_speedKmph)
+            self.updateWindIsLow()
+            self.pubMeasuredWind.publish(self.measured_wind_direction, self.measured_wind_speedKmph,
+                                         self.windIsLow)
             self.pubGlobalWind.publish(self.get_global_wind())
 
             rospy.loginfo("Publishing to GPS and windSensor with self.gps_lat_decimalDegrees = {}, "
@@ -86,6 +88,25 @@ class RosInterface:
         rospy.loginfo('measured_wind_speedKmph = {}'.format(self.measured_wind_speedKmph))
         rospy.loginfo('measured_wind_direction = {}'.format(self.measured_wind_direction))
 
+    def updateWindIsLow(self):
+        if self.windIsLow:
+            rospy.logwarn_throttle(5, "Low wind conditions. " +
+                                   "Measured Wind: {}km/h. ".format(self.measured_wind_speedKmph) +
+                                   "Boat Speed: {}km/h".format(self.gps_speedKmph))
+
+            # Already in low wind mode, so need boat gps speed OR apparent wind speed to be high enough to get out
+            if((self.measured_wind_speedKmph > LOW_WIND_THRESHOLD_KMPH + HYSTERESIS_MARGINE_WIND)
+               or (self.gps_speedKmph > LOW_BOAT_SPEED_THRESHOLD_KMPH + HYSTERESIS_MARGINE_BOATSPEED)):
+
+                self.windIsLow = False
+
+        else:
+            # Global wind is not low: enter low wind mode if boat gps speed AND apparent wind speed become too low
+            if((self.measured_wind_speedKmph < LOW_WIND_THRESHOLD_KMPH - HYSTERESIS_MARGINE_WIND)
+               and (self.gps_speedKmph < LOW_BOAT_SPEED_THRESHOLD_KMPH - HYSTERESIS_MARGINE_BOATSPEED)):
+
+                self.windIsLow = True
+
     def get_global_wind(self):
         speed, direction = measuredWindToGlobalWind(
                 measuredWindSpeed=self.measured_wind_speedKmph,
@@ -93,24 +114,7 @@ class RosInterface:
                 boatSpeed=self.gps_speedKmph,
                 headingDegrees=self.gps_headingDegrees)
 
-        if self.globalWindIsLow:
-            rospy.logwarn_throttle(5, "Low wind conditions. Global Wind: {}km/h. ".format(speed) +
-                                   "Boat Speed: {}km/h".format(self.gps_speedKmph))
-
-            # Already in low wind mode, so need boat gps speed OR apparent wind speed to be high enough to get out
-            if((self.measured_wind_speedKmph > LOW_WIND_THRESHOLD_KMPH + HYSTERESIS_MARGINE_WIND)
-               or (self.gps_speedKmph > LOW_BOAT_SPEED_THRESHOLD_KMPH + HYSTERESIS_MARGINE_BOATSPEED)):
-
-                self.globalWindIsLow = False
-
-        else:
-            # Global wind is not low: enter low wind mode if boat gps speed AND apparent wind speed become too low
-            if((self.measured_wind_speedKmph < LOW_WIND_THRESHOLD_KMPH - HYSTERESIS_MARGINE_WIND)
-               and (self.gps_speedKmph < LOW_BOAT_SPEED_THRESHOLD_KMPH - HYSTERESIS_MARGINE_BOATSPEED)):
-
-                self.globalWindIsLow = True
-
-        return globalWind(directionDegrees=direction, speedKmph=speed, lowWindConditions=self.globalWindIsLow)
+        return globalWind(directionDegrees=direction, speedKmph=speed)
 
 
 if __name__ == "__main__":
