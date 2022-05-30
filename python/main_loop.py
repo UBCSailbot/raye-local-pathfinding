@@ -15,7 +15,7 @@ from sailbot_msg.msg import windSensor
 MAIN_LOOP_PERIOD_SECONDS = 0.5
 SMALL_TURN_DEGREES = 10
 LOGGED_LATLONS_PER_LINE = 3
-LOW_WIND_LOOPS_PER_PATH_UPDATE = 20
+CREATE_NEW_LOCAL_PATH_ATTEPT_THRESH = 20
 
 # Global variable to receive path update request messages
 localPathUpdateRequested = False
@@ -23,7 +23,7 @@ localPathUpdateRequested = False
 # Global variable to receive path update force messages
 localPathUpdateForced = False
 
-# Global variables for reducing power in low wind
+# Global variables related to lowWindConditions
 createNewLocalPathAttempts = 0
 lowWindConditions = False
 
@@ -89,7 +89,7 @@ if __name__ == '__main__':
     rospy.Subscriber('requestLocalPathUpdate', Bool, localPathUpdateRequestedCallback)
     rospy.Subscriber('forceLocalPathUpdate', Bool, localPathUpdateForcedCallback)
 
-    # Subscribe to global_wind for lowWindConditions
+    # Subscribe to windSensor for lowWindConditions
     rospy.Subscriber('windSensor', windSensor, windSensorCallback)
 
     # Create ros publisher for the desired heading for the controller
@@ -145,10 +145,10 @@ if __name__ == '__main__':
 
         if(lowWindConditions):
             # ensure we havent updated local path recently before permitting
-            lowWindPermitsUpdate = (createNewLocalPathAttempts >= LOW_WIND_LOOPS_PER_PATH_UPDATE)
-            createNewLocalPathAttempts += 1
+            lowWindPermitsUpdate = (createNewLocalPathAttempts >= CREATE_NEW_LOCAL_PATH_ATTEPT_THRESH)
         else:
             lowWindPermitsUpdate = True
+            createNewLocalPathAttempts = 0
 
         newGlobalPathReceived = sailbot.newGlobalPathReceived
         reachedEndOfLocalPath = localPath.reachedEnd()
@@ -230,6 +230,11 @@ if __name__ == '__main__':
                     localPath = _localPath
                 else:
                     rospy.loginfo("Keeping old local path")
+
+            elif ((hasUpwindOrDownwindOnPath or costTooHigh)
+                  and (createNewLocalPathAttempts <= CREATE_NEW_LOCAL_PATH_ATTEPT_THRESH)):
+                # Increase the counter if we did NOT update local path, but there WAS an "unimportant" reason to update.
+                createNewLocalPathAttempts += 1
 
         # Publish desiredHeading
         if enable_los:
