@@ -83,10 +83,10 @@ class RosInterface:
 
     def get_global_wind(self):
         speed, direction = measuredWindToGlobalWind(
-                measuredWindSpeed=self.measured_wind_speedKmph,
-                measuredWindDirectionDegrees=self.measured_wind_direction,
-                boatSpeed=self.gps_speedKmph,
-                headingDegrees=self.gps_headingDegrees)
+            measuredWindSpeed=self.measured_wind_speedKmph,
+            measuredWindDirectionDegrees=self.measured_wind_direction,
+            boatSpeed=self.gps_speedKmph,
+            headingDegrees=self.gps_headingDegrees)
         return globalWind(directionDegrees=direction, speedKmph=speed)
 
 

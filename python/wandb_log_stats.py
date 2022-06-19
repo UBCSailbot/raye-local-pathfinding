@@ -16,6 +16,7 @@ UPDATE_TIME_SECONDS = 1.0
 # Globals for subscribing
 sensor_data = None
 actuation_angle_data = None
+min_voltage_data = None
 
 
 def sensorsCallback(data):
@@ -28,11 +29,14 @@ def actuationAngleCallback(data):
     actuation_angle_data = data
 
 
+def minVoltageCallback(data):
+    global min_voltage_data
+    min_voltage_data = data
+
+
 def getDictFromMsg(section_name, data):
-    data_fields = [f for f in dir(data) if not f.startswith('_') and
-                   not callable(getattr(data, f))]
-    data_dict = {section_name + '/' + f: getattr(data, f)
-                 for f in data_fields}
+    data_fields = [f for f in dir(data) if not f.startswith('_') and not callable(getattr(data, f))]
+    data_dict = {section_name + '/' + f: getattr(data, f) for f in data_fields}
     return data_dict
 
 
@@ -43,6 +47,7 @@ if __name__ == '__main__':
     sailbot = sbot.Sailbot(nodeName='log_stats')
     rospy.Subscriber("sensors", msg.Sensors, sensorsCallback)
     rospy.Subscriber("actuation_angle", msg.actuation_angle, actuationAngleCallback)
+    rospy.Subscriber("min_voltage", msg.min_voltage, minVoltageCallback)
     sailbot.waitForFirstSensorDataAndGlobalPath()
 
     # Set up subscribers
@@ -106,12 +111,16 @@ if __name__ == '__main__':
             if actuation_angle_data is not None:
                 log.update(getDictFromMsg(section_name='Actuation Angle', data=actuation_angle_data))
 
+            # Log minimum voltage
+            if min_voltage_data is not None:
+                log.update(getDictFromMsg(section_name='Minimum Voltage', data=min_voltage_data))
+
             # Get objective and their weighted cost.
             # Will be in form: [..., 'Weighted', 'cost', '=', '79343.0', ...]
             objectives = [x for x in path_storer.pathCostBreakdowns[0].split(" ")
                           if "Objective" in x and "Multi" not in x]
             costBreakdownStringSplit = path_storer.pathCostBreakdowns[-1].split(" ")
-            costBreakdown = [float(costBreakdownStringSplit[i+3]) for i in range(len(costBreakdownStringSplit))
+            costBreakdown = [float(costBreakdownStringSplit[i + 3]) for i in range(len(costBreakdownStringSplit))
                              if costBreakdownStringSplit[i] == "Weighted"]
             for i, objective in enumerate(objectives):
                 log['Cost Breakdown/{} Weighted Cost'.format(objective)] = costBreakdown[i]
