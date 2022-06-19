@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+import itertools
+from collections import OrderedDict
 import numpy as np
 import rospy
 from sailbot_msg.msg import Sensors, windSensor, GPS, globalWind
@@ -27,67 +29,58 @@ class RosInterface:
         self.pubMeasuredWind = rospy.Publisher('windSensor', windSensor, queue_size=4)
         self.pubGlobalWind = rospy.Publisher('global_wind', globalWind, queue_size=4)
         self.pubGPS = rospy.Publisher('GPS', GPS, queue_size=4)
-        self.initialized = False
-        self.data = None
 
-        # Current state
-        self.gps_lat_decimalDegrees = None
-        self.gps_lon_decimalDegrees = None
-        self.gps_headingDegrees = None
-        self.gps_speedKmph = None
-        self.measured_wind_speedKmph = None
-        self.measured_wind_direction = None
+        # ROS topic data
+        self.initialized = False
+        self.sensors = None
+        self.gps = OrderedDict()
+        self.wind_sensor = OrderedDict()
+        self.global_wind = OrderedDict()
 
     def sensorsCallback(self, data):
         if not self.initialized:
             self.initialized = True
-        self.data = data
+        self.sensors = data
 
     def pub(self):
         if self.initialized:
-            self.translate()
-            self.pubGPS.publish(self.gps_lat_decimalDegrees, self.gps_lon_decimalDegrees,
-                                self.gps_headingDegrees, self.gps_speedKmph)
-            self.pubMeasuredWind.publish(self.measured_wind_direction, self.measured_wind_speedKmph)
-            self.pubGlobalWind.publish(self.get_global_wind())
+            self.filter()
+            self.pubGPS.publish(*itertools.chain(self.gps.values()))
+            self.pubMeasuredWind.publish(*itertools.chain(self.wind_sensor.values()))
+            self.get_global_wind()
+            self.pubGlobalWind.publish(*itertools.chain(self.global_wind.values()))
 
-            rospy.loginfo("Publishing to GPS and windSensor with self.gps_lat_decimalDegrees = {}, "
-                          "self.gps_lon_decimalDegrees = {}, self.gps_headingDegrees = {}, self.gps_speedKmph = {}, "
-                          "self.measured_wind_direction = {}, self.measured_wind_speedKmph = {}"
-                          .format(self.gps_lat_decimalDegrees, self.gps_lon_decimalDegrees, self.gps_headingDegrees,
-                                  self.gps_speedKmph, self.measured_wind_direction, self.measured_wind_speedKmph))
+            rospy.loginfo("Publishing to GPS, windSensor, and global_wind")
+            rospy.loginfo("GPS fields: {}".format(dict(self.gps)))
+            rospy.loginfo("windSensor fields: {}".format(dict(self.wind_sensor)))
+            rospy.loginfo("global_wind fields: {}".format(dict(self.global_wind)))
         else:
             rospy.loginfo("Tried to publish sensor values, but not initialized yet. Waiting for first sensor message.")
 
-    def translate(self):
-        '''Translate data from multiple sensors into one input field, performing the necessary unit conversions.'''
+    def filter(self):
+        '''Filter data from multiple sensors into one input field, performing the necessary unit conversions.
+        Note: the order of fields must match the msg file.'''
         # GPS sensor fields - CAN and AIS -> use CAN
-        self.gps_lat_decimalDegrees = self.data.gps_can_latitude_degrees
-        self.gps_lon_decimalDegrees = self.data.gps_can_longitude_degrees
-        self.gps_headingDegrees = bearingToHeadingDegrees(self.data.gps_can_true_heading_degrees)
-        self.gps_speedKmph = self.data.gps_can_groundspeed_knots * KNOTS_TO_KMPH
+        self.gps['lat_decimal_degrees'] = self.sensors.gps_can_latitude_degrees
+        self.gps['lon_decimal_degrees'] = self.sensors.gps_can_longitude_degrees
+        self.gps['heading_degrees'] = bearingToHeadingDegrees(self.sensors.gps_can_true_heading_degrees)
+        self.gps['speed_kmph'] = self.sensors.gps_can_groundspeed_knots * KNOTS_TO_KMPH
 
         # Wind sensor fields - sensors 1, 2, and 3 -> use median for speed, sensor 1 for direction
-        self.measured_wind_speedKmph = np.median([self.data.wind_sensor_1_speed_knots,
-                                                  self.data.wind_sensor_2_speed_knots,
-                                                  self.data.wind_sensor_3_speed_knots]) * KNOTS_TO_KMPH
-        self.measured_wind_direction = bearingToHeadingDegrees(self.data.wind_sensor_1_angle_degrees)
-
-        # Log inputs fields
-        rospy.loginfo('gps_lat_decimalDegrees = {}'.format(self.gps_lat_decimalDegrees))
-        rospy.loginfo('gps_lon_decimalDegrees = {}'.format(self.gps_lon_decimalDegrees))
-        rospy.loginfo('gps_headingDegrees = {}'.format(self.gps_headingDegrees))
-        rospy.loginfo('gps_speedKmph = {}'.format(self.gps_speedKmph))
-        rospy.loginfo('measured_wind_speedKmph = {}'.format(self.measured_wind_speedKmph))
-        rospy.loginfo('measured_wind_direction = {}'.format(self.measured_wind_direction))
+        self.wind_sensor['measured_heading_degrees'] = bearingToHeadingDegrees(self.sensors.wind_sensor_1_angle_degrees)
+        self.wind_sensor['measured_speed_kmph'] = \
+            np.median([self.sensors.wind_sensor_1_speed_knots, self.sensors.wind_sensor_2_speed_knots,
+                       self.sensors.wind_sensor_3_speed_knots]) * KNOTS_TO_KMPH
 
     def get_global_wind(self):
         speed, direction = measuredWindToGlobalWind(
-                measuredWindSpeed=self.measured_wind_speedKmph,
-                measuredWindDirectionDegrees=self.measured_wind_direction,
-                boatSpeed=self.gps_speedKmph,
-                headingDegrees=self.gps_headingDegrees)
-        return globalWind(directionDegrees=direction, speedKmph=speed)
+            measuredWindSpeed=self.wind_sensor['measured_speed_kmph'],
+            measuredWindDirectionDegrees=self.wind_sensor['measured_heading_degrees'],
+            boatSpeed=self.gps['speed_kmph'],
+            headingDegrees=self.gps['heading_degrees'])
+
+        self.global_wind['heading_degrees'] = direction
+        self.global_wind['speed_kmph'] = speed
 
 
 if __name__ == "__main__":
