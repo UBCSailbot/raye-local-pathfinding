@@ -4,8 +4,11 @@ from collections import OrderedDict
 import numpy as np
 import rospy
 from sailbot_msg.msg import Sensors, windSensor, GPS, globalWind
-from utilities import bearingToHeadingDegrees, measuredWindToGlobalWind
+from utilities import bearingToHeadingDegrees, measuredWindToGlobalWind, angleAverage
 
+
+# Globals for wind filtering
+WIND_SENSOR_WEIGHTS = (0.5, 0.25, 0.25)
 
 # Constants
 CHECK_PERIOD_SECONDS = 0.1  # How often fields are updated
@@ -52,20 +55,24 @@ class RosInterface:
         '''Filter data from multiple sensors into one input field, performing the necessary unit conversions.
         Note: the order of fields must match the msg file (fields in filter() are before convert().'''
         # GPS sensor fields - CAN and AIS - take average
-        self.gps['lat_decimal_degrees'] = np.average((self.sensors.gps_can_latitude_degrees,
-                                                      self.sensors.gps_ais_latitude_degrees))
-        self.gps['lon_decimal_degrees'] = np.average((self.sensors.gps_can_longitude_degrees,
-                                                      self.sensors.gps_ais_longitude_degrees))
-        self.gps['speed_knots'] = np.average((self.sensors.gps_can_groundspeed_knots,
-                                              self.sensors.gps_ais_groundspeed_knots))
-        self.gps['bearing_degrees'] = np.average((self.sensors.gps_can_true_heading_degrees,
-                                                  self.sensors.gps_ais_true_heading_degrees))
+        self.gps['lat_decimal_degrees'] = np.mean((self.sensors.gps_can_latitude_degrees,
+                                                   self.sensors.gps_ais_latitude_degrees))
+        self.gps['lon_decimal_degrees'] = np.mean((self.sensors.gps_can_longitude_degrees,
+                                                   self.sensors.gps_ais_longitude_degrees))
+        self.gps['speed_knots'] = np.mean((self.sensors.gps_can_groundspeed_knots,
+                                           self.sensors.gps_ais_groundspeed_knots))
+        self.gps['bearing_degrees'] = angleAverage((self.sensors.gps_can_true_heading_degrees,
+                                                    self.sensors.gps_ais_true_heading_degrees))
 
         # Wind sensor fields - sensors 1, 2, and 3 -> take EWMA (circular data like direction handled differently)
-        self.wind_sensor['measured_speed_knots'] = np.median((self.sensors.wind_sensor_1_speed_knots,
-                                                              self.sensors.wind_sensor_2_speed_knots,
-                                                              self.sensors.wind_sensor_3_speed_knots))
-        self.wind_sensor['measured_bearing_degrees'] = self.sensors.wind_sensor_1_angle_degrees
+        self.wind_sensor['measured_speed_knots'] = np.average((self.sensors.wind_sensor_1_speed_knots,
+                                                               self.sensors.wind_sensor_2_speed_knots,
+                                                               self.sensors.wind_sensor_3_speed_knots),
+                                                              weights=WIND_SENSOR_WEIGHTS)
+        self.wind_sensor['measured_bearing_degrees'] = angleAverage((self.sensors.wind_sensor_1_angle_degrees,
+                                                                     self.sensors.wind_sensor_2_angle_degrees,
+                                                                     self.sensors.wind_sensor_3_angle_degrees),
+                                                                    weights=WIND_SENSOR_WEIGHTS)
 
     def convert(self):
         '''Convert to conventions used by the pathfinding and controller. Conversion notes:

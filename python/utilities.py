@@ -5,6 +5,7 @@ import os
 import rospy
 import time
 import math
+import numpy as np
 import planner_helpers as plans
 from geopy.distance import distance
 from sailbot_msg.msg import latlon
@@ -16,6 +17,7 @@ MAUI_LATLON = latlon(20.0, -156.0)
 # Constants
 PATH_UPDATE_TIME_LIMIT_SECONDS = 7200
 AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM = 3.0
+PI_DEG = 180.0
 
 # Scale NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES and NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND to change based on
 # waypoint distance
@@ -314,6 +316,29 @@ def bearingToHeadingDegrees(bearingDegrees):
        float representing the same angle in heading coordinates
     '''
     return -bearingDegrees + 90
+
+
+def angleAverage(angles, weights=None):
+    """Computes the weighted average of angles using vector addition.
+
+    Args:
+        angles (tuple): The tuple of floats in [0, 360].
+    Returns:
+        float: The mean of angles.
+    """
+    # Compute components of the average vector
+    y_components = []
+    x_components = []
+    for i in range(len(angles)):
+        angle = np.deg2rad(angles[i])
+        y_components.append(np.sin(angle))
+        x_components.append(np.cos(angle))
+    y_component = np.average(y_components, weights=weights)
+    x_component = np.average(x_components, weights=weights)
+
+    mean_180 = np.rad2deg(np.arctan2(y_component, x_component))  # mean_180 in [-180, 180]
+    mean_360 = mean_180 if mean_180 >= 0 or np.isclose(mean_180, 0) else 360 + mean_180  # mean_360 in [0, 360)
+    return mean_360
 
 
 def isValid(xy, obstacles):
