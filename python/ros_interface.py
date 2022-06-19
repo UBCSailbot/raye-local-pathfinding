@@ -8,7 +8,8 @@ from utilities import bearingToHeadingDegrees, measuredWindToGlobalWind, angleAv
 
 
 # Globals for wind filtering
-WIND_SENSOR_WEIGHTS = (0.5, 0.25, 0.25)
+WIND_SENSOR_WEIGHTS = {1: 0.5, 2: 0.25, 3: 0.25}
+ACTIVE_WIND_SENSORS = (1, 2, 3)
 
 # Constants
 CHECK_PERIOD_SECONDS = 0.1  # How often fields are updated
@@ -65,14 +66,17 @@ class RosInterface:
                                                     self.sensors.gps_ais_true_heading_degrees))
 
         # Wind sensor fields - sensors 1, 2, and 3 -> take EWMA (circular data like direction handled differently)
-        self.wind_sensor['measured_speed_knots'] = np.average((self.sensors.wind_sensor_1_speed_knots,
-                                                               self.sensors.wind_sensor_2_speed_knots,
-                                                               self.sensors.wind_sensor_3_speed_knots),
-                                                              weights=WIND_SENSOR_WEIGHTS)
-        self.wind_sensor['measured_bearing_degrees'] = angleAverage((self.sensors.wind_sensor_1_angle_degrees,
-                                                                     self.sensors.wind_sensor_2_angle_degrees,
-                                                                     self.sensors.wind_sensor_3_angle_degrees),
-                                                                    weights=WIND_SENSOR_WEIGHTS)
+        active_wind_sensor_weights = [WIND_SENSOR_WEIGHTS[num] for num in ACTIVE_WIND_SENSORS]
+        speed_knots_sensor_data = [getattr(self.sensors, attr) for attr in ['wind_sensor_{}_speed_knots'.format(num)
+                                                                            for num in ACTIVE_WIND_SENSORS]]
+        self.wind_sensor['measured_speed_knots'] = np.average(speed_knots_sensor_data,
+                                                              weights=active_wind_sensor_weights)
+        angle_degrees_sensor_data = [getattr(self.sensors, attr) for attr in ['wind_sensor_{}_angle_degrees'.format(num)
+                                                                              for num in ACTIVE_WIND_SENSORS]]
+        self.wind_sensor['measured_bearing_degrees'] = angleAverage(angle_degrees_sensor_data,
+                                                                    weights=active_wind_sensor_weights)
+        rospy.logfatal(active_wind_sensor_weights)
+        rospy.logwarn(speed_knots_sensor_data)
 
     def convert(self):
         '''Convert to conventions used by the pathfinding and controller. Conversion notes:
