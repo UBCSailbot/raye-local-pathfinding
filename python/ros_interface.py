@@ -11,16 +11,6 @@ from utilities import bearingToHeadingDegrees, measuredWindToGlobalWind
 CHECK_PERIOD_SECONDS = 0.1  # How often fields are updated
 KNOTS_TO_KMPH = 1.852
 
-"""
-Conversion Notes:
-- Sensors data types are int32 or float32, GPS and windSensor are float64, so no loss of precision
-- gps_lat_decimalDegrees and gps_lon_decimalDegrees: already in decimal degrees (minutes conversion done upstream)
-- gps_heading_degrees: (0 is north, 90 is east - cw - degrees) -> (0 is east, 90 is north - ccw - degrees)
-- measured_wind_direction: (0 is forward, 90 is right - cw - degrees) -> (0 is right, 90 is bow - ccw - degrees)
-- note that same angle coordinate conversion is needed for both gps_heading_degrees and measured_wind_direction
-- gps_speedKmph, measured_wind_speedKmph: knots -> km/h
-"""
-
 
 class RosInterface:
     def __init__(self):
@@ -45,6 +35,7 @@ class RosInterface:
     def pub(self):
         if self.initialized:
             self.filter()
+            self.convert()
             self.pubGPS.publish(*itertools.chain(self.gps.values()))
             self.pubMeasuredWind.publish(*itertools.chain(self.wind_sensor.values()))
             self.get_global_wind()
@@ -59,18 +50,36 @@ class RosInterface:
 
     def filter(self):
         '''Filter data from multiple sensors into one input field, performing the necessary unit conversions.
-        Note: the order of fields must match the msg file.'''
-        # GPS sensor fields - CAN and AIS -> use CAN
-        self.gps['lat_decimal_degrees'] = self.sensors.gps_can_latitude_degrees
-        self.gps['lon_decimal_degrees'] = self.sensors.gps_can_longitude_degrees
-        self.gps['heading_degrees'] = bearingToHeadingDegrees(self.sensors.gps_can_true_heading_degrees)
-        self.gps['speed_kmph'] = self.sensors.gps_can_groundspeed_knots * KNOTS_TO_KMPH
+        Note: the order of fields must match the msg file (fields in filter() are before convert().'''
+        # GPS sensor fields - CAN and AIS - take average
+        self.gps['lat_decimal_degrees'] = np.average((self.sensors.gps_can_latitude_degrees,
+                                                      self.sensors.gps_ais_latitude_degrees))
+        self.gps['lon_decimal_degrees'] = np.average((self.sensors.gps_can_longitude_degrees,
+                                                      self.sensors.gps_ais_longitude_degrees))
+        self.gps['speed_knots'] = np.average((self.sensors.gps_can_groundspeed_knots,
+                                              self.sensors.gps_ais_groundspeed_knots))
+        self.gps['bearing_degrees'] = np.average((self.sensors.gps_can_true_heading_degrees,
+                                                  self.sensors.gps_ais_true_heading_degrees))
 
-        # Wind sensor fields - sensors 1, 2, and 3 -> use median for speed, sensor 1 for direction
-        self.wind_sensor['measured_heading_degrees'] = bearingToHeadingDegrees(self.sensors.wind_sensor_1_angle_degrees)
-        self.wind_sensor['measured_speed_kmph'] = \
-            np.median([self.sensors.wind_sensor_1_speed_knots, self.sensors.wind_sensor_2_speed_knots,
-                       self.sensors.wind_sensor_3_speed_knots]) * KNOTS_TO_KMPH
+        # Wind sensor fields - sensors 1, 2, and 3 -> take EWMA (circular data like direction handled differently)
+        self.wind_sensor['measured_speed_knots'] = np.median((self.sensors.wind_sensor_1_speed_knots,
+                                                              self.sensors.wind_sensor_2_speed_knots,
+                                                              self.sensors.wind_sensor_3_speed_knots))
+        self.wind_sensor['measured_bearing_degrees'] = self.sensors.wind_sensor_1_angle_degrees
+
+    def convert(self):
+        '''Convert to conventions used by the pathfinding and controller. Conversion notes:
+            - Sensors data types are int32 or float32, GPS and windSensor are float64, so no loss of precision
+            - gps speed_kmph and wind_sensor measured_speed_kmph: knots -> km/h
+            - gps heading_degrees and wind_sensor measured_heading_degrees: bearing to heading degrees
+              (0 is north/forward, 90 is east/right - cw) -> (0 is east/right, 90 is north/forward - ccw)
+        Note: the order of fields must match the msg file (fields in convert() are after filter().
+        '''
+        self.gps['speed_kmph'] = self.gps['speed_knots'] * KNOTS_TO_KMPH
+        self.gps['heading_degrees'] = bearingToHeadingDegrees(self.gps['bearing_degrees'])
+        self.wind_sensor['measured_speed_kmph'] = self.wind_sensor['measured_speed_knots'] * KNOTS_TO_KMPH
+        self.wind_sensor['measured_heading_degrees'] = \
+            bearingToHeadingDegrees(self.wind_sensor['measured_bearing_degrees'])
 
     def get_global_wind(self):
         speed, direction = measuredWindToGlobalWind(
