@@ -2,6 +2,7 @@
 import wandb
 import rospy
 import os
+import re
 from datetime import datetime
 from log_closest_obstacle import LogClosestObstacle
 from path_storer import PathStorer
@@ -17,6 +18,8 @@ UPDATE_TIME_SECONDS = 1.0
 sensor_data = None
 actuation_angle_data = None
 min_voltage_data = None
+gps_data = None
+windSensor_data = None
 
 
 def sensorsCallback(data):
@@ -34,8 +37,19 @@ def minVoltageCallback(data):
     min_voltage_data = data
 
 
-def getDictFromMsg(section_name, data):
-    data_fields = [f for f in dir(data) if not f.startswith('_') and not callable(getattr(data, f))]
+def gpsCallback(data):
+    global gps_data
+    gps_data = data
+
+
+def windSensorCallback(data):
+    global windSensor_data
+    windSensor_data = data
+
+
+def getDictFromMsg(section_name, data, regex='.'):
+    data_fields = [f for f in dir(data)
+                   if not f.startswith('_') and not callable(getattr(data, f)) and re.match(regex, f)]
     data_dict = {section_name + '/' + f: getattr(data, f) for f in data_fields}
     return data_dict
 
@@ -48,6 +62,8 @@ if __name__ == '__main__':
     rospy.Subscriber("sensors", msg.Sensors, sensorsCallback)
     rospy.Subscriber("actuation_angle", msg.actuation_angle, actuationAngleCallback)
     rospy.Subscriber("min_voltage", msg.min_voltage, minVoltageCallback)
+    rospy.Subscriber("GPS", msg.GPS, gpsCallback)
+    rospy.Subscriber("windSensor", msg.windSensor, windSensorCallback)
     sailbot.waitForFirstSensorDataAndGlobalPath()
 
     # Set up subscribers
@@ -105,7 +121,17 @@ if __name__ == '__main__':
 
             # Log sensor data
             if sensor_data is not None:
-                log.update(getDictFromMsg(section_name='Sensor Data', data=sensor_data))
+                log.update(getDictFromMsg(section_name='GPS Sensors', data=sensor_data, regex='gps'))
+                log.update(getDictFromMsg(section_name='Wind Sensors', data=sensor_data, regex='wind_sensor'))
+                log.update(getDictFromMsg(section_name='Other Sensors', data=sensor_data, regex='(?!gps|wind_sensor)'))
+
+            # Log GPS
+            if gps_data is not None:
+                log.update(getDictFromMsg(section_name='GPS Sensors', data=gps_data))
+
+            # Log windSensor
+            if windSensor_data is not None:
+                log.update(getDictFromMsg(section_name='Wind Sensors', data=windSensor_data))
 
             # Log actuation angle
             if actuation_angle_data is not None:
