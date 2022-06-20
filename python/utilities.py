@@ -18,6 +18,7 @@ MAUI_LATLON = latlon(20.0, -156.0)
 PATH_UPDATE_TIME_LIMIT_SECONDS = 7200
 AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM = 3.0
 PI_DEG = 180.0
+KNOTS_TO_KMPH = 1.852
 
 # Scale NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES and NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND to change based on
 # waypoint distance
@@ -318,27 +319,30 @@ def bearingToHeadingDegrees(bearingDegrees):
     return -bearingDegrees + 90
 
 
-def angleAverage(angles, weights=None):
-    """Computes the weighted average of angles using vector addition.
+def vectorAverage(magnitudes, angles, weights=None):
+    """Computes the weighted average of vectors using vector addition.
 
     Args:
-        angles (tuple): The tuple of floats in [0, 360].
+        magnitudes (list): The list of magnitudes (floats).
+        angles (list): The list of angles (floats in [0, 360]).
+        weights (list): The list of weights (floats in [0, 1]).
     Returns:
-        float: The mean of angles.
+        float: The magnitude and angle of the vector sum.
     """
     # Compute components of the average vector
     y_components = []
     x_components = []
     for i in range(len(angles)):
         angle = np.deg2rad(angles[i])
-        y_components.append(np.sin(angle))
-        x_components.append(np.cos(angle))
+        y_components.append(magnitudes[i] * np.sin(angle))
+        x_components.append(magnitudes[i] * np.cos(angle))
     y_component = np.average(y_components, weights=weights)
     x_component = np.average(x_components, weights=weights)
 
+    magnitude = np.hypot(y_component, x_component)
     mean_180 = np.rad2deg(np.arctan2(y_component, x_component))  # mean_180 in [-180, 180]
     mean_360 = mean_180 if mean_180 >= 0 or np.isclose(mean_180, 0) else 360 + mean_180  # mean_360 in [0, 360)
-    return mean_360
+    return magnitude, mean_360
 
 
 def ewma(current_val, past_ewma, weight, is_angle):

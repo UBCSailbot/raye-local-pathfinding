@@ -4,12 +4,11 @@ from collections import OrderedDict
 import numpy as np
 import rospy
 from sailbot_msg.msg import Sensors, windSensor, GPS, globalWind
-from utilities import bearingToHeadingDegrees, measuredWindToGlobalWind, angleAverage, ewma
+from utilities import bearingToHeadingDegrees, measuredWindToGlobalWind, vectorAverage, ewma, KNOTS_TO_KMPH
 
 
 # Constants
 CHECK_PERIOD_SECONDS = 0.1  # How often fields are updated
-KNOTS_TO_KMPH = 1.852
 
 # Constants for wind filtering
 ACTIVE_WIND_SENSORS = (1, 2, 3)  # tuple of sensor numbers
@@ -71,21 +70,20 @@ class RosInterface:
                                                    self.sensors.gps_ais_latitude_degrees))
         self.gps['lon_decimal_degrees'] = np.mean((self.sensors.gps_can_longitude_degrees,
                                                    self.sensors.gps_ais_longitude_degrees))
-        self.gps['speed_knots'] = np.mean((self.sensors.gps_can_groundspeed_knots,
-                                           self.sensors.gps_ais_groundspeed_knots))
-        self.gps['bearing_degrees'] = angleAverage((self.sensors.gps_can_true_heading_degrees,
-                                                    self.sensors.gps_ais_true_heading_degrees))
+        self.gps['speed_knots'], self.gps['bearing_degrees'] = \
+            vectorAverage((self.sensors.gps_can_groundspeed_knots, self.sensors.gps_ais_groundspeed_knots),
+                          (self.sensors.gps_can_true_heading_degrees, self.sensors.gps_ais_true_heading_degrees))
 
         # Wind sensor fields - sensors 1, 2, and 3 -> take EWMA (circular data like direction handled differently)
         speed_knots_sensor_data = [getattr(self.sensors, attr) for attr in self.active_wind_sensor_speeds]
-        speed_knots_averaged = np.average(speed_knots_sensor_data, weights=self.active_wind_sensor_weights)
+        angle_degrees_sensor_data = [getattr(self.sensors, attr) for attr in self.active_wind_sensor_angles]
+        speed_knots_averaged, angle_degrees_averaged = \
+            vectorAverage(speed_knots_sensor_data, angle_degrees_sensor_data, self.active_wind_sensor_weights)
         ewma_weight = self.get_ewma_weight(speed_knots_averaged)
         rospy.loginfo('EWMA weight: {}'.format(ewma_weight))
         self.wind_sensor['measured_speed_knots'] = ewma(current_val=speed_knots_averaged,
                                                         past_ewma=self.wind_sensor['measured_speed_knots'],
                                                         weight=ewma_weight, is_angle=False)
-        angle_degrees_sensor_data = [getattr(self.sensors, attr) for attr in self.active_wind_sensor_angles]
-        angle_degrees_averaged = angleAverage(angle_degrees_sensor_data, weights=self.active_wind_sensor_weights)
         self.wind_sensor['measured_bearing_degrees'] = ewma(current_val=angle_degrees_averaged,
                                                             past_ewma=self.wind_sensor['measured_bearing_degrees'],
                                                             weight=ewma_weight, is_angle=True)
