@@ -10,7 +10,10 @@ from utilities import bearingToHeadingDegrees, measuredWindToGlobalWind, vectorA
 # Constants
 CHECK_PERIOD_SECONDS = 0.1  # How often fields are updated
 
-# Constants for wind filtering
+# Constants for GPS filtering
+ACTIVE_GPS_SENSORS = ('can', 'ais')  # tuple of GPS names
+
+# Constants for wind sensor filtering
 ACTIVE_WIND_SENSORS = (1, 2, 3)  # tuple of sensor numbers
 WIND_SENSOR_WEIGHTS = {1: 0.5, 2: 0.25, 3: 0.25}  # dict of sensor numbers mapping to their weights
 WIND_EWMA_WEIGHTS = [0.075, 0.35]  # weights in [0, 1] (floats); see get_ewma_weight()
@@ -26,6 +29,10 @@ class RosInterface:
         self.pubGPS = rospy.Publisher('GPS', GPS, queue_size=4)
 
         # derived constants
+        self.active_gps_lats = ['gps_{}_latitude_degrees'.format(gps) for gps in ACTIVE_GPS_SENSORS]
+        self.active_gps_lons = ['gps_{}_longitude_degrees'.format(gps) for gps in ACTIVE_GPS_SENSORS]
+        self.active_gps_speeds = ['gps_{}_groundspeed_knots'.format(gps) for gps in ACTIVE_GPS_SENSORS]
+        self.active_gps_headings = ['gps_{}_true_heading_degrees'.format(gps) for gps in ACTIVE_GPS_SENSORS]
         self.active_wind_sensor_weights = [WIND_SENSOR_WEIGHTS[num] for num in ACTIVE_WIND_SENSORS]
         self.active_wind_sensor_speeds = ['wind_sensor_{}_speed_knots'.format(num) for num in ACTIVE_WIND_SENSORS]
         self.active_wind_sensor_angles = ['wind_sensor_{}_angle_degrees'.format(num) for num in ACTIVE_WIND_SENSORS]
@@ -66,13 +73,11 @@ class RosInterface:
         '''Filter data from multiple sensors into one input field, performing the necessary unit conversions.
         Note: the order of fields must match the msg file (fields in filter() are before convert().'''
         # GPS sensor fields - CAN and AIS - take average
-        self.gps['lat_decimal_degrees'] = np.mean((self.sensors.gps_can_latitude_degrees,
-                                                   self.sensors.gps_ais_latitude_degrees))
-        self.gps['lon_decimal_degrees'] = np.mean((self.sensors.gps_can_longitude_degrees,
-                                                   self.sensors.gps_ais_longitude_degrees))
+        self.gps['lat_decimal_degrees'] = np.mean([getattr(self.sensors, attr) for attr in self.active_gps_lats])
+        self.gps['lon_decimal_degrees'] = np.mean([getattr(self.sensors, attr) for attr in self.active_gps_lons])
         self.gps['speed_knots'], self.gps['bearing_degrees'] = \
-            vectorAverage((self.sensors.gps_can_groundspeed_knots, self.sensors.gps_ais_groundspeed_knots),
-                          (self.sensors.gps_can_true_heading_degrees, self.sensors.gps_ais_true_heading_degrees))
+            vectorAverage([getattr(self.sensors, attr) for attr in self.active_gps_speeds],
+                          [getattr(self.sensors, attr) for attr in self.active_gps_headings])
 
         # Wind sensor fields - sensors 1, 2, and 3 -> take EWMA (circular data like direction handled differently)
         speed_knots_sensor_data = [getattr(self.sensors, attr) for attr in self.active_wind_sensor_speeds]
