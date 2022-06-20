@@ -341,6 +341,54 @@ def angleAverage(angles, weights=None):
     return mean_360
 
 
+def ewma(current_val, past_ewma, weight, is_angle):
+    """Calculate the exponentially weighted moving average (EWMA) from the current value and past EWMA:
+    https://hackaday.com/2019/09/06/sensor-filters-for-coders/.
+    Weight is a discrete linear function of current_val.
+
+    Args:
+        current_val (float): Current value.
+        past_ewma (float): Past value (EWMA).
+        weight (float): The weight of current_val; the weight of past_ewma is (1-weight).
+        is_angle (bool): True when getting the field is an angle, false otherwise.
+
+    Returns:
+        float: The exponentially weighted moving average.
+    """
+    if past_ewma is None:
+        return current_val
+
+    if is_angle:
+        _, current_val = mitsutaVals((past_ewma, current_val))
+    return weight * current_val + (1 - weight) * past_ewma
+
+
+def mitsutaVals(angles):
+    """Make angle readings continuous following
+    https://journals.ametsoc.org/view/journals/apme/25/10/1520-0450_1986_025_1387_eospeo_2_0_co_2.xml following
+    section 2.d. Assumes the time scale is small enough so that the direction to the next reading is < 180.
+    Once it is continuous, the mean and standard deviation can be computed using conventional methods.
+
+    Args:
+        angles (list): List of floats in [0, 360].
+
+    Returns:
+        list: angles such that its values are sequentially continuous.
+            Example of readings crossing the discontinuity point:
+                mitsutaVals([359.0, 1.0]) = [359, 361.0]
+                mitsutaVals([1.0, 359.0]) = [1.0, -1.0]
+    """
+    vals = [angles[0]]
+    for i in range(1, len(angles)):
+        delta = angles[i] - angles[i - 1]
+        if delta < -PI_DEG:
+            delta += 2 * PI_DEG
+        elif delta > PI_DEG:
+            delta -= 2 * PI_DEG
+        vals.append(vals[i - 1] + delta)
+    return vals
+
+
 def isValid(xy, obstacles):
     '''Checks if the given xy is a valid position, given obstacles
 
