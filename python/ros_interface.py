@@ -16,8 +16,8 @@ ACTIVE_GPS_SENSORS = ('can', 'ais')  # tuple of GPS names
 # Constants for wind sensor filtering
 ACTIVE_WIND_SENSORS = (1, 2, 3)  # tuple of sensor numbers
 WIND_SENSOR_WEIGHTS = {1: 0.5, 2: 0.25, 3: 0.25}  # dict of sensor numbers mapping to their weights
-WIND_EWMA_WEIGHTS = [0.075, 0.35]  # weights in [0, 1] (floats); see get_ewma_weight()
-WIND_EWMA_UPPER_BOUNDS = [3.0]  # speed in knots (floats); see get_ewma_weight()
+WIND_EWMA_WEIGHTS = [0.075, 0.35]  # weights in [0, 1] (floats) in ascending order; see get_ewma_weight()
+WIND_EWMA_UPPER_BOUNDS = [3.0]  # speed in knots (floats) in ascending order; see get_ewma_weight()
 
 
 class RosInterface:
