@@ -3,6 +3,7 @@
 import local_imports  # Must be first import, as it adds python directory to path
 import Sailbot as sbot
 import sailbot_msg.msg as msg
+import utilities as utils
 import rospy
 import rostest
 import unittest
@@ -34,7 +35,7 @@ class TestSailbot(unittest.TestCase):
 
     def test_basic(self):
         # Setup messages
-        gpsMsg = msg.GPS(10.1, 4.2, 60.3, 12.4)
+        gpsMsg = msg.GPS(10.1, 4.2, 12.4 / utils.KNOTS_TO_KMPH, utils.headingToBearingDegrees(60.3), 12.4, 60.3)
         globalWindMsg = msg.globalWind(87.5, 1.89)
         ships = [msg.AISShip(i, i, i, i, i) for i in range(10)]
         AISMsg = msg.AISMsg(ships)
@@ -61,7 +62,7 @@ class TestSailbot(unittest.TestCase):
 
     def test_missing_data(self):
         # Setup messages
-        gpsMsg = msg.GPS(10.1, 4.2, 60.3, 12.4)
+        gpsMsg = msg.GPS(10.1, 4.2, 12.4 / utils.KNOTS_TO_KMPH, utils.headingToBearingDegrees(60.3), 12.4, 60.3)
         globalWindMsg = msg.globalWind(87.5, 1.89)
         ships = [msg.AISShip(i, i, i, i, i) for i in range(10)]
         AISMsg = msg.AISMsg(ships)
@@ -99,7 +100,7 @@ class TestSailbot(unittest.TestCase):
 
     def test_globalPath_detailed(self):
         # Setup non global path messages
-        gpsMsg = msg.GPS(10.1, 4.2, 60.3, 12.4)
+        gpsMsg = msg.GPS(10.1, 4.2, 12.4 / utils.KNOTS_TO_KMPH, utils.headingToBearingDegrees(60.3), 12.4, 60.3)
         globalWindMsg = msg.globalWind(87.5, 1.89)
         ships = [msg.AISShip(i, i, i, i, i) for i in range(10)]
         AISMsg = msg.AISMsg(ships)

@@ -119,6 +119,41 @@ class TestUtilities(unittest.TestCase):
                                0,
                                places=3)
 
+    def test_angleAverage(self):
+        # Basic tests
+        magnitude, angle = utils.vectorAverage([1.0, 1.0], [1.0, -1.0])
+        self.assertAlmostEqual(magnitude, 0.99985, places=3)
+        self.assertAlmostEqual(abs_angle_dist_degrees(0, angle), 0, places=3)
+        magnitude, angle = utils.vectorAverage([1.0, 1.0, 1.0], [350.0, 0.0, 10.0])
+        self.assertAlmostEqual(magnitude, 0.98987, places=3)
+        self.assertAlmostEqual(abs_angle_dist_degrees(0, angle), 0, places=3)
+
+        # Advanced test
+        magnitudes = [21.2, 10.4, 15.9, 18.5]
+        angles = [80.1, 105.7, 93.2, 359.7]
+        weights = [0.3, 0.3, 0.3, 0.1]
+        magnitude, angle = utils.vectorAverage(magnitudes, angles, weights)
+        self.assertAlmostEqual(magnitude, 14.1411, places=3)
+        self.assertAlmostEqual(abs_angle_dist_degrees(82.5526, angle), 0, places=3)
+
+    def test_mitsutaVals(self):
+        # Basic tests
+        first_angle, second_angle = utils.mitsutaVals([359.0, 1.0])
+        self.assertAlmostEqual(first_angle, 359, places=3)
+        self.assertAlmostEqual(second_angle, 361, places=3)
+        first_angle, second_angle = utils.mitsutaVals([1.0, 359.0])
+        self.assertAlmostEqual(first_angle, 1, places=3)
+        self.assertAlmostEqual(second_angle, -1, places=3)
+        first_angle, second_angle = utils.mitsutaVals([359.0, 361.0])
+        self.assertAlmostEqual(first_angle, 359, places=3)
+        self.assertAlmostEqual(second_angle, 361, places=3)
+        first_angle, second_angle = utils.mitsutaVals([-1.0, 1.0])
+        self.assertAlmostEqual(first_angle, -1, places=3)
+        self.assertAlmostEqual(second_angle, 1, places=3)
+        first_angle, second_angle = utils.mitsutaVals([1.0, 2.0])
+        self.assertAlmostEqual(first_angle, 1, places=3)
+        self.assertAlmostEqual(second_angle, 2, places=3)
+
     def test_measuredWindToGlobalWind_basic(self):
         # (Boat moving + no measured wind) => (global wind velocity == boat velocity)
         globalWindSpeedKmph, globalWindDirectionDegrees = utils.measuredWindToGlobalWind(
