@@ -9,7 +9,6 @@ import utilities as utils
 import Path
 import time
 import matplotlib.pyplot as plt
-from sailbot_msg.msg import windSensor
 
 # Constants
 MAIN_LOOP_PERIOD_SECONDS = 0.5
@@ -40,9 +39,9 @@ def localPathUpdateForcedCallback(data):
     localPathUpdateForced = True
 
 
-def windSensorCallback(data):
+def lowWindConditionsCallback(data):
     global lowWindConditions
-    lowWindConditions = data.lowWindConditions
+    lowWindConditions = data
 
 
 def createNewLocalPath(sailbot, maxAllowableRuntimeSeconds, desiredHeadingPublisher, prevLocalPath):
@@ -89,8 +88,8 @@ if __name__ == '__main__':
     rospy.Subscriber('requestLocalPathUpdate', Bool, localPathUpdateRequestedCallback)
     rospy.Subscriber('forceLocalPathUpdate', Bool, localPathUpdateForcedCallback)
 
-    # Subscribe to windSensor for lowWindConditions
-    rospy.Subscriber('windSensor', windSensor, windSensorCallback)
+    # Subscribe to lowWindConditions
+    rospy.Subscriber('lowWindConditions', Bool, lowWindConditionsCallback)
 
     # Create ros publisher for the desired heading for the controller
     desiredHeadingPublisher = rospy.Publisher('desired_heading_degrees', msg.heading, queue_size=4)
