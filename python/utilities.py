@@ -5,6 +5,7 @@ import os
 import rospy
 import time
 import math
+import numpy as np
 import planner_helpers as plans
 from geopy.distance import distance
 from sailbot_msg.msg import latlon
@@ -16,6 +17,8 @@ MAUI_LATLON = latlon(20.0, -156.0)
 # Constants
 PATH_UPDATE_TIME_LIMIT_SECONDS = 7200
 AVG_DISTANCE_BETWEEN_LOCAL_WAYPOINTS_KM = 3.0
+PI_DEG = 180.0
+KNOTS_TO_KMPH = 1.852
 
 # Scale NUM_LOOK_AHEAD_WAYPOINTS_FOR_OBSTACLES and NUM_LOOK_AHEAD_WAYPOINTS_FOR_UPWIND_DOWNWIND to change based on
 # waypoint distance
@@ -314,6 +317,80 @@ def bearingToHeadingDegrees(bearingDegrees):
        float representing the same angle in heading coordinates
     '''
     return -bearingDegrees + 90
+
+
+def vectorAverage(magnitudes, angles, weights=None):
+    """Computes the weighted average of vectors using vector addition.
+
+    Args:
+        magnitudes (list): The list of magnitudes (floats).
+        angles (list): The list of angles (floats in [0, 360]).
+        weights (list): The list of weights (floats in [0, 1]).
+    Returns:
+        float: The magnitude and angle of the vector sum.
+    """
+    # Compute components of the average vector
+    y_components = []
+    x_components = []
+    for i in range(len(angles)):
+        angle = np.deg2rad(angles[i])
+        y_components.append(magnitudes[i] * np.sin(angle))
+        x_components.append(magnitudes[i] * np.cos(angle))
+    y_component = np.average(y_components, weights=weights)
+    x_component = np.average(x_components, weights=weights)
+
+    magnitude = np.hypot(y_component, x_component)
+    mean_180 = np.rad2deg(np.arctan2(y_component, x_component))  # mean_180 in [-180, 180]
+    mean_360 = mean_180 if mean_180 >= 0 or np.isclose(mean_180, 0) else 360 + mean_180  # mean_360 in [0, 360)
+    return magnitude, mean_360
+
+
+def ewma(current_val, past_ewma, weight, is_angle):
+    """Calculate the exponentially weighted moving average (EWMA) from the current value and past EWMA:
+    https://hackaday.com/2019/09/06/sensor-filters-for-coders/.
+    Weight is a discrete linear function of current_val.
+
+    Args:
+        current_val (float): Current value.
+        past_ewma (float): Past value (EWMA).
+        weight (float): The weight of current_val; the weight of past_ewma is (1-weight).
+        is_angle (bool): True when getting the field is an angle, false otherwise.
+
+    Returns:
+        float: The exponentially weighted moving average.
+    """
+    if past_ewma is None:
+        return current_val
+
+    if is_angle:
+        _, current_val = mitsutaVals((past_ewma, current_val))
+    return weight * current_val + (1 - weight) * past_ewma
+
+
+def mitsutaVals(angles):
+    """Make angle readings continuous following
+    https://journals.ametsoc.org/view/journals/apme/25/10/1520-0450_1986_025_1387_eospeo_2_0_co_2.xml following
+    section 2.d. Assumes the time scale is small enough so that the direction to the next reading is < 180.
+    Once it is continuous, the mean and standard deviation can be computed using conventional methods.
+
+    Args:
+        angles (list): List of floats in [0, 360].
+
+    Returns:
+        list: angles such that its values are sequentially continuous.
+            Example of readings crossing the discontinuity point:
+                mitsutaVals([359.0, 1.0]) = [359, 361.0]
+                mitsutaVals([1.0, 359.0]) = [1.0, -1.0]
+    """
+    vals = [angles[0]]
+    for i in range(1, len(angles)):
+        delta = angles[i] - angles[i - 1]
+        if delta < -PI_DEG:
+            delta += 2 * PI_DEG
+        elif delta > PI_DEG:
+            delta -= 2 * PI_DEG
+        vals.append(vals[i - 1] + delta)
+    return vals
 
 
 def isValid(xy, obstacles):
