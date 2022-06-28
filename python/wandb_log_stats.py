@@ -10,6 +10,7 @@ from collision_checker import CollisionChecker
 from store_sailbot_gps import SailbotGPSData
 import Sailbot as sbot
 import sailbot_msg.msg as msg
+from std_msgs.msg import Bool
 
 # Parameters for what and how to log
 UPDATE_TIME_SECONDS = 1.0
@@ -20,6 +21,7 @@ actuation_angle_data = None
 min_voltage_data = None
 gps_data = None
 windSensor_data = None
+lowWindConditions_data = None
 
 
 def sensorsCallback(data):
@@ -46,6 +48,10 @@ def windSensorCallback(data):
     global windSensor_data
     windSensor_data = data
 
+def lowWindConditionsCallback(data):
+    global lowWindConditions_data
+    lowWindConditions_data = data
+
 
 def getDictFromMsg(section_name, data, regex='.'):
     data_fields = [f for f in dir(data)
@@ -64,6 +70,7 @@ if __name__ == '__main__':
     rospy.Subscriber("min_voltage", msg.min_voltage, minVoltageCallback)
     rospy.Subscriber("GPS", msg.GPS, gpsCallback)
     rospy.Subscriber("windSensor", msg.windSensor, windSensorCallback)
+    rospy.Subscriber('lowWindConditions', Bool, lowWindConditionsCallback)
     sailbot.waitForFirstSensorDataAndGlobalPath()
 
     # Set up subscribers
@@ -139,7 +146,11 @@ if __name__ == '__main__':
 
             # Log minimum voltage
             if min_voltage_data is not None:
-                log.update(getDictFromMsg(section_name='Minimum Voltage', data=min_voltage_data))
+                log.update(getDictFromMsg(section_name='Low Power Mode', data=min_voltage_data))
+
+            # Log low wind conditions
+            if lowWindConditions_data is not None:
+                log.update(getDictFromMsg(section_name='Low Power Mode', data=lowWindConditions_data))
 
             # Get objective and their weighted cost.
             # Will be in form: [..., 'Weighted', 'cost', '=', '79343.0', ...]
