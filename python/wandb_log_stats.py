@@ -48,6 +48,7 @@ def windSensorCallback(data):
     global windSensor_data
     windSensor_data = data
 
+
 def lowWindConditionsCallback(data):
     global lowWindConditions_data
     lowWindConditions_data = data
