@@ -9,8 +9,8 @@ from path_storer import PathStorer
 from collision_checker import CollisionChecker
 from store_sailbot_gps import SailbotGPSData
 import Sailbot as sbot
-import sailbot_msg.msg as msg
-from std_msgs.msg import Bool
+import sailbot_msg.msg as sailbot_msg
+import std_msgs.msg as std_msgs
 
 # Parameters for what and how to log
 UPDATE_TIME_SECONDS = 1.0
@@ -66,12 +66,12 @@ if __name__ == '__main__':
 
     # Subscribe to essential pathfinding info
     sailbot = sbot.Sailbot(nodeName='log_stats')
-    rospy.Subscriber("sensors", msg.Sensors, sensorsCallback)
-    rospy.Subscriber("actuation_angle", msg.actuation_angle, actuationAngleCallback)
-    rospy.Subscriber("min_voltage", msg.min_voltage, minVoltageCallback)
-    rospy.Subscriber("GPS", msg.GPS, gpsCallback)
-    rospy.Subscriber("windSensor", msg.windSensor, windSensorCallback)
-    rospy.Subscriber('lowWindConditions', Bool, lowWindConditionsCallback)
+    rospy.Subscriber("sensors", sailbot_msg.Sensors, sensorsCallback)
+    rospy.Subscriber("actuation_angle", sailbot_msg.actuation_angle, actuationAngleCallback)
+    rospy.Subscriber("min_voltage", std_msgs.Float32, minVoltageCallback)
+    rospy.Subscriber("GPS", sailbot_msg.GPS, gpsCallback)
+    rospy.Subscriber("windSensor", sailbot_msg.windSensor, windSensorCallback)
+    rospy.Subscriber('lowWindConditions', std_msgs.Bool, lowWindConditionsCallback)
     sailbot.waitForFirstSensorDataAndGlobalPath()
 
     # Set up subscribers
@@ -147,7 +147,7 @@ if __name__ == '__main__':
 
             # Log minimum voltage
             if min_voltage_data is not None:
-                log.update(getDictFromMsg(section_name='Low Power Mode', data=min_voltage_data))
+                log['Low Power Mode/min_voltage'] = min_voltage_data
 
             # Log low wind conditions
             if lowWindConditions_data is not None:
