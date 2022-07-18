@@ -122,8 +122,18 @@ if __name__ == '__main__':
         isLastWaypointReached = localPath.lastWaypointReached(state.position)
         nextGlobalWaypoint = sailbot.globalPath[sailbot.globalPathIndex]
         previousGlobalWaypoint = sailbot.globalPath[sailbot.globalPathIndex - 1]
-        isGlobalWaypointReached = (localPath.waypointReached(state.position, previousGlobalWaypoint, nextGlobalWaypoint,
-                                                             True) or isLastWaypointReached)
+        _isGlobalWaypointReached = localPath.waypointReached(state.position, previousGlobalWaypoint, nextGlobalWaypoint,
+                                                             isGlobal=True)
+        isGlobalWaypointReached = _isGlobalWaypointReached or isLastWaypointReached
+        if isGlobalWaypointReached:
+            rospy.logwarn('isGlobalWaypointReached=True, reason: isLastWaypointReached={};_isGlobalWaypointReached={}'
+                          .format(isLastWaypointReached, _isGlobalWaypointReached))
+            rospy.logwarn('nextGlobalWaypoint={},{};previousGlobalWaypoint={},{}'
+                          .format(nextGlobalWaypoint.lat, nextGlobalWaypoint.lon,
+                                  previousGlobalWaypoint.lat, previousGlobalWaypoint.lon))
+            rospy.logwarn('nextLocalWaypoint={},{};previousLocalWaypoint={},{}'
+                          .format(localPath.getNextWaypoint().lat, localPath.getNextWaypoint().lon,
+                                  localPath.getPreviousWaypoint().lat, localPath.getPreviousWaypoint().lon))
 
         newGlobalPathReceived = sailbot.newGlobalPathReceived
         reachedEndOfLocalPath = localPath.reachedEnd()
