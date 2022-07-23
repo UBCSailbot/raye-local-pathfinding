@@ -11,8 +11,8 @@ from geopy.distance import distance
 from sailbot_msg.msg import latlon
 
 # Location constants
-PORT_RENFREW_LATLON = latlon(0, 0)
-MAUI_LATLON = latlon(1, -10)
+PORT_RENFREW_LATLON = latlon(48.5, -124.8)
+MAUI_LATLON = latlon(20.0, -156.0)
 
 # Constants
 PATH_UPDATE_TIME_LIMIT_SECONDS = 7200
