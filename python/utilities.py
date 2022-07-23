@@ -11,8 +11,8 @@ from geopy.distance import distance
 from sailbot_msg.msg import latlon
 
 # Location constants
-PORT_RENFREW_LATLON = latlon(48.5, -124.8)
-MAUI_LATLON = latlon(20.0, -156.0)
+PORT_RENFREW_LATLON = latlon(0, 0)
+MAUI_LATLON = latlon(1, -10)
 
 # Constants
 PATH_UPDATE_TIME_LIMIT_SECONDS = 7200
@@ -293,13 +293,21 @@ def headingToBearingDegrees(headingDegrees):
           Heading is used for most of this code-based, but bearing is used for interfacing with the geopy module and
           other code external to local-pathfinding.
 
+          Previously, /desired_heading_degrees seems to have been bounded from -90 to 270 degrees, so only the simple
+          change below is needed to bound it from 0 to 360 degrees.
+
     Args:
        headingDegrees (float): heading in degrees
 
     Returns:
        float representing the same angle in bearing coordinates
     '''
-    return -headingDegrees + 90
+    bearingDegrees = -headingDegrees + 90
+
+    if (bearingDegrees < 0):
+        bearingDegrees += 360
+
+    return bearingDegrees
 
 
 def bearingToHeadingDegrees(bearingDegrees):

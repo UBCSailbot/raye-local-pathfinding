@@ -215,11 +215,6 @@ if __name__ == '__main__':
         # Internal local_pathfinding uses East=0, North=90
         # rostopic uses North=0, East=90
         desiredHeadingDegreesNewCoordinates = utils.headingToBearingDegrees(desiredHeadingDegrees)
-
-        # Bound the heading from (-90, 270) to (0, 360) for Control
-        if (desiredHeadingDegreesNewCoordinates < 0):
-            desiredHeadingDegreesNewCoordinates += 360
-
         desiredHeadingPublisher.publish(msg.heading(desiredHeadingDegreesNewCoordinates))
 
         # Publish local path
