@@ -302,12 +302,7 @@ def headingToBearingDegrees(headingDegrees):
     Returns:
        float representing the same angle in bearing coordinates
     '''
-    bearingDegrees = -headingDegrees + 90
-
-    if (bearingDegrees < 0):
-        bearingDegrees += 360
-
-    return bearingDegrees
+    return bound_in_0_to_360(-headingDegrees + 90)
 
 
 def bearingToHeadingDegrees(bearingDegrees):
@@ -324,7 +319,29 @@ def bearingToHeadingDegrees(bearingDegrees):
     Returns:
        float representing the same angle in heading coordinates
     '''
-    return -bearingDegrees + 90
+    return bound_in_0_to_360(-bearingDegrees + 90)
+
+
+def bound_in_0_to_360(angle):
+    ''' Given an angle in degrees, calculates an equivalent angle bounded in [0, 360)
+
+    Args:
+        angle (float or integer): an angle to be bounded, measured in degrees
+
+    Returns:
+        equivalent angle bounded to [0, 360). The return type matches the type of the input angle.
+    '''
+
+    if angle < 0:
+        returnAngle = 360 - (-angle % 360)
+
+        if returnAngle == 360:
+            return 0
+        else:
+            return returnAngle
+
+    else:
+        return angle % 360
 
 
 def vectorAverage(magnitudes, angles, weights=None):
