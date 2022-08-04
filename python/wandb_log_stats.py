@@ -2,19 +2,26 @@
 import wandb
 import rospy
 import os
+import re
 from datetime import datetime
 from log_closest_obstacle import LogClosestObstacle
 from path_storer import PathStorer
 from collision_checker import CollisionChecker
 from store_sailbot_gps import SailbotGPSData
 import Sailbot as sbot
-import sailbot_msg.msg as msg
+import sailbot_msg.msg as sailbot_msg
+import std_msgs.msg as std_msgs
 
 # Parameters for what and how to log
 UPDATE_TIME_SECONDS = 1.0
 
 # Globals for subscribing
 sensor_data = None
+actuation_angle_data = None
+min_voltage_data = None
+gps_data = None
+windSensor_data = None
+lowWindConditions_data = None
 
 
 def sensorsCallback(data):
@@ -22,15 +29,52 @@ def sensorsCallback(data):
     sensor_data = data
 
 
+def actuationAngleCallback(data):
+    global actuation_angle_data
+    actuation_angle_data = data
+
+
+def minVoltageCallback(data):
+    global min_voltage_data
+    min_voltage_data = data
+
+
+def gpsCallback(data):
+    global gps_data
+    gps_data = data
+
+
+def windSensorCallback(data):
+    global windSensor_data
+    windSensor_data = data
+
+
+def lowWindConditionsCallback(data):
+    global lowWindConditions_data
+    lowWindConditions_data = data
+
+
+def getDictFromMsg(section_name, data, regex='.'):
+    data_fields = [f for f in dir(data)
+                   if not f.startswith('_') and not callable(getattr(data, f)) and re.match(regex, f)]
+    data_dict = {section_name + '/' + f: getattr(data, f) for f in data_fields}
+    return data_dict
+
+
 if __name__ == '__main__':
     os.environ["WANDB_SILENT"] = "true"  # Avoid small wandb bug
 
     # Subscribe to essential pathfinding info
     sailbot = sbot.Sailbot(nodeName='log_stats')
-    rospy.Subscriber("sensors", msg.Sensors, sensorsCallback)
+    rospy.Subscriber("sensors", sailbot_msg.Sensors, sensorsCallback)
+    rospy.Subscriber("actuation_angle", sailbot_msg.actuation_angle, actuationAngleCallback)
+    rospy.Subscriber("min_voltage", std_msgs.Float32, minVoltageCallback)
+    rospy.Subscriber("GPS", sailbot_msg.GPS, gpsCallback)
+    rospy.Subscriber("windSensor", sailbot_msg.windSensor, windSensorCallback)
+    rospy.Subscriber('lowWindConditions', std_msgs.Bool, lowWindConditionsCallback)
     sailbot.waitForFirstSensorDataAndGlobalPath()
 
-    # Setup subscribers
+    # Set up subscribers
     log_closest_obstacle = LogClosestObstacle(create_ros_node=False)
     path_storer = PathStorer(create_ros_node=False)
     collision_checker = CollisionChecker(create_ros_node=False)
@@ -85,17 +129,36 @@ if __name__ == '__main__':
 
             # Log sensor data
             if sensor_data is not None:
-                sensor_data_fields = [f for f in dir(sensor_data)
-                                      if not f.startswith('_') and not callable(getattr(sensor_data, f))]
-                sensor_data_dict = {'Sensor Data/' + f: getattr(sensor_data, f) for f in sensor_data_fields}
-                log.update(sensor_data_dict)
+                log.update(getDictFromMsg(section_name='GPS Sensors', data=sensor_data, regex='gps'))
+                log.update(getDictFromMsg(section_name='Wind Sensors', data=sensor_data, regex='wind_sensor'))
+                log.update(getDictFromMsg(section_name='Other Sensors', data=sensor_data, regex='(?!gps|wind_sensor)'))
+
+            # Log GPS
+            if gps_data is not None:
+                log.update(getDictFromMsg(section_name='GPS Sensors', data=gps_data))
+
+            # Log windSensor
+            if windSensor_data is not None:
+                log.update(getDictFromMsg(section_name='Wind Sensors', data=windSensor_data))
+
+            # Log actuation angle
+            if actuation_angle_data is not None:
+                log.update(getDictFromMsg(section_name='Actuation Angle', data=actuation_angle_data))
+
+            # Log minimum voltage
+            if min_voltage_data is not None:
+                log['Low Power Mode/min_voltage'] = min_voltage_data
+
+            # Log low wind conditions
+            if lowWindConditions_data is not None:
+                log.update(getDictFromMsg(section_name='Low Power Mode', data=lowWindConditions_data))
 
             # Get objective and their weighted cost.
             # Will be in form: [..., 'Weighted', 'cost', '=', '79343.0', ...]
             objectives = [x for x in path_storer.pathCostBreakdowns[0].split(" ")
                           if "Objective" in x and "Multi" not in x]
             costBreakdownStringSplit = path_storer.pathCostBreakdowns[-1].split(" ")
-            costBreakdown = [float(costBreakdownStringSplit[i+3]) for i in range(len(costBreakdownStringSplit))
+            costBreakdown = [float(costBreakdownStringSplit[i + 3]) for i in range(len(costBreakdownStringSplit))
                              if costBreakdownStringSplit[i] == "Weighted"]
             for i, objective in enumerate(objectives):
                 log['Cost Breakdown/{} Weighted Cost'.format(objective)] = costBreakdown[i]
