@@ -131,8 +131,8 @@ def moveGlobalWaypointUntilValid(state, isLast, otherWaypoint):
         deltaY = goalY - otherY if isLast else otherY - goalY
         dist = math.sqrt(deltaX**2 + deltaY**2)
 
-        goalX += MOVE_GOAL_WAYPOINT_STEP_SIZE_KM * deltaX / dist
-        goalY += MOVE_GOAL_WAYPOINT_STEP_SIZE_KM * deltaY / dist
+        goalX += MOVE_GOAL_WAYPOINT_STEP_SIZE_KM * deltaX / (dist + 1e-8)
+        goalY += MOVE_GOAL_WAYPOINT_STEP_SIZE_KM * deltaY / (dist + 1e-8)
         goalLatlon = utils.XYToLatlon((goalX, goalY), referenceLatlon)
         rospy.logwarn('Moved goalLatlon to ({},{})'.format(goalLatlon.lat, goalLatlon.lon))
 
