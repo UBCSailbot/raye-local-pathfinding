@@ -302,7 +302,7 @@ def headingToBearingDegrees(headingDegrees):
     Returns:
        float representing the same angle in bearing coordinates
     '''
-    return bound_in_0_to_360(-headingDegrees + 90)
+    return boundIn0To360(-headingDegrees + 90)
 
 
 def bearingToHeadingDegrees(bearingDegrees):
@@ -319,10 +319,10 @@ def bearingToHeadingDegrees(bearingDegrees):
     Returns:
        float representing the same angle in heading coordinates
     '''
-    return bound_in_0_to_360(-bearingDegrees + 90)
+    return boundIn0To360(-bearingDegrees + 90)
 
 
-def bound_in_0_to_360(angle):
+def boundIn0To360(angle):
     ''' Given an angle in degrees, calculates an equivalent angle bounded in [0, 360)
 
     Args:
