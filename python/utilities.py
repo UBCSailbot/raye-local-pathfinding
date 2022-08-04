@@ -331,7 +331,7 @@ def boundIn0To360(angle):
     Returns:
         equivalent angle bounded to [0, 360). The return type matches the type of the input angle.
     '''
-    return (angle % 360) if (angle >= 0) else (360 - (-angle % 360))
+    return (angle % 360) if (angle >= 0 or angle % 360 == 0) else (360 - (-angle % 360))
 
 
 def vectorAverage(magnitudes, angles, weights=None):
