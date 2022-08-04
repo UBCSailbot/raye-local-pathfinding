@@ -293,13 +293,16 @@ def headingToBearingDegrees(headingDegrees):
           Heading is used for most of this code-based, but bearing is used for interfacing with the geopy module and
           other code external to local-pathfinding.
 
+          Previously, /desired_heading_degrees seems to have been bounded from -90 to 270 degrees, so only the simple
+          change below is needed to bound it from 0 to 360 degrees.
+
     Args:
        headingDegrees (float): heading in degrees
 
     Returns:
        float representing the same angle in bearing coordinates
     '''
-    return -headingDegrees + 90
+    return boundIn0To360(-headingDegrees + 90)
 
 
 def bearingToHeadingDegrees(bearingDegrees):
@@ -316,7 +319,19 @@ def bearingToHeadingDegrees(bearingDegrees):
     Returns:
        float representing the same angle in heading coordinates
     '''
-    return -bearingDegrees + 90
+    return boundIn0To360(-bearingDegrees + 90)
+
+
+def boundIn0To360(angle):
+    ''' Given an angle in degrees, calculates an equivalent angle bounded in [0, 360)
+
+    Args:
+        angle (float or integer): an angle to be bounded, measured in degrees
+
+    Returns:
+        equivalent angle bounded to [0, 360). The return type matches the type of the input angle.
+    '''
+    return (angle % 360) if (angle >= 0 or angle % 360 == 0) else (360 - (-angle % 360))
 
 
 def vectorAverage(magnitudes, angles, weights=None):
