@@ -147,11 +147,11 @@ if __name__ == '__main__':
 
             # Log minimum voltage
             if min_voltage_data is not None:
-                log['Low Power Mode/min_voltage'] = min_voltage_data
+                log['Low Power Mode/min_voltage'] = min_voltage_data.data
 
             # Log low wind conditions
             if lowWindConditions_data is not None:
-                log.update(getDictFromMsg(section_name='Low Power Mode', data=lowWindConditions_data))
+                log['Low Power Mode/lowWindConditions'] = lowWindConditions_data.data
 
             # Get objective and their weighted cost.
             # Will be in form: [..., 'Weighted', 'cost', '=', '79343.0', ...]
