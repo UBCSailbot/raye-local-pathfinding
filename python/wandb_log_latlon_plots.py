@@ -9,7 +9,7 @@ from utilities import getShipsSortedByDistance
 import Sailbot as sbot
 
 # Parameters for what and how to log
-UPDATE_TIME_SECONDS = 30.0
+UPDATE_TIME_SECONDS = 60
 NUM_CLOSEST_AIS_LOG = 10
 
 if __name__ == '__main__':
@@ -22,7 +22,7 @@ if __name__ == '__main__':
     # Set up subscribers
     path_storer = PathStorer(create_ros_node=False)
     sailbot_gps_data = SailbotGPSData(create_ros_node=False)
-    rate = rospy.Rate(UPDATE_TIME_SECONDS)
+    rate = rospy.Rate(1.0 / UPDATE_TIME_SECONDS)
 
     # Set wandb project name and run directory path
     start_datetime = datetime.now().strftime('%b_%d-%H_%M_%S')
@@ -70,6 +70,7 @@ if __name__ == '__main__':
             log.update({'ship_plot': wandb.plot.scatter(table, 'Lon', 'Lat', title='Closet Ships')})
             # would it be beneficial to log speed (ship.speedKmph) and heading (ship.headingDegrees)?
 
+            rospy.loginfo('Logging latlon plots to Wandb')
             wandb.log(log)
             run.finish()
 

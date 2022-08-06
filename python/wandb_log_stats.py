@@ -13,7 +13,7 @@ import sailbot_msg.msg as sailbot_msg
 import std_msgs.msg as std_msgs
 
 # Parameters for what and how to log
-UPDATE_TIME_SECONDS = 1.0
+UPDATE_TIME_SECONDS = 1
 
 # Globals for subscribing
 sensor_data = None
@@ -79,7 +79,7 @@ if __name__ == '__main__':
     path_storer = PathStorer(create_ros_node=False)
     collision_checker = CollisionChecker(create_ros_node=False)
     sailbot_gps_data = SailbotGPSData(create_ros_node=False)
-    rate = rospy.Rate(UPDATE_TIME_SECONDS)
+    rate = rospy.Rate(1.0 / UPDATE_TIME_SECONDS)
 
     # Set wandb run name and directory path
     start_datetime = datetime.now().strftime('%b_%d-%H_%M_%S')
@@ -163,6 +163,7 @@ if __name__ == '__main__':
             for i, objective in enumerate(objectives):
                 log['Cost Breakdown/{} Weighted Cost'.format(objective)] = costBreakdown[i]
 
+            rospy.loginfo('Logging stats to Wandb')
             wandb.log(log)
 
         rate.sleep()
