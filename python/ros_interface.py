@@ -9,7 +9,8 @@ from utilities import bearingToHeadingDegrees, measuredWindToGlobalWind, vectorA
 CHECK_PERIOD_SECONDS = 0.1  # How often fields are updated
 
 # Constants for GPS filtering
-ACTIVE_GPS_SENSORS = ('can', 'ais')  # tuple of GPS names
+ACTIVE_GPS_SENSORS_FOR_LATLON = {'can', 'ais'}  # set of GPS names
+ACTIVE_GPS_SENSORS_NOT_LATLON = {'can'}  # set of GPS names
 
 # Constants for wind sensor filtering
 ACTIVE_WIND_SENSORS = (1, 2, 3)  # tuple of sensor numbers
@@ -27,10 +28,10 @@ class RosInterface:
         self.pubGPS = rospy.Publisher('GPS', GPS, queue_size=4)
 
         # derived constants
-        self.active_gps_lats = ['gps_{}_latitude_degrees'.format(gps) for gps in ACTIVE_GPS_SENSORS]
-        self.active_gps_lons = ['gps_{}_longitude_degrees'.format(gps) for gps in ACTIVE_GPS_SENSORS]
-        self.active_gps_speeds = ['gps_{}_groundspeed_knots'.format(gps) for gps in ACTIVE_GPS_SENSORS]
-        self.active_gps_headings = ['gps_{}_true_heading_degrees'.format(gps) for gps in ACTIVE_GPS_SENSORS]
+        self.active_gps_lats = ['gps_{}_latitude_degrees'.format(gps) for gps in ACTIVE_GPS_SENSORS_FOR_LATLON]
+        self.active_gps_lons = ['gps_{}_longitude_degrees'.format(gps) for gps in ACTIVE_GPS_SENSORS_FOR_LATLON]
+        self.active_gps_speeds = ['gps_{}_groundspeed_knots'.format(gps) for gps in ACTIVE_GPS_SENSORS_NOT_LATLON]
+        self.active_gps_headings = ['gps_{}_true_heading_degrees'.format(gps) for gps in ACTIVE_GPS_SENSORS_NOT_LATLON]
         self.active_wind_sensor_weights = [WIND_SENSOR_WEIGHTS[num] for num in ACTIVE_WIND_SENSORS]
         self.active_wind_sensor_speeds = ['wind_sensor_{}_speed_knots'.format(num) for num in ACTIVE_WIND_SENSORS]
         self.active_wind_sensor_angles = ['wind_sensor_{}_angle_degrees'.format(num) for num in ACTIVE_WIND_SENSORS]
