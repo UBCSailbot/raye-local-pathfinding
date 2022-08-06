@@ -9,7 +9,7 @@ from utilities import getShipsSortedByDistance
 import Sailbot as sbot
 
 # Parameters for what and how to log
-UPDATE_TIME_SECONDS = 60
+UPDATE_TIME_SECONDS = 30
 NUM_CLOSEST_AIS_LOG = 10
 
 if __name__ == '__main__':
