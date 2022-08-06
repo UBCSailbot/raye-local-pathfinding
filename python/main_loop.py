@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 MAIN_LOOP_PERIOD_SECONDS = 0.5
 SMALL_TURN_DEGREES = 10
 LOGGED_LATLONS_PER_LINE = 3
-CREATE_NEW_LOCAL_PATH_ATTEPT_THRESH = 20
+CREATE_NEW_LOCAL_PATH_ATTEPT_THRESH = 40
 
 # Global variable to receive path update request messages
 localPathUpdateRequested = False
@@ -41,7 +41,7 @@ def localPathUpdateForcedCallback(data):
 
 def lowWindConditionsCallback(data):
     global lowWindConditions
-    lowWindConditions = data
+    lowWindConditions = data.data
 
 
 def createNewLocalPath(sailbot, maxAllowableRuntimeSeconds, desiredHeadingPublisher, prevLocalPath):

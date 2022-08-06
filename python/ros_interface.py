@@ -135,12 +135,12 @@ class RosInterface:
         if self.windIsLow:
             rospy.logwarn_throttle(5, "Low wind conditions. Measured Wind: {}km/h. Boat Speed: {}km/h"
                                    .format(self.wind_sensor.measuredSpeedKmph, self.gps.speedKmph))
-            # Already in low wind mode, so need boat gps speed OR apparent wind speed to be high enough to get out
+            # Already in lowWindConditions, so need boat gps speed OR apparent wind speed to be high enough to get out
             if((self.wind_sensor.measuredSpeedKmph > LOW_WIND_THRESHOLD_KMPH + HYSTERESIS_MARGINE_WIND)
                or (self.gps.speedKmph > LOW_BOAT_SPEED_THRESHOLD_KMPH + HYSTERESIS_MARGINE_BOATSPEED)):
                 self.windIsLow = False
         else:
-            # Global wind is not low: enter low wind mode if boat gps speed AND apparent wind speed become too low
+            # Wind is not low: enter low wind mode if boat gps speed AND apparent wind speed become too low
             if((self.wind_sensor.measuredSpeedKmph < LOW_WIND_THRESHOLD_KMPH - HYSTERESIS_MARGINE_WIND)
                and (self.gps.speedKmph < LOW_BOAT_SPEED_THRESHOLD_KMPH - HYSTERESIS_MARGINE_BOATSPEED)):
                 self.windIsLow = True
