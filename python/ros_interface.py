@@ -2,11 +2,16 @@
 import numpy as np
 import rospy
 from sailbot_msg.msg import Sensors, windSensor, GPS, globalWind
+from std_msgs.msg import Bool
 from utilities import bearingToHeadingDegrees, measuredWindToGlobalWind, vectorAverage, ewma, KNOTS_TO_KMPH
 
 
 # Constants
 CHECK_PERIOD_SECONDS = 0.1  # How often fields are updated
+LOW_WIND_THRESHOLD_KMPH = 4.5
+LOW_BOAT_SPEED_THRESHOLD_KMPH = 1.5
+HYSTERESIS_MARGINE_WIND = 1.3
+HYSTERESIS_MARGINE_BOATSPEED = 0.3
 
 # Constants for GPS filtering
 ACTIVE_GPS_SENSORS_FOR_LATLON = {'can', 'ais'}  # set of GPS names
@@ -26,6 +31,8 @@ class RosInterface:
         self.pubMeasuredWind = rospy.Publisher('windSensor', windSensor, queue_size=4)
         self.pubGlobalWind = rospy.Publisher('global_wind', globalWind, queue_size=4)
         self.pubGPS = rospy.Publisher('GPS', GPS, queue_size=4)
+        self.pubLowWindConditions = rospy.Publisher('lowWindConditions', Bool, queue_size=4)
+        self.windIsLow = False
 
         # derived constants
         self.active_gps_lats = ['gps_{}_latitude_degrees'.format(gps) for gps in ACTIVE_GPS_SENSORS_FOR_LATLON]
@@ -60,6 +67,8 @@ class RosInterface:
             self.pubMeasuredWind.publish(self.wind_sensor)
             self.get_global_wind()
             self.pubGlobalWind.publish(self.global_wind)
+            self.updateWindIsLow()
+            self.pubLowWindConditions.publish(self.windIsLow)
 
             rospy.loginfo("Publishing to GPS, windSensor, and global_wind")
             rospy.loginfo("GPS fields:\n{}".format(self.gps))
@@ -122,6 +131,20 @@ class RosInterface:
             if measured_speed_knots < WIND_EWMA_UPPER_BOUNDS[i]:
                 return WIND_EWMA_WEIGHTS[i]
         return WIND_EWMA_WEIGHTS[-1]
+
+    def updateWindIsLow(self):
+        if self.windIsLow:
+            rospy.logwarn_throttle(5, "Low wind conditions. Measured Wind: {}km/h. Boat Speed: {}km/h"
+                                   .format(self.wind_sensor.measuredSpeedKmph, self.gps.speedKmph))
+            # Already in lowWindConditions, so need boat gps speed OR apparent wind speed to be high enough to get out
+            if((self.wind_sensor.measuredSpeedKmph > LOW_WIND_THRESHOLD_KMPH + HYSTERESIS_MARGINE_WIND)
+               or (self.gps.speedKmph > LOW_BOAT_SPEED_THRESHOLD_KMPH + HYSTERESIS_MARGINE_BOATSPEED)):
+                self.windIsLow = False
+        else:
+            # Wind is not low: enter low wind mode if boat gps speed AND apparent wind speed become too low
+            if((self.wind_sensor.measuredSpeedKmph < LOW_WIND_THRESHOLD_KMPH - HYSTERESIS_MARGINE_WIND)
+               and (self.gps.speedKmph < LOW_BOAT_SPEED_THRESHOLD_KMPH - HYSTERESIS_MARGINE_BOATSPEED)):
+                self.windIsLow = True
 
 
 if __name__ == "__main__":
