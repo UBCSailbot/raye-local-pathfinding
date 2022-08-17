@@ -3,7 +3,14 @@ import numpy as np
 import rospy
 from sailbot_msg.msg import Sensors, windSensor, GPS, globalWind
 from std_msgs.msg import Bool
-from utilities import bearingToHeadingDegrees, measuredWindToGlobalWind, vectorAverage, ewma, KNOTS_TO_KMPH
+from utilities import (
+    bearingToHeadingDegrees,
+    flipDirection,
+    measuredWindToGlobalWind,
+    vectorAverage,
+    ewma,
+    KNOTS_TO_KMPH
+)
 
 
 # Constants
@@ -83,7 +90,11 @@ class RosInterface:
 
     def filter(self):
         '''Filter data from multiple sensors into one input field, performing the necessary unit conversions.
-        Note: the order of fields must match the msg file (fields in filter() are before convert().'''
+        Notes:
+            - The order of fields must match the msg file (fields in filter() are before convert().
+            - wind_sensor direction convention for sensors is where its coming from, while in software its going to
+                - e.g., 180 is downwind for sensors, while 0 is downwind for software
+        '''
         # GPS sensor fields - CAN and AIS - take average
         self.gps.lat = np.mean([getattr(self.sensors, attr) for attr in self.active_gps_lats])
         self.gps.lon = np.mean([getattr(self.sensors, attr) for attr in self.active_gps_lons])
@@ -93,7 +104,8 @@ class RosInterface:
 
         # Wind sensor fields - sensors 1, 2, and 3 -> take EWMA (circular data like direction handled differently)
         speed_knots_sensor_data = [getattr(self.sensors, attr) for attr in self.active_wind_sensor_speeds]
-        angle_degrees_sensor_data = [getattr(self.sensors, attr) for attr in self.active_wind_sensor_angles]
+        angle_degrees_sensor_data = [flipDirection(getattr(self.sensors, attr))
+                                     for attr in self.active_wind_sensor_angles]
         speed_knots_averaged, angle_degrees_averaged = \
             vectorAverage(speed_knots_sensor_data, angle_degrees_sensor_data, self.active_wind_sensor_weights)
         ewma_weight = self.get_ewma_weight(speed_knots_averaged)
@@ -108,8 +120,8 @@ class RosInterface:
     def convert(self):
         '''Convert to conventions used by the pathfinding and controller. Conversion notes:
             - Sensors data types are int32 or float32, GPS and windSensor are float64, so no loss of precision
-            - gps speed_kmph and wind_sensor measured_speed_kmph: knots -> km/h
-            - gps heading_degrees and wind_sensor measured_heading_degrees: bearing to heading degrees
+            - gps speedKmph and wind_sensor measuredSpeedKmph: knots -> km/h
+            - gps headingDegrees and wind_sensor measuredDirectionDegrees: bearing to heading degrees
               (0 is north/forward, 90 is east/right - cw) -> (0 is east/right, 90 is north/forward - ccw)
         Note: the order of fields must match the msg file (fields in convert() are after filter().
         '''

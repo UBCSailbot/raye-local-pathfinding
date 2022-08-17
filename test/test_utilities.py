@@ -119,6 +119,12 @@ class TestUtilities(unittest.TestCase):
                                0,
                                places=3)
 
+    def test_flipDirection(self):
+        self.assertEqual(0, utils.flipDirection(180))
+        self.assertEqual(180, utils.flipDirection(0))
+        self.assertEqual(0, utils.flipDirection(540))
+        self.assertEqual(180, utils.flipDirection(-360))
+
     def test_vectorAverage(self):
         # Basic tests
         magnitude, angle = utils.vectorAverage([1.0, 1.0], [1.0, -1.0])

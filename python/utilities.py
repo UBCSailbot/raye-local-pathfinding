@@ -322,6 +322,12 @@ def bearingToHeadingDegrees(bearingDegrees):
     return (-bearingDegrees + 90) % 360
 
 
+def flipDirection(degrees):
+    '''Returns the reverse direction (flipped by 180 degrees) bounded in [0, 360).
+    '''
+    return (degrees + 180) % 360
+
+
 def vectorAverage(magnitudes, angles, weights=None):
     """Computes the weighted average of vectors using vector addition.
 
