@@ -360,14 +360,18 @@ def ewma(current_val, past_ewma, weight, is_angle):
         is_angle (bool): True when getting the field is an angle, false otherwise.
 
     Returns:
-        float: The exponentially weighted moving average.
+        float: The exponentially weighted moving average, bounded in [0, 360) if is_angle is true.
     """
     if past_ewma is None:
         return current_val
 
     if is_angle:
         _, current_val = mitsutaVals((past_ewma, current_val))
-    return weight * current_val + (1 - weight) * past_ewma
+
+    ret_val = (weight * current_val) + ((1 - weight) * past_ewma)
+    if is_angle:
+        ret_val %= 360
+    return ret_val
 
 
 def mitsutaVals(angles):
