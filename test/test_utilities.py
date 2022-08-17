@@ -119,35 +119,6 @@ class TestUtilities(unittest.TestCase):
                                0,
                                places=3)
 
-    def test_boundIn0To360(self):
-        # integers
-        self.assertEqual(0, utils.boundIn0To360(0))
-        self.assertEqual(3, utils.boundIn0To360(3))
-        self.assertEqual(359, utils.boundIn0To360(359))
-        self.assertEqual(0, utils.boundIn0To360(360))
-        self.assertEqual(0, utils.boundIn0To360(-360))
-        self.assertEqual(0, utils.boundIn0To360(-23 * 360))
-        self.assertEqual(0, utils.boundIn0To360(23 * 360))
-
-        self.assertEqual(10, utils.boundIn0To360(360 + 10))
-        self.assertEqual(72, utils.boundIn0To360(23 * 360 + 72))
-
-        self.assertEqual(270, utils.boundIn0To360(-90))
-        self.assertEqual(350, utils.boundIn0To360(-370))
-        self.assertEqual(240, utils.boundIn0To360(-23 * 360 - 120))
-
-        # floats
-        self.assertAlmostEqual(0.0, utils.boundIn0To360(0.0), places=3)
-        self.assertAlmostEqual(3.2, utils.boundIn0To360(3.2), places=3)
-        self.assertAlmostEqual(359.0, utils.boundIn0To360(359), places=3)
-
-        self.assertAlmostEqual(10.0, utils.boundIn0To360(360 + 10.0), places=3)
-        self.assertAlmostEqual(72.0, utils.boundIn0To360(23 * 360.0 + 72), places=3)
-
-        self.assertAlmostEqual(270.0, utils.boundIn0To360(-90.0), places=3)
-        self.assertAlmostEqual(350.0, utils.boundIn0To360(-370), places=3)
-        self.assertAlmostEqual(240.0, utils.boundIn0To360(-23 * 360.0 - 120), places=3)
-
     def test_vectorAverage(self):
         # Basic tests
         magnitude, angle = utils.vectorAverage([1.0, 1.0], [1.0, -1.0])
