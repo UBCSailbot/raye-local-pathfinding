@@ -360,9 +360,9 @@ def ewma(current_val, past_ewma, weight, is_angle):
     Weight is a discrete linear function of current_val.
 
     Args:
-        current_val (float): Current value.
-        past_ewma (float): Past value (EWMA).
-        weight (float): The weight of current_val; the weight of past_ewma is (1-weight).
+        current_val (float): Current value, bounded in [0, 360) if is_angle is true.
+        past_ewma (float): Past value (EWMA), bounded in [0, 360) if is_angle is true.
+        weight (float): The weight of current_val, bounded in [0, 1]; the weight of past_ewma is (1-weight).
         is_angle (bool): True when getting the field is an angle, false otherwise.
 
     Returns:
