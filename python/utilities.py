@@ -157,7 +157,7 @@ def checkLatLonIsValid(latlon):
         latlon: a latlon to check for validity
 
     Returns:
-        True if the latitude and longditude are within [-90, 90] and [-180, 180] respectively, and false otherwise.
+        True if the latitude and longitude are within [-90, 90] and [-180, 180] respectively, and false otherwise.
     '''
     return latlon.lat > -90 and latlon.lat < 90 and latlon.lon > -180 and latlon.lon < 180
 
