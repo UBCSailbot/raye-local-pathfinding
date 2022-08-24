@@ -176,6 +176,13 @@ class Sailbot:
         self.globalWindLastUpdate = time.time()
 
     def AISCallback(self, data):
+
+        for ship in data.ships:
+            if not utils.checkLatLonIsValid(latlon(ship.lat, ship.lon)):
+                data.ships.remove(ship)
+                rospy.logwarn_throttle(5, "Invalid co-ordinates for "
+                                       + "AIS Ship ID {}: ({}, {})".format(ship.ID, ship.lat, ship.lon))
+
         self.AISData = data
         self.AISLastUpdate = time.time()
 
