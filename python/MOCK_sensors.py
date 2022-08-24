@@ -5,6 +5,7 @@ import rospy
 import sailbot_msg.msg as msg
 import geopy.distance
 from utilities import (
+    flipDirection,
     headingToBearingDegrees,
     bearingToHeadingDegrees,
     PORT_RENFREW_LATLON,
@@ -84,10 +85,13 @@ class MOCK_SensorManager:
 
         data.wind_sensor_1_speed_knots = self.measuredWindSpeedKmph / KNOTS_TO_KMPH
         data.wind_sensor_1_angle_degrees = headingToBearingDegrees(self.measuredWindDirectionDegrees)
+        data.wind_sensor_1_angle_degrees = flipDirection(data.wind_sensor_1_angle_degrees)
         data.wind_sensor_2_speed_knots = self.measuredWindSpeedKmph / KNOTS_TO_KMPH
         data.wind_sensor_2_angle_degrees = headingToBearingDegrees(self.measuredWindDirectionDegrees)
+        data.wind_sensor_2_angle_degrees = flipDirection(data.wind_sensor_2_angle_degrees)
         data.wind_sensor_3_speed_knots = self.measuredWindSpeedKmph / KNOTS_TO_KMPH
         data.wind_sensor_3_angle_degrees = headingToBearingDegrees(self.measuredWindDirectionDegrees)
+        data.wind_sensor_3_angle_degrees = flipDirection(data.wind_sensor_3_angle_degrees)
 
         # data.gps_can_timestamp_utc
         data.gps_can_latitude_degrees = self.lat

@@ -302,7 +302,7 @@ def headingToBearingDegrees(headingDegrees):
     Returns:
        float representing the same angle in bearing coordinates
     '''
-    return boundIn0To360(-headingDegrees + 90)
+    return (-headingDegrees + 90) % 360
 
 
 def bearingToHeadingDegrees(bearingDegrees):
@@ -319,19 +319,13 @@ def bearingToHeadingDegrees(bearingDegrees):
     Returns:
        float representing the same angle in heading coordinates
     '''
-    return boundIn0To360(-bearingDegrees + 90)
+    return (-bearingDegrees + 90) % 360
 
 
-def boundIn0To360(angle):
-    ''' Given an angle in degrees, calculates an equivalent angle bounded in [0, 360)
-
-    Args:
-        angle (float or integer): an angle to be bounded, measured in degrees
-
-    Returns:
-        equivalent angle bounded to [0, 360). The return type matches the type of the input angle.
+def flipDirection(degrees):
+    '''Returns the reverse direction (flipped by 180 degrees) bounded in [0, 360).
     '''
-    return (angle % 360) if (angle >= 0 or angle % 360 == 0) else (360 - (-angle % 360))
+    return (degrees + 180) % 360
 
 
 def vectorAverage(magnitudes, angles, weights=None):
@@ -366,20 +360,24 @@ def ewma(current_val, past_ewma, weight, is_angle):
     Weight is a discrete linear function of current_val.
 
     Args:
-        current_val (float): Current value.
-        past_ewma (float): Past value (EWMA).
-        weight (float): The weight of current_val; the weight of past_ewma is (1-weight).
+        current_val (float): Current value, bounded in [0, 360) if is_angle is true.
+        past_ewma (float): Past value (EWMA), bounded in [0, 360) if is_angle is true.
+        weight (float): The weight of current_val, bounded in [0, 1]; the weight of past_ewma is (1-weight).
         is_angle (bool): True when getting the field is an angle, false otherwise.
 
     Returns:
-        float: The exponentially weighted moving average.
+        float: The exponentially weighted moving average, bounded in [0, 360) if is_angle is true.
     """
     if past_ewma is None:
         return current_val
 
     if is_angle:
         _, current_val = mitsutaVals((past_ewma, current_val))
-    return weight * current_val + (1 - weight) * past_ewma
+
+    ret_val = (weight * current_val) + ((1 - weight) * past_ewma)
+    if is_angle:
+        ret_val %= 360
+    return ret_val
 
 
 def mitsutaVals(angles):
