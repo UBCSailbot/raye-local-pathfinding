@@ -189,8 +189,7 @@ class Sailbot:
                 ''.join(['\n\tID {}: ({}, {})'.format(ship.ID, ship.lat, ship.lon) for ship in invalidShips])
             rospy.logwarn_throttle(5, warn_msg)
 
-        data.ships = filteredShips
-        self.AISData = data
+        self.AISData = AISMsg(ships=filteredShips)
         self.AISLastUpdate = time.time()
 
     def globalPathCallback(self, data):
