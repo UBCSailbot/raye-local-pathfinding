@@ -150,18 +150,6 @@ def XYToLatlon(xy, referenceLatlon):
     return latlon(destination.latitude, destination.longitude)
 
 
-def checkLatLonIsValid(latlon):
-    '''Determine if the latlon is valid
-
-    Args:
-        latlon: a latlon to check for validity
-
-    Returns:
-        True if the latitude and longitude are within [-90, 90] and [-180, 180] respectively, and false otherwise.
-    '''
-    return latlon.lat > -90 and latlon.lat < 90 and latlon.lon > -180 and latlon.lon < 180
-
-
 def timeLimitExceeded(lastTimePathCreated, speedup):
     '''Checks the time since last path was created has been too long. Ensures the boat is
     not stuck to a poor, stagnant path

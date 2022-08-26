@@ -176,15 +176,18 @@ class Sailbot:
         self.globalWindLastUpdate = time.time()
 
     def AISCallback(self, data):
+        # handle ships with invalid latlons
         filteredShips = []
-
+        invalidShips = []
         for ship in data.ships:
-            if utils.checkLatLonIsValid(latlon(ship.lat, ship.lon)):
+            if -90 < ship.lat < 90 and -180 < ship.lon < 180:
                 filteredShips.append(ship)
-
             else:
-                rospy.logwarn_throttle(5, "Invalid co-ordinates for "
-                                       + "AIS Ship ID {}: ({}, {})".format(ship.ID, ship.lat, ship.lon))
+                invalidShips.append(ship)
+        if invalidShips:
+            warn_msg = "Invalid coordinates for AIS Ships" + \
+                ''.join(['\n\tID {}: ({}, {})'.format(ship.ID, ship.lat, ship.lon) for ship in invalidShips])
+            rospy.logwarn_throttle(5, warn_msg)
 
         data.ships = filteredShips
         self.AISData = data
