@@ -169,10 +169,6 @@ if __name__ == '__main__':
             if localPathUpdateForced:
                 localPathUpdateForced = False
 
-            # Reset sailbot newGlobalPathReceived boolean
-            if newGlobalPathReceived:
-                sailbot.newGlobalPathReceived = False
-
             # Reset sbot.goalWasInvalid boolean
             if sbot.goalWasInvalid:
                 sbot.goalWasInvalid = False
@@ -181,6 +177,18 @@ if __name__ == '__main__':
             if isGlobalWaypointReached:
                 rospy.loginfo("Global waypoint reached")
                 sailbot.globalPathIndex += 1
+                nextGlobalWaypoint = sailbot.globalPath[sailbot.globalPathIndex]
+                previousGlobalWaypoint = sailbot.globalPath[sailbot.globalPathIndex - 1]
+
+            # Reset sailbot newGlobalPathReceived boolean
+            if newGlobalPathReceived:
+                sailbot.newGlobalPathReceived = False
+
+                while localPath.waypointReached(state.position, previousGlobalWaypoint, nextGlobalWaypoint, True):
+                    rospy.logwarn('Already reached next global waypoint, incrementing global path index')
+                    sailbot.globalPathIndex += 1
+                    nextGlobalWaypoint = sailbot.globalPath[sailbot.globalPathIndex]
+                    previousGlobalWaypoint = sailbot.globalPath[sailbot.globalPathIndex - 1]
 
             # Update local path
             localPath, lastTimePathCreated = createNewLocalPath(
