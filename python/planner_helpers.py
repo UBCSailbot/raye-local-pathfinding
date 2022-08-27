@@ -14,8 +14,8 @@ from ompl import base as ob
 ##
 
 # Upwind downwind constants
-UPWIND_MAX_ANGLE_DEGREES = 30.0
-DOWNWIND_MAX_ANGLE_DEGREES = 30.0
+UPWIND_MAX_ANGLE_DEGREES = 40.0
+DOWNWIND_MAX_ANGLE_DEGREES = 25.0
 
 # Balanced objective constants
 LENGTH_WEIGHT = 100.0
