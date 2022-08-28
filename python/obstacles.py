@@ -27,7 +27,8 @@ PROJECTED_BOAT_COLOR = "blue"
 CURRENT_BOAT_TRANSPARENCY_ALPHA = 0.1  # Current position is more transparent
 
 # Absolute path to the local-pathfinding directory from the absolute path to this file
-LOCAL_DIR_ABS_PATH = os.path.abspath(__file__)[:os.path.abspath(__file__).find('python/')]
+LAND_MASSES_DIR = 'land_masses'
+LOCAL_DIR_ABS_PATH = os.path.join(os.path.abspath(__file__)[:os.path.abspath(__file__).find('python')], LAND_MASSES_DIR)
 
 
 def getObstacles(state, referenceLatlon):
@@ -61,12 +62,13 @@ def getObstacles(state, referenceLatlon):
 
     # create a land mass obstacle if land_latlons is not empty
     # path relative to local-pathfinding directory
-    land_mass_file = rospy.get_param('land_mass_file', default='')
-    land_mass_file_abs_path = os.path.join(LOCAL_DIR_ABS_PATH, land_mass_file)
-    if os.path.isfile(land_mass_file_abs_path):
-        obstacles.append(GeneralPolygon(land_mass_file_abs_path, referenceLatlon))
-    elif land_mass_file:
-        rospy.logfatal('Land mass file at {} does not exist'.format(land_mass_file_abs_path))
+    land_mass_file_list = rospy.get_param('land_mass_file_list', default='')
+    for land_mass_file in land_mass_file_list.split(','):
+        land_mass_file_abs_path = os.path.join(LOCAL_DIR_ABS_PATH, land_mass_file)
+        if os.path.isfile(land_mass_file_abs_path):
+            obstacles.append(GeneralPolygon(land_mass_file_abs_path, referenceLatlon))
+        elif land_mass_file_list:
+            rospy.logfatal('Land mass file at {} does not exist'.format(land_mass_file_abs_path))
 
     return obstacles
 
