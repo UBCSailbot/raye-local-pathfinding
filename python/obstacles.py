@@ -61,12 +61,13 @@ def getObstacles(state, referenceLatlon):
 
     # create a land mass obstacle if land_latlons is not empty
     # path relative to local-pathfinding directory
-    land_mass_file = rospy.get_param('land_mass_file', default='')
-    land_mass_file_abs_path = os.path.join(LOCAL_DIR_ABS_PATH, land_mass_file)
-    if os.path.isfile(land_mass_file_abs_path):
-        obstacles.append(GeneralPolygon(land_mass_file_abs_path, referenceLatlon))
-    elif land_mass_file:
-        rospy.logfatal('Land mass file at {} does not exist'.format(land_mass_file_abs_path))
+    land_mass_file_list = rospy.get_param('land_mass_file_list', default='')
+    for land_mass_file in land_mass_file_list.split(','):
+        land_mass_file_abs_path = os.path.join(LOCAL_DIR_ABS_PATH, land_mass_file)
+        if os.path.isfile(land_mass_file_abs_path):
+            obstacles.append(GeneralPolygon(land_mass_file_abs_path, referenceLatlon))
+        elif land_mass_file_list:
+            rospy.logfatal('Land mass file at {} does not exist'.format(land_mass_file_abs_path))
 
     return obstacles
 
@@ -293,16 +294,16 @@ class HybridCircleObstacle(ObstacleInterface):
 
 
 class GeneralPolygon(ObstacleInterface):
-    def __init__(self, land_mass_file, referenceLatlon):
+    def __init__(self, land_mass_file_list, referenceLatlon):
         """ Initialize obstacle
 
         Args:
-            land_mass_file (str): path to a file with the bounding latlons of the land mass to visualize
+            land_mass_file_list (str): path to a file with the bounding latlons of the land mass to visualize
                 - Latlons in the format "lat,lon\n"
                 - Latlons next to each other in the list are neighbors in the land mass
             referenceLatlon (sailbot_msg.msg._latlon.latlon): Position of the reference point that will be at (0,0)
         """
-        with open(land_mass_file, 'r') as f:
+        with open(land_mass_file_list, 'r') as f:
             lines = f.readlines()
 
         self.land_latlons = [[float(coord) for coord in latlon_str.split(',')] for latlon_str in lines]
