@@ -27,7 +27,8 @@ PROJECTED_BOAT_COLOR = "blue"
 CURRENT_BOAT_TRANSPARENCY_ALPHA = 0.1  # Current position is more transparent
 
 # Absolute path to the local-pathfinding directory from the absolute path to this file
-LOCAL_DIR_ABS_PATH = os.path.abspath(__file__)[:os.path.abspath(__file__).find('python/')]
+LAND_MASSES_DIR = 'land_masses'
+LOCAL_DIR_ABS_PATH = os.path.join(os.path.abspath(__file__)[:os.path.abspath(__file__).find('python')], LAND_MASSES_DIR)
 
 
 def getObstacles(state, referenceLatlon):
