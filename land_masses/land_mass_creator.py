@@ -17,7 +17,7 @@ if __name__ == '__main__':
     parser.add_argument('north', type=float, help='top latitude bound')
     parser.add_argument('west', type=float, help='left longitude bound')
     parser.add_argument('east', type=float, help='right longitude bound')
-    parser.add_argument('-d', '--threshold_depth', type=float, default=5,
+    parser.add_argument('-d', '--threshold_depth', type=int, default=5,
                         help='maximum depth below sea level of the returned location (in metres, exclusive, default 5)')
     args = parser.parse_args()
 
