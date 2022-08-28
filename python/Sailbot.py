@@ -9,6 +9,7 @@ import utilities as utils
 
 # Parameters
 MAX_NUM_AIS_SHIPS = 50  # Limit number of AIS ships used in full pipeline, makes large performance difference
+AIS_SHIPS_IGNORE_LIST = []  # List of ID's of AIS ships to ignore
 
 # Global variables for moving waypoint
 goalWasInvalid = False
@@ -188,6 +189,9 @@ class Sailbot:
             warn_msg = "Invalid coordinates for AIS Ships" + \
                 ''.join(['\n\tID {}: ({}, {})'.format(ship.ID, ship.lat, ship.lon) for ship in invalidShips])
             rospy.logwarn_throttle(5, warn_msg)
+
+        # ignore ships
+        filteredShips = [ship for ship in filteredShips if ship.ID not in AIS_SHIPS_IGNORE_LIST]
 
         self.AISData = AISMsg(ships=filteredShips)
         self.AISLastUpdate = time.time()
