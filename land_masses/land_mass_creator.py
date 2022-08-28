@@ -36,13 +36,13 @@ if __name__ == '__main__':
     lon_end = int((args.east - lon_min) / 0.004166666667)
     print('nc index bounds: lat=[{},{}) lon=[{},{})'.format(lat_start, lat_end, lon_start, lon_end))
 
-    land_mass_file_list = os.path.join(CURR_DIR, 'land_depth_{}m_{}'.format(args.threshold_depth,
+    land_mass_file = os.path.join(CURR_DIR, 'land_depth_{}m_{}'.format(args.threshold_depth,
                                                                        datetime.now().strftime('%m_%d_%Y-%H_%M_%S')))
-    kml = open(land_mass_file_list + '.kml', 'w')
+    kml = open(land_mass_file + '.kml', 'w')
     kml.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
               "<kml xmlns=\"http://earth.google.com/kml/2.0\"><Document><Placemark><LineString><coordinates>\n")
 
-    csv = open(land_mass_file_list + '.csv', 'w')
+    csv = open(land_mass_file + '.csv', 'w')
 
     # All GPS locations of land above threshold depth, with a resolution of 0.00416667 degrees
     endPoints = []
@@ -82,7 +82,7 @@ if __name__ == '__main__':
     csv.close()
     kml.write("</coordinates></LineString></Placemark></Document></kml>\n")
     kml.close()
-    print 'Saved to', land_mass_file_list + '.(csv|kml)'
+    print 'Saved to', land_mass_file + '.(csv|kml)'
 
     stop = timeit.default_timer()
     print 'Took', stop - start, 'seconds'
