@@ -21,6 +21,10 @@
     <arg name="smooth_changes" default="true" />
     <param name="smooth_changes" type="bool" value="$(arg smooth_changes)" />
 
+    <!-- Specifies if sensors should give generated corrupt data -->
+    <arg name="broken_wind_sensors" default="not_broken" />
+    <param name="broken_wind_sensors" type="string" value="$(arg broken_wind_sensors)" />
+
     <node pkg="local_pathfinding" type="MOCK_sensors.py" name="MOCK_sensors" />
 </launch>
 
