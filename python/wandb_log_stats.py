@@ -18,7 +18,6 @@ UPDATE_TIME_SECONDS = 1
 # Globals for subscribing
 sensor_data = None
 actuation_angle_data = None
-min_voltage_data = None
 gps_data = None
 windSensor_data = None
 lowWindConditions_data = None
@@ -32,11 +31,6 @@ def sensorsCallback(data):
 def actuationAngleCallback(data):
     global actuation_angle_data
     actuation_angle_data = data
-
-
-def minVoltageCallback(data):
-    global min_voltage_data
-    min_voltage_data = data
 
 
 def gpsCallback(data):
@@ -68,7 +62,6 @@ if __name__ == '__main__':
     sailbot = sbot.Sailbot(nodeName='log_stats')
     rospy.Subscriber("sensors", sailbot_msg.Sensors, sensorsCallback)
     rospy.Subscriber("actuation_angle", sailbot_msg.actuation_angle, actuationAngleCallback)
-    rospy.Subscriber("min_voltage", std_msgs.Float32, minVoltageCallback)
     rospy.Subscriber("GPS", sailbot_msg.GPS, gpsCallback)
     rospy.Subscriber("windSensor", sailbot_msg.windSensor, windSensorCallback)
     rospy.Subscriber('lowWindConditions', std_msgs.Bool, lowWindConditionsCallback)
@@ -144,10 +137,6 @@ if __name__ == '__main__':
             # Log actuation angle
             if actuation_angle_data is not None:
                 log.update(getDictFromMsg(section_name='Actuation Angle', data=actuation_angle_data))
-
-            # Log minimum voltage
-            if min_voltage_data is not None:
-                log['Low Power Mode/min_voltage'] = min_voltage_data.data
 
             # Log low wind conditions
             if lowWindConditions_data is not None:
